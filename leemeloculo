@@ -1,0 +1,17 @@
+catch errores
+mejorar el ontap para adkirir la palabra
+mejorar el codigo que hay mucha guarrerida perdida y crear una funcion de la de inis y fin para controlar mejor lso errores
+encapsular la llamada de ION
+quitar el land space
+
+VARIOS
+ic_launcher
+nombre del proyecto
+eliminar receiver y la main activity
+cuenta de google developer para este proyecto(es cloud?)
+UI
+utilizar recyclerview
+persistir
+quitar la barra superior de 54dp
+
+Cambiar el diseño 100% ui y ux de mierda absolute.splash

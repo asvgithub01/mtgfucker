@@ -98,7 +98,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         button2 = (Button) findViewById(R.id.button2);
         button3 = (Button) findViewById(R.id.button3);
         button4 = (Button) findViewById(R.id.button4);
-        imgBgCard= (ImageView) findViewById(R.id.imgBgCard);
+        imgBgCard = (ImageView) findViewById(R.id.imgBgCard);
         imgCard = (ImageView) findViewById(R.id.imgCard);
         tab1 = (RelativeLayout) findViewById(R.id.tab1);
         tab2 = (RelativeLayout) findViewById(R.id.tab2);
@@ -134,10 +134,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
-
-        Snackbar.make(mGraphicOverlay, "Tap to capture. Pinch/Stretch to zoom",
-                Snackbar.LENGTH_LONG)
-                .show();
     }
 
     /**
@@ -362,7 +358,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             if (text != null && text.getValue() != null) {
 
                 //todo hacer la peticion una vez se ha validado
-                String textForurl = text.getValue().replace(" ", "+").replace("(", "");
+                String textForurl = text.getValue().replace(" ", "+").replace("(", "").replace("|","");
                 final String UrlBase = "https://es.magiccardmarket.eu/Cards/";
                 getHtmlInfo(UrlBase + textForurl, text.getValue().replace("(", ""));
 
@@ -393,7 +389,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     TextView txtResults, txtDescription;
     EditText txtDeckResult;
     Button button, button2, button3, button4;
-    ImageView imgCard,imgBgCard;
+    ImageView imgCard, imgBgCard;
     RelativeLayout tab1, tab2, tab3, tab4;
 
     //region tontimenu
@@ -412,11 +408,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         button3.setBackgroundColor(getResources().getColor(R.color.gDark));
         button4.setBackgroundColor(getResources().getColor(R.color.gDark));
     }
-
-
     //endregion
-
-
     private void getHtmlInfo(String url, String texti) {
         try {
             txtDeckResult.setText(txtDeckResult.getText() + "\n" + texti);
@@ -424,60 +416,70 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             Ion.with(getApplicationContext()).load(url).asString().setCallback(new FutureCallback<String>() {
                 @Override
                 public void onCompleted(Exception e, String a) {
-
-                    //tv.setText(result);
-
-                    int ini = a.indexOf("\"lowPrice\">");
-                    int fin = a.indexOf("</span>", ini);
-                    String price = a.substring(ini + "\"lowPrice\">".length(), fin);
-
-                    if (price.length() > 5) price = "caca futi";
-                    //Intent data = new Intent();
-                    txtResults.setText(txtResults.getText() + "   " + price + " €");
-
-                    ini = a.indexOf("id=\"imgDiv\">");
-                    ini = a.indexOf("<img src=\"", ini);
-                    fin = a.indexOf("\" alt=", ini);
-                    String imgPath = "https://es.magiccardmarket.eu/" + a.substring(ini + "<img src=\"".length(), fin);
-
-                    //  String internetUrl = "https://es.magiccardmarket.eu/img/be2b0240fedcd5f90befe3eafb9b79ea/cards/Modern_Masters/arcbound_ravager.jpg";
-
-                    Glide
-                            .with(imgCard.getContext())
-                            .load(imgPath)
-                            .into(imgCard);
-                    Glide
-                            .with(imgBgCard.getContext())
-                            .load(imgPath)
-                            .into(imgBgCard);
-                    //link al otro idioma
-                    ini = a.indexOf("onmouseout=\"hideMsgBox()\"></span><a href=\"");
-                    fin = a.indexOf("\" class=\"nameLink\">", ini);
-                    String urlLang = "https://es.magiccardmarket.eu" + a.substring(ini + "onmouseout=\"hideMsgBox()\"></span><a href=\"".length(), fin);
-                    // <div class="vAlignParent infoBlock"><span style="display: inline-block; width: 16px; height: 16px; background-image: url('/img/378784428121e8bd40ebb70712ee9ef8/spriteSheets/ssMain2.png'); background-position: -112px -80px;" class="icon" onmouseover="showMsgBox('Español')" onmouseout="hideMsgBox()"></span><a href="/Cards/Devastador+arcoligado" class="nameLink">Devastador arcoligado</a></div>
-                    Ion.with(getApplicationContext()).load(urlLang).asString().setCallback(new FutureCallback<String>() {
-                        @Override
-                        public void onCompleted(Exception e, String a) {
-//todo parsear la description
-
-                            int ini = a.indexOf("<div class=\"infoBlock rulesBlock");
-                            ini = a.indexOf("itemprop=\"description\">", ini);
-                            int fin = a.indexOf("</div>", ini);
-                            String urlLang = a.substring(ini + "itemprop=\"description\">".length(), fin);
-                            txtDescription.setText(urlLang.replace("<br>", ""));
-
-                        }
-                    });
-
-
+                    try {
+                        getPriceFromMkm(a);
+                        getImgCardFromMkm(a);
+                        getTranslateDescriptionFromMkm(a);
+                    } catch (Exception ex) {
+                        Log.e("Error,parsing", ex.getMessage());
+                    }
                 }
             });
         } catch (Exception e) {
 
-            Log.e("", e.getMessage());
+            Log.e("Error,HtmlInfo", e.getMessage());
         }
     }
+    //region scrapeo macareno
+    private void getTranslateDescriptionFromMkm(String a) throws Exception {
+        //link al otro idioma
+        int ini = a.indexOf("onmouseout=\"hideMsgBox()\"></span><a href=\"");
+        int fin = a.indexOf("\" class=\"nameLink\">", ini);
+        String urlLang = "https://es.magiccardmarket.eu" + a.substring(ini + "onmouseout=\"hideMsgBox()\"></span><a href=\"".length(), fin);
 
+        Ion.with(getApplicationContext()).load(urlLang).asString().setCallback(new FutureCallback<String>() {
+            @Override
+            public void onCompleted(Exception e, String a) {
+                //todo parsear la description
+
+                int ini = a.indexOf("<div class=\"infoBlock rulesBlock");
+                ini = a.indexOf("itemprop=\"description\">", ini);
+                int fin = a.indexOf("</div>", ini);
+                String urlLang = a.substring(ini + "itemprop=\"description\">".length(), fin);
+                txtDescription.setText(urlLang.replace("<br>", ""));
+
+            }
+        });
+    }
+
+    private void getImgCardFromMkm(String a) throws Exception {
+
+        int ini = a.indexOf("id=\"imgDiv\">");
+        ini = a.indexOf("<img src=\"", ini);
+        int fin = a.indexOf("\" alt=", ini);
+        String imgPath = "https://es.magiccardmarket.eu/" + a.substring(ini + "<img src=\"".length(), fin);
+
+        Glide
+                .with(imgCard.getContext())
+                .load(imgPath)
+                .into(imgCard);
+        Glide
+                .with(imgBgCard.getContext())
+                .load(imgPath)
+                .into(imgBgCard);
+    }
+
+    private void getPriceFromMkm(String a) throws Exception {
+        int ini = a.indexOf("\"lowPrice\">");
+        int fin = a.indexOf("</span>", ini);
+        String price = a.substring(ini + "\"lowPrice\">".length(), fin);
+
+        if (price.length() > 5) price = "caca futi";
+        //Intent data = new Intent();
+        txtResults.setText(txtResults.getText() + "   " + price + " €");
+    }
+
+    //endregion
     @Override
     public void onClick(View v) {
 
@@ -512,7 +514,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
     }
 
-
+    /*******************************************************************************************************/
     private class CaptureGestureListener extends GestureDetector.SimpleOnGestureListener {
 
         @Override

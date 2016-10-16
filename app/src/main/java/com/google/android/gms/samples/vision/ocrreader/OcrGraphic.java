@@ -40,6 +40,7 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
     private static Paint sTextPaint;
     private final TextBlock mText;
 
+
     OcrGraphic(GraphicOverlay overlay, TextBlock text) {
         super(overlay);
 
@@ -49,17 +50,11 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
             sRectPaint = new Paint();
             sRectPaint.setColor(TEXT_COLOR);
             sRectPaint.setStyle(Paint.Style.STROKE);
-            sRectPaint.setStrokeWidth(1.0f);
+            sRectPaint.setStrokeWidth(10.0f);
         }
 
-        if (sTextPaint == null) {
-            sTextPaint = new Paint();
-            sTextPaint.setColor(TEXT_COLOR);
-            //sTextPaint.setTextSize(54.0f);
-            sTextPaint.setTextSize(108.0f);
-        }
         // Redraw the overlay, as this graphic has been added.
-        //postInvalidate();
+         postInvalidate();
     }
 
     public int getId() {
@@ -115,14 +110,27 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
         rect.bottom = translateY(rect.bottom);
         canvas.drawRect(rect, sRectPaint);
 
+        udatePaintForDesiredLenghtText();
+
+
         // Break the text into multiple lines and draw each one according to its own bounding box.
         List<? extends Text> textComponents = text.getComponents();
         for (Text currentText : textComponents) {
             float left = translateX(currentText.getBoundingBox().left);
             float bottom = translateY(currentText.getBoundingBox().bottom);
             canvas.drawText(currentText.getValue(), left, bottom, sTextPaint);
-            //todo tirar peticiones a chorrillo con el currentTExt.getValue(),
-            //ver si poner un boton de ui aki para q le de el usuario y asi atinar a la primera peticion
+        }
+    }
+
+    private void udatePaintForDesiredLenghtText() {
+        sTextPaint = new Paint();
+        sTextPaint.setColor(TEXT_COLOR);
+
+        if (mText != null && mText.getValue() != null) {
+            if (mText.getValue().length() < 20)
+                sTextPaint.setTextSize(108.0f);
+            else
+                sTextPaint.setTextSize(54.0f);
 
         }
     }

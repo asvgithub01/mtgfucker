@@ -7,64 +7,44 @@
         android:id="@+id/imgBgCard"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
-
 <LinearLayout
-
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="12dp"
-
     android:orientation="vertical">
-
-<LinearLayout
-
-    android:id="@+id/topLayout"
-    android:layout_width="match_parent"
-    android:layout_height="108dp"
-    android:keepScreenOn="true">
-
-    <com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview
-        android:id="@+id/preview"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <com.google.android.gms.samples.vision.ocrreader.ui.camera.GraphicOverlay
-            android:id="@+id/graphicOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview>
-
-</LinearLayout>
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal">
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Price"
-        android:layout_gravity="bottom"/>
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Price"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Deck Editor"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gallery"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Language"
+            android:layout_gravity="bottom"/>
+    </LinearLayout>
+    <RelativeLayout
+        android:background="#00ccff"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Deck Editor"
-        android:layout_gravity="bottom"/>
-    <Button
-        android:id="@+id/button3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Gallery"
-        android:layout_gravity="bottom"/>
-    <Button
-        android:id="@+id/button4"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Language"
-        android:layout_gravity="bottom"/>
-</LinearLayout>
+        android:layout_marginBottom="108dp">
     <RelativeLayout
         android:id="@+id/tab1"
         android:layout_width="match_parent"
@@ -106,5 +86,24 @@
            android:layout_width="wrap_content"
            android:layout_height="wrap_content" />
     </RelativeLayout>
+    </RelativeLayout>
+</LinearLayout>
+    <LinearLayout
+    android:id="@+id/topLayout"
+    android:background="#ff0033"
+    android:layout_width="match_parent"
+    android:layout_height="108dp"
+    android:keepScreenOn="true"
+        android:layout_alignParentBottom="true"
+         >
+    <com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <com.google.android.gms.samples.vision.ocrreader.ui.camera.GraphicOverlay
+            android:id="@+id/graphicOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview>
 </LinearLayout>
 </RelativeLayout>

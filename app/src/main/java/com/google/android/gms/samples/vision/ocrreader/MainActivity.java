@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.app.Activity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
@@ -40,7 +41,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int RC_OCR_CAPTURE = 9003;
     private static final String TAG = "MainActivity";
-
+Button btnBiblio,btnNewDeck,btnEditDecks;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,7 +53,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         autoFocus = (CompoundButton) findViewById(R.id.auto_focus);
         useFlash = (CompoundButton) findViewById(R.id.use_flash);
 
-        findViewById(R.id.read_text).setOnClickListener(this);
+        findViewById(R.id.btnBiblio).setOnClickListener(this);
+        findViewById(R.id.btnNewDeck).setOnClickListener(this);
+        findViewById(R.id.btnEditDecks).setOnClickListener(this);
+
     }
 
     /**
@@ -62,11 +66,31 @@ public class MainActivity extends Activity implements View.OnClickListener {
      */
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.read_text) {
+        if (v.getId() == R.id.btnBiblio) {
             // launch Ocr capture activity.
             Intent intent = new Intent(this, OcrCaptureActivity.class);
             intent.putExtra(OcrCaptureActivity.AutoFocus, autoFocus.isChecked());
             intent.putExtra(OcrCaptureActivity.UseFlash, useFlash.isChecked());
+            intent.putExtra(OcrCaptureActivity.PersistorMode,"0");
+
+            startActivityForResult(intent, RC_OCR_CAPTURE);
+        }
+
+        if (v.getId() == R.id.btnNewDeck) {
+            // launch Ocr capture activity.
+            Intent intent = new Intent(this, OcrCaptureActivity.class);
+            intent.putExtra(OcrCaptureActivity.AutoFocus, autoFocus.isChecked());
+            intent.putExtra(OcrCaptureActivity.UseFlash, useFlash.isChecked());
+            intent.putExtra(OcrCaptureActivity.PersistorMode, "1");
+
+            startActivityForResult(intent, RC_OCR_CAPTURE);
+        }
+        if (v.getId() == R.id.btnEditDecks) {
+            // launch Ocr capture activity.
+            Intent intent = new Intent(this, OcrCaptureActivity.class);
+            intent.putExtra(OcrCaptureActivity.AutoFocus, autoFocus.isChecked());
+            intent.putExtra(OcrCaptureActivity.UseFlash, useFlash.isChecked());
+            intent.putExtra(OcrCaptureActivity.PersistorMode, "2");
 
             startActivityForResult(intent, RC_OCR_CAPTURE);
         }
@@ -75,7 +99,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     /**
      * Called when an activity you launched exits, giving you the requestCode
      * you started it with, the resultCode it returned, and any additional
-     * data from it.  The <var>resultCode</var> will be
+     * LoadSaveData from it.  The <var>resultCode</var> will be
      * {@link #RESULT_CANCELED} if the activity explicitly returned that,
      * didn't return any result, or crashed during its operation.
      * <p/>
@@ -88,8 +112,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
      *                    result came from.
      * @param resultCode  The integer result code returned by the child activity
      *                    through its setResult().
-     * @param data        An Intent, which can return result data to the caller
-     *                    (various data can be attached to Intent "extras").
+     * @param LoadSaveData        An Intent, which can return result LoadSaveData to the caller
+     *                    (various LoadSaveData can be attached to Intent "extras").
      * @see #startActivityForResult
      * @see #createPendingResult
      * @see #setResult(int)
@@ -106,7 +130,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.d(TAG, "Text read: " + text);
                 } else {
                     statusMessage.setText(R.string.ocr_failure);
-                    Log.d(TAG, "No Text captured, intent data is null");
+                    Log.d(TAG, "No Text captured, intent LoadSaveData is null");
                 }
             } else {
                 statusMessage.setText(String.format(getString(R.string.ocr_error),

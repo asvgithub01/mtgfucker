@@ -46,6 +46,10 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.samples.vision.ocrreader.model.Biblio;
+import com.google.android.gms.samples.vision.ocrreader.model.CardInfo;
+import com.google.android.gms.samples.vision.ocrreader.model.Deck;
+import com.google.android.gms.samples.vision.ocrreader.model.Decks;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSource;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.GraphicOverlay;
@@ -70,9 +74,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
-    // Constants used to pass extra data in the intent
+    // Constants used to pass extra LoadSaveData in the intent
     public static final String AutoFocus = "AutoFocus";
     public static final String UseFlash = "UseFlash";
+    public static final String PersistorMode = "mtgModePersistor";
     public static final String TextBlockObject = "String";
 
     private CameraSource mCameraSource;
@@ -82,6 +87,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Helper objects for detecting taps and pinches.
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
+
+    String mPersistorMode;
+    Biblio mBiblio;
+    Decks mDecks;
+    Deck mDeck;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -122,6 +132,44 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         // read parameters from the intent used to launch the activity.
         boolean autoFocus = getIntent().getBooleanExtra(AutoFocus, false);
         boolean useFlash = getIntent().getBooleanExtra(UseFlash, false);
+        mPersistorMode = getIntent().getStringExtra(PersistorMode);
+
+
+        if (mPersistorMode.equals("0"))//biblio
+        {
+            mBiblio = LoadSaveData.readSerializable(this, "myBiblio.Json");
+            if (mBiblio == null) {
+                //todo show dialog for create name of mybiblio
+                mBiblio = new Biblio("myBiblio.Json", "Mis Cartukis");
+                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
+            }
+
+        }
+        if (mPersistorMode.equals("1"))//newdeck
+        {
+            mDeck = LoadSaveData.readSerializable(this, "myDeck.Json");
+            if (mDeck == null) {
+                //todo show dialog for create name of deck
+                mDeck = new Deck("myDeck.Json", "MiDeck");
+            }
+
+            mDecks = LoadSaveData.readSerializable(this, mDecks.nameFile);
+            if (mDecks == null) {
+                mDecks = new Decks();
+                mDecks.addDeck(mDeck);
+            }
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+        if (mPersistorMode.equals("2"))//editDecks
+        {
+            mDecks = LoadSaveData.readSerializable(this, mDecks.nameFile);
+            if (mDecks == null) {
+                mDecks = new Decks();
+                mDecks.addDeck(mDeck);
+            }
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+        showPersistorUI();
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -134,6 +182,23 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
+    }
+
+    private void showPersistorUI() {
+        if (mPersistorMode.equals("0"))//biblio
+        {
+            for (CardInfo card : mBiblio.cards) {
+                txtResults.setText(txtResults.getText() + card.getName() + " " + card.getPrice() + " €\n");
+            }
+        }
+        if (mPersistorMode == "1")//newdeck
+        {
+            //todo
+        }
+        if (mPersistorMode == "2")//editDecks
+        {
+            //todo
+        }
     }
 
     /**
@@ -349,6 +414,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
      * @param rawY - the raw position of the tap.
      * @return true if the activity is ending.
      */
+
     private boolean onTap(float rawX, float rawY) {
 
         OcrGraphic graphic = mGraphicOverlay.getGraphicAtLocation(rawX, rawY);
@@ -356,21 +422,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         if (graphic != null) {
             text = graphic.getTextBlock();
             if (text != null && text.getValue() != null) {
-
                 //todo hacer la peticion una vez se ha validado
-                String textForurl = text.getValue().replace(" ", "+").replace("(", "").replace("|","");
+                String textForurl = text.getValue().replace(" ", "+").replace("(", "").replace("|", "");
                 final String UrlBase = "https://es.magiccardmarket.eu/Cards/";
-                getHtmlInfo(UrlBase + textForurl, text.getValue().replace("(", ""));
+                CardInfo cardinfo = new CardInfo(text.getValue().replace("(", "").replace("|", ""), "", "", "", "");
 
+                getHtmlInfo(UrlBase + textForurl, text.getValue().replace("(", ""), cardinfo);
                 Log.i("", text.getValue());
-/*
-                Intent data = new Intent();
-                data.putExtra(TextBlockObject, text.getValue().replace("(", ""));
-                setResult(CommonStatusCodes.SUCCESS, data);
-*/
-
             } else {
-                Log.d(TAG, "text data is null");
+                Log.d(TAG, "text LoadSaveData is null");
             }
         } else {
             Log.d(TAG, "no text detected");
@@ -408,18 +468,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         button3.setBackgroundColor(getResources().getColor(R.color.gDark));
         button4.setBackgroundColor(getResources().getColor(R.color.gDark));
     }
+
     //endregion
-    private void getHtmlInfo(String url, String texti) {
+    private void getHtmlInfo(String url, String texti, final CardInfo cardInfo) {
         try {
             txtDeckResult.setText(txtDeckResult.getText() + "\n" + texti);
             txtResults.setText(txtResults.getText() + "\n" + texti);
+
             Ion.with(getApplicationContext()).load(url).asString().setCallback(new FutureCallback<String>() {
                 @Override
                 public void onCompleted(Exception e, String a) {
                     try {
-                        getPriceFromMkm(a);
-                        getImgCardFromMkm(a);
-                        getTranslateDescriptionFromMkm(a);
+                        getPriceFromMkm(a, cardInfo);
+                        getImgCardFromMkm(a, cardInfo);
+                        getTranslateDescriptionFromMkm(a, cardInfo);
+                       //->callbackdescriptin persistInfo(cardInfo);
                     } catch (Exception ex) {
                         Log.e("Error,parsing", ex.getMessage());
                     }
@@ -430,8 +493,32 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             Log.e("Error,HtmlInfo", e.getMessage());
         }
     }
+
+    private void persistInfo(CardInfo cardInfo) {
+
+        if (mPersistorMode.equals("0"))//biblio
+        {
+            if (cardInfo.getPrice() != "") {
+                mBiblio.addCard(cardInfo);
+                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
+            }
+        }
+        if (mPersistorMode.equals("1"))//newdeck
+        {
+            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+        if (mPersistorMode.equals("2"))//editDecks
+        {
+            //todo en vez dle ultimo->mDecks.decks.size()-1
+            //editar el current deck
+            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+    }
+
     //region scrapeo macareno
-    private void getTranslateDescriptionFromMkm(String a) throws Exception {
+    private void getTranslateDescriptionFromMkm(String a, final CardInfo cardinfo) throws Exception {
         //link al otro idioma
         int ini = a.indexOf("onmouseout=\"hideMsgBox()\"></span><a href=\"");
         int fin = a.indexOf("\" class=\"nameLink\">", ini);
@@ -446,13 +533,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 ini = a.indexOf("itemprop=\"description\">", ini);
                 int fin = a.indexOf("</div>", ini);
                 String urlLang = a.substring(ini + "itemprop=\"description\">".length(), fin);
-                txtDescription.setText(urlLang.replace("<br>", ""));
-
+                txtDescription.setText(urlLang.replace("<br>", "").replace("<br/>", ""));
+                cardinfo.setDescription(txtDescription.getText().toString());
+                persistInfo(cardinfo);
             }
         });
     }
 
-    private void getImgCardFromMkm(String a) throws Exception {
+    private void getImgCardFromMkm(String a, final CardInfo cardinfo) throws Exception {
 
         int ini = a.indexOf("id=\"imgDiv\">");
         ini = a.indexOf("<img src=\"", ini);
@@ -467,15 +555,20 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 .with(imgBgCard.getContext())
                 .load(imgPath)
                 .into(imgBgCard);
+
+        cardinfo.setImgPath(imgPath);
     }
 
-    private void getPriceFromMkm(String a) throws Exception {
+    private void getPriceFromMkm(String a, final CardInfo cardinfo) throws Exception {
         int ini = a.indexOf("\"lowPrice\">");
         int fin = a.indexOf("</span>", ini);
         String price = a.substring(ini + "\"lowPrice\">".length(), fin);
 
-        if (price.length() > 5) price = "caca futi";
-        //Intent data = new Intent();
+        if (price.length() > 5)
+            price = "caca futi";
+        else
+            cardinfo.setPrice(price);
+        //Intent LoadSaveData = new Intent();
         txtResults.setText(txtResults.getText() + "   " + price + " €");
     }
 
@@ -503,6 +596,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 tab3.setVisibility(View.VISIBLE);
                 tab3.setBackgroundColor(getResources().getColor(R.color.lDark));
                 button3.setBackgroundColor(getResources().getColor(R.color.lDark));
+
+
                 break;
             case R.id.button4:
                 resetmenu();

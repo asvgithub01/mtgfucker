@@ -28,15 +28,31 @@
         android:layout_marginTop="110dp"
         android:layout_alignRight="@+id/status_message"
         android:layout_alignEnd="@+id/status_message" />
-
+<LinearLayout
+    android:layout_alignParentBottom="true"
+    android:layout_centerHorizontal="true"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/read_text"
-        android:id="@+id/read_text"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
-
+        android:text="@string/mode_biblio"
+        android:id="@+id/btnBiblio"
+        />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mode_biblio"
+        android:id="@+id/btnNewDeck"
+        />
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mode_biblio"
+        android:id="@+id/btnEditDecks"
+        />
+</LinearLayout>
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

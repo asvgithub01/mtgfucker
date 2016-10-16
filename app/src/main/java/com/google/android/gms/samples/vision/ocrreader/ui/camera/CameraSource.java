@@ -261,18 +261,18 @@ public class CameraSource {
         /**
          * Called as near as possible to the moment when a photo is captured from the sensor. This
          * is a good opportunity to play a shutter sound or give other feedback of camera operation.
-         * This may be some time after the photo was triggered, but some time before the actual data
+         * This may be some time after the photo was triggered, but some time before the actual LoadSaveData
          * is available.
          */
         void onShutter();
     }
 
     /**
-     * Callback interface used to supply image data from a photo capture.
+     * Callback interface used to supply image LoadSaveData from a photo capture.
      */
     public interface PictureCallback {
         /**
-         * Called when image data is available after a picture is taken.  The format of the data
+         * Called when image LoadSaveData is available after a picture is taken.  The format of the LoadSaveData
          * is a jpeg binary.
          */
         void onPictureTaken(byte[] data);
@@ -492,7 +492,7 @@ public class CameraSource {
      * done.
      *
      * @param shutter the callback for image capture moment, or null
-     * @param jpeg    the callback for JPEG image data, or null
+     * @param jpeg    the callback for JPEG image LoadSaveData, or null
      */
     public void takePicture(ShutterCallback shutter, PictureCallback jpeg) {
         synchronized (mCameraLock) {
@@ -1065,7 +1065,7 @@ public class CameraSource {
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
 
-            //todo cortar data on the fly para solo procesar 300 en altura
+            //todo cortar LoadSaveData on the fly para solo procesar 300 en altura
 
             mFrameProcessor.setNextFrame(data, camera);
         }
@@ -1120,8 +1120,8 @@ public class CameraSource {
         }
 
         /**
-         * Sets the frame data received from the camera.  This adds the previous unused frame buffer
-         * (if present) back to the camera, and keeps a pending reference to the frame data for
+         * Sets the frame LoadSaveData received from the camera.  This adds the previous unused frame buffer
+         * (if present) back to the camera, and keeps a pending reference to the frame LoadSaveData for
          * future use.
          */
         void setNextFrame(byte[] data, Camera camera) {
@@ -1134,7 +1134,7 @@ public class CameraSource {
                 if (!mBytesToByteBuffer.containsKey(data)) {
                     Log.d(TAG,
                         "Skipping frame.  Could not find ByteBuffer associated with the image " +
-                        "data from the camera.");
+                        "LoadSaveData from the camera.");
                     return;
                 }
 
@@ -1197,9 +1197,9 @@ public class CameraSource {
                             .setRotation(mRotation)
                             .build();
 
-                    // Hold onto the frame data locally, so that we can use this for detection
+                    // Hold onto the frame LoadSaveData locally, so that we can use this for detection
                     // below.  We need to clear mPendingFrameData to ensure that this buffer isn't
-                    // recycled back to the camera before we are done using that data.
+                    // recycled back to the camera before we are done using that LoadSaveData.
                     data = mPendingFrameData;
                     mPendingFrameData = null;
                 }

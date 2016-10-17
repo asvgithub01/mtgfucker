@@ -27,6 +27,12 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
 
+import org.sufficientlysecure.htmltextview.ClickableTableSpan;
+import org.sufficientlysecure.htmltextview.DrawTableLinkSpan;
+import org.sufficientlysecure.htmltextview.HtmlAssetsImageGetter;
+import org.sufficientlysecure.htmltextview.HtmlResImageGetter;
+import org.sufficientlysecure.htmltextview.HtmlTextView;
+
 /**
  * Main activity demonstrating how to pass extra parameters to an activity that
  * recognizes text.
@@ -41,7 +47,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int RC_OCR_CAPTURE = 9003;
     private static final String TAG = "MainActivity";
-Button btnBiblio,btnNewDeck,btnEditDecks;
+//Button btnBiblio,btnNewDeck,btnEditDecks;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,6 +62,7 @@ Button btnBiblio,btnNewDeck,btnEditDecks;
         findViewById(R.id.btnBiblio).setOnClickListener(this);
         findViewById(R.id.btnNewDeck).setOnClickListener(this);
         findViewById(R.id.btnEditDecks).setOnClickListener(this);
+
 
     }
 
@@ -139,6 +146,19 @@ Button btnBiblio,btnNewDeck,btnEditDecks;
         }
         else {
             super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    private class ClickableTableSpanImpl extends ClickableTableSpan {
+        @Override
+        public ClickableTableSpan newInstance() {
+            return null;
+        }
+
+        @Override
+        public void onClick(View widget)
+        {
+
         }
     }
 }

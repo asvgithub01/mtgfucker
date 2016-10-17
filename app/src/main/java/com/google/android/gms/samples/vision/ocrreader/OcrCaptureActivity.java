@@ -50,6 +50,7 @@ import com.google.android.gms.samples.vision.ocrreader.model.Biblio;
 import com.google.android.gms.samples.vision.ocrreader.model.CardInfo;
 import com.google.android.gms.samples.vision.ocrreader.model.Deck;
 import com.google.android.gms.samples.vision.ocrreader.model.Decks;
+import com.google.android.gms.samples.vision.ocrreader.model.DescriptionMtgInfo;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSource;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.CameraSourcePreview;
 import com.google.android.gms.samples.vision.ocrreader.ui.camera.GraphicOverlay;
@@ -103,7 +104,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         //region asv
         txtResults = (TextView) findViewById(R.id.txtResults);
         txtDeckResult = (EditText) findViewById(R.id.txtDeckResults);
-        txtDescription = (EditText) findViewById(R.id.txtDescription);
+        txtDescription = (TextView) findViewById(R.id.txtDescription);
         button = (Button) findViewById(R.id.button);
         button2 = (Button) findViewById(R.id.button2);
         button3 = (Button) findViewById(R.id.button3);
@@ -424,10 +425,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             if (text != null && text.getValue() != null) {
                 //todo hacer la peticion una vez se ha validado
                 String textForurl = text.getValue().replace(" ", "+").replace("(", "").replace("|", "");
-                final String UrlBase = "https://es.magiccardmarket.eu/Cards/";
+                String UrlBase = "https://es.magiccardmarket.eu/Cards/";
                 CardInfo cardinfo = new CardInfo(text.getValue().replace("(", "").replace("|", ""), "", "", "", "");
-
-                getHtmlInfo(UrlBase + textForurl, text.getValue().replace("(", ""), cardinfo);
+                UrlBase = "http://magiccards.info/query?q=";
+                getHtmlInfoFromMtginfo(UrlBase + textForurl, text.getValue().replace("(", ""), cardinfo);
                 Log.i("", text.getValue());
             } else {
                 Log.d(TAG, "text LoadSaveData is null");
@@ -470,7 +471,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
 
     //endregion
-    private void getHtmlInfo(String url, String texti, final CardInfo cardInfo) {
+    //region scrapeo from mkm
+    private void getHtmlInfoFromMkm(String url, String texti, final CardInfo cardInfo) {
         try {
             txtDeckResult.setText(txtDeckResult.getText() + "\n" + texti);
             txtResults.setText(txtResults.getText() + "\n" + texti);
@@ -482,7 +484,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                         getPriceFromMkm(a, cardInfo);
                         getImgCardFromMkm(a, cardInfo);
                         getTranslateDescriptionFromMkm(a, cardInfo);
-                       //->callbackdescriptin persistInfo(cardInfo);
+                        //->callbackdescriptin persistInfo(cardInfo);
                     } catch (Exception ex) {
                         Log.e("Error,parsing", ex.getMessage());
                     }
@@ -491,29 +493,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         } catch (Exception e) {
 
             Log.e("Error,HtmlInfo", e.getMessage());
-        }
-    }
-
-    private void persistInfo(CardInfo cardInfo) {
-
-        if (mPersistorMode.equals("0"))//biblio
-        {
-            if (cardInfo.getPrice() != "") {
-                mBiblio.addCard(cardInfo);
-                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
-            }
-        }
-        if (mPersistorMode.equals("1"))//newdeck
-        {
-            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
-        }
-        if (mPersistorMode.equals("2"))//editDecks
-        {
-            //todo en vez dle ultimo->mDecks.decks.size()-1
-            //editar el current deck
-            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
         }
     }
 
@@ -573,18 +552,303 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
 
     //endregion
+
+    private void getHtmlInfoFromMtginfo(String url, String texti, final CardInfo cardInfo) {
+        try {
+            txtDeckResult.setText(txtDeckResult.getText() + "\n" + texti);
+            txtResults.setText(txtResults.getText() + "\n" + texti);
+
+            Ion.with(getApplicationContext()).load(url).asString().setCallback(new FutureCallback<String>() {
+                @Override
+                public void onCompleted(Exception e, String a) {
+                    try {
+                        getPriceFromMtgInfo(a, cardInfo);
+                        getImgCardFromMtgInfo(a, cardInfo);
+                        getTranslateDescriptionsFromMtgInfo(a, cardInfo);
+                        int paradaTontaPaVerqVaEnBiblio = 0;
+                        //->callbackdescriptin persistInfo(cardInfo);
+                    } catch (Exception ex) {
+                        Log.e("Error,parsing", ex.getMessage());
+                    }
+                }
+            });
+        } catch (Exception e) {
+
+            Log.e("Error,HtmlInfo", e.getMessage());
+        }
+    }
+    //region scrapeo macareno
+
+
+    private void getTranslateDescriptionsFromMtgInfo(String a, final CardInfo cardinfo) {
+        try {
+            //region parseo desc1
+            //img banderita
+            int ini = a.indexOf("Languages:<");
+            ini = a.indexOf("<img src=\"", ini);
+            int fin = a.indexOf("\"", ini + "<img src=\"".length() + 1);
+
+            DescriptionMtgInfo descriptionMtgInfo = new DescriptionMtgInfo();
+            descriptionMtgInfo.imgPath = a.substring(ini + "<img src=\"".length(), fin);
+            cardinfo.lstDescription.add(descriptionMtgInfo);
+            //language name
+            ini = a.indexOf("alt=\"", fin);
+            fin = a.indexOf("\"", ini + "alt=\"".length() + 1);
+            cardinfo.lastDescriptionMtgInfoItem().languague = a.substring(ini + "alt=\"".length(), fin);
+            //Relative path to language Description
+            ini = a.indexOf("<a href=\"", fin);
+            fin = a.indexOf("\"", ini + "<a href=\"".length() + 1);
+            String urlDesc1 = "http://magiccards.info" + a.substring(ini + "<a href=\"".length(), fin);
+            // name card transtaled
+            ini = a.indexOf(">", fin);
+            fin = a.indexOf("<", ini);
+            cardinfo.lastDescriptionMtgInfoItem().name = a.substring(ini + 1, fin);
+
+            //todo parseo link ,img de banderita,nombre en los otros idiomas
+            //todo no hay siempre 7 idiomas, debe persertirse aki en el fail de
+
+
+            //parse 1º idioma y despues trtams de pillar la descripcion de cada idioma,
+            // si no existe truena y listo, debemos meter un try cathc individual para cada uno
+            //para q pruebe con el siguiente idimoa, el primer idioma lo recuperamos el ultimo y asi hacmeos el persint de la info
+//todo falta añadir los addlstdescriptions!!
+            //todo refactor necesario
+            getTranslateDescription1FromMtgInfo(urlDesc1, cardinfo);
+
+            //todo FAIL el name de la carta hay q pilarlo en la web translatada, q si no hay q parsealo aki...one by one
+            String languageParsed = "de";//todo ayayaya viva mexico cabrones!
+
+            try {
+                if (!languageParsed.equals("fr")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem().imgPath.replace(languageParsed, "fr");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "fr"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+            try {
+                if (!languageParsed.equals("it")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
+                            .imgPath.replace(languageParsed, "it");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "it"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+            try {
+                if (!languageParsed.equals("pt")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
+                            .imgPath.replace(languageParsed, "pt");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "pt"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+            try {
+                if (!languageParsed.equals("de")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
+                            .imgPath.replace(languageParsed, "de");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "de"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+            try {
+                if (!languageParsed.equals("jp")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
+                            .imgPath.replace(languageParsed, "jp");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "jp"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+            try {
+                if (!languageParsed.equals("cn")) {
+                    descriptionMtgInfo = new DescriptionMtgInfo();
+                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
+                            .imgPath.replace(languageParsed, "cn");
+                    cardinfo.lstDescription.add(descriptionMtgInfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "cn"), cardinfo);
+                }
+            } catch (Exception e) {
+
+            }
+
+
+
+
+
+//endregion
+
+        } catch (Exception e) {
+            //persist data on fail or in the Descripciont 7 get
+            try {
+                if (!cardinfo.lastDescriptionMtgInfoItem().description.isEmpty())
+                    persistInfo(cardinfo);
+            } catch (Exception e1) {
+                e1.printStackTrace();
+            }
+        }
+    }
+
+    private void getTranslateDescription1FromMtgInfo(String url, final CardInfo cardinfo) throws Exception {
+
+        Ion.with(getApplicationContext()).load(url).asString().setCallback(new FutureCallback<String>() {
+            @Override
+            public void onCompleted(Exception e, String a) {
+                //todo parsear la description
+                //region html paste
+             /*   <td valign="top" style="padding: 0.5em;" width="70%">
+                <span style="font-size: 1.5em;">
+                <a href="/mi/en/62.html">Disciple of the Vault</a>
+                <img src="http://magiccards.info/images/en.gif" alt="English" width="16" height="11" class="flag">
+                </span>
+                <p>Creature — Human Cleric 1/1,
+                        B (1)
+               </p>
+                <p class="ctext"><b>Whenever an artifact is put into a graveyard from the battlefield, you may have target opponent lose 1 life.</b></p>
+
+
+                <p><i>He stands in the shadow of his lord, Geth, drinking in the dark energies of the Vault.</i></p>
+                <p>Illus. Matt Thompson</p>
+                <p><b>Gatherer Card Rulings<a href="http://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=49090">?</a>, Legality<a href="http://www.wizards.com/Magic/TCG/Resources.aspx?x=judge/resources/banned">?</a></b></p>
+                <ul>
+                <li class="legal">Legal in Vintage (Type 1)</li>
+                <li class="legal">Legal in Legacy (Type 1.5)</li>
+                <li class="banned">Banned in Block Constructed</li>
+                <li class="legal">Legal in Classic (MTGO)</li>
+                <li class="legal">Legal in Commander</li>
+                <li class="legal">Legal in Modern</li>
+                </ul>
+                </td>*/
+//endregion
+                try {
+                    int ini = 0;
+                    if (a.indexOf("class=\"flag\">") > 0)
+                        ini = a.indexOf("class=\"flag\">");
+                    else
+                        ini = a.indexOf("class=\"flag2\">");
+
+                    ini = a.indexOf("<p>", ini);
+                    int fin = a.indexOf("</p>", ini);
+                    String typeCard = a.substring(ini + "<p>".length(), fin).replace("\n", " ").replaceAll("<[^>]*>", "");
+
+                    ini = a.indexOf("<p class=\"ctext\">", fin);
+                    if (a.indexOf("</i></p>", ini) > 0)
+                        fin = a.indexOf("</i></p>", ini);
+                    else
+                        fin = a.indexOf("</p>", ini);
+
+                    cardinfo.lastDescriptionMtgInfoItem().description = typeCard + "\n" +
+                            a.substring(ini, fin).replaceAll("<[^>]*>", "");
+
+                    txtDescription.setText(txtDescription.getText() + "\n" + cardinfo.lastDescriptionMtgInfoItem().description);
+
+                        persistInfo(cardinfo);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
+    }
+
+
+    private void getImgCardFromMtgInfo(String a, final CardInfo cardinfo) throws Exception {
+
+        int ini = a.indexOf("src=\"http://partner.tcgplayer.com/x3/mchl.ashx");
+        ini = a.indexOf("<img src=\"", ini);
+        int fin = a.indexOf("\"", ini + "<img src=\"".length() + 1);
+
+        String imgPath = a.substring(ini + "<img src=\"".length(), fin);
+
+        Glide
+                .with(imgCard.getContext())
+                .load(imgPath)
+                .into(imgCard);
+        Glide
+                .with(imgBgCard.getContext())
+                .load(imgPath)
+                .into(imgBgCard);
+
+        cardinfo.setImgPath(imgPath);
+    }
+
+    private void getPriceFromMtgInfo(String a, final CardInfo cardinfo) throws Exception {
+        int ini = a.indexOf("src=\"http://partner.tcgplayer.com/");
+        int fin = a.indexOf("\"><", ini);
+        String urlPriceInfo = a.substring(ini + "src=\"".length(), fin).replace("amp;", "");
+        Ion.with(getApplicationContext()).load(urlPriceInfo).asString().setCallback(new FutureCallback<String>() {
+            @Override
+            public void onCompleted(Exception e, String a) {
+                //todo parsear la description
+                int f_ini = a.indexOf("id=\"TCGPHiLoTable\"");
+                int ini = a.indexOf("$", f_ini);
+                int fin = a.indexOf("<", ini);
+                String priceL = a.substring(ini, fin);
+                cardinfo.setPriceL(priceL);
+                ini = a.indexOf("$", fin);
+                fin = a.indexOf("<", ini);
+                String priceM = a.substring(ini, fin);
+                cardinfo.setPriceM(priceM);
+                ini = a.indexOf("$", fin);
+                fin = a.indexOf("<", ini);
+                String priceH = a.substring(ini, fin);
+                cardinfo.setPriceM(priceH);
+                //Intent LoadSaveData = new Intent();
+                txtResults.setText(txtResults.getText() + "L: " + priceL + " M: " + priceM + " H: " + priceH);
+
+            }
+        });
+
+
+    }
+
+    //endregion
+    //endregion
+    private void persistInfo(CardInfo cardInfo) {
+
+        if (mPersistorMode.equals("0"))//biblio
+        {
+            if (cardInfo.getPrice() != "") {
+                //todo confirmar q sigue chutando con descriptions
+                mBiblio.addCard(cardInfo);
+                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
+            }
+        }
+        if (mPersistorMode.equals("1"))//newdeck
+        {
+            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+        if (mPersistorMode.equals("2"))//editDecks
+        {
+            //todo en vez dle ultimo->mDecks.decks.size()-1
+            //editar el current deck
+            mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
+            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+    }
+
+
     @Override
     public void onClick(View v) {
-
         switch (v.getId()) {
-
             case R.id.button:
                 resetmenu();
                 tab1.setVisibility(View.VISIBLE);
                 tab1.setBackgroundColor(getResources().getColor(R.color.lDark));
                 button.setBackgroundColor(getResources().getColor(R.color.lDark));
                 break;
-
             case R.id.button2:
                 resetmenu();
                 tab2.setVisibility(View.VISIBLE);

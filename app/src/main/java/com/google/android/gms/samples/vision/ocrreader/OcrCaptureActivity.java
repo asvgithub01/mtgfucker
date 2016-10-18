@@ -645,11 +645,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     private final int CODE_SPEECH_4_RESULT = 100;
 
     private void showSpeechInputDialog() {
-        Intent i = new Intent(RecognizerIntent.ACTION_GET_LANGUAGE_DETAILS.ACTION_RECOGNIZE_SPEECH);
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.EXTRA_LANGUAGE_MODEL);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
         i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Tell Me, char by char, with little silence between(fonética by Locale.GetDefault Language)");
- 
+
         try {
             startActivityForResult(i, CODE_SPEECH_4_RESULT);
         } catch (ActivityNotFoundException e) {

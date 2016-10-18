@@ -87,11 +87,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Helper objects for detecting taps and pinches.
     private ScaleGestureDetector scaleGestureDetector;
     private GestureDetector gestureDetector;
-
+    //region asv models
     String mPersistorMode;
     Biblio mBiblio;
     Decks mDecks;
     Deck mDeck;
+    //endregion
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -287,10 +288,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         // to other detection examples to enable the text recognizer to detect small pieces of text.
 
         //todo cambiar el tamaño de la preview para pillar mejor
+        //resolution
         mCameraSource =
                 new CameraSource.Builder(getApplicationContext(), textRecognizer)
                         .setFacing(CameraSource.CAMERA_FACING_BACK)
-                        .setRequestedPreviewSize(1280, 1024)
+                        .setRequestedPreviewSize(4032, 3024)
+                         //.setRequestedPreviewSize(1280, 1024)
                         .setRequestedFps(2.0f)
                         .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
                         .setFocusMode(autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null)
@@ -482,7 +485,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                         getPriceFromMkm(a, cardInfo);
                         getImgCardFromMkm(a, cardInfo);
                         getTranslateDescriptionFromMkm(a, cardInfo);
-                       //->callbackdescriptin persistInfo(cardInfo);
+                        //->callbackdescriptin persistInfo(cardInfo);
                     } catch (Exception ex) {
                         Log.e("Error,parsing", ex.getMessage());
                     }

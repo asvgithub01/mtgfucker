@@ -125,13 +125,15 @@ public class OcrGraphic extends GraphicOverlay.Graphic {
     private void udatePaintForDesiredLenghtText() {
         sTextPaint = new Paint();
         sTextPaint.setColor(TEXT_COLOR);
+        sTextPaint.setTextSize(54.0f);
 
-        if (mText != null && mText.getValue() != null) {
-            if (mText.getValue().length() < 20)
-                sTextPaint.setTextSize(108.0f);
-            else
-                sTextPaint.setTextSize(54.0f);
 
-        }
+//        if (mText != null && mText.getValue() != null) {
+//            if (mText.getValue().length() < 20)
+//                sTextPaint.setTextSize(108.0f);
+//            else
+//                sTextPaint.setTextSize(54.0f);
+//
+//        }
     }
 }

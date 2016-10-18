@@ -17,9 +17,6 @@ import com.google.android.gms.samples.vision.ocrreader.model.CardInfo;
 
 
 public class Main2Activity extends Activity implements View.OnClickListener{
-    private RecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
-    private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,8 +27,6 @@ public class Main2Activity extends Activity implements View.OnClickListener{
         //un gesture listener para movernos en la coleccion
         CardInfo cardInfo = (CardInfo) getIntent().getSerializableExtra("carditem");
 //todo esta activity podri atener un layout diferente pal landspace y mostar a la dere las traducciones
-
-
         ImageView img  =(ImageView) findViewById(R.id.imgDetail);
         Glide
                 .with(this)

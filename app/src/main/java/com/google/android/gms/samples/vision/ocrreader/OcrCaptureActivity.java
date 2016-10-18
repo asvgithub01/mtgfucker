@@ -134,7 +134,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         //endregion
 
 
-
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay<OcrGraphic>) findViewById(R.id.graphicOverlay);
 
@@ -144,7 +143,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         mPersistorMode = getIntent().getStringExtra(PersistorMode);
 
 
-       loadPersistModeDataCardInfo();
+        loadPersistModeDataCardInfo();
 
         //region RecyclerView
         mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
@@ -640,17 +639,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             //para q pruebe con el siguiente idimoa, el primer idioma lo recuperamos el ultimo y asi hacmeos el persint de la info
 //todo falta añadir los addlstdescriptions!!
             //todo refactor necesario
-            getTranslateDescription1FromMtgInfo(urlDesc1, cardinfo);
-
+            persistInfo(cardinfo);
+            getTranslateDescription1FromMtgInfo(urlDesc1, cardinfo, cardinfo.lstDescription.size());
+//todo MEGAIMPORTANTE
             //todo FAIL el name de la carta hay q pilarlo en la web translatada, q si no hay q parsealo aki...one by one
-            String languageParsed = "de";//todo ayayaya viva mexico cabrones!
+            String languageParsed = "en";//todo ayayaya viva mexico cabrones!
 
             try {
                 if (!languageParsed.equals("fr")) {
                     descriptionMtgInfo = new DescriptionMtgInfo();
-                    descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem().imgPath.replace(languageParsed, "fr");
+                    descriptionMtgInfo.imgPath =
+                            cardinfo.lastDescriptionMtgInfoItem().imgPath.replace(languageParsed, "fr");
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "fr"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "fr"), cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -661,7 +662,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
                             .imgPath.replace(languageParsed, "it");
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "it"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "it"), cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -672,7 +673,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
                             .imgPath.replace(languageParsed, "pt");
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "pt"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "pt"), cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -683,7 +684,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
                             .imgPath.replace(languageParsed, "de");
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "de"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "de"), cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -694,7 +695,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
                             .imgPath.replace(languageParsed, "jp");
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "jp"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "jp"), cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -704,8 +705,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     descriptionMtgInfo = new DescriptionMtgInfo();
                     descriptionMtgInfo.imgPath = cardinfo.lastDescriptionMtgInfoItem()
                             .imgPath.replace(languageParsed, "cn");
+                    descriptionMtgInfo.name = "";
+                    descriptionMtgInfo.languague = "Chino";
                     cardinfo.lstDescription.add(descriptionMtgInfo);
-                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "cn"), cardinfo);
+                    getTranslateDescription1FromMtgInfo(urlDesc1.replace(languageParsed, "cn")
+                            , cardinfo, cardinfo.lstDescription.size());
                 }
             } catch (Exception e) {
 
@@ -725,37 +729,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         }
     }
 
-    private void getTranslateDescription1FromMtgInfo(String url, final CardInfo cardinfo) throws Exception {
+    private void getTranslateDescription1FromMtgInfo(String url, final CardInfo cardinfo, final int idx) throws Exception {
 
         Ion.with(getApplicationContext()).load(url).asString().setCallback(new FutureCallback<String>() {
             @Override
             public void onCompleted(Exception e, String a) {
-                //todo parsear la description
-                //region html paste
-             /*   <td valign="top" style="padding: 0.5em;" width="70%">
-                <span style="font-size: 1.5em;">
-                <a href="/mi/en/62.html">Disciple of the Vault</a>
-                <img src="http://magiccards.info/images/en.gif" alt="English" width="16" height="11" class="flag">
-                </span>
-                <p>Creature — Human Cleric 1/1,
-                        B (1)
-               </p>
-                <p class="ctext"><b>Whenever an artifact is put into a graveyard from the battlefield, you may have target opponent lose 1 life.</b></p>
-
-
-                <p><i>He stands in the shadow of his lord, Geth, drinking in the dark energies of the Vault.</i></p>
-                <p>Illus. Matt Thompson</p>
-                <p><b>Gatherer Card Rulings<a href="http://gatherer.wizards.com/Pages/Card/Details.aspx?multiverseid=49090">?</a>, Legality<a href="http://www.wizards.com/Magic/TCG/Resources.aspx?x=judge/resources/banned">?</a></b></p>
-                <ul>
-                <li class="legal">Legal in Vintage (Type 1)</li>
-                <li class="legal">Legal in Legacy (Type 1.5)</li>
-                <li class="banned">Banned in Block Constructed</li>
-                <li class="legal">Legal in Classic (MTGO)</li>
-                <li class="legal">Legal in Commander</li>
-                <li class="legal">Legal in Modern</li>
-                </ul>
-                </td>*/
-//endregion
                 try {
                     int ini = 0;
                     if (a.indexOf("class=\"flag\">") > 0)
@@ -773,12 +751,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                     else
                         fin = a.indexOf("</p>", ini);
 
-                    cardinfo.lastDescriptionMtgInfoItem().description = typeCard + "\n" +
+                    mBiblio.cards.get(mBiblio.cards.size() - 1).lstDescription.get(idx - 1).description = typeCard + "\n" +
                             a.substring(ini, fin).replaceAll("<[^>]*>", "");
+                    persistInfo(null);
 
                     txtDescription.setText(txtDescription.getText() + "\n" + cardinfo.lastDescriptionMtgInfoItem().description);
 
-                    persistInfo(cardinfo);
                 } catch (Exception e1) {
                     e1.printStackTrace();
                 }
@@ -827,7 +805,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 ini = a.indexOf("$", fin);
                 fin = a.indexOf("<", ini);
                 String priceH = a.substring(ini, fin);
-                cardinfo.setPriceM(priceH);
+                cardinfo.setPriceH(priceH);
 
                 cardinfo.setPrice("L: " + priceL + " M: " + priceM + " H: " + priceH);
 
@@ -845,14 +823,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
         if (mPersistorMode.equals("0"))//biblio
         {
-            if (cardInfo.getPrice() != "") {
-                //todo confirmar q sigue chutando con descriptions
+            if (cardInfo != null) {
                 mBiblio.addCard(cardInfo);
-                DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
                 //todo no mola esto aki nada BINDING
                 mAdapter = new MyAdapter(mBiblio.cards, this);
                 mRecyclerView.setAdapter(mAdapter);
             }
+            DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+
         }
         if (mPersistorMode.equals("1"))//newdeck
         {

@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -27,6 +28,7 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -38,6 +40,7 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -59,6 +62,8 @@ import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.ion.Ion;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Activity for the multi-tracker app.  This app detects text and displays the value with the
@@ -102,6 +107,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         super.onCreate(icicle);
         setContentView(R.layout.ocr_capture);
         //region asv
+        //region speech2text
+        txtReadResults = (EditText) findViewById(R.id.txtReadResults);
+        btnSendReadResults = (ImageButton) findViewById(R.id.btnSendReadResults);
+        btnSpeechToText = (ImageButton) findViewById(R.id.btnSpeechToText);
+
+        btnSpeechToText.setOnClickListener(this);
+        btnSendReadResults.setOnClickListener(this);
+        //endregion
+
+
         txtResults = (TextView) findViewById(R.id.txtResults);
         txtDeckResult = (EditText) findViewById(R.id.txtDeckResults);
         txtDescription = (EditText) findViewById(R.id.txtDescription);
@@ -293,7 +308,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 new CameraSource.Builder(getApplicationContext(), textRecognizer)
                         .setFacing(CameraSource.CAMERA_FACING_BACK)
                         .setRequestedPreviewSize(4032, 3024)
-                         //.setRequestedPreviewSize(1280, 1024)
+                        //.setRequestedPreviewSize(1280, 1024)
                         .setRequestedFps(2.0f)
                         .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
                         .setFocusMode(autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null)
@@ -450,11 +465,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
 
     TextView txtResults, txtDescription;
-    EditText txtDeckResult;
+    EditText txtDeckResult, txtReadResults;
     Button button, button2, button3, button4;
     ImageView imgCard, imgBgCard;
     RelativeLayout tab1, tab2, tab3, tab4;
+    //region speech2text
+    ImageButton btnSendReadResults,
+            btnSpeechToText;
 
+    //endregion
     //region tontimenu
     private void resetmenu() {
         tab1.setVisibility(View.GONE);
@@ -608,9 +627,54 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 tab4.setBackgroundColor(getResources().getColor(R.color.lDark));
                 button4.setBackgroundColor(getResources().getColor(R.color.lDark));
                 break;
+            //region speech2text
+            case R.id.btnSpeechToText:
+                showSpeechInputDialog();
+                break;
+            //endregion
+            case R.id.btnSendReadResults:
+                //todo toto
+                break;
+
+
         }
 
     }
+
+    //region speech2text
+    private final int CODE_SPEECH_4_RESULT = 100;
+
+    private void showSpeechInputDialog() {
+        Intent i = new Intent(RecognizerIntent.ACTION_GET_LANGUAGE_DETAILS.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.EXTRA_LANGUAGE_MODEL);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Tell Me, char by char, with little silence between(fonética by Locale.GetDefault Language)");
+ 
+        try {
+            startActivityForResult(i, CODE_SPEECH_4_RESULT);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Your Device not support native speech2Text ;(", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent i) {
+        super.onActivityResult(requestCode, resultCode, i);
+        switch (requestCode) {
+            case CODE_SPEECH_4_RESULT:
+                if(resultCode==RESULT_OK && i!=null)
+                {
+                    ArrayList<String> results =i.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    //only el 0
+                    txtReadResults.setText(results.get(0));
+                }
+                break;
+
+        }
+
+
+    }
+    //endregion
 
     /*******************************************************************************************************/
     private class CaptureGestureListener extends GestureDetector.SimpleOnGestureListener {

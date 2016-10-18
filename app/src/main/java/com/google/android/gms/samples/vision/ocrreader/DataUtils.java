@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Created by Alberto on 16/10/2016.
  */
-public class LoadSaveData {
+public class DataUtils {
     public static void saveCardInfo(Context context, CardInfo cardInfo) {
         try {
             FileOutputStream fos = context.openFileOutput("cardInfoDb.json", Context.MODE_PRIVATE);

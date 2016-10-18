@@ -10,7 +10,7 @@ import java.util.List;
 public class Biblio implements Serializable {
     public String nameFile;
     private String name;
-    public List<CardInfo> cards;
+    public ArrayList<CardInfo> cards;
 
     public Biblio(String nameFile, String name) {
         this.nameFile = nameFile;

@@ -27,12 +27,6 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
 
-import org.sufficientlysecure.htmltextview.ClickableTableSpan;
-import org.sufficientlysecure.htmltextview.DrawTableLinkSpan;
-import org.sufficientlysecure.htmltextview.HtmlAssetsImageGetter;
-import org.sufficientlysecure.htmltextview.HtmlResImageGetter;
-import org.sufficientlysecure.htmltextview.HtmlTextView;
-
 /**
  * Main activity demonstrating how to pass extra parameters to an activity that
  * recognizes text.
@@ -106,7 +100,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     /**
      * Called when an activity you launched exits, giving you the requestCode
      * you started it with, the resultCode it returned, and any additional
-     * LoadSaveData from it.  The <var>resultCode</var> will be
+     * DataUtils from it.  The <var>resultCode</var> will be
      * {@link #RESULT_CANCELED} if the activity explicitly returned that,
      * didn't return any result, or crashed during its operation.
      * <p/>
@@ -119,8 +113,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
      *                    result came from.
      * @param resultCode  The integer result code returned by the child activity
      *                    through its setResult().
-     * @param LoadSaveData        An Intent, which can return result LoadSaveData to the caller
-     *                    (various LoadSaveData can be attached to Intent "extras").
+     * @param DataUtils        An Intent, which can return result DataUtils to the caller
+     *                    (various DataUtils can be attached to Intent "extras").
      * @see #startActivityForResult
      * @see #createPendingResult
      * @see #setResult(int)
@@ -137,7 +131,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     Log.d(TAG, "Text read: " + text);
                 } else {
                     statusMessage.setText(R.string.ocr_failure);
-                    Log.d(TAG, "No Text captured, intent LoadSaveData is null");
+                    Log.d(TAG, "No Text captured, intent DataUtils is null");
                 }
             } else {
                 statusMessage.setText(String.format(getString(R.string.ocr_error),
@@ -149,16 +143,5 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    private class ClickableTableSpanImpl extends ClickableTableSpan {
-        @Override
-        public ClickableTableSpan newInstance() {
-            return null;
-        }
 
-        @Override
-        public void onClick(View widget)
-        {
-
-        }
-    }
 }

@@ -31,6 +31,8 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -46,6 +48,7 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.samples.vision.barcodereader.MyAdapter;
 import com.google.android.gms.samples.vision.ocrreader.model.Biblio;
 import com.google.android.gms.samples.vision.ocrreader.model.CardInfo;
 import com.google.android.gms.samples.vision.ocrreader.model.Deck;
@@ -75,7 +78,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
-    // Constants used to pass extra LoadSaveData in the intent
+    // Constants used to pass extra DataUtils in the intent
     public static final String AutoFocus = "AutoFocus";
     public static final String UseFlash = "UseFlash";
     public static final String PersistorMode = "mtgModePersistor";
@@ -93,6 +96,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     Biblio mBiblio;
     Decks mDecks;
     Deck mDeck;
+    private RecyclerView mRecyclerView;
+    private RecyclerView.Adapter mAdapter;
+    private RecyclerView.LayoutManager mLayoutManager;
 
     /**
      * Initializes the UI and creates the detector pipeline.
@@ -127,6 +133,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         button.setBackgroundColor(getResources().getColor(R.color.lDark));
         //endregion
 
+
+
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay<OcrGraphic>) findViewById(R.id.graphicOverlay);
 
@@ -136,40 +144,20 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         mPersistorMode = getIntent().getStringExtra(PersistorMode);
 
 
-        if (mPersistorMode.equals("0"))//biblio
-        {
-            mBiblio = LoadSaveData.readSerializable(this, "myBiblio.Json");
-            if (mBiblio == null) {
-                //todo show dialog for create name of mybiblio
-                mBiblio = new Biblio("myBiblio.Json", "Mis Cartukis");
-                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
-            }
+       loadPersistModeDataCardInfo();
 
-        }
-        if (mPersistorMode.equals("1"))//newdeck
-        {
-            mDeck = LoadSaveData.readSerializable(this, "myDeck.Json");
-            if (mDeck == null) {
-                //todo show dialog for create name of deck
-                mDeck = new Deck("myDeck.Json", "MiDeck");
-            }
-
-            mDecks = LoadSaveData.readSerializable(this, mDecks.nameFile);
-            if (mDecks == null) {
-                mDecks = new Decks();
-                mDecks.addDeck(mDeck);
-            }
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
-        }
-        if (mPersistorMode.equals("2"))//editDecks
-        {
-            mDecks = LoadSaveData.readSerializable(this, mDecks.nameFile);
-            if (mDecks == null) {
-                mDecks = new Decks();
-                mDecks.addDeck(mDeck);
-            }
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
-        }
+        //region RecyclerView
+        mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+        // use this setting to improve performance if you know that changes
+        // in content do not change the layout size of the RecyclerView
+        mRecyclerView.setHasFixedSize(true);
+        // use a linear layout manager
+        mLayoutManager = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        // specify an adapter (see also next example)
+        mAdapter = new MyAdapter(mBiblio.cards, this);
+        mRecyclerView.setAdapter(mAdapter);
+        //endregion
         showPersistorUI();
 
         // Check for the camera permission before accessing the camera.  If the
@@ -183,6 +171,43 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
         gestureDetector = new GestureDetector(this, new CaptureGestureListener());
         scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
+    }
+
+    private void loadPersistModeDataCardInfo() {
+        if (mPersistorMode.equals("0"))//biblio
+        {
+            mBiblio = DataUtils.readSerializable(this, "myBiblio.Json");
+            if (mBiblio == null) {
+                //todo show dialog for create name of mybiblio
+                mBiblio = new Biblio("myBiblio.Json", "Mis Cartukis");
+                DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+            }
+
+        }
+        if (mPersistorMode.equals("1"))//newdeck
+        {
+            mDeck = DataUtils.readSerializable(this, "myDeck.Json");
+            if (mDeck == null) {
+                //todo show dialog for create name of deck
+                mDeck = new Deck("myDeck.Json", "MiDeck");
+            }
+
+            mDecks = DataUtils.readSerializable(this, mDecks.nameFile);
+            if (mDecks == null) {
+                mDecks = new Decks();
+                mDecks.addDeck(mDeck);
+            }
+            DataUtils.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
+        if (mPersistorMode.equals("2"))//editDecks
+        {
+            mDecks = DataUtils.readSerializable(this, mDecks.nameFile);
+            if (mDecks == null) {
+                mDecks = new Decks();
+                mDecks.addDeck(mDeck);
+            }
+            DataUtils.saveSerializable(this, mDecks, mDecks.nameFile);
+        }
     }
 
     private void showPersistorUI() {
@@ -427,11 +452,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 String textForurl = text.getValue().replace(" ", "+").replace("(", "").replace("|", "");
                 String UrlBase = "https://es.magiccardmarket.eu/Cards/";
                 CardInfo cardinfo = new CardInfo(text.getValue().replace("(", "").replace("|", ""), "", "", "", "");
+                //new
                 UrlBase = "http://magiccards.info/query?q=";
                 getHtmlInfoFromMtginfo(UrlBase + textForurl, text.getValue().replace("(", ""), cardinfo);
                 Log.i("", text.getValue());
+
             } else {
-                Log.d(TAG, "text LoadSaveData is null");
+                Log.d(TAG, "text DataUtils is null");
             }
         } else {
             Log.d(TAG, "no text detected");
@@ -547,7 +574,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             price = "caca futi";
         else
             cardinfo.setPrice(price);
-        //Intent LoadSaveData = new Intent();
+        //Intent DataUtils = new Intent();
         txtResults.setText(txtResults.getText() + "   " + price + " €");
     }
 
@@ -685,9 +712,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             }
 
 
-
-
-
 //endregion
 
         } catch (Exception e) {
@@ -754,7 +778,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
                     txtDescription.setText(txtDescription.getText() + "\n" + cardinfo.lastDescriptionMtgInfoItem().description);
 
-                        persistInfo(cardinfo);
+                    persistInfo(cardinfo);
                 } catch (Exception e1) {
                     e1.printStackTrace();
                 }
@@ -804,7 +828,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                 fin = a.indexOf("<", ini);
                 String priceH = a.substring(ini, fin);
                 cardinfo.setPriceM(priceH);
-                //Intent LoadSaveData = new Intent();
+
+                cardinfo.setPrice("L: " + priceL + " M: " + priceM + " H: " + priceH);
+
                 txtResults.setText(txtResults.getText() + "L: " + priceL + " M: " + priceM + " H: " + priceH);
 
             }
@@ -822,20 +848,23 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             if (cardInfo.getPrice() != "") {
                 //todo confirmar q sigue chutando con descriptions
                 mBiblio.addCard(cardInfo);
-                LoadSaveData.saveSerializable(this, mBiblio, mBiblio.nameFile);
+                DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+                //todo no mola esto aki nada BINDING
+                mAdapter = new MyAdapter(mBiblio.cards, this);
+                mRecyclerView.setAdapter(mAdapter);
             }
         }
         if (mPersistorMode.equals("1"))//newdeck
         {
             mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+            DataUtils.saveSerializable(this, mDecks, mDecks.nameFile);
         }
         if (mPersistorMode.equals("2"))//editDecks
         {
             //todo en vez dle ultimo->mDecks.decks.size()-1
             //editar el current deck
             mDecks.decks.get(mDecks.decks.size() - 1).addCard(cardInfo);
-            LoadSaveData.saveSerializable(this, mDecks, mDecks.nameFile);
+            DataUtils.saveSerializable(this, mDecks, mDecks.nameFile);
         }
     }
 

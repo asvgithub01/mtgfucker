@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <RelativeLayout  xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"/>
+
+<!--<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <ImageView
+        android:id="@+id/imgBgCard"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Price"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Deck Editor"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gallery"
+            android:layout_gravity="bottom"/>
+        <Button
+            android:id="@+id/button4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Language"
+            android:layout_gravity="bottom"/>
+    </LinearLayout>
+    <RelativeLayout
+        android:background="#00ccff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="108dp">
+    <RelativeLayout
+        android:id="@+id/tab1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/my_recycler_view"
+            android:scrollbars="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+    <TextView
+        android:visibility="gone"
+        android:id="@+id/txtResults"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+        <TextView
+            android:visibility="gone"
+            android:id="@+id/txtTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/tab2"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <EditText
+            android:id="@+id/txtDeckResults"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/tab3"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <ImageView
+            android:id="@+id/imgCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </RelativeLayout>
+    <RelativeLayout
+        android:id="@+id/tab4"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+       <TextView
+           android:id="@+id/txtDescription"
+           android:layout_width="wrap_content"
+           android:layout_height="wrap_content"
+           android:scrollbars="vertical"
+           android:maxLines = "1000"/>
+    </RelativeLayout>
+    </RelativeLayout>
+</LinearLayout>
+    <LinearLayout
+    android:id="@+id/topLayout"
+    android:background="#ff0033"
+    android:layout_width="match_parent"
+    android:layout_height="108dp"
+    android:keepScreenOn="true"
+        android:layout_alignParentBottom="true"
+         >
+    <io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay
+            android:id="@+id/graphicOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview>
+</LinearLayout>
+</RelativeLayout>-->

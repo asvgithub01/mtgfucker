@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.google.android.gms.samples.vision.ocrreader"
+    package="io.asv.mtgocr.ocrreader"
     android:installLocation="auto">
 
     <uses-feature android:name="android.hardware.camera" />
@@ -21,7 +21,7 @@
             android:value="ocr" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="io.asv.mtgocr.ocrreader.MainActivity"
             android:label="@string/title_activity_main"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -31,10 +31,10 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".OcrCaptureActivity"
-            android:label="mtgView"
+            android:name="io.asv.mtgocr.ocrreader.OcrCaptureActivity"
+                android:theme="@style/Theme.AppCompat.NoActionBar"
             android:screenOrientation="portrait" />
-        <activity android:name="com.google.android.gms.samples.vision.barcodereader.Main2Activity">
+        <activity android:name=".Main2Activity">
 
         </activity>
     </application>

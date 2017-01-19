@@ -7,9 +7,32 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    tools:context="com.google.android.gms.samples.vision.barcodereader.Main2Activity">
+    tools:context=".Main2Activity"
+    android:id="@+id/lytDetail">
+    <TextView
+        android:id="@+id/txtCount"
+        android:text="1/20"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="36sp"
+        android:textStyle="normal|bold"
+        android:layout_alignParentRight="true" />
+
     <ImageView
         android:id="@+id/imgDetail"
         android:layout_width="wrap_content"
         android:layout_height="match_parent" />
+    <Spinner
+        android:id="@+id/spinner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        />
+
+    <Button
+        android:id="@+id/btnClose"
+        android:text="Close"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </RelativeLayout>

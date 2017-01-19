@@ -6,9 +6,9 @@
     <string name="low_storage_error">Ocr dependencies cannot be downloaded due to low device storage</string>
     <string name="title_activity_main">PaNiKa</string>
     <string name="ocr_header">Click &quot;Detect Text&quot; to detect text</string>
-    <string name="mode_biblio">MyBiblio</string>
-    <string name="mode_new_Deck">new Deck</string>
-    <string name="mode_edit_Decks">edit Decks</string>
+    <string name="mode_biblio">Open My MTG Biblio</string>
+    <string name="mode_new_Deck">Create new Deck</string>
+    <string name="mode_edit_Decks">Open My Decks</string>
     <string name="auto_focus">Auto Focus</string>
     <string name="use_flash">Use Flash</string>
     <string name="ocr_success">Text read successfully</string>

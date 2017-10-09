@@ -84,16 +84,19 @@ public class MkmDataProvider  extends DataProviderBase implements IDataProvider 
         });
     }
     private void getImgCardFromMkm(String a, final CardInfo cardinfo) throws Exception {
-        //get
-        int ini = a.indexOf("id=\"imgDiv\">");
-        ini = a.indexOf("<img src=\"", ini);
-        int fin = a.indexOf("\" alt=", ini);
-        String imgPath = "https://es.magiccardmarket.eu/" + a.substring(ini + "<img src=\"".length(), fin);
-        //set
-        cardinfo.setImgPath(imgPath);
-        //send
-        sendMessage(IMG_OK, cardinfo);
-
+        try {
+            //get
+            int ini = a.indexOf("id=\"imgDiv\">");
+            ini = a.indexOf("<img src=\"", ini);
+            int fin = a.indexOf("\" alt=", ini);
+            String imgPath = "https://es.magiccardmarket.eu/" + a.substring(ini + "<img src=\"".length(), fin);
+            //set
+            cardinfo.setImgPath(imgPath);
+            //send
+            sendMessage(IMG_OK, cardinfo);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     private void getPriceFromMkm(String a, final CardInfo cardinfo) throws Exception {
         //get

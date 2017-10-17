@@ -31,6 +31,7 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -55,10 +56,10 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
 import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.IDataProvider;
 import io.asv.mtgocr.ocrreader.data.MtgDataProvider;
@@ -69,10 +70,6 @@ import io.asv.mtgocr.ocrreader.model.Decks;
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSource;
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview;
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
-
-import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -821,7 +818,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
       case R.id.btnOk:
         //todo ver onTap
-        doSearch();
+        doSearch(txtSearch.getText().toString());
         showRecycler();
         break;
       case R.id.btnCancel:
@@ -833,9 +830,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
   }
 
-  private void doSearch() {
+  public void doSearch(String searchText) {
     //save and show
-    CardInfo cardinfo = new CardInfo(txtSearch.getText().toString(), "", "", "", "");
+    CardInfo cardinfo = new CardInfo(searchText, "", "", "", "");
     persistInfo(cardinfo);
 
     //region create objectGetterCardinfo
@@ -848,9 +845,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     mLstDataProviders.add(myDataProvider);
     mIdxInPersistor.add(getIdxCardInfoInPersistor());
 
-    // mLstHandlers.set(myIdx, myHandler);
+    // mLstHandlers.set(myIdx, myHandler); String query =  );
     mLstDataProviders.get(myIdx)
-        .GetCardInfo(txtSearch.getText().toString(), mLstCardInfo.get(myIdx));
+        .GetCardInfo(Uri.encode(searchText), mLstCardInfo.get(myIdx));
   }
 
   private void showOcr() {

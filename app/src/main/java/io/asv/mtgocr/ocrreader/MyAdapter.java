@@ -1,6 +1,5 @@
 package io.asv.mtgocr.ocrreader;
 
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Handler;
@@ -11,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.TranslateAnimation;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -34,10 +34,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
 
   private Handler handler = new Handler(); // hanlder for running delayed runnables
   HashMap<CardInfo, Runnable> pendingRunnables = new HashMap<>();
-      // map of items to pending runnables, so we can cancel a removal if need be
+  // map of items to pending runnables, so we can cancel a removal if need be
 
-  private  List<CardInfo> mDataset;
-  private static Context mContext;
+  private List<CardInfo> mDataset;
+  private static OcrCaptureActivity mContext;
   private static int mPosition;
 
   // Provide a reference to the views for each data item
@@ -48,6 +48,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     public TextView mtxtPrice, mtxtName, mTxtUndo;
     LinearLayout mLytViewHolder;
     ImageView mImgCard;
+    ImageButton btnRetry;
 
     public ViewHolder(View v) {
       super(v);
@@ -55,7 +56,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       mtxtName = (TextView) v.findViewById(R.id.txtName);
       mTxtUndo = (TextView) v.findViewById(R.id.txtUndo);
       mImgCard = (ImageView) v.findViewById(R.id.imgCard);
-
+      btnRetry = (ImageButton) v.findViewById(R.id.btnRetry);
       mLytViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
 
       Typeface tf = Typeface.createFromAsset(mContext.getAssets(), "title_font.ttf");
@@ -64,7 +65,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   }
 
   // Provide a suitable constructor (depends on the kind of dataset)
-  public MyAdapter(List<CardInfo> myDataset, Context context) {
+  public MyAdapter(List<CardInfo> myDataset, OcrCaptureActivity context) {
     mDataset = myDataset;
     mContext = context;
     itemsPendingRemoval = new ArrayList<>();
@@ -189,11 +190,13 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
           v.getContext().startActivity(intent);
         }
       });
-      Glide
-          .with(mContext)
-          .load(item.getImgPath())
-          .into(holder.mImgCard);
-
+     final String  card_name= item.getName();
+      holder.btnRetry.setOnClickListener(new View.OnClickListener() {
+        @Override public void onClick(View v) {
+          mContext.doSearch(card_name);
+        }
+      });
+      Glide.with(mContext).load(item.getImgPath()).into(holder.mImgCard);
     }
   }
 

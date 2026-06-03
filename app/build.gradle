@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+    compileSdkVersion 33
+
 
     defaultConfig {
         applicationId "io.asv.mtgocr.ocrreader"
         minSdkVersion 11
-        targetSdkVersion 23
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
     }
@@ -20,13 +20,18 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-	compile 'com.android.support:support-v4:23.0.1'
-    compile 'com.google.android.gms:play-services-vision:9.4.0+'
-    compile 'com.android.support:design:23.0.1'
-    compile 'com.koushikdutta.ion:ion:2.1.8'
-    compile 'com.github.bumptech.glide:glide:3.7.0'
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+	//noinspection GradleCompatible
+	implementation 'com.android.support:support-v4:23.0.1'
+    //noinspection GradleDynamicVersion
+    implementation 'com.google.android.gms:play-services-vision:9.4.0+'
+    //noinspection GradleCompatible
+    implementation 'com.android.support:design:23.0.1'
+    implementation 'com.koushikdutta.ion:ion:2.1.8'
+    implementation 'com.github.bumptech.glide:glide:3.7.0'
     //new ui
-    compile 'com.android.support:recyclerview-v7:23.0.0'
-    compile 'com.android.support:cardview-v7:23.0.0'
+    //noinspection GradleCompatible
+    implementation 'com.android.support:recyclerview-v7:23.0.0'
+    //noinspection GradleCompatible
+    implementation 'com.android.support:cardview-v7:23.0.0'
 }

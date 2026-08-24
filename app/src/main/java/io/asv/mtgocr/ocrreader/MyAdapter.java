@@ -1,9 +1,8 @@
 package io.asv.mtgocr.ocrreader;
 
-import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Handler;
-import android.support.v7.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -14,9 +13,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import com.bumptech.glide.Glide;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,36 +35,41 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
 
   private List<CardInfo> mDataset;
   private static OcrCaptureActivity mContext;
-  private static int mPosition;
+  private final boolean gridMode;
 
   // Provide a reference to the views for each data item
   // Complex data items may need more than one view per item, and
   // you provide access to all the views for a data item in a view holder
   public static class ViewHolder extends RecyclerView.ViewHolder {
     // each data item is just a string in this case
-    public TextView mtxtPrice, mtxtName, mTxtUndo;
+    public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
     LinearLayout mLytViewHolder;
     ImageView mImgCard;
-    ImageButton btnRetry;
+    ImageButton btnOrganize;
+    TextView txtQuantity;
 
     public ViewHolder(View v) {
       super(v);
       mtxtPrice = (TextView) v.findViewById(R.id.txtPrice);
       mtxtName = (TextView) v.findViewById(R.id.txtName);
       mTxtUndo = (TextView) v.findViewById(R.id.txtUndo);
+      mTxtGroups = (TextView) v.findViewById(R.id.txtGroups);
       mImgCard = (ImageView) v.findViewById(R.id.imgCard);
-      btnRetry = (ImageButton) v.findViewById(R.id.btnRetry);
+      btnOrganize = (ImageButton) v.findViewById(R.id.btnOrganizeCard);
+      txtQuantity = (TextView) v.findViewById(R.id.txtCardQuantity);
       mLytViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
 
       Typeface tf = Typeface.createFromAsset(mContext.getAssets(), "title_font.ttf");
       mtxtName.setTypeface(tf);
+      txtQuantity.setTypeface(tf);
     }
   }
 
   // Provide a suitable constructor (depends on the kind of dataset)
-  public MyAdapter(List<CardInfo> myDataset, OcrCaptureActivity context) {
+  public MyAdapter(List<CardInfo> myDataset, OcrCaptureActivity context, boolean gridMode) {
     mDataset = myDataset;
     mContext = context;
+    this.gridMode = gridMode;
     itemsPendingRemoval = new ArrayList<>();
   }
 
@@ -76,7 +78,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   // Create new views (invoked by the layout manager)
   @Override public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
     // create a new view
-    View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.card_item, parent, false);
+    View v = LayoutInflater.from(parent.getContext()).inflate(
+        gridMode ? R.layout.card_grid_item : R.layout.card_item, parent, false);
     // set the view's size, margins, paddings and layout parameters
     //v.setOnClickListener(this);
     ViewHolder vh = new ViewHolder(v);
@@ -126,10 +129,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       // let's create, store and post a runnable to remove the item
       Runnable pendingRemovalRunnable = new Runnable() {
         @Override public void run() {
-          remove(mDataset.indexOf(item));
-          //for keep changes
-          OcrCaptureActivity.mBiblio.cards.clear();
-          OcrCaptureActivity.mBiblio.cards.addAll(mDataset);
+          int position = mDataset.indexOf(item);
+          if (position >= 0) remove(position);
+          mContext.deleteCardFromCollection(item);
         }
       };
       handler.postDelayed(pendingRemovalRunnable, PENDING_REMOVAL_TIMEOUT);
@@ -138,6 +140,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   }
 
   public void remove(int position) {
+    if (position < 0 || position >= mDataset.size()) return;
     CardInfo item = mDataset.get(position);
     if (itemsPendingRemoval != null && itemsPendingRemoval.contains(item)) {
       itemsPendingRemoval.remove(item);
@@ -147,6 +150,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
 
       notifyItemRemoved(position);
     }
+  }
+
+  public CardInfo getItem(int position) {
+    return mDataset.get(position);
   }
 
   public boolean isPendingRemoval(int position) {
@@ -159,10 +166,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     // - get element from your dataset at this position
     // - replace the contents of the view with that element
     final CardInfo item = mDataset.get(position);
-    mPosition = position;
     if (itemsPendingRemoval != null && itemsPendingRemoval.contains(item)) {
 
       holder.mLytViewHolder.setVisibility(View.GONE);
+      holder.mTxtUndo.setVisibility(View.VISIBLE);
       holder.mTxtUndo.setOnClickListener(new View.OnClickListener() {
         @Override public void onClick(View v) {
           // user wants to undo the removal, let's cancel the pending task
@@ -171,37 +178,66 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
           if (pendingRemovalRunnable != null) handler.removeCallbacks(pendingRemovalRunnable);
           itemsPendingRemoval.remove(item);
           // this will rebind the row in "normal" state
-          notifyItemChanged(mPosition);
+          int restoredPosition = mDataset.indexOf(item);
+          if (restoredPosition >= 0) notifyItemChanged(restoredPosition);
         }
       });
     } else {
       holder.mLytViewHolder.setVisibility(View.VISIBLE);
+      holder.mTxtUndo.setVisibility(View.GONE);
       holder.mtxtName.setVisibility(View.VISIBLE);
       holder.mtxtPrice.setVisibility(View.VISIBLE);
 
       holder.mtxtName.setText(item.getName());
       holder.mtxtPrice.setText(item.getPrice());
-      holder.mtxtName.setTag(position);
-      holder.mtxtName.setOnClickListener(new View.OnClickListener() {
+      holder.txtQuantity.setText(String.valueOf(item.getQuantityCount()));
+      StringBuilder groups = new StringBuilder();
+      if (item.getSetName() != null && item.getSetName().trim().length() > 0) {
+        if (gridMode) groups.append(mContext.getString(R.string.grid_set_overlay, item.getSetName()));
+        else groups.append(item.getSetName());
+        if (item.getSetCode() != null && item.getSetCode().trim().length() > 0) {
+          groups.append(" (").append(item.getSetCode()).append(")");
+        }
+      } else if (gridMode) {
+        groups.append(mContext.getString(R.string.personal_collection_label));
+      }
+      if (!item.getGroups().isEmpty()) {
+        if (groups.length() > 0) groups.append(" · ");
+        groups.append("Agrupaciones: ").append(android.text.TextUtils.join(", ", item.getGroups()));
+      }
+      if (!item.getDecks().isEmpty()) {
+        if (groups.length() > 0) groups.append(" · ");
+        groups.append("Mazos: ").append(android.text.TextUtils.join(", ", item.getDecks()));
+      }
+      holder.mTxtGroups.setText(groups.toString());
+      holder.mTxtGroups.setVisibility(groups.length() > 0 ? View.VISIBLE : View.GONE);
+      View.OnClickListener openEditions = new View.OnClickListener() {
         @Override public void onClick(View v) {
-          Intent intent = new Intent(v.getContext(), Main2Activity.class);
-          intent.putExtra("cardList", (Serializable) mDataset);
-          intent.putExtra("cardPosition", (int) v.getTag()); //
-          v.getContext().startActivity(intent);
+          mContext.openCardDetails(item);
+        }
+      };
+      holder.mLytViewHolder.setOnClickListener(openEditions);
+      holder.mtxtName.setOnClickListener(openEditions);
+      holder.mImgCard.setOnClickListener(openEditions);
+      holder.btnOrganize.setOnClickListener(new View.OnClickListener() {
+        @Override public void onClick(View v) {
+          mContext.showOrganizerDialog(item);
         }
       });
-     final String  card_name= item.getName();
-      holder.btnRetry.setOnClickListener(new View.OnClickListener() {
-        @Override public void onClick(View v) {
-          mContext.doSearch(card_name);
-        }
-      });
-      Glide.with(mContext).load(item.getImgPath()).into(holder.mImgCard);
+      CardImageCache.display(mContext, item.getImgPath(), holder.mImgCard);
     }
   }
 
   // Return the size of your dataset (invoked by the layout manager)
   @Override public int getItemCount() {
     return mDataset.size();
+  }
+
+  public int indexOfCollectionItem(String collectionItemId) {
+    if (collectionItemId == null) return -1;
+    for (int index = 0; index < mDataset.size(); index++) {
+      if (collectionItemId.equals(mDataset.get(index).getCollectionItemId())) return index;
+    }
+    return -1;
   }
 }

@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.asv.mtgocr.ocrreader"
     android:installLocation="auto">
 
     <uses-feature android:name="android.hardware.camera" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -15,15 +13,17 @@
         android:hardwareAccelerated="true"
         android:icon="@drawable/icon"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat">
+        android:theme="@style/Theme.Mtg">
         <meta-data
             android:name="com.google.android.gms.vision.DEPENDENCIES"
             android:value="ocr" />
 
         <activity
-            android:name="io.asv.mtgocr.ocrreader.MainActivity"
+            android:name=".SplashActivity"
+            android:exported="true"
             android:label="@string/title_activity_main"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -32,11 +32,35 @@
         </activity>
         <activity
             android:name="io.asv.mtgocr.ocrreader.OcrCaptureActivity"
-                android:theme="@style/Theme.AppCompat.NoActionBar"
+            android:exported="false"
+            android:theme="@style/Theme.Mtg"
             android:screenOrientation="portrait" />
-        <activity android:name=".Main2Activity">
+        <activity
+            android:name=".Main2Activity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg">
 
         </activity>
+        <activity
+            android:name="io.asv.mtgocr.ocrreader.MainActivity"
+            android:exported="false"
+            android:label="@string/title_activity_main"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".SetCollectionActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".GroupBuilderActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
+        <activity
+            android:name=".CardImageActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
     </application>
 
 </manifest>

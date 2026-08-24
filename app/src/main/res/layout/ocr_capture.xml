@@ -2,34 +2,167 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+        android:background="@color/mtg_parchment">
 
-    <ImageView
+    <io.asv.mtgocr.ocrreader.CardArtBackgroundView
         android:id="@+id/imgBgCard"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:contentDescription="@string/expansion_background"
+        android:visibility="gone" />
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/lytRecycler"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavigation"
+        android:orientation="vertical">
 
-        <android.support.v7.widget.RecyclerView
+        <LinearLayout
+            android:id="@+id/collectionControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/mtg_parchment"
+            android:orientation="vertical"
+            android:padding="6dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCreateGroup"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="@string/create_group"
+                android:textColor="@color/mtg_green"
+                android:visibility="gone"
+                app:icon="@drawable/ic_add"
+                app:iconTint="@color/mtg_green"
+                app:strokeColor="@color/mtg_green" />
+
+            <EditText
+                android:id="@+id/txtCollectionSearch"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:background="#FFFFFF"
+                android:hint="@string/search_collection_hint"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="#111111"
+                android:textColorHint="#777777" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sort_cards"
+                        android:textColor="#555555"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerCollectionSort"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="@drawable/spinner_background"
+                        android:contentDescription="@string/sort_cards" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="64dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/txtCollectionFilterLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_cards"
+                        android:textColor="#555555"
+                        android:textSize="12sp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerCollectionFilter"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="@drawable/spinner_background"
+                        android:contentDescription="@string/filter_cards" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnCollectionViewMode"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="bottom"
+                    android:layout_marginStart="4dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/show_as_grid"
+                    android:padding="8dp"
+                    android:src="@android:drawable/ic_menu_gallery" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/my_recycler_view"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginBottom="54dp"
-            android:background="#fff"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/mtg_parchment"
             android:scrollbars="vertical" />
 
         <TextView
             android:id="@+id/txtTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            android:gravity="center"
+            android:padding="6dp"
+            android:textColor="#000000"
+            android:textSize="24sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/settingsPlaceholder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavigation"
+        android:background="#FFFFFF"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:contentDescription="@string/settings"
+            android:src="@drawable/ic_settings"
+            app:tint="#555555" />
+
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
-            android:textSize="30sp" />
-    </RelativeLayout>
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:text="@string/settings_future_message"
+            android:textColor="#333333"
+            android:textSize="18sp" />
+    </LinearLayout>
 
     <RelativeLayout
         android:id="@+id/lytSearch"
@@ -48,10 +181,33 @@
 
         <EditText
             android:id="@+id/txtSearch"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="Esquirge de la boveda" />
+            android:layout_marginStart="28dp"
+            android:layout_marginEnd="28dp"
+            android:background="#FFFFFF"
+            android:hint="@string/card_name_hint"
+            android:imeOptions="actionDone"
+            android:inputType="textCapWords"
+            android:padding="12dp"
+            android:singleLine="true"
+            android:textColor="#111111"
+            android:textColorHint="#777777" />
+
+        <ListView
+            android:id="@+id/cardNameSuggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/txtSearch"
+            android:layout_alignStart="@id/txtSearch"
+            android:layout_alignEnd="@id/txtSearch"
+            android:layout_marginTop="4dp"
+            android:background="#FFFFFF"
+            android:divider="#DDDDDD"
+            android:dividerHeight="1dp"
+            android:elevation="8dp"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -76,14 +232,29 @@
         </LinearLayout>
     </RelativeLayout>
 
-    <android.support.design.widget.FloatingActionButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabOcr"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@id/bottomNavigation"
         android:layout_alignParentRight="true"
         android:layout_margin="7dp"
-        app:backgroundTint="@color/lDark" /> <!--app:srcCompat="@android:drawable/ic_menu_view"-->
+        android:contentDescription="@string/scan_card"
+        app:backgroundTint="@color/lDark"
+        app:srcCompat="@drawable/ic_scan"
+        app:tint="#FFFFFF" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:elevation="12dp"
+        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemTextColor="@color/bottom_nav_item_color"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/menu_bottom_navigation" />
 
     <LinearLayout
         android:id="@+id/topLayout"

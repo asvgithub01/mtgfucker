@@ -3,16 +3,27 @@ package io.asv.mtgocr.ocrreader.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Created by Alberto on 16/10/2016.
  */
 public class CardInfo implements Serializable {
+    // Keep compatibility with collections serialized by versions <= 1.x.
+    private static final long serialVersionUID = -7899312800426509165L;
     private String name;
     private String price;
     private String description;
     private String imgPath;
     private String quantity;
+    private String collectionItemId;
+    private long addedAt;
+    private String printingUuid;
+    private String setCode;
+    private String setName;
+    private String finish;
+    private ArrayList<String> personalCollections;
+    private ArrayList<String> decks;
     /**/
     public String getPriceL() {
         return priceL;
@@ -56,6 +67,117 @@ public class CardInfo implements Serializable {
         this.description = description;
         this.imgPath = imgPath;
         this.quantity = quantity;
+        this.collectionItemId = UUID.randomUUID().toString();
+        this.addedAt = System.currentTimeMillis();
+        this.personalCollections = new ArrayList<String>();
+        this.decks = new ArrayList<String>();
+    }
+
+    public String getCollectionItemId() {
+        ensureCollectionItemId();
+        return collectionItemId;
+    }
+
+    public boolean ensureCollectionItemId() {
+        if (collectionItemId == null || collectionItemId.length() == 0) {
+            collectionItemId = UUID.randomUUID().toString();
+            return true;
+        }
+        return false;
+    }
+
+    public long getAddedAt() {
+        return addedAt;
+    }
+
+    public boolean ensureAddedAt(long fallback) {
+        if (addedAt <= 0L) {
+            addedAt = fallback;
+            return true;
+        }
+        return false;
+    }
+
+    public void setAddedAt(long addedAt) {
+        this.addedAt = addedAt;
+    }
+
+    public String getPrintingUuid() {
+        return printingUuid;
+    }
+
+    public void setPrintingUuid(String printingUuid) {
+        this.printingUuid = printingUuid;
+    }
+
+    public String getSetCode() {
+        return setCode;
+    }
+
+    public void setSetCode(String setCode) {
+        this.setCode = setCode;
+    }
+
+    public String getSetName() {
+        return setName;
+    }
+
+    public void setSetName(String setName) {
+        this.setName = setName;
+    }
+
+    public String getFinish() {
+        return finish;
+    }
+
+    public void setFinish(String finish) {
+        this.finish = finish;
+    }
+
+    public ArrayList<String> getPersonalCollections() {
+        if (personalCollections == null) personalCollections = new ArrayList<String>();
+        return personalCollections;
+    }
+
+    /**
+     * Every CardInfo already belongs to the personal Biblio. The legacy serialized field now
+     * represents optional user-defined groups so old collection files remain compatible.
+     */
+    public ArrayList<String> getGroups() {
+        return getPersonalCollections();
+    }
+
+    public ArrayList<String> getDecks() {
+        if (decks == null) decks = new ArrayList<String>();
+        return decks;
+    }
+
+    public boolean addPersonalCollection(String name) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.length() == 0 || getPersonalCollections().contains(normalized)) return false;
+        return getPersonalCollections().add(normalized);
+    }
+
+    public boolean addGroup(String name) {
+        return addPersonalCollection(name);
+    }
+
+    public boolean addDeck(String name) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.length() == 0 || getDecks().contains(normalized)) return false;
+        return getDecks().add(normalized);
+    }
+
+    public boolean removePersonalCollection(String name) {
+        return getPersonalCollections().remove(name);
+    }
+
+    public boolean removeGroup(String name) {
+        return removePersonalCollection(name);
+    }
+
+    public boolean removeDeck(String name) {
+        return getDecks().remove(name);
     }
 
     public String getName() {
@@ -96,6 +218,28 @@ public class CardInfo implements Serializable {
 
     public void setQuantity(String quantity) {
         this.quantity = quantity;
+    }
+
+    /** Returns a safe physical-copy count for legacy collections with an empty quantity. */
+    public int getQuantityCount() {
+        try {
+            return Math.max(1, Integer.parseInt(quantity == null ? "" : quantity.trim()));
+        } catch (NumberFormatException ignored) {
+            return 1;
+        }
+    }
+
+    public void setQuantityCount(int quantity) {
+        this.quantity = String.valueOf(Math.max(1, quantity));
+    }
+
+    public boolean ensureQuantity() {
+        String normalized = String.valueOf(getQuantityCount());
+        if (!normalized.equals(quantity)) {
+            quantity = normalized;
+            return true;
+        }
+        return false;
     }
 
     public String toJSON() {

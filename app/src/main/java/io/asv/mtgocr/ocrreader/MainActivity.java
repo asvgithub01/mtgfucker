@@ -22,6 +22,8 @@ import android.app.Activity;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
+import android.graphics.Typeface;
+import android.widget.TextView;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
 
@@ -42,6 +44,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ((TextView) findViewById(R.id.txtLaunchTitle)).setTypeface(
+                Typeface.createFromAsset(getAssets(), "title_font.ttf"));
 
         autoFocus = (CompoundButton) findViewById(R.id.auto_focus);
         useFlash = (CompoundButton) findViewById(R.id.use_flash);

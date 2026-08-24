@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="gDark">#666</color>
-    <color name="lDark">#1CA1EE</color>
+    <color name="lDark">#245B43</color>
+    <color name="mtg_ink">#171B19</color>
+    <color name="mtg_green">#245B43</color>
+    <color name="mtg_green_dark">#173C2C</color>
+    <color name="mtg_parchment">#F6F1E7</color>
+    <color name="mtg_surface">#FFFCF6</color>
+    <color name="mtg_gold">#E0B64B</color>
+    <color name="mtg_muted">#6E746F</color>
     <style name="MyTheme" >
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>

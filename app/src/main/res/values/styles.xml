@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Mtg" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/mtg_green</item>
+        <item name="colorPrimaryVariant">@color/mtg_green_dark</item>
+        <item name="colorSecondary">@color/mtg_gold</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:navigationBarColor">@color/mtg_green_dark</item>
+        <item name="android:statusBarColor">@color/mtg_green_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+    <style name="Theme.Mtg.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/mtg_green_dark</item>
+        <item name="android:navigationBarColor">@color/mtg_green_dark</item>
+        <item name="android:statusBarColor">@color/mtg_green_dark</item>
+    </style>
+</resources>

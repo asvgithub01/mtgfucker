@@ -2,16 +2,108 @@
 <resources>
     <string name="ok">OK</string>
     <string name="permission_camera_rationale">Access to the camera is needed for detection</string>
-    <string name="no_camera_permission">This application cannot run because it does not have the camera permission.  The application will now exit.</string>
+    <string name="no_camera_permission">This application cannot run because it does not have the camera permission. The application will now exit.</string>
     <string name="low_storage_error">Ocr dependencies cannot be downloaded due to low device storage</string>
     <string name="title_activity_main">PaNiKa</string>
-    <string name="ocr_header">Click &quot;Detect Text&quot; to detect text</string>
-    <string name="mode_biblio">Open My MTG Biblio</string>
+    <string name="ocr_header">Click "Detect Text" to detect text</string>
+    <string name="mode_biblio">Abrir mi Biblio</string>
     <string name="mode_new_Deck">Create new Deck</string>
     <string name="mode_edit_Decks">Open My Decks</string>
-    <string name="auto_focus">Auto Focus</string>
-    <string name="use_flash">Use Flash</string>
+    <string name="auto_focus">Enfoque automático</string>
+    <string name="use_flash">Flash</string>
     <string name="ocr_success">Text read successfully</string>
     <string name="ocr_failure">No text captured</string>
-    <string name="ocr_error">"Error reading text: %1$s"</string>
+    <string name="ocr_error">Error reading text: %1$s</string>
+    <string name="loading_editions">Cargando ediciones y precios…</string>
+    <string name="editions_error">No se pudieron cargar las ediciones.</string>
+    <plurals name="editions_found">
+        <item quantity="one">%d edición/acabado</item>
+        <item quantity="other">%d ediciones/acabados</item>
+    </plurals>
+    <string name="edition_selected">Seleccionada %1$s (%2$s)</string>
+    <string name="edition_metadata">N.º %1$s · %2$s · %3$s</string>
+    <string name="foil">foil</string>
+    <string name="nonfoil">no foil</string>
+    <string name="no_price">Precio no disponible</string>
+    <string name="refresh_prices">Actualizar precio</string>
+    <string name="refresh_prices_plural">Actualizar precios</string>
+    <string name="close">Cerrar</string>
+    <string name="card_image">Imagen de la carta</string>
+    <string name="select_owned_edition">Seleccionar esta edición</string>
+    <string name="card_edition_image">Imagen de esta edición</string>
+    <string name="select_all">Seleccionar todas</string>
+    <string name="add_selected_cards">Añadir seleccionadas a la colección</string>
+    <string name="add_selected_cards_count">Añadir seleccionadas (%1$d)</string>
+    <string name="loading_set_cards">Cargando cartas de la colección…</string>
+    <string name="set_cards_error">No se pudo cargar la colección.</string>
+    <plurals name="set_cards_found">
+        <item quantity="one">%d carta</item>
+        <item quantity="other">%d cartas</item>
+    </plurals>
+    <plurals name="cards_added">
+        <item quantity="one">Se añadió %d carta a la colección.</item>
+        <item quantity="other">Se añadieron %d cartas a la colección.</item>
+    </plurals>
+    <string name="sort_cards">Ordenar cartas</string>
+    <string name="filter_cards">Filtrar cartas</string>
+    <string name="search_collection_hint">Buscar carta por nombre…</string>
+    <string name="automatic_ocr_match">Carta reconocida: %1$s</string>
+    <string name="all_cards">Todas las cartas</string>
+    <string name="already_owned">Ya la tienes</string>
+    <string name="organize_card">Organizar carta</string>
+    <string name="add_to_group">Añadir a agrupación</string>
+    <string name="add_to_deck">Añadir a mazo</string>
+    <string name="remove_assignment">Quitar de una agrupación o mazo</string>
+    <string name="new_group">Nueva agrupación…</string>
+    <string name="new_deck">Nuevo mazo…</string>
+    <string name="group_name">Nombre de la agrupación</string>
+    <string name="deck_name">Nombre del mazo</string>
+    <string name="group_filter">Agrupación: %1$s</string>
+    <string name="deck_filter">Mazo: %1$s</string>
+    <string name="card_assignment_saved">Asignación guardada</string>
+    <string name="card_assignment_removed">Asignación eliminada</string>
+    <string name="no_assignments">La carta pertenece a tu colección personal, pero no está en ninguna agrupación ni mazo.</string>
+    <string name="groups_summary">%1$s</string>
+    <string name="show_as_grid">Mostrar como cuadrícula</string>
+    <string name="show_as_list">Mostrar como lista</string>
+    <string name="personal_collection_label">Colección personal</string>
+    <string name="grid_set_overlay">Colección: %1$s</string>
+    <string name="card_name_hint">Nombre de la carta</string>
+    <string name="nav_library">Biblio</string>
+    <string name="nav_sets">Expansiones</string>
+    <string name="nav_groups">Agrupaciones</string>
+    <string name="settings">Ajustes</string>
+    <string name="settings_future_message">Ajustes de fuente de precios próximamente</string>
+    <string name="scan_card">Escanear carta</string>
+    <string name="increase_quantity">Añadir una copia</string>
+    <string name="decrease_quantity">Quitar una copia</string>
+    <string name="expansion_filter_label">Expansión</string>
+    <string name="expansion_background">Carta de fondo de la expansión</string>
+    <string name="grouping_filter_label">Agrupación o mazo</string>
+    <string name="filter_with_count">%1$s (%2$d)</string>
+    <string name="suggestion_with_language">%1$s · %2$s</string>
+    <string name="card_added">%1$s añadida a tu Biblio</string>
+    <string name="view_card">Ver carta</string>
+    <string name="card_detail">Detalle de carta</string>
+    <string name="card_rules">Texto de la carta</string>
+    <string name="editions">Ediciones</string>
+    <string name="collapse_editions">Desliza hacia arriba para elegir edición</string>
+    <string name="add_this_printing">Añadir otra copia de esta edición</string>
+    <string name="copy_added">Copia añadida: %1$s · ahora tienes %2$d</string>
+    <string name="copy_count_saved">Guardado en la colección · %1$d copias de esta edición</string>
+    <string name="copy_add_error">No se pudo añadir la copia</string>
+    <string name="image_page_status">%1$d/%2$d · %3$s · %4$s · desliza para cambiar de edición</string>
+    <string name="create_group">Crear agrupación</string>
+    <string name="create_first_group">Todavía no tienes agrupaciones. Crea una y elige sus cartas sin perder tus filtros ni el orden.</string>
+    <string name="choose_group_cards">Elige las cartas de %1$s</string>
+    <string name="save_group">Guardar agrupación</string>
+    <string name="selected_cards_count">%1$d seleccionadas</string>
+    <string name="group_created">Agrupación “%1$s” creada con %2$d cartas</string>
+    <string name="back">Volver</string>
+    <string-array name="collection_sort_options">
+        <item>Orden de entrada</item>
+        <item>Nombre (A–Z)</item>
+        <item>Precio (mayor a menor)</item>
+        <item>Colección/edición MTG</item>
+    </string-array>
 </resources>

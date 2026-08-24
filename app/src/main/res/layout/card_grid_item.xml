@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:id="@+id/lytViewHolder"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:background="#202020"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/imgCard"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="@string/card_image"
+                android:scaleType="centerCrop" />
+
+            <TextView
+                android:id="@+id/txtPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="6dp"
+                android:background="#D9000000"
+                android:paddingStart="7dp"
+                android:paddingTop="4dp"
+                android:paddingEnd="7dp"
+                android:paddingBottom="4dp"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnOrganizeCard"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="top|end"
+                android:layout_margin="5dp"
+                android:background="#DDFFFFFF"
+                android:contentDescription="@string/organize_card"
+                android:padding="5dp"
+                android:src="@drawable/ic_groups" />
+
+            <TextView
+                android:id="@+id/txtCardQuantity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="46dp"
+                android:layout_marginEnd="7dp"
+                android:background="@drawable/bg_quantity_badge"
+                android:gravity="center"
+                android:minWidth="34dp"
+                android:textColor="@color/mtg_gold"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:background="#D9000000"
+                android:orientation="vertical"
+                android:padding="7dp">
+
+                <TextView
+                    android:id="@+id/txtName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/txtGroups"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="#F1F1F1"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtUndo"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="#CC0000"
+        android:gravity="center"
+        android:text="UNDO"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:visibility="gone" />
+</LinearLayout>

@@ -125,6 +125,9 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM card_name_aliases")
     fun cardNameAliasCount(): Int
 
+    @Query("SELECT * FROM card_name_aliases")
+    fun allCardNameAliases(): List<CardNameAliasEntity>
+
     @Query("SELECT * FROM magic_sets ORDER BY releaseDate, name")
     fun magicSets(): List<MagicSetEntity>
 

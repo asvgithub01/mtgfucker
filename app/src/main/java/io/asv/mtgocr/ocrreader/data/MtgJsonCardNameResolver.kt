@@ -24,6 +24,7 @@ class MtgJsonCardNameResolver(
     private val cacheDirectory = File(context.cacheDir, "mtgjson").apply { mkdirs() }
     private val atomicCardsFile = File(cacheDirectory, "AtomicCards.json.gz")
     private val predictionIndexMarker = File(cacheDirectory, "AtomicCards.names-indexed")
+    @Volatile private var ocrNameIndex: OcrNameIndex? = null
 
     fun cached(cardName: String): Resolution? {
         return dao.cardNameAlias(MtgJsonParsers.normalizeSearchName(cardName))?.toResolution()
@@ -31,6 +32,7 @@ class MtgJsonCardNameResolver(
 
     fun resolveLocalOcrCandidates(cardNames: List<String>): Resolution? {
         cardNames.asSequence().mapNotNull(::cached).firstOrNull()?.let { return it }
+        ocrNameIndex?.match(cardNames)?.let { return it.toResolution() }
         if (!atomicCardsFile.exists()) return null
         val parsed = atomicCardsFile.source().buffer().use { compressed ->
             GzipSource(compressed).buffer().use { source ->
@@ -48,7 +50,10 @@ class MtgJsonCardNameResolver(
         val sourceVersion = atomicCardsFile.lastModified().toString()
         val indexCurrent = predictionIndexMarker.takeIf { it.isFile }?.readText() == sourceVersion &&
             dao.cardNameAliasCount() > 0
-        if (indexCurrent) return true
+        if (indexCurrent) {
+            prepareOcrNameIndex()
+            return true
+        }
 
         val indexedAt = System.currentTimeMillis()
         atomicCardsFile.source().buffer().use { compressed ->
@@ -67,7 +72,12 @@ class MtgJsonCardNameResolver(
             }
         }
         predictionIndexMarker.writeText(sourceVersion)
+        prepareOcrNameIndex()
         return true
+    }
+
+    private fun prepareOcrNameIndex() {
+        if (ocrNameIndex == null) ocrNameIndex = OcrNameIndex(dao.allCardNameAliases())
     }
 
     fun suggestions(query: String, limit: Int): List<Resolution> {

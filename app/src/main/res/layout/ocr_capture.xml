@@ -208,23 +208,22 @@
         android:id="@+id/lytSearch"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="108dp"
-        android:background="?attr/colorPrimaryVariant"
+        android:background="@android:color/transparent"
         android:visibility="gone">
 
-        <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:layout_margin="54dp"
-            android:src="@drawable/frame" />
+        <io.asv.mtgocr.ocrreader.CardScanGuideView
+            android:id="@+id/cardScanGuide"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no" />
 
         <EditText
             android:id="@+id/txtSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
+            android:layout_alignParentTop="true"
             android:layout_marginStart="28dp"
+            android:layout_marginTop="14dp"
             android:layout_marginEnd="28dp"
             android:background="#FFFFFF"
             android:hint="@string/card_name_hint"
@@ -251,12 +250,51 @@
 
         <LinearLayout
             android:id="@+id/scanActions"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
             android:gravity="center_horizontal"
             android:orientation="vertical">
+
+            <EditText
+                android:id="@+id/txtLockedSet"
+                android:layout_width="220dp"
+                android:layout_height="42dp"
+                android:background="#EFFFFFFF"
+                android:hint="@string/lock_set_hint"
+                android:inputType="textCapCharacters"
+                android:maxLines="1"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="#111111"
+                android:textColorHint="#666666" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/checkAutoIdentify"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:checked="true"
+                    android:text="@string/auto_identify"
+                    android:textColor="#F4F0E8"
+                    android:textSize="13sp" />
+
+                <CheckBox
+                    android:id="@+id/checkQuickScan"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:checked="true"
+                    android:text="@string/quick_scan"
+                    android:textColor="#F4F0E8"
+                    android:textSize="13sp" />
+            </LinearLayout>
 
             <CheckBox
                 android:id="@+id/checkCloseAfterScan"
@@ -322,9 +360,8 @@
     <LinearLayout
         android:id="@+id/topLayout"
         android:layout_width="match_parent"
-        android:layout_height="108dp"
-        android:layout_alignParentBottom="true"
-        android:background="#ff0033"
+        android:layout_height="match_parent"
+        android:background="#000000"
         android:keepScreenOn="true"
         android:visibility="gone">
 

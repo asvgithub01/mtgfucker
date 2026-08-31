@@ -40,6 +40,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Looper;
+import android.os.SystemClock;
 import androidx.annotation.NonNull;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -83,6 +84,10 @@ import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.CardRepository;
+import io.asv.mtgocr.ocrreader.data.CardEditionOption;
+import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate;
+import io.asv.mtgocr.ocrreader.data.CardIdentificationResult;
+import io.asv.mtgocr.ocrreader.data.LocalCardNameMatch;
 import io.asv.mtgocr.ocrreader.data.CardNameSuggestion;
 import io.asv.mtgocr.ocrreader.data.DeckCatalogStore;
 import io.asv.mtgocr.ocrreader.data.IDataProvider;
@@ -124,6 +129,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final int RC_HANDLE_CAMERA_PERM = 2;
   private static final String SCANNER_PREFERENCES = "scanner_preferences";
   private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
+  private static final String PREF_AUTO_IDENTIFY = "auto_identify";
+  private static final String PREF_QUICK_SCAN = "quick_scan";
+  private static final String PREF_LOCKED_SET = "locked_set";
   private static final String STATE_SECTION = "selected_section";
 
   private CameraSource mCameraSource;
@@ -147,6 +155,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   Button btnOk, btnCancel;
   private CheckBox closeAfterScanCheck;
+  private CheckBox autoIdentifyCheck;
+  private CheckBox quickScanCheck;
+  private EditText lockedSetInput;
+  private CardScanGuideView cardScanGuide;
   FloatingActionButton fabOcr;
   EditText txtSearch;
   RelativeLayout lytSearch;
@@ -197,6 +209,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private boolean activeScanMetadataFailed;
   private RoundedCardImageView activeScanThumbnail;
   private TextView activeScanMessage;
+  private final CardScanStability scanStability = new CardScanStability();
+  private boolean scanLookupInFlight;
+  private boolean scanInProgress;
+  private long lastOcrLookupAt;
 
   /**
    * Initializes the UI and creates the detector pipeline.
@@ -213,6 +229,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     btnOk = (Button) findViewById(R.id.btnOk);
     btnCancel = (Button) findViewById(R.id.btnCancel);
     closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
+    autoIdentifyCheck = (CheckBox) findViewById(R.id.checkAutoIdentify);
+    quickScanCheck = (CheckBox) findViewById(R.id.checkQuickScan);
+    lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);
+    cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
@@ -228,6 +248,23 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_CLOSE_AFTER_SCAN, checked)
             .apply());
+    autoIdentifyCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+        .getBoolean(PREF_AUTO_IDENTIFY, true));
+    quickScanCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+        .getBoolean(PREF_QUICK_SCAN, true));
+    lockedSetInput.setText(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+        .getString(PREF_LOCKED_SET, ""));
+    autoIdentifyCheck.setOnCheckedChangeListener((button, checked) ->
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(PREF_AUTO_IDENTIFY, checked).apply());
+    quickScanCheck.setOnCheckedChangeListener((button, checked) ->
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(PREF_QUICK_SCAN, checked).apply());
+    lockedSetInput.setOnFocusChangeListener((view, focused) -> {
+      if (!focused) getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+          .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
+    });
+    cardScanGuide.setMessage(getString(R.string.scan_align_card));
     fabOcr.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
@@ -346,6 +383,136 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     currentNameSuggestions.clear();
     if (nameSuggestionAdapter != null) nameSuggestionAdapter.clear();
     if (cardNameSuggestions != null) cardNameSuggestions.setVisibility(View.GONE);
+  }
+
+  private void handleAutomaticOcr(List<String> candidates) {
+    if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
+        lytSearch.getVisibility() != View.VISIBLE || scanLookupInFlight || scanInProgress) return;
+    long now = SystemClock.elapsedRealtime();
+    if (now - lastOcrLookupAt < 450L) return;
+    lastOcrLookupAt = now;
+    scanLookupInFlight = true;
+    cardRepository.matchLocalOcrText(candidates, match -> {
+      scanLookupInFlight = false;
+      if (match == null || lytSearch.getVisibility() != View.VISIBLE || scanInProgress) {
+        return kotlin.Unit.INSTANCE;
+      }
+      String displayName = match.getDisplayName();
+      cardScanGuide.setMessage(getString(R.string.scan_reading_name, displayName));
+      suppressPredictionWatcher = true;
+      txtSearch.setText(displayName);
+      suppressPredictionWatcher = false;
+      if (scanStability.observe(match.getCanonicalName(), SystemClock.elapsedRealtime())) {
+        captureArtworkForIdentification(match);
+      }
+      return kotlin.Unit.INSTANCE;
+    });
+  }
+
+  private void captureArtworkForIdentification(LocalCardNameMatch match) {
+    if (mCameraSource == null || scanInProgress) return;
+    scanInProgress = true;
+    cardScanGuide.setMessage(getString(R.string.scan_comparing_art, match.getDisplayName()));
+    try {
+      mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
+          match.getCanonicalName(), jpeg, lockedSetCodes(), (result, error) -> {
+            handleArtworkIdentification(match, result, error);
+            return kotlin.Unit.INSTANCE;
+          }));
+    } catch (RuntimeException error) {
+      Log.w(TAG, "No se pudo capturar la carta", error);
+      scanInProgress = false;
+      cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
+    }
+  }
+
+  private Set<String> lockedSetCodes() {
+    Set<String> result = new LinkedHashSet<>();
+    String value = lockedSetInput == null ? "" : lockedSetInput.getText().toString();
+    for (String token : value.split("[,\\s]+")) {
+      if (!token.trim().isEmpty()) result.add(token.trim().toUpperCase(Locale.US));
+    }
+    return result;
+  }
+
+  private void handleArtworkIdentification(LocalCardNameMatch nameMatch,
+      CardIdentificationResult result, Throwable error) {
+    if (isFinishing() || isDestroyed() || lytSearch.getVisibility() != View.VISIBLE) {
+      scanInProgress = false;
+      return;
+    }
+    List<CardIdentificationCandidate> candidates = result.getCandidates();
+    if (error != null || candidates.isEmpty()) {
+      Log.w(TAG, "No se pudo resolver la impresión por ilustración", error);
+      scanInProgress = false;
+      cardScanGuide.setMessage(getString(lockedSetCodes().isEmpty()
+          ? R.string.scan_identification_failed : R.string.scan_no_set_match));
+      suppressPredictionWatcher = true;
+      txtSearch.setText(nameMatch.getDisplayName());
+      txtSearch.setSelection(txtSearch.length());
+      suppressPredictionWatcher = false;
+      return;
+    }
+    if (quickScanCheck.isChecked() || result.getConfident()) {
+      addIdentifiedPrinting(candidates.get(0).getOption());
+      return;
+    }
+    String[] labels = new String[candidates.size()];
+    for (int index = 0; index < candidates.size(); index++) {
+      CardIdentificationCandidate candidate = candidates.get(index);
+      CardEditionOption option = candidate.getOption();
+      labels[index] = getString(
+          R.string.scan_candidate_label,
+          option.getSetName(),
+          option.getSetCode(),
+          option.getCollectorNumber(),
+          Math.max(0, Math.round((1d - candidate.getDistance()) * 100d))
+      );
+    }
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.scan_choose_printing)
+        .setItems(labels, (dialog, which) -> addIdentifiedPrinting(candidates.get(which).getOption()))
+        .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+          scanInProgress = false;
+          scanStability.allowRepeat();
+          cardScanGuide.setMessage(getString(R.string.scan_align_card));
+        })
+        .setOnCancelListener(dialog -> {
+          scanInProgress = false;
+          scanStability.allowRepeat();
+          cardScanGuide.setMessage(getString(R.string.scan_align_card));
+        })
+        .show();
+  }
+
+  private void addIdentifiedPrinting(CardEditionOption option) {
+    CardInfo card = new CardInfo(option.getDisplayName(), "", "", "", "1");
+    card.setName(option.getDisplayName());
+    card.setDescription(TextUtils.join("\n", java.util.Arrays.asList(
+        option.getTypeLine(), option.getRulesText())).trim());
+    card.setImgPath(option.getImageUrl() == null ? "" : option.getImageUrl());
+    card.setPrintingUuid(option.getPrintingUuid());
+    card.setSetCode(option.getSetCode());
+    card.setSetName(option.getSetName());
+    card.setCollectorNumber(option.getCollectorNumber());
+    card.setFinish(option.getFinish());
+    if (option.getPrice() != null) {
+      String currency = option.getCurrency() == null ? "" : option.getCurrency();
+      String display = String.format(Locale.US, "%.2f %s", option.getPrice(), currency).trim();
+      card.setPrice(display);
+      card.setPriceL(option.getPrice().toString());
+      card.setPriceM(option.getPrice().toString());
+      card.setPriceH(option.getPrice().toString());
+    }
+    persistInfo(card);
+    cardRepository.selectEdition(card.getCollectionItemId(), option, () -> kotlin.Unit.INSTANCE);
+    scanInProgress = false;
+    if (closeAfterScanCheck.isChecked()) {
+      showRecycler();
+    } else {
+      prepareScannerForNextCard();
+      cardScanGuide.setMessage(getString(R.string.scan_tap_repeat));
+    }
   }
 
   private void setUpRecyclerView() {
@@ -954,7 +1121,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // is set to receive the text recognition results and display graphics for each text block
     // on screen.
     TextRecognizer textRecognizer = new TextRecognizer.Builder(context).build();
-    textRecognizer.setProcessor(new OcrDetectorProcessor(mGraphicOverlay));
+    textRecognizer.setProcessor(new OcrDetectorProcessor(mGraphicOverlay,
+        candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
 
     if (!textRecognizer.isOperational()) {
       // Note: The first time that an app using a Vision API is installed on a
@@ -1226,6 +1394,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
     } else {
       Log.d(TAG, "no text detected");
+      if (lytSearch.getVisibility() == View.VISIBLE && autoIdentifyCheck.isChecked() && !scanInProgress) {
+        scanStability.allowRepeat();
+        cardScanGuide.setMessage(getString(R.string.scan_align_card));
+        if (mCameraSource != null) mCameraSource.autoFocus(null);
+        return true;
+      }
     }
     return text != null;
   }
@@ -2058,6 +2232,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcr.setVisibility(View.GONE);
     topLayout.setVisibility(View.VISIBLE);
     lytSearch.setVisibility(View.VISIBLE);
+    lytSearch.bringToFront();
+    scanStability.resetPending();
+    scanInProgress = false;
+    cardScanGuide.setMessage(getString(R.string.scan_align_card));
   }
 
   private void showRecycler() {
@@ -2067,6 +2245,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     showSelectedSection();
     topLayout.setVisibility(View.GONE);
     lytSearch.setVisibility(View.GONE);
+    scanStability.resetPending();
+    scanInProgress = false;
   }
 
   /*******************************************************************************************************/

@@ -71,6 +71,7 @@ class CardRepository private constructor(context: Context) {
         .readTimeout(90, TimeUnit.SECONDS)
         .build()
     private val imageProvider = ScryfallImageDataProvider(client)
+    private val artworkIdentifier = CardArtworkIdentifier(context.applicationContext, client)
     private val catalog = MtgJsonCatalogDataProvider(dao, client, imageProvider)
     private val priceProvider = MtgJsonPriceDataProvider(context.applicationContext, dao, client)
     private val nameResolver = MtgJsonCardNameResolver(context.applicationContext, dao, client)
@@ -193,6 +194,31 @@ class CardRepository private constructor(context: Context) {
             val resolution = runCatching { nameResolver.resolveLocalOcrCandidates(candidates) }.getOrNull()
             val match = resolution?.let { LocalCardNameMatch(it.canonicalName, it.displayName) }
             mainHandler.post { callback(match) }
+        }
+    }
+
+    fun identifyCardArtwork(
+        cardName: String,
+        jpeg: ByteArray,
+        lockedSetCodes: Set<String> = emptySet(),
+        callback: (CardIdentificationResult, Throwable?) -> Unit
+    ): Future<*> = imageExecutor.submit {
+        try {
+            val resolution = nameResolver.cached(cardName)
+            val canonicalName = resolution?.canonicalName ?: cardName
+            val printings = catalog.editions(canonicalName)
+            if (printings.isEmpty()) error("No se encontraron impresiones de '$cardName'")
+            val options = combine(
+                printings,
+                dao.pricesFor(printings.map { it.uuid }),
+                resolution?.displayName ?: printings.first().name
+            )
+            val result = artworkIdentifier.identify(jpeg, options, lockedSetCodes)
+            if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(result, null) }
+        } catch (error: Throwable) {
+            if (!Thread.currentThread().isInterrupted) {
+                mainHandler.post { callback(CardIdentificationResult(emptyList(), false, 0), error) }
+            }
         }
     }
 

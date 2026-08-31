@@ -541,6 +541,20 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void addIdentifiedPrinting(CardEditionOption option) {
     CardInfo card = new CardInfo(option.getDisplayName(), "", "", "", "1");
+    applyEditionMetadata(card, option);
+    persistInfo(card);
+    cardRepository.selectEdition(card.getCollectionItemId(), option, () -> kotlin.Unit.INSTANCE);
+    enrichIdentifiedPrinting(card.getCollectionItemId(), option);
+    scanInProgress = false;
+    if (closeAfterScanCheck.isChecked()) {
+      showRecycler();
+    } else {
+      prepareScannerForNextCard();
+      cardScanGuide.setMessage(getString(R.string.scan_tap_repeat));
+    }
+  }
+
+  private void applyEditionMetadata(CardInfo card, CardEditionOption option) {
     card.setName(option.getDisplayName());
     card.setDescription(TextUtils.join("\n", java.util.Arrays.asList(
         option.getTypeLine(), option.getRulesText())).trim());
@@ -558,15 +572,31 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       card.setPriceM(option.getPrice().toString());
       card.setPriceH(option.getPrice().toString());
     }
-    persistInfo(card);
-    cardRepository.selectEdition(card.getCollectionItemId(), option, () -> kotlin.Unit.INSTANCE);
-    scanInProgress = false;
-    if (closeAfterScanCheck.isChecked()) {
-      showRecycler();
-    } else {
-      prepareScannerForNextCard();
-      cardScanGuide.setMessage(getString(R.string.scan_tap_repeat));
-    }
+  }
+
+  /** Completes the exact auto-selected printing in the background just as the detail screen does. */
+  private void enrichIdentifiedPrinting(String collectionItemId, CardEditionOption selectedOption) {
+    cardRepository.loadCard(selectedOption.getCardName(), false, true, (options, error) -> {
+      if (error != null || options == null || options.isEmpty() || isFinishing() || isDestroyed()) {
+        return kotlin.Unit.INSTANCE;
+      }
+      CardEditionOption refreshed = null;
+      for (CardEditionOption candidate : options) {
+        if (selectedOption.getPrintingUuid().equals(candidate.getPrintingUuid()) &&
+            selectedOption.getFinish().equalsIgnoreCase(candidate.getFinish())) {
+          refreshed = candidate;
+          break;
+        }
+      }
+      if (refreshed == null) return kotlin.Unit.INSTANCE;
+      CardInfo current = findCollectionCard(collectionItemId);
+      if (current == null) return kotlin.Unit.INSTANCE;
+      applyEditionMetadata(current, refreshed);
+      DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+      rememberSessionScan(current);
+      updateCardAddedSnackbar(current, false);
+      return kotlin.Unit.INSTANCE;
+    });
   }
 
   private void setUpRecyclerView() {
@@ -1234,6 +1264,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       cardDetailOpen = false;
       pendingDetailScrollItemId = null;
     }
+    updateScanSessionUi();
     startCameraSource();
   }
 
@@ -2092,21 +2123,39 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void rememberSessionScan(CardInfo card) {
-    for (CardInfo existing : scannedSessionCards) {
-      if (existing.getCollectionItemId().equals(card.getCollectionItemId())) return;
+    for (int index = 0; index < scannedSessionCards.size(); index++) {
+      CardInfo existing = scannedSessionCards.get(index);
+      if (existing.getCollectionItemId().equals(card.getCollectionItemId())) {
+        scannedSessionCards.set(index, card);
+        updateScanSessionUi();
+        return;
+      }
     }
     scannedSessionCards.add(card);
     updateScanSessionUi();
   }
 
   private void updateScanSessionUi() {
+    syncSessionCardsFromCollection();
     if (scanSessionButton != null) {
       scanSessionButton.setText(getString(R.string.scan_session_count, scannedSessionCards.size()));
     }
     if (scanSessionAdapter != null) scanSessionAdapter.notifyDataSetChanged();
   }
 
+  /** Rebinds session rows after the collection is reloaded or card detail writes a newer object. */
+  private void syncSessionCardsFromCollection() {
+    if (mBiblio == null || mBiblio.cards == null || scannedSessionCards.isEmpty()) return;
+    Map<String, CardInfo> currentCards = new LinkedHashMap<>();
+    for (CardInfo card : mBiblio.cards) currentCards.put(card.getCollectionItemId(), card);
+    for (int index = 0; index < scannedSessionCards.size(); index++) {
+      CardInfo current = currentCards.get(scannedSessionCards.get(index).getCollectionItemId());
+      if (current != null) scannedSessionCards.set(index, current);
+    }
+  }
+
   private void showScanSession() {
+    updateScanSessionUi();
     if (scannedSessionCards.isEmpty()) {
       new AlertDialog.Builder(this)
           .setTitle(getString(R.string.scan_session_title, 0))
@@ -2376,6 +2425,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
     }
     return -1;
+  }
+
+  private CardInfo findCollectionCard(String collectionItemId) {
+    if (!"0".equals(mPersistorMode) || mBiblio == null || collectionItemId == null) return null;
+    for (CardInfo card : mBiblio.cards) {
+      if (collectionItemId.equals(card.getCollectionItemId())) return card;
+    }
+    return null;
   }
 
   private void requestCardInfo(CardInfo cardinfo, int persistorIndex, boolean forcePriceRefresh) {

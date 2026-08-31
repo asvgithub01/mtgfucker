@@ -194,9 +194,9 @@ class CardImageActivity : AppCompatActivity() {
         val target = targetImage(direction)
         val targetReady = targetIndex in pages.indices &&
             boundPages[target] == targetIndex && target.drawable != null
-        // Distance, not a short fling, decides the page. The user can drag almost half the screen,
-        // reverse direction and release to cancel without an unexpected image change.
-        val shouldCommit = targetReady && abs(fraction) >= PAGE_COMMIT_FRACTION
+        // Distance, not a short fling, decides the page. Reversing the finger is handled as an
+        // explicit cancellation by ZoomableImageView rather than becoming an opposite page turn.
+        val shouldCommit = PageTurnPolicy.shouldCommit(fraction, targetReady)
         if (!shouldCommit) {
             animateTurnBack()
             return
@@ -409,7 +409,6 @@ class CardImageActivity : AppCompatActivity() {
         const val EXTRA_EDITION_FINISHES = "editionFinishes"
         const val EXTRA_EDITION_INDEX = "editionIndex"
         private const val STATE_CURRENT_PAGE = "currentPage"
-        private const val PAGE_COMMIT_FRACTION = .52f
     }
 }
 

@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.ViewConfiguration
 import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * Fit-center image with bounded pinch/pan and a horizontal page swipe at the base zoom.
@@ -37,6 +38,9 @@ class ZoomableImageView @JvmOverloads constructor(
     private var gestureHadMultiplePointers = false
     private var pageDragActive = false
     private var pageDragFraction = 0f
+    private var pageDragDirection = 0
+    private var furthestPageDragDistance = 0f
+    private var pageDragCancelledByReversal = false
 
     private val scaleDetector = ScaleGestureDetector(
         context,
@@ -116,6 +120,9 @@ class ZoomableImageView @JvmOverloads constructor(
                 gestureHadMultiplePointers = false
                 pageDragActive = false
                 pageDragFraction = 0f
+                pageDragDirection = 0
+                furthestPageDragDistance = 0f
+                pageDragCancelledByReversal = false
                 parent?.requestDisallowInterceptTouchEvent(isZoomed())
             }
 
@@ -130,14 +137,36 @@ class ZoomableImageView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (!scaleDetector.isInProgress && !isZoomed() && !gestureHadMultiplePointers && onPageDrag != null) {
+                if (!scaleDetector.isInProgress && !isZoomed() && !gestureHadMultiplePointers &&
+                    !pageDragCancelledByReversal && onPageDrag != null
+                ) {
                     val dx = event.x - downX
                     val dy = event.y - downY
                     val horizontalIntent = abs(dx) > touchSlop && abs(dx) > abs(dy) * 1.15f
                     if (pageDragActive || horizontalIntent) {
-                        pageDragActive = true
-                        val pageWidth = width.coerceAtLeast(1) * PAGE_TURN_DISTANCE
-                        pageDragFraction = (dx / pageWidth).coerceIn(-1f, 1f)
+                        if (!pageDragActive) {
+                            pageDragActive = true
+                            pageDragDirection = if (dx < 0f) -1 else 1
+                            furthestPageDragDistance = abs(dx)
+                        } else if (PageTurnPolicy.shouldCancelForReversal(
+                                pageDragDirection,
+                                furthestPageDragDistance,
+                                dx,
+                                touchSlop.toFloat()
+                            )
+                        ) {
+                            pageDragActive = false
+                            pageDragFraction = 0f
+                            pageDragCancelledByReversal = true
+                            onPageDragCancel?.invoke()
+                            parent?.requestDisallowInterceptTouchEvent(false)
+                            return true
+                        }
+                        furthestPageDragDistance = max(
+                            furthestPageDragDistance,
+                            dx * pageDragDirection
+                        )
+                        pageDragFraction = PageTurnPolicy.dragFraction(dx, width)
                         onPageDrag?.invoke(pageDragFraction)
                         parent?.requestDisallowInterceptTouchEvent(true)
                     }
@@ -198,6 +227,9 @@ class ZoomableImageView @JvmOverloads constructor(
                 activePointerId = MotionEvent.INVALID_POINTER_ID
                 pageDragActive = false
                 pageDragFraction = 0f
+                pageDragDirection = 0
+                furthestPageDragDistance = 0f
+                pageDragCancelledByReversal = false
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
 
@@ -206,6 +238,9 @@ class ZoomableImageView @JvmOverloads constructor(
                 activePointerId = MotionEvent.INVALID_POINTER_ID
                 pageDragActive = false
                 pageDragFraction = 0f
+                pageDragDirection = 0
+                furthestPageDragDistance = 0f
+                pageDragCancelledByReversal = false
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
@@ -244,6 +279,5 @@ class ZoomableImageView @JvmOverloads constructor(
         const val MAX_ZOOM = 5f
         const val RESET_ZOOM_THRESHOLD = 1.015f
         const val MIN_SWIPE_VELOCITY = .18f
-        const val PAGE_TURN_DISTANCE = .94f
     }
 }

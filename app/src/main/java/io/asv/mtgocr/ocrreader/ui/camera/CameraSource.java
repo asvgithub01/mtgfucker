@@ -1216,7 +1216,7 @@ public class CameraSource {
 
                 try {
                     OcrLumaEnhancer.enhance(
-                            data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight());
+                            data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
                     mDetector.receiveFrame(outputFrame);
                 } catch (Throwable t) {
                     Log.e(TAG, "Exception thrown from receiver.", t);

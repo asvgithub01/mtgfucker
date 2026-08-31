@@ -16,10 +16,12 @@
 package io.asv.mtgocr.ocrreader;
 
 import android.util.SparseArray;
+import android.graphics.Rect;
 
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.Text;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,19 +56,48 @@ public class OcrDetectorProcessor implements Detector.Processor<TextBlock> {
         mGraphicOverlay.clear();
         SparseArray<TextBlock> items = detections.getDetectedItems();
         List<String> candidates = new ArrayList<>();
+        int width = detections.getFrameMetadata().getWidth();
+        int height = detections.getFrameMetadata().getHeight();
+        int rotation = detections.getFrameMetadata().getRotation();
+        if ((rotation & 1) == 1) {
+            int swapped = width;
+            width = height;
+            height = swapped;
+        }
+        OcrTitleRegion.Bounds titleRegion = OcrTitleRegion.forFrame(width, height);
         for (int i = 0; i < items.size(); ++i) {
             TextBlock item = items.valueAt(i);
-            OcrGraphic graphic = new OcrGraphic(mGraphicOverlay, item);
-            mGraphicOverlay.add(graphic);
-            if (item.getValue() != null) {
-                String[] lines = item.getValue().split("\\r\\n|\\r|\\n");
-                for (String line : lines) {
-                    String cleaned = line.replace("|", "").trim();
-                    if (cleaned.length() >= 2 && cleaned.length() <= 80) candidates.add(cleaned);
+            boolean acceptedBlock = false;
+            List<? extends Text> components = item.getComponents();
+            if (components != null) {
+                for (Text component : components) {
+                    Rect box = component.getBoundingBox();
+                    if (box == null || !titleRegion.containsCenter(box.left, box.top, box.right, box.bottom)) {
+                        continue;
+                    }
+                    acceptedBlock = true;
+                    addCandidate(candidates, component.getValue());
                 }
             }
+            if (!acceptedBlock && (components == null || components.isEmpty())) {
+                Rect box = item.getBoundingBox();
+                if (box != null && titleRegion.containsCenter(box.left, box.top, box.right, box.bottom)) {
+                    acceptedBlock = true;
+                    addCandidate(candidates, item.getValue());
+                }
+            }
+            if (acceptedBlock) mGraphicOverlay.add(new OcrGraphic(mGraphicOverlay, item));
         }
         if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
+    }
+
+    private static void addCandidate(List<String> candidates, String rawText) {
+        if (rawText == null) return;
+        String[] lines = rawText.split("\\r\\n|\\r|\\n");
+        for (String line : lines) {
+            String cleaned = line.replace("|", "").trim();
+            if (cleaned.length() >= 2 && cleaned.length() <= 80) candidates.add(cleaned);
+        }
     }
 
     /**

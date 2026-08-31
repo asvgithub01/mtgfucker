@@ -18,6 +18,10 @@ class CardScanGuideView @JvmOverloads constructor(
         strokeWidth = resources.displayMetrics.density * 3f
     }
     private val shadePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(112, 0, 0, 0) }
+    private val titleBandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(72, 255, 215, 92)
+        style = Paint.Style.FILL
+    }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
         textAlign = Paint.Align.CENTER
@@ -32,8 +36,11 @@ class CardScanGuideView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val frameHeight = height * .72f
-        val frameWidth = frameHeight * 63f / 88f
+        val frameHeight = minOf(
+            height * .72f,
+            width * .92f / OcrTitleRegion.CARD_ASPECT_RATIO
+        )
+        val frameWidth = frameHeight * OcrTitleRegion.CARD_ASPECT_RATIO
         val frame = RectF(
             (width - frameWidth) / 2f,
             (height - frameHeight) / 2f,
@@ -46,6 +53,11 @@ class CardScanGuideView @JvmOverloads constructor(
         canvas.drawRect(frame.right, frame.top, width.toFloat(), frame.bottom, shadePaint)
         val radius = resources.displayMetrics.density * 15f
         canvas.drawRoundRect(frame, radius, radius, framePaint)
+        val title = OcrTitleRegion.forFrame(width, height)
+        val titleRect = RectF(
+            title.left.toFloat(), title.top.toFloat(), title.right.toFloat(), title.bottom.toFloat())
+        canvas.drawRoundRect(titleRect, radius / 2f, radius / 2f, titleBandPaint)
+        canvas.drawRoundRect(titleRect, radius / 2f, radius / 2f, framePaint)
         if (message.isNotBlank()) {
             val baseline = (frame.bottom + resources.displayMetrics.density * 26f)
                 .coerceAtMost(height - resources.displayMetrics.density * 12f)

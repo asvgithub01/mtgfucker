@@ -169,4 +169,10 @@
     <string name="scan_choose_printing">Elige la impresión correcta</string>
     <string name="scan_candidate_label">%1$s (%2$s) · #%3$s · coincidencia %4$d%%</string>
     <string name="scan_tap_repeat">Toca la cámara para volver a escanear la misma carta</string>
+    <string name="scan_session_empty">Sesión (0)</string>
+    <string name="scan_session_count">Sesión (%1$d)</string>
+    <string name="scan_session_title">Capturas de esta sesión (%1$d)</string>
+    <string name="scan_session_no_cards">Todavía no has escaneado ninguna carta en esta sesión.</string>
+    <string name="scan_metadata_loading">Cargando edición y precio…</string>
+    <string name="scan_added_audible">Carta añadida</string>
 </resources>

@@ -222,6 +222,40 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** ManaBox-style quick mode: use the first locally known printing and skip image downloads. */
+    fun quickScanCard(
+        cardName: String,
+        lockedSetCodes: Set<String> = emptySet(),
+        callback: (CardEditionOption?, Throwable?) -> Unit
+    ): Future<*> = imageExecutor.submit {
+        try {
+            val resolution = nameResolver.cached(cardName)
+            val canonicalName = resolution?.canonicalName ?: cardName
+            val normalizedName = MtgJsonCatalogDataProvider.normalize(canonicalName)
+            val cached = dao.printingsByName(normalizedName)
+            val locked = lockedSetCodes.mapTo(HashSet()) { it.trim().uppercase() }
+            // With no set lock, quick mode must acknowledge the scan immediately. The caller can
+            // persist the OCR name now and let the normal metadata request resolve it in background.
+            if (cached.isEmpty() && locked.isEmpty()) {
+                if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, null) }
+                return@submit
+            }
+            val printings = if (cached.isNotEmpty()) cached else catalog.editions(canonicalName)
+            val eligible = printings.filter { locked.isEmpty() || it.setCode.uppercase() in locked }
+            if (eligible.isEmpty()) error("No hay impresiones disponibles para '$cardName'")
+            val prices = dao.pricesFor(eligible.map { it.uuid })
+            val options = combine(
+                eligible,
+                prices,
+                resolution?.displayName ?: eligible.first().name
+            )
+            val representative = options.firstOrNull { !it.isFoil } ?: options.firstOrNull()
+            if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(representative, null) }
+        } catch (error: Throwable) {
+            if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, error) }
+        }
+    }
+
     fun prepareCardNamePredictor(callback: (Boolean) -> Unit = {}) {
         executor.execute {
             val ready = runCatching { nameResolver.preparePredictionIndex() }.getOrDefault(false)

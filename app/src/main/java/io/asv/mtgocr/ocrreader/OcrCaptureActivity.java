@@ -34,6 +34,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -58,6 +60,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.GestureDetector;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -159,6 +162,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CheckBox quickScanCheck;
   private EditText lockedSetInput;
   private CardScanGuideView cardScanGuide;
+  private Button scanSessionButton;
   FloatingActionButton fabOcr;
   EditText txtSearch;
   RelativeLayout lytSearch;
@@ -209,6 +213,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private boolean activeScanMetadataFailed;
   private RoundedCardImageView activeScanThumbnail;
   private TextView activeScanMessage;
+  private TextView activeScanPrice;
+  private final List<CardInfo> scannedSessionCards = new ArrayList<>();
+  private ScanSessionAdapter scanSessionAdapter;
+  private ToneGenerator scanToneGenerator;
   private final CardScanStability scanStability = new CardScanStability();
   private boolean scanLookupInFlight;
   private boolean scanInProgress;
@@ -233,6 +241,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     quickScanCheck = (CheckBox) findViewById(R.id.checkQuickScan);
     lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
+    scanSessionButton = (Button) findViewById(R.id.btnScanSession);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
@@ -265,6 +274,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
     });
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
+    scanSessionAdapter = new ScanSessionAdapter(this, scannedSessionCards);
+    scanSessionButton.setOnClickListener(view -> showScanSession());
+    scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
     fabOcr.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
@@ -389,7 +401,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
         lytSearch.getVisibility() != View.VISIBLE || scanLookupInFlight || scanInProgress) return;
     long now = SystemClock.elapsedRealtime();
-    if (now - lastOcrLookupAt < 450L) return;
+    if (now - lastOcrLookupAt < 250L) return;
     lastOcrLookupAt = now;
     scanLookupInFlight = true;
     cardRepository.matchLocalOcrText(candidates, match -> {
@@ -412,6 +424,27 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void captureArtworkForIdentification(LocalCardNameMatch match) {
     if (mCameraSource == null || scanInProgress) return;
     scanInProgress = true;
+    if (quickScanCheck.isChecked()) {
+      cardScanGuide.setMessage(getString(R.string.scan_reading_name, match.getDisplayName()));
+      cardRepository.quickScanCard(match.getCanonicalName(), lockedSetCodes(), (option, error) -> {
+        if (lytSearch.getVisibility() != View.VISIBLE) {
+          scanInProgress = false;
+        } else if (error != null) {
+          scanInProgress = false;
+          cardScanGuide.setMessage(getString(lockedSetCodes().isEmpty()
+              ? R.string.scan_identification_failed : R.string.scan_no_set_match));
+        } else if (option == null) {
+          // A brand-new name is still added instantly; image, printing and price arrive in the
+          // existing background metadata pipeline and update both snackbar and session history.
+          scanInProgress = false;
+          submitScannedCard(match.getDisplayName());
+        } else {
+          addIdentifiedPrinting(option);
+        }
+        return kotlin.Unit.INSTANCE;
+      });
+      return;
+    }
     cardScanGuide.setMessage(getString(R.string.scan_comparing_art, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
@@ -1154,7 +1187,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     mCameraSource = new CameraSource.Builder(getApplicationContext(), textRecognizer).setFacing(
         CameraSource.CAMERA_FACING_BACK)
         .setRequestedPreviewSize(1280, 1024)
-        .setRequestedFps(2.0f)
+        .setRequestedFps(4.0f)
         .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
         .setFocusMode(autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null)
         .build();
@@ -1221,6 +1254,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     activeScanSnackbar = null;
     activeScanThumbnail = null;
     activeScanMessage = null;
+    activeScanPrice = null;
+    if (scanToneGenerator != null) {
+      scanToneGenerator.release();
+      scanToneGenerator = null;
+    }
     if (mPreview != null) {
       mPreview.release();
     }
@@ -2032,7 +2070,61 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     keyboard.hideSoftInputFromWindow(txtSearch.getWindowToken(), 0);
   }
 
+  private void rememberSessionScan(CardInfo card) {
+    for (CardInfo existing : scannedSessionCards) {
+      if (existing.getCollectionItemId().equals(card.getCollectionItemId())) return;
+    }
+    scannedSessionCards.add(card);
+    updateScanSessionUi();
+  }
+
+  private void updateScanSessionUi() {
+    if (scanSessionButton != null) {
+      scanSessionButton.setText(getString(R.string.scan_session_count, scannedSessionCards.size()));
+    }
+    if (scanSessionAdapter != null) scanSessionAdapter.notifyDataSetChanged();
+  }
+
+  private void showScanSession() {
+    if (scannedSessionCards.isEmpty()) {
+      new AlertDialog.Builder(this)
+          .setTitle(getString(R.string.scan_session_title, 0))
+          .setMessage(R.string.scan_session_no_cards)
+          .setPositiveButton(android.R.string.ok, null)
+          .show();
+      return;
+    }
+    ListView list = new ListView(this);
+    list.setAdapter(scanSessionAdapter);
+    AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle(getString(R.string.scan_session_title, scannedSessionCards.size()))
+        .setView(list)
+        .setPositiveButton(R.string.close, null)
+        .create();
+    list.setOnItemClickListener((parent, view, position, id) -> {
+      dialog.dismiss();
+      openCardDetails(scanSessionAdapter.getItem(position));
+    });
+    dialog.show();
+  }
+
+  private void playScanAcceptedFeedback() {
+    try {
+      if (scanToneGenerator == null) {
+        scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
+      }
+      scanToneGenerator.startTone(ToneGenerator.TONE_PROP_ACK, 180);
+    } catch (RuntimeException error) {
+      Log.w(TAG, "No se pudo reproducir el sonido de escaneo", error);
+    }
+    View root = findViewById(R.id.ocrCaptureRoot);
+    root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+    root.announceForAccessibility(getString(R.string.scan_added_audible));
+  }
+
   private void showCardAddedSnackbar(CardInfo card) {
+    rememberSessionScan(card);
+    playScanAcceptedFeedback();
     final String cardId = card.getCollectionItemId();
     activeScanCardId = cardId;
     activeScanMetadataFailed = false;
@@ -2059,23 +2151,37 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
       thumbnail.setImageResource(R.drawable.backmtg);
       ViewGroup parent = (ViewGroup) message.getParent();
+      TextView priceBadge = new TextView(this);
+      priceBadge.setTextColor(MagicPalette.secondaryColor(this));
+      priceBadge.setTextSize(22f);
+      priceBadge.setTypeface(Typeface.DEFAULT_BOLD);
+      priceBadge.setGravity(Gravity.CENTER);
+      priceBadge.setPadding(dp(8), dp(4), dp(8), dp(4));
+      priceBadge.setVisibility(View.GONE);
       if (parent instanceof LinearLayout) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(68));
         params.gravity = Gravity.CENTER_VERTICAL;
         params.setMarginStart(dp(12));
         params.setMarginEnd(dp(10));
         parent.addView(thumbnail, 0, params);
+        LinearLayout.LayoutParams priceParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        priceParams.gravity = Gravity.CENTER_VERTICAL;
+        priceParams.setMarginEnd(dp(8));
+        parent.addView(priceBadge, 1, priceParams);
       }
 
       activeScanSnackbar = snackbar;
       activeScanThumbnail = thumbnail;
       activeScanMessage = message;
+      activeScanPrice = priceBadge;
       snackbar.addCallback(new Snackbar.Callback() {
         @Override public void onDismissed(Snackbar dismissed, int event) {
           if (activeScanSnackbar != dismissed) return;
           activeScanSnackbar = null;
           activeScanThumbnail = null;
           activeScanMessage = null;
+          activeScanPrice = null;
           activeScanCardId = null;
           activeScanMetadataFailed = false;
         }
@@ -2086,7 +2192,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void updateCardAddedSnackbar(CardInfo card, boolean metadataFailed) {
-    if (card == null || activeScanCardId == null ||
+    if (card == null) return;
+    updateScanSessionUi();
+    if (activeScanCardId == null ||
         !activeScanCardId.equals(card.getCollectionItemId())) return;
     activeScanMetadataFailed = metadataFailed;
     if (activeScanMessage != null) {
@@ -2094,6 +2202,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     if (activeScanThumbnail != null && safe(card.getImgPath()).trim().length() > 0) {
       CardImageCache.displayKeepingCurrent(this, card.getImgPath(), activeScanThumbnail);
+    }
+    if (activeScanPrice != null) {
+      String price = safe(card.getPrice()).trim();
+      activeScanPrice.setText(price);
+      activeScanPrice.setVisibility(price.length() == 0 ? View.GONE : View.VISIBLE);
     }
   }
 
@@ -2114,9 +2227,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       metadata.add(getString("foil".equalsIgnoreCase(card.getFinish())
           ? R.string.foil : R.string.nonfoil));
     }
-    String price = safe(card.getPrice()).trim();
-    if (price.length() > 0) metadata.add(price);
-
     boolean metadataReady = safe(card.getPrintingUuid()).trim().length() > 0 ||
         safe(card.getImgPath()).trim().length() > 0 || !metadata.isEmpty();
     if (!metadataReady) return getString(R.string.card_added_loading, name);

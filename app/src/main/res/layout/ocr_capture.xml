@@ -234,11 +234,26 @@
             android:textColor="#111111"
             android:textColorHint="#777777" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnScanSession"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_below="@id/txtSearch"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="20dp"
+            android:text="@string/scan_session_empty"
+            android:textColor="#FFFFFF"
+            app:icon="@drawable/ic_collections"
+            app:iconTint="#FFFFFF"
+            app:strokeColor="?attr/colorSecondary" />
+
         <ListView
             android:id="@+id/cardNameSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/txtSearch"
+            android:layout_below="@id/btnScanSession"
             android:layout_alignStart="@id/txtSearch"
             android:layout_alignEnd="@id/txtSearch"
             android:layout_marginTop="4dp"

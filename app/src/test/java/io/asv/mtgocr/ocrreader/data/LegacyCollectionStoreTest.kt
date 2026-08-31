@@ -55,6 +55,23 @@ class LegacyCollectionStoreTest {
         assertEquals(1, collection.cards.size)
     }
 
+    @Test
+    fun addCopy_doesNotMergeNearMintWithAPlayedCopy() {
+        val collection = Biblio("myBiblio.Json", "Test")
+        val played = CardInfo("Mox Opal", "", "", "", "1").apply {
+            printingUuid = "printing-1"
+            finish = "nonfoil"
+            condition = "played"
+        }
+        collection.addCard(played)
+
+        val nearMint = LegacyCollectionStore.addCopyToCollection(collection, option(finish = "nonfoil"))
+
+        assertEquals(2, collection.cards.size)
+        assertEquals("played", played.condition)
+        assertEquals("near_mint", nearMint.condition)
+    }
+
     private fun option(finish: String) = CardEditionOption(
         printingUuid = "printing-1",
         cardName = "Mox Opal",

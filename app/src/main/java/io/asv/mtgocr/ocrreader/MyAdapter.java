@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
+import io.asv.mtgocr.ocrreader.model.CardCondition;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -203,6 +204,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       } else if (gridMode) {
         groups.append(mContext.getString(R.string.personal_collection_label));
       }
+      if (groups.length() > 0) groups.append(" · ");
+      groups.append(mContext.getResources().getStringArray(R.array.card_condition_labels)[
+          CardCondition.indexOf(item.getCondition())]);
       if (!item.getDecks().isEmpty()) {
         if (groups.length() > 0) groups.append(" · ");
         groups.append("Mazos: ");

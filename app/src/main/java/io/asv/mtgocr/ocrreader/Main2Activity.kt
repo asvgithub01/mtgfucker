@@ -29,6 +29,7 @@ import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.OwnedPrintingEntity
 import io.asv.mtgocr.ocrreader.model.Biblio
+import io.asv.mtgocr.ocrreader.model.CardCondition
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -49,6 +50,8 @@ class Main2Activity : AppCompatActivity() {
     private lateinit var rules: TextView
     private lateinit var languageSpinner: Spinner
     private lateinit var languageProgress: ProgressBar
+    private lateinit var conditionSpinner: Spinner
+    private lateinit var conditionPrice: TextView
     private lateinit var sheetView: ArcaneBottomSheetLayout
     private lateinit var bottomSheet: BottomSheetBehavior<View>
     private var selected: OwnedPrintingEntity? = null
@@ -59,6 +62,7 @@ class Main2Activity : AppCompatActivity() {
     private var languageRequest = 0
     private var cardLoadTask: Future<*>? = null
     private var languageLoadTask: Future<*>? = null
+    private var ownedCondition: String = CardCondition.NEAR_MINT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
@@ -81,11 +85,14 @@ class Main2Activity : AppCompatActivity() {
         rules = findViewById(R.id.txtCardRules)
         languageSpinner = findViewById(R.id.detailLanguageSpinner)
         languageProgress = findViewById(R.id.detailLanguageProgress)
+        conditionSpinner = findViewById(R.id.detailConditionSpinner)
+        conditionPrice = findViewById(R.id.txtConditionPrice)
         title.typeface = Typeface.createFromAsset(assets, "title_font.ttf")
         title.text = cardName
-        DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+        val ownedCard = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
             ?.firstOrNull { it.collectionItemId == collectionItemId }
-            ?.let { owned ->
+        ownedCard?.let { owned ->
+                ownedCondition = owned.condition
                 legacyImageUrl = owned.imgPath.orEmpty()
                 CardImageCache.display(this, owned.imgPath, image)
                 foilBadge.visibility = if (CardFinish.isFoil(owned.finish)) View.VISIBLE else View.GONE
@@ -93,6 +100,21 @@ class Main2Activity : AppCompatActivity() {
                     .filter { it.isNotBlank() }.joinToString(" · ")
                 rules.text = owned.description.orEmpty()
             }
+        conditionSpinner.adapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item,
+            resources.getStringArray(R.array.card_condition_labels).toList()
+        ).also { it.setDropDownViewResource(R.layout.spinner_item) }
+        conditionSpinner.setSelection(CardCondition.indexOf(ownedCondition), false)
+        refreshOwnedConditionPrice()
+        conditionSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
+            val codes = CardCondition.codes()
+            if (position !in codes.indices || codes[position] == ownedCondition) return@SimpleItemSelectedListener
+            ownedCondition = codes[position]
+            LegacyCollectionStore.updateCondition(this, collectionItemId, ownedCondition)
+            refreshOwnedConditionPrice()
+            setResult(RESULT_OK)
+        }
 
         sheetView = findViewById(R.id.editionsBottomSheet)
         bottomSheet = BottomSheetBehavior.from(sheetView)
@@ -133,6 +155,7 @@ class Main2Activity : AppCompatActivity() {
                     )
                     adapter.setSelected(selected)
                     showSelectedImage(option)
+                    refreshOwnedConditionPrice()
                     setResult(RESULT_OK)
                     Toast.makeText(this, getString(R.string.edition_selected, option.setCode, option.finish), Toast.LENGTH_SHORT).show()
                 }
@@ -206,6 +229,14 @@ class Main2Activity : AppCompatActivity() {
         rules.text = option.rulesText.ifBlank { getString(R.string.card_rules) }
         sheetView.setManaTint(MagicPalette.primaryColor(this))
         loadLanguages(option)
+        refreshOwnedConditionPrice()
+    }
+
+    private fun refreshOwnedConditionPrice() {
+        val card = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+            ?.firstOrNull { it.collectionItemId == collectionItemId }
+        val value = card?.price?.takeIf { it.isNotBlank() } ?: getString(R.string.no_price)
+        conditionPrice.text = getString(R.string.card_condition_price, value)
     }
 
     private fun addCopy(option: CardEditionOption) {
@@ -238,7 +269,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun removeCopy(option: CardEditionOption) {
-        val removed = LegacyCollectionStore.removeCopy(this, option) ?: run {
+        val removed = LegacyCollectionStore.removeCopy(this, option, collectionItemId) ?: run {
             Snackbar.make(findViewById(R.id.cardDetailRoot), R.string.no_copies_to_remove, Snackbar.LENGTH_SHORT).show()
             return
         }
@@ -367,13 +398,14 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun formatEditionPrice(option: CardEditionOption): String {
-        return option.price?.let { amount ->
+        val value = option.price?.let { amount ->
             runCatching {
                 NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
                     currency = Currency.getInstance(option.currency ?: "EUR")
                 }.format(amount)
             }.getOrElse { "%.2f %s".format(amount, option.currency.orEmpty()) }
         } ?: getString(R.string.no_price)
+        return getString(R.string.near_mint_price_value, value)
     }
 
     companion object {
@@ -458,13 +490,14 @@ private class EditionAdapter(
                 option.releaseDate,
                 if (option.isFoil) itemView.context.getString(R.string.foil) else itemView.context.getString(R.string.nonfoil)
             )
-            price.text = option.price?.let { amount ->
+            val priceValue = option.price?.let { amount ->
                 runCatching {
                     NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
                         currency = Currency.getInstance(option.currency ?: "EUR")
                     }.format(amount)
                 }.getOrElse { "%.2f %s".format(amount, option.currency.orEmpty()) }
             } ?: itemView.context.getString(R.string.no_price)
+            price.text = itemView.context.getString(R.string.near_mint_price_value, priceValue)
             CardImageCache.display(itemView.context, option.imageUrl, image)
             foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
             itemView.setBackgroundResource(if (option.isFoil) R.drawable.bg_arcane_foil_row else R.drawable.bg_arcane_edition_row)

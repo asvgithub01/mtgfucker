@@ -22,6 +22,7 @@ import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardInfo
 import java.text.Normalizer
 import java.util.Locale
+import io.asv.mtgocr.ocrreader.model.CardCondition
 
 class GroupBuilderActivity : AppCompatActivity() {
     private lateinit var collection: Biblio
@@ -91,7 +92,9 @@ class GroupBuilderActivity : AppCompatActivity() {
         }.let { cards ->
             when (sortMode) {
                 1 -> cards.sortedBy { it.name.lowercase(Locale.ROOT) }
-                2 -> cards.sortedByDescending { it.priceM?.toDoubleOrNull() ?: 0.0 }
+                2 -> cards.sortedByDescending {
+                    CardCondition.adjustedAmount(it.priceM?.toDoubleOrNull() ?: 0.0, it.condition)
+                }
                 3 -> cards.sortedWith(
                     compareBy<CardInfo> { it.setName.orEmpty().lowercase(Locale.ROOT) }
                         .thenBy { collectorSortKey(it.collectorNumber) }

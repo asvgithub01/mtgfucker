@@ -124,6 +124,19 @@
     <string name="last_copy_removed">Se eliminó la última copia de esta edición</string>
     <string name="copy_removed">Copia eliminada: %1$s · quedan %2$d</string>
     <string name="card_language">Idioma de la carta</string>
+    <string name="card_condition">Estado de la carta</string>
+    <string name="card_condition_price">Precio estimado según estado: %1$s</string>
+    <string name="near_mint_price_reference">Precio de referencia Near Mint</string>
+    <string name="near_mint_price_value">NM · %1$s</string>
+    <string-array name="card_condition_labels">
+        <item>Mint (M)</item>
+        <item>Near Mint (NM)</item>
+        <item>Excellent (EX)</item>
+        <item>Good (GD)</item>
+        <item>Light Played (LP)</item>
+        <item>Played (PL)</item>
+        <item>Poor (PO)</item>
+    </string-array>
     <string name="copy_added">Copia añadida: %1$s · ahora tienes %2$d</string>
     <string name="copy_count_saved">Guardado en la colección · %1$d copias de esta edición</string>
     <string name="copy_add_error">No se pudo añadir la copia</string>

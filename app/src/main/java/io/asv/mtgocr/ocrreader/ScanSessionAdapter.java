@@ -8,16 +8,21 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
+import io.asv.mtgocr.ocrreader.model.CardCondition;
 import java.util.List;
 
 /** Latest-first summary of cards added during the current scanner session. */
 final class ScanSessionAdapter extends BaseAdapter {
   private final Context context;
   private final List<CardInfo> cards;
+  private final OnConditionClick onConditionClick;
 
-  ScanSessionAdapter(Context context, List<CardInfo> cards) {
+  interface OnConditionClick { void onClick(CardInfo card); }
+
+  ScanSessionAdapter(Context context, List<CardInfo> cards, OnConditionClick onConditionClick) {
     this.context = context;
     this.cards = cards;
+    this.onConditionClick = onConditionClick;
   }
 
   @Override public int getCount() { return cards.size(); }
@@ -35,6 +40,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     ImageView image = view.findViewById(R.id.scanSessionImage);
     TextView name = view.findViewById(R.id.scanSessionName);
     TextView edition = view.findViewById(R.id.scanSessionEdition);
+    TextView condition = view.findViewById(R.id.scanSessionCondition);
     TextView price = view.findViewById(R.id.scanSessionPrice);
     name.setText(card.getName());
     String setName = card.getSetName() == null ? "" : card.getSetName().trim();
@@ -44,6 +50,9 @@ final class ScanSessionAdapter extends BaseAdapter {
     if (!setCode.isEmpty()) details.append(details.length() == 0 ? "" : " ").append('(').append(setCode).append(')');
     if (!collector.isEmpty()) details.append(" · #").append(collector);
     edition.setText(details.length() == 0 ? context.getString(R.string.scan_metadata_loading) : details.toString());
+    String[] conditionLabels = context.getResources().getStringArray(R.array.card_condition_labels);
+    condition.setText(conditionLabels[CardCondition.indexOf(card.getCondition())]);
+    condition.setOnClickListener(clicked -> onConditionClick.onClick(card));
     String value = card.getPrice() == null ? "" : card.getPrice().trim();
     price.setText(value);
     price.setVisibility(value.isEmpty() ? View.INVISIBLE : View.VISIBLE);

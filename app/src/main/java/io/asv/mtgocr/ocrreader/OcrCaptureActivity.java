@@ -99,6 +99,7 @@ import io.asv.mtgocr.ocrreader.data.MtgJsonRoomDataProvider;
 import io.asv.mtgocr.ocrreader.data.MagicSetOption;
 import io.asv.mtgocr.ocrreader.model.Biblio;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
+import io.asv.mtgocr.ocrreader.model.CardCondition;
 import io.asv.mtgocr.ocrreader.model.Deck;
 import io.asv.mtgocr.ocrreader.model.Decks;
 import io.asv.mtgocr.ocrreader.model.DeckCatalog;
@@ -284,7 +285,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
     });
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
-    scanSessionAdapter = new ScanSessionAdapter(this, scannedSessionCards);
+    scanSessionAdapter = new ScanSessionAdapter(this, scannedSessionCards,
+        this::showCardConditionPicker);
     scanSessionButton.setOnClickListener(view -> showScanSession());
     scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
     fabOcr.setOnClickListener(this);
@@ -1424,7 +1426,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           // Toast.makeText(this, "Error with" + cInfFromDataProvider.getName(), Toast.LENGTH_LONG).show();
           break;
         case DataProviderBase.PRICE_OK:
-          mLstCardInfo.get(idxOfGetterCardInfo).setPrice(cInfFromDataProvider.getPrice());
+          mLstCardInfo.get(idxOfGetterCardInfo).setPrice(cInfFromDataProvider.getBasePrice());
           mLstCardInfo.get(idxOfGetterCardInfo).setPriceL(cInfFromDataProvider.getPriceL());
           mLstCardInfo.get(idxOfGetterCardInfo).setPriceM(cInfFromDataProvider.getPriceM());
           mLstCardInfo.get(idxOfGetterCardInfo).setPriceH(cInfFromDataProvider.getPriceH());
@@ -1672,7 +1674,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     for (CardInfo card : mBiblio.cards) {
       String key = normalizeForFilter(card.getName()) + "|" + safe(card.getPrintingUuid()).trim()
           + "|" + safe(card.getSetCode()).trim().toLowerCase(Locale.ROOT)
-          + "|" + safe(card.getFinish()).trim().toLowerCase(Locale.ROOT);
+          + "|" + safe(card.getFinish()).trim().toLowerCase(Locale.ROOT)
+          + "|" + card.getCondition();
       CardInfo representative = representatives.get(key);
       if (representative == null) {
         representatives.put(key, card);
@@ -1693,7 +1696,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private double parseCardPrice(CardInfo card) {
     String raw = card.getPriceM();
-    if (raw == null || raw.trim().length() == 0) raw = card.getPrice();
+    if (raw == null || raw.trim().length() == 0) {
+      raw = card.getPrice();
+    } else {
+      try {
+        return CardCondition.adjustedAmount(Double.parseDouble(raw.trim()), card.getCondition());
+      } catch (NumberFormatException ignored) { }
+    }
     if (raw == null) return 0d;
     try {
       String cleaned = raw.replaceAll("[^0-9,.-]", "").replace(',', '.');
@@ -2053,7 +2062,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         // replacing the whole object (which used to restore the old quantity and lose the +).
         if (currentPrinting.length() == 0 || currentPrinting.equals(refreshedPrinting)) {
           current.setName(cardinfoForUpdate.getName());
-          current.setPrice(cardinfoForUpdate.getPrice());
+          current.setPrice(cardinfoForUpdate.getBasePrice());
           current.setPriceL(cardinfoForUpdate.getPriceL());
           current.setPriceM(cardinfoForUpdate.getPriceM());
           current.setPriceH(cardinfoForUpdate.getPriceH());
@@ -2187,6 +2196,27 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       openCardDetails(scanSessionAdapter.getItem(position));
     });
     dialog.show();
+  }
+
+  private void showCardConditionPicker(CardInfo sessionCard) {
+    String[] labels = getResources().getStringArray(R.array.card_condition_labels);
+    String[] codes = CardCondition.codes();
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.card_condition)
+        .setSingleChoiceItems(labels, CardCondition.indexOf(sessionCard.getCondition()),
+            (dialog, which) -> {
+              CardInfo current = findCollectionCard(sessionCard.getCollectionItemId());
+              if (current != null && which >= 0 && which < codes.length) {
+                current.setCondition(codes[which]);
+                DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+                rememberSessionScan(current);
+                updateCardAddedSnackbar(current, false);
+                refreshUI();
+              }
+              dialog.dismiss();
+            })
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
   }
 
   private void playScanAcceptedFeedback() {
@@ -2342,6 +2372,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     boolean metadataReady = safe(card.getPrintingUuid()).trim().length() > 0 ||
         safe(card.getImgPath()).trim().length() > 0 || !metadata.isEmpty();
     if (!metadataReady) return getString(R.string.card_added_loading, name);
+    metadata.add(getResources().getStringArray(R.array.card_condition_labels)[
+        CardCondition.indexOf(card.getCondition())]);
     String details = metadata.isEmpty()
         ? getString(R.string.card_metadata_updated)
         : TextUtils.join(" · ", metadata);

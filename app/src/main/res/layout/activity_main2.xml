@@ -16,6 +16,16 @@
                     <ProgressBar android:id="@+id/detailLanguageProgress" style="?android:attr/progressBarStyleSmall" android:layout_width="32dp" android:layout_height="32dp" />
                     <Spinner android:id="@+id/detailLanguageSpinner" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/spinner_background" android:contentDescription="@string/card_language" android:visibility="gone" />
                 </LinearLayout>
+                <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/card_condition" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" />
+                    <Spinner android:id="@+id/detailConditionSpinner" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="6dp" android:background="@drawable/spinner_background" android:contentDescription="@string/card_condition" />
+                    <TextView android:id="@+id/txtConditionPrice" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="?attr/colorSecondary" android:textSize="18sp" android:textStyle="bold" />
+                </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
                 <TextView android:id="@+id/txtCardType" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:textColor="?attr/colorSecondary" android:textSize="15sp" android:textStyle="bold" />
                 <TextView android:id="@+id/txtCardRules" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_arcane_rules" android:lineSpacingExtra="3dp" android:padding="16dp" android:textColor="#F4FFF9" android:textSize="16sp" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/editions" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />

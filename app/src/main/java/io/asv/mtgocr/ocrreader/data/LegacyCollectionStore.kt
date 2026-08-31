@@ -5,6 +5,7 @@ import io.asv.mtgocr.ocrreader.DataUtils
 import io.asv.mtgocr.ocrreader.OcrCaptureActivity
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardInfo
+import io.asv.mtgocr.ocrreader.model.CardCondition
 import java.util.Locale
 
 object LegacyCollectionStore {
@@ -64,7 +65,9 @@ object LegacyCollectionStore {
     }
 
     internal fun addCopyToCollection(collection: Biblio, option: CardEditionOption): CardInfo {
-        val existing = collection.cards.firstOrNull { card -> samePrinting(card, option) }
+        val existing = collection.cards.firstOrNull { card ->
+            samePrinting(card, option) && card.condition == CardCondition.NEAR_MINT
+        }
         val result = existing?.also { it.quantityCount = it.quantityCount + 1 } ?: CardInfo(
             option.cardName,
             option.price?.let { "%.2f %s".format(Locale.US, it, option.currency.orEmpty()) }.orEmpty(),
@@ -100,11 +103,17 @@ object LegacyCollectionStore {
     data class CopyRemovalResult(val remainingQuantity: Int, val removedCollectionItemId: String)
 
     /** Removes one physical copy of an exact printing/finish, deleting its row at zero. */
-    fun removeCopy(context: Context, option: CardEditionOption): CopyRemovalResult? {
+    fun removeCopy(
+        context: Context,
+        option: CardEditionOption,
+        preferredCollectionItemId: String? = null
+    ): CopyRemovalResult? {
         val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
             ?: OcrCaptureActivity.mBiblio
             ?: return null
-        val card = collection.cards.firstOrNull { samePrinting(it, option) } ?: return null
+        val card = collection.cards.firstOrNull {
+            it.collectionItemId == preferredCollectionItemId && samePrinting(it, option)
+        } ?: collection.cards.firstOrNull { samePrinting(it, option) } ?: return null
         val remaining = card.quantityCount - 1
         if (remaining > 0) card.quantityCount = remaining else collection.cards.remove(card)
         DataUtils.saveSerializable(context, collection, collection.nameFile)
@@ -142,5 +151,16 @@ object LegacyCollectionStore {
         DataUtils.saveSerializable(context, collection, collection.nameFile)
         OcrCaptureActivity.mBiblio = collection
         return true
+    }
+
+    fun updateCondition(context: Context, collectionItemId: String, condition: String): CardInfo? {
+        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
+            ?: OcrCaptureActivity.mBiblio
+            ?: return null
+        val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
+        card.condition = condition
+        DataUtils.saveSerializable(context, collection, collection.nameFile)
+        OcrCaptureActivity.mBiblio = collection
+        return card
     }
 }

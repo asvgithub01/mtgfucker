@@ -23,6 +23,7 @@ public class CardInfo implements Serializable {
     private String setName;
     private String collectorNumber;
     private String finish;
+    private String condition;
     private ArrayList<String> personalCollections;
     private ArrayList<String> decks;
     private ArrayList<String> sideboardDecks;
@@ -145,6 +146,14 @@ public class CardInfo implements Serializable {
         this.finish = finish;
     }
 
+    public String getCondition() {
+        return CardCondition.normalize(condition);
+    }
+
+    public void setCondition(String condition) {
+        this.condition = CardCondition.normalize(condition);
+    }
+
     public ArrayList<String> getPersonalCollections() {
         if (personalCollections == null) personalCollections = new ArrayList<String>();
         return personalCollections;
@@ -224,6 +233,11 @@ public class CardInfo implements Serializable {
     }
 
     public String getPrice() {
+        return CardCondition.adjustedDisplay(price, priceM, getCondition());
+    }
+
+    /** Unadjusted Near Mint display value stored by the market-price provider. */
+    public String getBasePrice() {
         return price;
     }
 

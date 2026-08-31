@@ -45,7 +45,9 @@ class CardArtworkIdentifier(
         val unique = options.asSequence()
             .filter { it.imageUrl?.isNotBlank() == true }
             .filter { locked.isEmpty() || it.setCode.uppercase(Locale.US) in locked }
-            .distinctBy { it.printingUuid }
+            .groupBy { it.printingUuid }
+            .values
+            .mapNotNull(ScanPrintingPolicy::preferred)
             .take(MAX_CANDIDATE_IMAGES)
             .toList()
 

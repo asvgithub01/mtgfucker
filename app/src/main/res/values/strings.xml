@@ -78,6 +78,9 @@
     <string name="settings">Ajustes</string>
     <string name="magic_color_title">Elige tu color de Magic</string>
     <string name="magic_color_description">La paleta se aplica a toda la app y a los reflejos animados de cada sección.</string>
+    <string name="scanner_settings_title">Escáner</string>
+    <string name="ask_edition_after_scan">Confirmar edición durante el escaneo</string>
+    <string name="ask_edition_after_scan_description">Desactivado por defecto: añade la primera impresión no foil sin interrumpir y permite cambiarla desde la sesión.</string>
     <string name="palette_green">Verde · naturaleza</string>
     <string name="palette_red">Rojo · fuego</string>
     <string name="palette_blue">Azul · conocimiento</string>
@@ -173,6 +176,7 @@
     <string name="scan_session_count">Sesión (%1$d)</string>
     <string name="scan_session_title">Capturas de esta sesión (%1$d)</string>
     <string name="scan_session_no_cards">Todavía no has escaneado ninguna carta en esta sesión.</string>
+    <string name="scan_session_choose_edition_hint">Toca una carta para revisar o cambiar su edición.</string>
     <string name="scan_metadata_loading">Cargando edición y precio…</string>
     <string name="scan_added_audible">Carta añadida</string>
 </resources>

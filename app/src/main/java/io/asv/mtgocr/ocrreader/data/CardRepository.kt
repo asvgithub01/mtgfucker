@@ -249,7 +249,7 @@ class CardRepository private constructor(context: Context) {
                 prices,
                 resolution?.displayName ?: eligible.first().name
             )
-            val representative = options.firstOrNull { !it.isFoil } ?: options.firstOrNull()
+            val representative = ScanPrintingPolicy.preferred(options)
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(representative, null) }
         } catch (error: Throwable) {
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, error) }

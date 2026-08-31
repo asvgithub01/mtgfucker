@@ -87,6 +87,7 @@ import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.TextRecognizer;
 import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.CardRepository;
+import io.asv.mtgocr.ocrreader.data.ScanPrintingPolicy;
 import io.asv.mtgocr.ocrreader.data.CardEditionOption;
 import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate;
 import io.asv.mtgocr.ocrreader.data.CardIdentificationResult;
@@ -135,6 +136,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
   private static final String PREF_QUICK_SCAN = "quick_scan";
   private static final String PREF_LOCKED_SET = "locked_set";
+  private static final String PREF_ASK_EDITION_AFTER_SCAN = "ask_edition_after_scan";
   private static final String STATE_SECTION = "selected_section";
 
   private CameraSource mCameraSource;
@@ -160,6 +162,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CheckBox closeAfterScanCheck;
   private CheckBox autoIdentifyCheck;
   private CheckBox quickScanCheck;
+  private CheckBox askEditionAfterScanCheck;
   private EditText lockedSetInput;
   private CardScanGuideView cardScanGuide;
   private Button scanSessionButton;
@@ -239,6 +242,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
     autoIdentifyCheck = (CheckBox) findViewById(R.id.checkAutoIdentify);
     quickScanCheck = (CheckBox) findViewById(R.id.checkQuickScan);
+    askEditionAfterScanCheck = (CheckBox) findViewById(R.id.checkAskEditionAfterScan);
     lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     scanSessionButton = (Button) findViewById(R.id.btnScanSession);
@@ -261,6 +265,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         .getBoolean(PREF_AUTO_IDENTIFY, true));
     quickScanCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getBoolean(PREF_QUICK_SCAN, true));
+    askEditionAfterScanCheck.setChecked(
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+            .getBoolean(PREF_ASK_EDITION_AFTER_SCAN, false));
     lockedSetInput.setText(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getString(PREF_LOCKED_SET, ""));
     autoIdentifyCheck.setOnCheckedChangeListener((button, checked) ->
@@ -269,6 +276,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     quickScanCheck.setOnCheckedChangeListener((button, checked) ->
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_QUICK_SCAN, checked).apply());
+    askEditionAfterScanCheck.setOnCheckedChangeListener((button, checked) ->
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(PREF_ASK_EDITION_AFTER_SCAN, checked).apply());
     lockedSetInput.setOnFocusChangeListener((view, focused) -> {
       if (!focused) getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
           .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
@@ -486,7 +496,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       suppressPredictionWatcher = false;
       return;
     }
-    if (quickScanCheck.isChecked() || result.getConfident()) {
+    if (!askEditionAfterScanCheck.isChecked()) {
+      List<CardEditionOption> options = new ArrayList<>();
+      for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
+      CardEditionOption preferred = ScanPrintingPolicy.preferred(options);
+      if (preferred != null) addIdentifiedPrinting(preferred);
+      else {
+        scanInProgress = false;
+        cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
+      }
+      return;
+    }
+    if (candidates.size() == 1) {
       addIdentifiedPrinting(candidates.get(0).getOption());
       return;
     }
@@ -2094,11 +2115,22 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           .show();
       return;
     }
+    LinearLayout content = new LinearLayout(this);
+    content.setOrientation(LinearLayout.VERTICAL);
+    TextView hint = new TextView(this);
+    hint.setText(R.string.scan_session_choose_edition_hint);
+    hint.setTextColor(MagicPalette.secondaryColor(this));
+    hint.setPadding(dp(18), dp(10), dp(18), dp(8));
+    content.addView(hint, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     ListView list = new ListView(this);
     list.setAdapter(scanSessionAdapter);
+    list.setMinimumHeight(dp(220));
+    content.addView(list, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     AlertDialog dialog = new AlertDialog.Builder(this)
         .setTitle(getString(R.string.scan_session_title, scannedSessionCards.size()))
-        .setView(list)
+        .setView(content)
         .setPositiveButton(R.string.close, null)
         .create();
     list.setOnItemClickListener((parent, view, position, id) -> {
@@ -2137,20 +2169,30 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanMetadataFailed = metadataFailedBeforeDisplay;
 
       Snackbar snackbar = Snackbar.make(
-              findViewById(R.id.ocrCaptureRoot), scanFeedbackText(card, false), 9000)
+              findViewById(R.id.ocrCaptureRoot), " ", 9000)
           .setBackgroundTint(MagicPalette.primaryVariantColor(this))
           .setTextColor(Color.WHITE)
-          .setActionTextColor(MagicPalette.secondaryColor(this))
-          .setAction(R.string.view_card, view -> openCardDetails(card));
-      TextView message = snackbar.getView().findViewById(
-          com.google.android.material.R.id.snackbar_text);
+          .setActionTextColor(MagicPalette.secondaryColor(this));
+      ViewGroup snackbarView = (ViewGroup) snackbar.getView();
+      View defaultContent = snackbarView.getChildAt(0);
+      if (defaultContent != null) defaultContent.setVisibility(View.GONE);
+
+      LinearLayout customContent = new LinearLayout(this);
+      customContent.setOrientation(LinearLayout.VERTICAL);
+      customContent.setPadding(dp(12), dp(8), dp(8), dp(4));
+      LinearLayout summaryRow = new LinearLayout(this);
+      summaryRow.setOrientation(LinearLayout.HORIZONTAL);
+      summaryRow.setGravity(Gravity.CENTER_VERTICAL);
+
+      TextView message = new TextView(this);
+      message.setTextColor(Color.WHITE);
+      message.setTextSize(14f);
       message.setMaxLines(3);
 
       RoundedCardImageView thumbnail = new RoundedCardImageView(this);
       thumbnail.setContentDescription(getString(R.string.added_card_thumbnail));
       thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
       thumbnail.setImageResource(R.drawable.backmtg);
-      ViewGroup parent = (ViewGroup) message.getParent();
       TextView priceBadge = new TextView(this);
       priceBadge.setTextColor(MagicPalette.secondaryColor(this));
       priceBadge.setTextSize(22f);
@@ -2158,18 +2200,39 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       priceBadge.setGravity(Gravity.CENTER);
       priceBadge.setPadding(dp(8), dp(4), dp(8), dp(4));
       priceBadge.setVisibility(View.GONE);
-      if (parent instanceof LinearLayout) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(68));
-        params.gravity = Gravity.CENTER_VERTICAL;
-        params.setMarginStart(dp(12));
-        params.setMarginEnd(dp(10));
-        parent.addView(thumbnail, 0, params);
-        LinearLayout.LayoutParams priceParams = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        priceParams.gravity = Gravity.CENTER_VERTICAL;
-        priceParams.setMarginEnd(dp(8));
-        parent.addView(priceBadge, 1, priceParams);
-      }
+      LinearLayout.LayoutParams imageParams = new LinearLayout.LayoutParams(dp(48), dp(68));
+      imageParams.setMarginEnd(dp(10));
+      summaryRow.addView(thumbnail, imageParams);
+      LinearLayout textColumn = new LinearLayout(this);
+      textColumn.setOrientation(LinearLayout.VERTICAL);
+      textColumn.addView(message, new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+      textColumn.addView(priceBadge, new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+      summaryRow.addView(textColumn, new LinearLayout.LayoutParams(0,
+          LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+      customContent.addView(summaryRow, new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+      TextView viewCardAction = new TextView(this);
+      viewCardAction.setText(R.string.view_card);
+      viewCardAction.setTextColor(MagicPalette.secondaryColor(this));
+      viewCardAction.setTextSize(14f);
+      viewCardAction.setTypeface(Typeface.DEFAULT_BOLD);
+      viewCardAction.setGravity(Gravity.CENTER);
+      viewCardAction.setMinHeight(dp(44));
+      viewCardAction.setPadding(dp(18), 0, dp(18), 0);
+      viewCardAction.setContentDescription(getString(R.string.view_card));
+      viewCardAction.setOnClickListener(view -> {
+        snackbar.dismiss();
+        openCardDetails(card);
+      });
+      LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+      actionParams.gravity = Gravity.END;
+      customContent.addView(viewCardAction, actionParams);
+      snackbarView.addView(customContent, new ViewGroup.LayoutParams(
+          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
       activeScanSnackbar = snackbar;
       activeScanThumbnail = thumbnail;

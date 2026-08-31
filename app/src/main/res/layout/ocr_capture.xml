@@ -201,6 +201,37 @@
                     <RadioButton android:id="@+id/paletteMetal" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_palette_option" android:buttonTint="#B9D8DF" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_metal" android:textColor="#FFFFFF" android:textSize="16sp" />
                 </RadioGroup>
             </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
+            <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:orientation="vertical"
+                android:padding="18dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/scanner_settings_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <CheckBox
+                    android:id="@+id/checkAskEditionAfterScan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:checked="false"
+                    android:text="@string/ask_edition_after_scan"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/ask_edition_after_scan_description"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="14sp" />
+            </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
         </LinearLayout>
     </ScrollView>
 

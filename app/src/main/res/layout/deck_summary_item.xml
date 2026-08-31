@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="150dp" android:layout_marginHorizontal="10dp" android:layout_marginVertical="5dp"
+    android:background="@drawable/bg_arcane_card_row" android:gravity="center_vertical" android:orientation="horizontal" android:padding="10dp">
+    <FrameLayout android:layout_width="92dp" android:layout_height="128dp">
+        <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgDeckCover" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@string/deck_cover" android:scaleType="centerCrop" />
+        <ImageView android:id="@+id/imgFoilBadge" android:layout_width="27dp" android:layout_height="27dp" android:layout_gravity="bottom|end" android:layout_margin="4dp" android:contentDescription="@string/foil_card_badge" android:src="@drawable/ic_foil_badge" android:visibility="gone" />
+    </FrameLayout>
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:layout_weight="1" android:orientation="vertical">
+        <TextView android:id="@+id/txtDeckName" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/colorOnSurface" android:textSize="23sp" />
+        <TextView android:id="@+id/txtDeckFormat" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="?attr/colorPrimaryVariant" android:textStyle="bold" />
+        <TextView android:id="@+id/txtDeckCounts" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="?attr/appMutedColor" />
+    </LinearLayout>
+    <ImageButton android:id="@+id/btnEditDeck" android:layout_width="46dp" android:layout_height="46dp" android:background="@drawable/bg_arcane_action" android:contentDescription="@string/edit_deck" android:padding="11dp" android:src="@android:drawable/ic_menu_edit" />
+</LinearLayout>

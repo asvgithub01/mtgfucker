@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="appMutedColor" format="color" />
+    <attr name="appGlassBaseColor" format="color" />
+    <attr name="appGlassDeepColor" format="color" />
+    <attr name="appGlassTextColor" format="color" />
+    <attr name="appActionStartColor" format="color" />
+    <attr name="appActionEndColor" format="color" />
+</resources>

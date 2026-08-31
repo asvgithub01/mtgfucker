@@ -7,7 +7,6 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.ViewConfiguration
-import androidx.appcompat.widget.AppCompatImageView
 import kotlin.math.abs
 
 /**
@@ -17,8 +16,12 @@ import kotlin.math.abs
 class ZoomableImageView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : AppCompatImageView(context, attrs) {
+) : RoundedCardImageView(context, attrs) {
     var onSwipe: ((direction: Int) -> Unit)? = null
+    /** Signed horizontal drag fraction: negative reveals the next page, positive the previous. */
+    var onPageDrag: ((fraction: Float) -> Unit)? = null
+    var onPageDragEnd: ((fraction: Float, velocityX: Float) -> Unit)? = null
+    var onPageDragCancel: (() -> Unit)? = null
 
     private val zoomMatrix = Matrix()
     private val matrixValues = FloatArray(9)
@@ -32,6 +35,8 @@ class ZoomableImageView @JvmOverloads constructor(
     private var downY = 0f
     private var downTime = 0L
     private var gestureHadMultiplePointers = false
+    private var pageDragActive = false
+    private var pageDragFraction = 0f
 
     private val scaleDetector = ScaleGestureDetector(
         context,
@@ -109,16 +114,34 @@ class ZoomableImageView @JvmOverloads constructor(
                 downY = event.y
                 downTime = event.eventTime
                 gestureHadMultiplePointers = false
+                pageDragActive = false
+                pageDragFraction = 0f
                 parent?.requestDisallowInterceptTouchEvent(isZoomed())
             }
 
             MotionEvent.ACTION_POINTER_DOWN -> {
                 gestureHadMultiplePointers = true
+                if (pageDragActive) {
+                    pageDragActive = false
+                    pageDragFraction = 0f
+                    onPageDragCancel?.invoke()
+                }
                 parent?.requestDisallowInterceptTouchEvent(true)
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (!scaleDetector.isInProgress && isZoomed()) {
+                if (!scaleDetector.isInProgress && !isZoomed() && !gestureHadMultiplePointers && onPageDrag != null) {
+                    val dx = event.x - downX
+                    val dy = event.y - downY
+                    val horizontalIntent = abs(dx) > touchSlop && abs(dx) > abs(dy) * 1.15f
+                    if (pageDragActive || horizontalIntent) {
+                        pageDragActive = true
+                        val pageWidth = width.coerceAtLeast(1) * PAGE_TURN_DISTANCE
+                        pageDragFraction = (dx / pageWidth).coerceIn(-1f, 1f)
+                        onPageDrag?.invoke(pageDragFraction)
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                } else if (!scaleDetector.isInProgress && isZoomed()) {
                     var pointerIndex = event.findPointerIndex(activePointerId)
                     if (pointerIndex < 0) {
                         pointerIndex = 0
@@ -158,7 +181,11 @@ class ZoomableImageView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
-                if (!gestureHadMultiplePointers && !isZoomed()) {
+                if (pageDragActive) {
+                    val elapsed = (event.eventTime - downTime).coerceAtLeast(1L)
+                    val velocityX = (event.x - downX) / elapsed
+                    onPageDragEnd?.invoke(pageDragFraction, velocityX)
+                } else if (!gestureHadMultiplePointers && !isZoomed()) {
                     val dx = event.x - downX
                     val dy = event.y - downY
                     val elapsed = (event.eventTime - downTime).coerceAtLeast(1L)
@@ -169,11 +196,16 @@ class ZoomableImageView @JvmOverloads constructor(
                     }
                 }
                 activePointerId = MotionEvent.INVALID_POINTER_ID
+                pageDragActive = false
+                pageDragFraction = 0f
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
 
             MotionEvent.ACTION_CANCEL -> {
+                if (pageDragActive) onPageDragCancel?.invoke()
                 activePointerId = MotionEvent.INVALID_POINTER_ID
+                pageDragActive = false
+                pageDragFraction = 0f
                 parent?.requestDisallowInterceptTouchEvent(false)
             }
         }
@@ -212,5 +244,6 @@ class ZoomableImageView @JvmOverloads constructor(
         const val MAX_ZOOM = 5f
         const val RESET_ZOOM_THRESHOLD = 1.015f
         const val MIN_SWIPE_VELOCITY = .18f
+        const val PAGE_TURN_DISTANCE = .94f
     }
 }

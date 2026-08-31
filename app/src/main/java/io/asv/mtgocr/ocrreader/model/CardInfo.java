@@ -21,9 +21,11 @@ public class CardInfo implements Serializable {
     private String printingUuid;
     private String setCode;
     private String setName;
+    private String collectorNumber;
     private String finish;
     private ArrayList<String> personalCollections;
     private ArrayList<String> decks;
+    private ArrayList<String> sideboardDecks;
     /**/
     public String getPriceL() {
         return priceL;
@@ -71,6 +73,7 @@ public class CardInfo implements Serializable {
         this.addedAt = System.currentTimeMillis();
         this.personalCollections = new ArrayList<String>();
         this.decks = new ArrayList<String>();
+        this.sideboardDecks = new ArrayList<String>();
     }
 
     public String getCollectionItemId() {
@@ -126,6 +129,14 @@ public class CardInfo implements Serializable {
         this.setName = setName;
     }
 
+    public String getCollectorNumber() {
+        return collectorNumber;
+    }
+
+    public void setCollectorNumber(String collectorNumber) {
+        this.collectorNumber = collectorNumber;
+    }
+
     public String getFinish() {
         return finish;
     }
@@ -152,6 +163,15 @@ public class CardInfo implements Serializable {
         return decks;
     }
 
+    public ArrayList<String> getSideboardDecks() {
+        if (sideboardDecks == null) sideboardDecks = new ArrayList<String>();
+        return sideboardDecks;
+    }
+
+    public boolean isSideboardForDeck(String name) {
+        return getSideboardDecks().contains(name);
+    }
+
     public boolean addPersonalCollection(String name) {
         String normalized = name == null ? "" : name.trim();
         if (normalized.length() == 0 || getPersonalCollections().contains(normalized)) return false;
@@ -168,6 +188,19 @@ public class CardInfo implements Serializable {
         return getDecks().add(normalized);
     }
 
+    /** Assigns every physical copy represented by this row to the chosen deck zone. */
+    public boolean setDeckZone(String name, boolean sideboard) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.length() == 0) return false;
+        boolean changed = addDeck(normalized);
+        if (sideboard) {
+            if (!getSideboardDecks().contains(normalized)) changed |= getSideboardDecks().add(normalized);
+        } else {
+            changed |= getSideboardDecks().remove(normalized);
+        }
+        return changed;
+    }
+
     public boolean removePersonalCollection(String name) {
         return getPersonalCollections().remove(name);
     }
@@ -177,7 +210,9 @@ public class CardInfo implements Serializable {
     }
 
     public boolean removeDeck(String name) {
-        return getDecks().remove(name);
+        boolean changed = getDecks().remove(name);
+        changed |= getSideboardDecks().remove(name);
+        return changed;
     }
 
     public String getName() {

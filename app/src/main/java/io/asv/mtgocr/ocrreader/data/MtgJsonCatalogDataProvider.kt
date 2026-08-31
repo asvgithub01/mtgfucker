@@ -2,6 +2,7 @@ package io.asv.mtgocr.ocrreader.data
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONObject
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -11,13 +12,70 @@ class MtgJsonCatalogDataProvider(
     private val client: OkHttpClient,
     private val imageProvider: ScryfallImageDataProvider
 ) {
+    fun sets(forceRefresh: Boolean = false): List<MagicSetEntity> {
+        val cached = dao.magicSets()
+        val syncedAt = dao.magicSetCatalogSync()?.updatedAt ?: 0L
+        if (!forceRefresh && cached.isNotEmpty() &&
+            System.currentTimeMillis() - syncedAt < SET_CATALOG_TTL_MS
+        ) return cached
+
+        return try {
+            val request = Request.Builder()
+                .url("https://mtgjson.com/api/v5/SetList.json")
+                .header("User-Agent", ScryfallImageDataProvider.USER_AGENT)
+                .header("Accept", "application/json")
+                .build()
+            val entities = client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) error("MTGJSON devolvió HTTP ${response.code} para el catálogo")
+                val root = JSONObject(response.body?.string().orEmpty())
+                val data = root.getJSONArray("data")
+                val now = System.currentTimeMillis()
+                buildList {
+                    for (index in 0 until data.length()) {
+                        val set = data.getJSONObject(index)
+                        val type = set.optString("type")
+                        if (set.optBoolean("isOnlineOnly") || type in EXCLUDED_CATALOG_TYPES) continue
+                        val code = set.optString("code").uppercase(Locale.US)
+                        val name = set.optString("name")
+                        val releaseDate = set.optString("releaseDate")
+                        val count = set.optInt("totalSetSize", set.optInt("baseSetSize"))
+                        if (code.isBlank() || name.isBlank() || releaseDate.isBlank() || count <= 0) continue
+                        add(MagicSetEntity(code, name, releaseDate, type, count, now))
+                    }
+                }
+            }
+            if (entities.isNotEmpty()) {
+                dao.saveMagicSets(entities)
+                dao.saveSetSync(CardSetSyncEntity("__catalog__", "*", System.currentTimeMillis()))
+            }
+            dao.magicSets().ifEmpty { cached }
+        } catch (error: Exception) {
+            if (cached.isNotEmpty()) cached else throw error
+        }
+    }
+
     fun editions(cardName: String): List<CardPrintingEntity> {
         val normalizedName = normalize(cardName)
         val cached = dao.printingsByName(normalizedName)
+        val discoveryStaleBefore = System.currentTimeMillis() - CARD_DISCOVERY_TTL_MS
+        val previousSetSyncs = dao.syncedSets(normalizedName).filter { it.setCode != CARD_DISCOVERY_SYNC_CODE }
+        // Discovering printings is not a local query: it pages through Scryfall and may then
+        // download several complete MTGJSON set files. Reusing a recent discovery makes opening a
+        // card effectively a Room lookup instead of repeating that network fan-out every time.
+        val discoveryIsFresh = (dao.cardDiscoverySync(normalizedName)?.updatedAt ?: 0L) >= discoveryStaleBefore
+        val legacySetSyncIsFresh = previousSetSyncs.isNotEmpty() &&
+            previousSetSyncs.all { it.updatedAt >= discoveryStaleBefore }
+        if (cached.isNotEmpty() && (discoveryIsFresh || legacySetSyncIsFresh)) {
+            if (!discoveryIsFresh) {
+                // Upgrade the per-set cache produced by older builds to the new discovery marker.
+                dao.saveSetSync(CardSetSyncEntity(normalizedName, CARD_DISCOVERY_SYNC_CODE, System.currentTimeMillis()))
+            }
+            return cached
+        }
         return try {
             val imageHints = imageProvider.getPrintingImages(cardName)
             if (imageHints.isEmpty()) return cached
-            val syncBySet = dao.syncedSets(normalizedName).associateBy { it.setCode }
+            val syncBySet = previousSetSyncs.associateBy { it.setCode }
             val staleBefore = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
             val hintsByScryfall = imageHints.associateBy { it.scryfallId }
             val hintsBySet = imageHints.groupBy { it.setCode }
@@ -46,6 +104,9 @@ class MtgJsonCatalogDataProvider(
             if (refreshed.isNotEmpty()) dao.savePrintings(refreshed)
             val result = dao.printingsByName(normalizedName).ifEmpty { cached }
             if (result.isEmpty() && lastSetError != null) throw lastSetError
+            if (result.isNotEmpty()) {
+                dao.saveSetSync(CardSetSyncEntity(normalizedName, CARD_DISCOVERY_SYNC_CODE, System.currentTimeMillis()))
+            }
             result
         } catch (error: Exception) {
             val available = dao.printingsByName(normalizedName)
@@ -115,6 +176,11 @@ class MtgJsonCatalogDataProvider(
     }
 
     companion object {
+        private const val CARD_DISCOVERY_SYNC_CODE = "*"
+        private val CARD_DISCOVERY_TTL_MS = TimeUnit.HOURS.toMillis(24)
+        private val SET_CATALOG_TTL_MS = TimeUnit.HOURS.toMillis(24)
+        private val EXCLUDED_CATALOG_TYPES = setOf("token", "memorabilia", "minigame")
+
         fun normalize(name: String): String = name.trim().lowercase(Locale.ROOT)
     }
 }

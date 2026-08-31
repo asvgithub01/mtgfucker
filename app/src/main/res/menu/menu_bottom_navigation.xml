@@ -3,5 +3,6 @@
     <item android:id="@+id/nav_library" android:icon="@drawable/ic_library" android:title="@string/nav_library" android:checked="true" />
     <item android:id="@+id/nav_sets" android:icon="@drawable/ic_sets" android:title="@string/nav_sets" />
     <item android:id="@+id/nav_groups" android:icon="@drawable/ic_groups" android:title="@string/nav_groups" />
+    <item android:id="@+id/nav_catalog" android:icon="@drawable/ic_collections" android:title="@string/nav_collections" />
     <item android:id="@+id/nav_settings" android:icon="@drawable/ic_settings" android:title="@string/settings" />
 </menu>

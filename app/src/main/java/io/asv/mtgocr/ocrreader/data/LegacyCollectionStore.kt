@@ -27,6 +27,7 @@ object LegacyCollectionStore {
                 card.printingUuid = option.printingUuid
                 card.setCode = option.setCode
                 card.setName = option.setName
+                card.collectorNumber = option.collectorNumber
                 card.finish = option.finish
                 option.price?.let {
                     card.priceL = it.toString()
@@ -74,6 +75,7 @@ object LegacyCollectionStore {
             card.printingUuid = option.printingUuid
             card.setCode = option.setCode
             card.setName = option.setName
+            card.collectorNumber = option.collectorNumber
             card.finish = option.finish
             option.price?.let {
                 card.priceL = it.toString()
@@ -95,6 +97,21 @@ object LegacyCollectionStore {
         else -> value.orEmpty().trim().lowercase(Locale.ROOT)
     }
 
+    data class CopyRemovalResult(val remainingQuantity: Int, val removedCollectionItemId: String)
+
+    /** Removes one physical copy of an exact printing/finish, deleting its row at zero. */
+    fun removeCopy(context: Context, option: CardEditionOption): CopyRemovalResult? {
+        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
+            ?: OcrCaptureActivity.mBiblio
+            ?: return null
+        val card = collection.cards.firstOrNull { samePrinting(it, option) } ?: return null
+        val remaining = card.quantityCount - 1
+        if (remaining > 0) card.quantityCount = remaining else collection.cards.remove(card)
+        DataUtils.saveSerializable(context, collection, collection.nameFile)
+        OcrCaptureActivity.mBiblio = collection
+        return CopyRemovalResult(remaining.coerceAtLeast(0), card.collectionItemId)
+    }
+
     fun updateSelectedEdition(
         context: Context,
         collectionItemId: String,
@@ -107,6 +124,7 @@ object LegacyCollectionStore {
         card.printingUuid = option.printingUuid
         card.setCode = option.setCode
         card.setName = option.setName
+        card.collectorNumber = option.collectorNumber
         card.finish = option.finish
         card.imgPath = option.imageUrl.orEmpty()
         option.price?.let { amount ->

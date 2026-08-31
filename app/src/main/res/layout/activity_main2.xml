@@ -1,31 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/cardDetailRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/mtg_parchment">
+    android:id="@+id/cardDetailRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_arcane_detail">
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:background="@color/mtg_green_dark" android:elevation="8dp" android:gravity="center_vertical" android:paddingStart="4dp" android:paddingEnd="16dp">
+        <io.asv.mtgocr.ocrreader.ArcaneGlassLayout android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginStart="8dp" android:layout_marginTop="8dp" android:layout_marginEnd="8dp" android:elevation="10dp" android:gravity="center_vertical" android:paddingStart="4dp" android:paddingEnd="16dp">
             <ImageButton android:id="@+id/btnBack" android:layout_width="48dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/back" android:padding="12dp" android:src="@drawable/ic_arrow_back" />
             <TextView android:id="@+id/txtEditionTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="2" android:textColor="#FFFFFF" android:textSize="21sp" />
-        </LinearLayout>
+        </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
         <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:fillViewport="true" android:paddingBottom="104dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_horizontal" android:orientation="vertical" android:paddingStart="12dp" android:paddingTop="14dp" android:paddingEnd="12dp" android:paddingBottom="48dp">
-                <ImageView android:id="@+id/imgEditionDetail" android:layout_width="308dp" android:layout_height="431dp" android:adjustViewBounds="true" android:contentDescription="@string/card_image" android:elevation="8dp" android:scaleType="fitCenter" />
-                <TextView android:id="@+id/txtCardType" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:textColor="@color/mtg_green_dark" android:textSize="15sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtCardRules" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_mtg_surface" android:lineSpacingExtra="3dp" android:padding="16dp" android:textColor="@color/mtg_ink" android:textSize="16sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/editions" android:textColor="@color/mtg_ink" android:textSize="24sp" android:textStyle="bold" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/collapse_editions" android:textColor="@color/mtg_muted" android:textSize="14sp" />
+                <FrameLayout android:layout_width="348dp" android:layout_height="487dp" android:elevation="12dp">
+                    <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgEditionDetail" android:layout_width="match_parent" android:layout_height="match_parent" android:adjustViewBounds="true" android:contentDescription="@string/card_image" android:scaleType="fitCenter" />
+                    <ImageView android:id="@+id/imgDetailFoilBadge" android:layout_width="46dp" android:layout_height="46dp" android:layout_gravity="bottom|end" android:layout_margin="12dp" android:contentDescription="@string/foil_card_badge" android:src="@drawable/ic_foil_badge" android:visibility="gone" />
+                </FrameLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical" android:orientation="horizontal">
+                    <ProgressBar android:id="@+id/detailLanguageProgress" style="?android:attr/progressBarStyleSmall" android:layout_width="32dp" android:layout_height="32dp" />
+                    <Spinner android:id="@+id/detailLanguageSpinner" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/spinner_background" android:contentDescription="@string/card_language" android:visibility="gone" />
+                </LinearLayout>
+                <TextView android:id="@+id/txtCardType" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:textColor="?attr/colorSecondary" android:textSize="15sp" android:textStyle="bold" />
+                <TextView android:id="@+id/txtCardRules" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_arcane_rules" android:lineSpacingExtra="3dp" android:padding="16dp" android:textColor="#F4FFF9" android:textSize="16sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/editions" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/collapse_editions" android:textColor="?attr/appGlassTextColor" android:textSize="14sp" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </LinearLayout>
-    <LinearLayout android:id="@+id/editionsBottomSheet" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_bottom_sheet" android:elevation="16dp" android:orientation="vertical" android:paddingTop="8dp" app:behavior_hideable="false" app:behavior_peekHeight="92dp" app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
-        <View android:layout_width="42dp" android:layout_height="4dp" android:layout_gravity="center_horizontal" android:layout_marginBottom="8dp" android:background="@color/mtg_muted" />
+    <io.asv.mtgocr.ocrreader.ArcaneBottomSheetLayout android:id="@+id/editionsBottomSheet" android:layout_width="match_parent" android:layout_height="match_parent" android:elevation="18dp" android:orientation="vertical" android:paddingTop="8dp" app:behavior_hideable="false" app:behavior_peekHeight="104dp" app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+        <View android:layout_width="48dp" android:layout_height="4dp" android:layout_gravity="center_horizontal" android:layout_marginBottom="8dp" android:background="?attr/colorSecondary" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="18dp" android:paddingEnd="10dp">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/editions" android:textColor="@color/mtg_ink" android:textSize="20sp" android:textStyle="bold" />
-                <TextView android:id="@+id/txtEditionStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="@color/mtg_muted" android:textSize="13sp" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/editions" android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" />
+                <TextView android:id="@+id/txtEditionStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="?attr/appGlassTextColor" android:textSize="13sp" />
             </LinearLayout>
-            <com.google.android.material.button.MaterialButton android:id="@+id/btnRefreshPrices" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/refresh_prices_plural" android:textColor="@color/mtg_green" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnRefreshPrices" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/refresh_prices_plural" android:textColor="?attr/colorSecondary" />
         </LinearLayout>
         <ProgressBar android:id="@+id/editionProgress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="3dp" android:indeterminate="true" />
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/editionsRecycler" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="24dp" />
-    </LinearLayout>
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/editionsRecycler" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:fadeScrollbars="false" android:nestedScrollingEnabled="true" android:overScrollMode="always" android:paddingBottom="32dp" android:scrollbarSize="5dp" android:scrollbarStyle="insideInset" android:scrollbarThumbVertical="@drawable/scrollbar_thumb_gold" android:scrollbars="vertical" />
+    </io.asv.mtgocr.ocrreader.ArcaneBottomSheetLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

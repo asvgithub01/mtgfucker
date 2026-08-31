@@ -55,9 +55,9 @@ object CardImageCache {
         keepCurrentDrawable: Boolean
     ) {
         val url = imageUrl?.trim().orEmpty()
-        if (keepCurrentDrawable && target.getTag(R.id.card_image_cache_url) == url) {
-            // Language spinner setup may select the URL that is already being displayed. Starting
-            // the same Glide request again cancels the first one and causes a visible flash.
+        if (target.getTag(R.id.card_image_cache_url) == url && target.drawable != null) {
+            // Rebinding a RecyclerView row or reselecting the current language must not restart
+            // the same Glide request. Clearing and restoring that drawable was the gallery flash.
             return
         }
         // Glide 3 owns the unkeyed View.tag; use a keyed tag for recycled-view protection.

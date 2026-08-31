@@ -42,6 +42,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     //Button btnBiblio,btnNewDeck,btnEditDecks;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        MagicPalette.applyTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ((TextView) findViewById(R.id.txtLaunchTitle)).setTypeface(

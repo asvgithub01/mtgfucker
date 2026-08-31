@@ -14,12 +14,25 @@
         android:gravity="center"
         android:textStyle="bold" />
 
-    <ImageView
-        android:id="@+id/imgSetCard"
+    <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
         android:layout_width="match_parent"
-        android:layout_height="210dp"
-        android:contentDescription="@string/card_image"
-        android:scaleType="centerInside" />
+        android:layout_height="210dp">
+        <io.asv.mtgocr.ocrreader.RoundedCardImageView
+            android:id="@+id/imgSetCard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/card_image"
+            android:scaleType="centerInside" />
+        <ImageView
+            android:id="@+id/imgFoilBadge"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="8dp"
+            android:contentDescription="@string/foil_card_badge"
+            android:src="@drawable/ic_foil_badge"
+            android:visibility="gone" />
+    </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
 
     <CheckBox
         android:id="@+id/checkSetCard"

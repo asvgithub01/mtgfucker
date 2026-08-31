@@ -1,7 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
 import android.content.Intent
-import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -56,14 +55,21 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
-        window.statusBarColor = AndroidColor.rgb(15, 45, 33)
-        window.navigationBarColor = AndroidColor.rgb(15, 45, 33)
+        val palettePrimary = MagicPalette.primaryColor(this)
+        val paletteDark = MagicPalette.primaryVariantColor(this)
+        val paletteAccent = MagicPalette.secondaryColor(this)
+        window.statusBarColor = paletteDark
+        window.navigationBarColor = paletteDark
         val showGlass = mutableStateOf(false)
         val animationStarted = mutableStateOf(false)
         setContent {
             MaterialTheme {
                 LiquidGlassSplash(
+                    palettePrimary = Color(palettePrimary),
+                    paletteDark = Color(paletteDark),
+                    paletteAccent = Color(paletteAccent),
                     showGlass = showGlass.value,
                     animationStarted = animationStarted.value,
                     onGlassDrawn = { animationStarted.value = true }
@@ -98,6 +104,9 @@ class SplashActivity : ComponentActivity() {
 
 @Composable
 private fun LiquidGlassSplash(
+    palettePrimary: Color,
+    paletteDark: Color,
+    paletteAccent: Color,
     showGlass: Boolean,
     animationStarted: Boolean,
     onGlassDrawn: () -> Unit,
@@ -128,7 +137,7 @@ private fun LiquidGlassSplash(
 
     val mtgFont = FontFamily(Font(R.font.mtg_title))
     if (!showGlass) {
-        Box(Modifier.fillMaxSize().background(Color(0xFF173C2C)))
+        Box(Modifier.fillMaxSize().background(paletteDark))
         return
     }
     val localView = LocalView.current
@@ -157,7 +166,11 @@ private fun LiquidGlassSplash(
                 Box(
                     Modifier.fillMaxSize().background(
                         Brush.verticalGradient(
-                            listOf(Color(0x7A0F2D21), Color(0xB50A1711), Color(0xE5102B20))
+                            listOf(
+                                paletteDark.copy(alpha = .48f),
+                                paletteDark.copy(alpha = .72f),
+                                palettePrimary.copy(alpha = .90f)
+                            )
                         )
                     )
                 )
@@ -192,27 +205,27 @@ private fun LiquidGlassSplash(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Canvas(Modifier.size(82.dp)) {
-                        drawCircle(Color(0x55E0B64B), radius = size.minDimension / 2f)
+                        drawCircle(paletteAccent.copy(alpha = .34f), radius = size.minDimension / 2f)
                         drawArc(
-                            color = Color(0xFFE0B64B),
+                            color = paletteAccent,
                             startAngle = -90f,
                             sweepAngle = progress.value * 360f,
                             useCenter = false,
                             style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
                         )
-                        drawCircle(Color(0xFF245B43), radius = size.minDimension * .22f)
+                        drawCircle(palettePrimary, radius = size.minDimension * .22f)
                     }
                     Spacer(Modifier.height(20.dp))
                     Text(
                         text = "MTG Biblio",
-                        color = Color(0xFF173C2C),
+                        color = paletteDark,
                         fontFamily = mtgFont,
                         fontSize = 38.sp,
                         textAlign = TextAlign.Center
                     )
                     Text(
                         text = "Tu colección, siempre a mano",
-                        color = Color(0xD9171B19),
+                        color = paletteDark.copy(alpha = .86f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
@@ -224,14 +237,14 @@ private fun LiquidGlassSplash(
                             .fillMaxWidth()
                             .height(5.dp)
                             .clip(RoundedCornerShape(50))
-                            .background(Color(0x33245B43))
+                            .background(palettePrimary.copy(alpha = .20f))
                     ) {
                         Box(
                             Modifier
                                 .fillMaxWidth(progress.value)
                                 .height(5.dp)
                                 .clip(RoundedCornerShape(50))
-                                .background(Brush.horizontalGradient(listOf(Color(0xFF245B43), Color(0xFFE0B64B))))
+                                .background(Brush.horizontalGradient(listOf(palettePrimary, paletteAccent)))
                         )
                     }
                 }

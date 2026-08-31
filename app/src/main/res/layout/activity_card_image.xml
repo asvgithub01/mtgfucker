@@ -4,14 +4,49 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <io.asv.mtgocr.ocrreader.ZoomableImageView
-        android:id="@+id/fullscreenCardImage"
+    <FrameLayout
+        android:id="@+id/cardPagerStage"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clickable="true"
-        android:contentDescription="@string/card_image"
-        android:paddingTop="52dp"
-        android:paddingBottom="48dp" />
+        android:layout_height="match_parent">
+
+        <io.asv.mtgocr.ocrreader.ZoomableImageView
+            android:id="@+id/previousCardImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0"
+            android:enabled="false"
+            android:paddingTop="52dp"
+            android:paddingBottom="48dp" />
+
+        <io.asv.mtgocr.ocrreader.ZoomableImageView
+            android:id="@+id/nextCardImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0"
+            android:enabled="false"
+            android:paddingTop="52dp"
+            android:paddingBottom="48dp" />
+
+        <io.asv.mtgocr.ocrreader.ZoomableImageView
+            android:id="@+id/fullscreenCardImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:contentDescription="@string/card_image"
+            android:paddingTop="52dp"
+            android:paddingBottom="48dp" />
+
+        <ImageView
+            android:id="@+id/imgFullscreenFoilBadge"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="bottom|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="64dp"
+            android:contentDescription="@string/foil_card_badge"
+            android:src="@drawable/ic_foil_badge"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

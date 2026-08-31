@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/ocrCaptureRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-        android:background="@color/mtg_parchment">
+        android:background="?android:attr/colorBackground">
 
     <io.asv.mtgocr.ocrreader.CardArtBackgroundView
         android:id="@+id/imgBgCard"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:contentDescription="@string/expansion_background"
+        android:contentDescription="@string/collection_art_background"
         android:visibility="gone" />
 
     <LinearLayout
@@ -19,13 +20,15 @@
         android:layout_above="@id/bottomNavigation"
         android:orientation="vertical">
 
-        <LinearLayout
+        <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
             android:id="@+id/collectionControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/mtg_parchment"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:orientation="vertical"
-            android:padding="6dp">
+            android:padding="10dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCreateGroup"
@@ -33,18 +36,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="6dp"
-                android:text="@string/create_group"
-                android:textColor="@color/mtg_green"
+                android:text="@string/create_deck"
+                android:textColor="?attr/colorPrimary"
                 android:visibility="gone"
                 app:icon="@drawable/ic_add"
-                app:iconTint="@color/mtg_green"
-                app:strokeColor="@color/mtg_green" />
+                app:iconTint="?attr/colorPrimary"
+                app:strokeColor="?attr/colorPrimary" />
 
             <EditText
                 android:id="@+id/txtCollectionSearch"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:background="#FFFFFF"
+                android:background="#D9FFFFFF"
                 android:hint="@string/search_collection_hint"
                 android:imeOptions="actionDone"
                 android:inputType="text"
@@ -70,7 +73,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/sort_cards"
-                        android:textColor="#555555"
+                    android:textColor="?attr/appGlassTextColor"
                         android:textSize="12sp" />
 
                     <Spinner
@@ -93,7 +96,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/filter_cards"
-                        android:textColor="#555555"
+                        android:textColor="?attr/appGlassTextColor"
                         android:textSize="12sp" />
 
                     <Spinner
@@ -115,61 +118,98 @@
                     android:padding="8dp"
                     android:src="@android:drawable/ic_menu_gallery" />
             </LinearLayout>
-        </LinearLayout>
+        </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
+
+        <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
+            android:id="@+id/setCatalogControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/txtSetCatalogSearch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@drawable/spinner_background"
+                android:hint="@string/search_sets_hint"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="#111111"
+                android:textColorHint="#777777" />
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="40dp" android:gravity="center_vertical" android:orientation="horizontal">
+                <ProgressBar android:id="@+id/setCatalogProgress" style="?android:attr/progressBarStyleSmall" android:layout_width="28dp" android:layout_height="28dp" />
+                <TextView android:id="@+id/txtSetCatalogStatus" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end" android:maxLines="1" android:textColor="?attr/appGlassTextColor" android:textSize="13sp" />
+            </LinearLayout>
+        </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/my_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@color/mtg_parchment"
+            android:background="?android:attr/colorBackground"
             android:scrollbars="vertical" />
 
         <TextView
             android:id="@+id/txtTotal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#FFFFFF"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_arcane_total"
             android:gravity="center"
             android:padding="6dp"
-            android:textColor="#000000"
-            android:textSize="24sp" />
+            android:textColor="?attr/colorSecondary"
+            android:textSize="22sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <LinearLayout
+    <ScrollView
         android:id="@+id/settingsPlaceholder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/bottomNavigation"
-        android:background="#FFFFFF"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp"
+        android:background="?android:attr/colorBackground"
+        android:fillViewport="true"
         android:visibility="gone">
-
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:contentDescription="@string/settings"
-            android:src="@drawable/ic_settings"
-            app:tint="#555555" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="@string/settings_future_message"
-            android:textColor="#333333"
-            android:textSize="18sp" />
-    </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
+            <io.asv.mtgocr.ocrreader.ArcaneGlassLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <ImageView android:layout_width="44dp" android:layout_height="44dp" android:contentDescription="@string/settings" android:padding="6dp" android:src="@drawable/ic_settings" app:tint="?attr/colorSecondary" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="10dp" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/magic_color_title" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />
+                        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/magic_color_description" android:textColor="?attr/appGlassTextColor" android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+                <RadioGroup android:id="@+id/paletteRadioGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:orientation="vertical">
+                    <RadioButton android:id="@+id/paletteGreen" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginBottom="7dp" android:background="@drawable/bg_palette_option" android:buttonTint="#55B987" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_green" android:textColor="#FFFFFF" android:textSize="16sp" />
+                    <RadioButton android:id="@+id/paletteRed" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginBottom="7dp" android:background="@drawable/bg_palette_option" android:buttonTint="#D24D50" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_red" android:textColor="#FFFFFF" android:textSize="16sp" />
+                    <RadioButton android:id="@+id/paletteBlue" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginBottom="7dp" android:background="@drawable/bg_palette_option" android:buttonTint="#5B9EE5" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_blue" android:textColor="#FFFFFF" android:textSize="16sp" />
+                    <RadioButton android:id="@+id/paletteBlack" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginBottom="7dp" android:background="@drawable/bg_palette_option" android:buttonTint="#AF93BF" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_black" android:textColor="#FFFFFF" android:textSize="16sp" />
+                    <RadioButton android:id="@+id/paletteWhite" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginBottom="7dp" android:background="@drawable/bg_palette_option" android:buttonTint="#FFF0B0" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_white" android:textColor="#FFFFFF" android:textSize="16sp" />
+                    <RadioButton android:id="@+id/paletteMetal" android:layout_width="match_parent" android:layout_height="56dp" android:background="@drawable/bg_palette_option" android:buttonTint="#B9D8DF" android:gravity="center_vertical" android:paddingHorizontal="14dp" android:text="@string/palette_metal" android:textColor="#FFFFFF" android:textSize="16sp" />
+                </RadioGroup>
+            </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
+        </LinearLayout>
+    </ScrollView>
 
     <RelativeLayout
         android:id="@+id/lytSearch"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginBottom="108dp"
-        android:background="@color/lDark"
+        android:background="?attr/colorPrimaryVariant"
         android:visibility="gone">
 
         <ImageView
@@ -210,25 +250,45 @@
             android:visibility="gone" />
 
         <LinearLayout
+            android:id="@+id/scanActions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
-            android:orientation="horizontal">
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btnCancel"
+            <CheckBox
+                android:id="@+id/checkCloseAfterScan"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cancel" />
+                android:buttonTint="?attr/colorSecondary"
+                android:checked="false"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/close_scanner_after_add"
+                android:textColor="#F4F0E8"
+                android:textSize="14sp" />
 
-            <Button
-                android:id="@+id/btnOk"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="OK"
+                android:gravity="center"
+                android:orientation="horizontal">
 
-                />
+                <Button
+                    android:id="@+id/btnCancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/cancel" />
+
+                <Button
+                    android:id="@+id/btnOk"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ok" />
+
+            </LinearLayout>
         </LinearLayout>
     </RelativeLayout>
 
@@ -240,18 +300,21 @@
         android:layout_alignParentRight="true"
         android:layout_margin="7dp"
         android:contentDescription="@string/scan_card"
-        app:backgroundTint="@color/lDark"
+        app:backgroundTint="?attr/colorPrimaryVariant"
         app:srcCompat="@drawable/ic_scan"
         app:tint="#FFFFFF" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <io.asv.mtgocr.ocrreader.ArcaneBottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="68dp"
         android:layout_alignParentBottom="true"
-        android:background="#FFFFFF"
-        android:elevation="12dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="10dp"
+        android:elevation="18dp"
         app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemRippleColor="?attr/colorSecondary"
         app:itemTextColor="@color/bottom_nav_item_color"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/menu_bottom_navigation" />

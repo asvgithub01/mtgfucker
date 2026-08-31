@@ -30,6 +30,7 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.hardware.Camera;
@@ -52,21 +53,27 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import android.util.Log;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -77,12 +84,16 @@ import com.google.android.gms.vision.text.TextRecognizer;
 import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.CardRepository;
 import io.asv.mtgocr.ocrreader.data.CardNameSuggestion;
+import io.asv.mtgocr.ocrreader.data.DeckCatalogStore;
 import io.asv.mtgocr.ocrreader.data.IDataProvider;
 import io.asv.mtgocr.ocrreader.data.MtgJsonRoomDataProvider;
+import io.asv.mtgocr.ocrreader.data.MagicSetOption;
 import io.asv.mtgocr.ocrreader.model.Biblio;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
 import io.asv.mtgocr.ocrreader.model.Deck;
 import io.asv.mtgocr.ocrreader.model.Decks;
+import io.asv.mtgocr.ocrreader.model.DeckCatalog;
+import io.asv.mtgocr.ocrreader.model.DeckDefinition;
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSource;
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview;
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
@@ -111,6 +122,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   // Permission request codes need to be < 256
   private static final int RC_HANDLE_CAMERA_PERM = 2;
+  private static final String SCANNER_PREFERENCES = "scanner_preferences";
+  private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
+  private static final String STATE_SECTION = "selected_section";
 
   private CameraSource mCameraSource;
   private CameraSourcePreview mPreview;
@@ -132,14 +146,22 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private boolean cardDetailOpen;
 
   Button btnOk, btnCancel;
+  private CheckBox closeAfterScanCheck;
   FloatingActionButton fabOcr;
   EditText txtSearch;
   RelativeLayout lytSearch;
   LinearLayout lytRecycler, topLayout;
   private Spinner sortSpinner, filterSpinner;
   private TextView filterLabel;
-  private View collectionControls;
+  private ArcaneGlassLayout collectionControls;
+  private ArcaneGlassLayout setCatalogControls;
   private TextView totalText;
+  private TextView setCatalogStatus;
+  private ProgressBar setCatalogProgress;
+  private EditText setCatalogSearch;
+  private MagicSetCatalogAdapter setCatalogAdapter;
+  private final List<MagicSetOption> setCatalogItems = new ArrayList<>();
+  private boolean setCatalogLoading;
   private ImageButton viewModeButton;
   private BottomNavigationView bottomNavigation;
   private View settingsPlaceholder;
@@ -149,13 +171,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private String currentFilterKey = "all";
   private String currentTextFilter = "";
   private boolean updatingFilterSpinner = false;
-  private int expansionBackgroundRequest = 0;
-  private final Random expansionBackgroundRandom = new Random();
+  private int artBackgroundRequest = 0;
+  private final Random artBackgroundRandom = new Random();
   private final List<GroupFilterOption> filterOptions = new ArrayList<>();
   private static final int SECTION_LIBRARY = 0;
   private static final int SECTION_SETS = 1;
   private static final int SECTION_GROUPS = 2;
-  private static final int SECTION_SETTINGS = 3;
+  private static final int SECTION_CATALOG = 3;
+  private static final int SECTION_SETTINGS = 4;
   private int currentSection = SECTION_LIBRARY;
   private final Handler autoOcrHandler = new Handler(Looper.getMainLooper());
   private CardRepository cardRepository;
@@ -169,12 +192,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private final List<CardNameSuggestion> currentNameSuggestions = new ArrayList<>();
   private int namePredictionRequest = 0;
   private boolean suppressPredictionWatcher = false;
+  private Snackbar activeScanSnackbar;
+  private String activeScanCardId;
+  private boolean activeScanMetadataFailed;
+  private RoundedCardImageView activeScanThumbnail;
+  private TextView activeScanMessage;
 
   /**
    * Initializes the UI and creates the detector pipeline.
    */
   @Override public void onCreate(Bundle icicle) {
+    MagicPalette.applyTheme(this);
     super.onCreate(icicle);
+    if (icicle != null) currentSection = icicle.getInt(STATE_SECTION, SECTION_LIBRARY);
     setContentView(R.layout.ocr_capture);
     cardRepository = CardRepository.get(this);
     //region asv
@@ -182,6 +212,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     imgBgCard = (ImageView) findViewById(R.id.imgBgCard);
     btnOk = (Button) findViewById(R.id.btnOk);
     btnCancel = (Button) findViewById(R.id.btnCancel);
+    closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
@@ -191,6 +222,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     topLayout = (LinearLayout) findViewById(R.id.topLayout);
     btnOk.setOnClickListener(this);
     btnCancel.setOnClickListener(this);
+    closeAfterScanCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+        .getBoolean(PREF_CLOSE_AFTER_SCAN, false));
+    closeAfterScanCheck.setOnCheckedChangeListener((button, checked) ->
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(PREF_CLOSE_AFTER_SCAN, checked)
+            .apply());
     fabOcr.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
@@ -209,10 +246,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
     setUpRecyclerView();
     setUpCollectionControls();
+    setUpSetCatalog();
     setUpBottomNavigation();
-    lytRecycler.setVisibility(View.VISIBLE);
-    fabOcr.setVisibility(View.VISIBLE);
     topLayout.setVisibility(View.GONE);
+    showSelectedSection();
     //endregion
     showPersistorUI();
 
@@ -227,6 +264,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     //endregion
     gestureDetector = new GestureDetector(this, new CaptureGestureListener());
     scaleGestureDetector = new ScaleGestureDetector(this, new ScaleListener());
+  }
+
+  @Override protected void onSaveInstanceState(@NonNull Bundle outState) {
+    outState.putInt(STATE_SECTION, currentSection);
+    super.onSaveInstanceState(outState);
   }
 
   //region recycler
@@ -263,8 +305,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       if (actionId != EditorInfo.IME_ACTION_DONE) return false;
       String selectedName = txtSearch.getText().toString().trim();
       if (selectedName.length() == 0) return true;
-      doSearch(selectedName);
-      showRecycler();
+      submitScannedCard(selectedName);
       return true;
     });
     cardRepository.prepareCardNamePredictor(ready -> kotlin.Unit.INSTANCE);
@@ -348,6 +389,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
       @Override public void afterTextChanged(Editable editable) { }
     });
+    mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+      @Override public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+        // The controls become denser once cards are moving beneath them, then clear again at top.
+        collectionControls.setGlassIntensity(recyclerView.canScrollVertically(-1) ? 1.12f : .82f);
+      }
+    });
     ArrayAdapter<CharSequence> sortAdapter = ArrayAdapter.createFromResource(
         this,
         R.array.collection_sort_options,
@@ -379,11 +426,70 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }));
   }
 
+  private void setUpSetCatalog() {
+    setCatalogControls = findViewById(R.id.setCatalogControls);
+    setCatalogSearch = findViewById(R.id.txtSetCatalogSearch);
+    setCatalogStatus = findViewById(R.id.txtSetCatalogStatus);
+    setCatalogProgress = findViewById(R.id.setCatalogProgress);
+    setCatalogProgress.setVisibility(View.GONE);
+    setCatalogAdapter = new MagicSetCatalogAdapter(this, set -> {
+      startActivity(new Intent(this, SetCollectionActivity.class)
+          .putExtra(SetCollectionActivity.EXTRA_SET_CODE, set.getCode())
+          .putExtra(SetCollectionActivity.EXTRA_SET_NAME, set.getName()));
+      return kotlin.Unit.INSTANCE;
+    });
+    setCatalogSearch.addTextChangedListener(new TextWatcher() {
+      @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
+      @Override public void onTextChanged(CharSequence text, int start, int before, int count) {
+        setCatalogAdapter.filter(text == null ? "" : text.toString());
+        updateSetCatalogCount();
+      }
+      @Override public void afterTextChanged(Editable editable) { }
+    });
+  }
+
+  private void showSetCatalog() {
+    mRecyclerView.setAdapter(setCatalogAdapter);
+    if (!setCatalogItems.isEmpty()) {
+      setCatalogAdapter.submit(setCatalogItems);
+      setCatalogAdapter.filter(setCatalogSearch.getText().toString());
+      updateSetCatalogCount();
+      return;
+    }
+    if (setCatalogLoading) return;
+    setCatalogLoading = true;
+    setCatalogProgress.setVisibility(View.VISIBLE);
+    setCatalogStatus.setText(R.string.loading_set_catalog);
+    cardRepository.loadSetCatalog(false, (sets, error) -> {
+      setCatalogLoading = false;
+      setCatalogProgress.setVisibility(View.GONE);
+      if (error != null) {
+        setCatalogStatus.setText(error.getMessage() == null
+            ? getString(R.string.set_catalog_error) : error.getMessage());
+        return kotlin.Unit.INSTANCE;
+      }
+      setCatalogItems.clear();
+      setCatalogItems.addAll(sets);
+      setCatalogAdapter.submit(setCatalogItems);
+      setCatalogAdapter.filter(setCatalogSearch.getText().toString());
+      updateSetCatalogCount();
+      return kotlin.Unit.INSTANCE;
+    });
+  }
+
+  private void updateSetCatalogCount() {
+    if (setCatalogLoading) return;
+    int count = setCatalogAdapter.visibleCount();
+    setCatalogStatus.setText(getResources().getQuantityString(
+        R.plurals.set_catalog_count, count, count));
+  }
+
   private void setUpBottomNavigation() {
     bottomNavigation = (BottomNavigationView) findViewById(R.id.bottomNavigation);
     settingsPlaceholder = findViewById(R.id.settingsPlaceholder);
+    setUpPaletteSettings();
     createGroupButton = findViewById(R.id.btnCreateGroup);
-    createGroupButton.setOnClickListener(view -> promptForBulkGroup());
+    createGroupButton.setOnClickListener(view -> promptForDeckCreation(null));
     if (!"0".equals(mPersistorMode)) {
       bottomNavigation.setVisibility(View.GONE);
       return;
@@ -393,6 +499,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       if (itemId == R.id.nav_library) currentSection = SECTION_LIBRARY;
       else if (itemId == R.id.nav_sets) currentSection = SECTION_SETS;
       else if (itemId == R.id.nav_groups) currentSection = SECTION_GROUPS;
+      else if (itemId == R.id.nav_catalog) currentSection = SECTION_CATALOG;
       else if (itemId == R.id.nav_settings) currentSection = SECTION_SETTINGS;
       if (currentSection == SECTION_SETS) {
         currentFilterKey = getPreferences(MODE_PRIVATE).getString(PREF_LAST_SET_FILTER, "");
@@ -402,52 +509,98 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       showSelectedSection();
       return true;
     });
-    bottomNavigation.setSelectedItemId(R.id.nav_library);
+    int selectedNavigation = currentSection == SECTION_SETS ? R.id.nav_sets
+        : currentSection == SECTION_GROUPS ? R.id.nav_groups
+        : currentSection == SECTION_CATALOG ? R.id.nav_catalog
+        : currentSection == SECTION_SETTINGS ? R.id.nav_settings
+        : R.id.nav_library;
+    bottomNavigation.setSelectedItemId(selectedNavigation);
+  }
+
+  private void setUpPaletteSettings() {
+    RadioGroup paletteGroup = findViewById(R.id.paletteRadioGroup);
+    String selected = MagicPalette.selectedId(this);
+    int selectedButton = MagicPalette.RED.equals(selected) ? R.id.paletteRed
+        : MagicPalette.BLUE.equals(selected) ? R.id.paletteBlue
+        : MagicPalette.BLACK.equals(selected) ? R.id.paletteBlack
+        : MagicPalette.WHITE.equals(selected) ? R.id.paletteWhite
+        : MagicPalette.METAL.equals(selected) ? R.id.paletteMetal
+        : R.id.paletteGreen;
+    paletteGroup.check(selectedButton);
+    paletteGroup.setOnCheckedChangeListener((group, checkedId) -> {
+      String palette = checkedId == R.id.paletteRed ? MagicPalette.RED
+          : checkedId == R.id.paletteBlue ? MagicPalette.BLUE
+          : checkedId == R.id.paletteBlack ? MagicPalette.BLACK
+          : checkedId == R.id.paletteWhite ? MagicPalette.WHITE
+          : checkedId == R.id.paletteMetal ? MagicPalette.METAL
+          : MagicPalette.GREEN;
+      if (MagicPalette.select(this, palette)) recreate();
+    });
   }
 
   private void showSelectedSection() {
     boolean settings = currentSection == SECTION_SETTINGS;
+    boolean catalog = currentSection == SECTION_CATALOG;
     lytRecycler.setVisibility(settings ? View.GONE : View.VISIBLE);
     settingsPlaceholder.setVisibility(settings ? View.VISIBLE : View.GONE);
-    fabOcr.setVisibility(settings ? View.GONE : View.VISIBLE);
+    collectionControls.setVisibility(!settings && !catalog ? View.VISIBLE : View.GONE);
+    setCatalogControls.setVisibility(!settings && catalog ? View.VISIBLE : View.GONE);
+    totalText.setVisibility(!settings && !catalog ? View.VISIBLE : View.GONE);
+    fabOcr.setVisibility(settings || catalog ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
     }
-      if (!settings) refreshUI();
+    if (!settings) {
+      if (catalog) mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+      else applyCollectionLayoutMode();
+      refreshUI();
+    }
     if (!settings) updateSectionBackground();
   }
 
   private void updateSectionBackground() {
+    boolean library = currentSection == SECTION_LIBRARY;
     boolean expansions = currentSection == SECTION_SETS;
-    expansionBackgroundRequest++;
-    imgBgCard.setVisibility(expansions ? View.VISIBLE : View.GONE);
-    mRecyclerView.setBackgroundColor(expansions ? Color.TRANSPARENT : getColorCompat(R.color.mtg_parchment));
+    boolean artworkBackground = library || expansions;
+    artBackgroundRequest++;
+    imgBgCard.setVisibility(artworkBackground ? View.VISIBLE : View.GONE);
+    mRecyclerView.setBackgroundColor(artworkBackground ? Color.TRANSPARENT : MagicPalette.backgroundColor(this));
     lytRecycler.setBackgroundColor(Color.TRANSPARENT);
     if (collectionControls != null) {
-      collectionControls.setBackgroundResource(expansions ? R.drawable.bg_glass_controls : R.color.mtg_parchment);
-      if (expansions) {
-        int margin = (int) (8 * getResources().getDisplayMetrics().density);
-        collectionControls.setPadding(margin, margin, margin, margin);
-      }
-    }
-    if (totalText != null) {
-      totalText.setBackgroundResource(expansions ? R.drawable.bg_glass_controls : android.R.color.white);
+      collectionControls.setGlassIntensity(artworkBackground ? .94f :
+          (mRecyclerView.canScrollVertically(-1) ? 1.12f : .82f));
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      imgBgCard.setRenderEffect(expansions
+      imgBgCard.setRenderEffect(artworkBackground
           ? RenderEffect.createBlurEffect(9f, 9f, Shader.TileMode.CLAMP)
           : null);
     }
-    if (expansions) showRandomExpansionBackground();
+    if (library) showRandomLibraryBackground();
+    else if (expansions) showRandomExpansionBackground();
   }
 
   private int getColorCompat(int colorResource) {
     return ContextCompat.getColor(this, colorResource);
   }
 
+  private void showRandomLibraryBackground() {
+    if (mBiblio == null || currentSection != SECTION_LIBRARY) return;
+    ++artBackgroundRequest;
+    List<CardInfo> candidates = new ArrayList<>();
+    for (CardInfo card : mBiblio.cards) {
+      if (safe(card.getImgPath()).trim().length() > 0) candidates.add(card);
+    }
+    if (candidates.isEmpty()) {
+      imgBgCard.setImageDrawable(null);
+      return;
+    }
+    CardInfo chosen = candidates.get(artBackgroundRandom.nextInt(candidates.size()));
+    displayArtworkBackground(chosen.getImgPath());
+  }
+
   private void showRandomExpansionBackground() {
     if (mBiblio == null || currentSection != SECTION_SETS) return;
-    final int request = ++expansionBackgroundRequest;
+    final int request = ++artBackgroundRequest;
     List<CardInfo> candidates = new ArrayList<>();
     for (CardInfo card : mBiblio.cards) {
       if (("all".equals(currentFilterKey) || matchesCurrentFilter(card)) &&
@@ -456,8 +609,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
     }
     if (!candidates.isEmpty()) {
-      CardInfo chosen = candidates.get(expansionBackgroundRandom.nextInt(candidates.size()));
-      displayExpansionBackground(chosen.getImgPath());
+      CardInfo chosen = candidates.get(artBackgroundRandom.nextInt(candidates.size()));
+      displayArtworkBackground(chosen.getImgPath());
       return;
     }
 
@@ -473,7 +626,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     cardRepository.loadSet(expansionCard.getSetCode(), (cards, error) -> {
-      if (request != expansionBackgroundRequest || currentSection != SECTION_SETS || error != null) {
+      if (request != artBackgroundRequest || currentSection != SECTION_SETS || error != null) {
         return kotlin.Unit.INSTANCE;
       }
       List<String> remoteImages = new ArrayList<>();
@@ -483,13 +636,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         }
       }
       if (!remoteImages.isEmpty()) {
-        displayExpansionBackground(remoteImages.get(expansionBackgroundRandom.nextInt(remoteImages.size())));
+        displayArtworkBackground(remoteImages.get(artBackgroundRandom.nextInt(remoteImages.size())));
       }
       return kotlin.Unit.INSTANCE;
     });
   }
 
-  private void displayExpansionBackground(String imageUrl) {
+  private void displayArtworkBackground(String imageUrl) {
     imgBgCard.animate().cancel();
     CardImageCache.displayKeepingCurrent(this, imageUrl, imgBgCard);
     imgBgCard.animate().alpha(0.78f).setDuration(320L).start();
@@ -538,6 +691,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
           @Override
           public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+            if (!(recyclerView.getAdapter() instanceof MyAdapter) || currentSection == SECTION_GROUPS) return 0;
             int position = viewHolder.getAdapterPosition();
             MyAdapter testAdapter = (MyAdapter) recyclerView.getAdapter();
             if (testAdapter.isUndoOn() && testAdapter.isPendingRemoval(position)) {
@@ -895,6 +1049,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   @Override protected void onDestroy() {
     super.onDestroy();
     autoOcrHandler.removeCallbacksAndMessages(null);
+    if (activeScanSnackbar != null) activeScanSnackbar.dismiss();
+    activeScanSnackbar = null;
+    activeScanThumbnail = null;
+    activeScanMessage = null;
     if (mPreview != null) {
       mPreview.release();
     }
@@ -1042,6 +1200,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
       CardInfo cardinfoForUpdate = mLstCardInfo.get(idxOfGetterCardInfo);
       updateCardInfoInPersistor(idxOnPersitionDataOfCardinfo, cardinfoForUpdate);
+      updateCardAddedSnackbar(cardinfoForUpdate, msg.what == DataProviderBase.ERROR);
       return false;
     }
   });
@@ -1054,10 +1213,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (graphic != null) {
       text = graphic.getTextBlock();
       if (text != null && text.getValue() != null) {
-
-        txtSearch.setText(text.getValue().replace("(", "").replace("|", ""));
-
-        Log.i("", text.getValue());
+        String firstPhrase = OcrTextSelection.firstPhrase(text.getValue());
+        if (!firstPhrase.isEmpty()) {
+          // Mobile Vision groups several card lines into one TextBlock. The card name is the
+          // first line; never copy the rules text, type line, artist, etc. into the search field.
+          txtSearch.setText(firstPhrase);
+          txtSearch.setSelection(firstPhrase.length());
+          Log.i(TAG, "OCR phrase selected manually: " + firstPhrase);
+        }
       } else {
         Log.d(TAG, "text DataUtils is null");
       }
@@ -1100,7 +1263,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void refreshUI() {
     if (mPersistorMode.equals("0"))//biblio
     {
+      if (currentSection == SECTION_CATALOG) {
+        showSetCatalog();
+        return;
+      }
       updateFilterOptions();
+      if (currentSection == SECTION_GROUPS && "all".equals(currentFilterKey)) {
+        showDeckSummaries();
+        return;
+      }
       List<CardInfo> visibleCards = new ArrayList<>();
       for (CardInfo card : mBiblio.cards) {
         CardImageCache.prefetch(this, card.getImgPath());
@@ -1147,7 +1318,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             String leftSet = safe(left.getSetName()) + " " + safe(left.getSetCode());
             String rightSet = safe(right.getSetName()) + " " + safe(right.getSetCode());
             int bySet = leftSet.compareToIgnoreCase(rightSet);
-            return bySet != 0 ? bySet : safe(left.getName()).compareToIgnoreCase(safe(right.getName()));
+            if (bySet != 0) return bySet;
+            int byCollector = collectorSortKey(left).compareTo(collectorSortKey(right));
+            return byCollector != 0 ? byCollector : safe(left.getName()).compareToIgnoreCase(safe(right.getName()));
           }
         });
         break;
@@ -1158,6 +1331,55 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           }
         });
     }
+  }
+
+  private String collectorSortKey(CardInfo card) {
+    String raw = safe(card.getCollectorNumber()).trim().toLowerCase(Locale.ROOT);
+    int split = 0;
+    while (split < raw.length() && Character.isDigit(raw.charAt(split))) split++;
+    if (split == 0) return "~~~~~~~~~~~~" + raw;
+    String digits = raw.substring(0, split);
+    StringBuilder padded = new StringBuilder();
+    for (int index = digits.length(); index < 12; index++) padded.append('0');
+    return padded.append(digits).append(raw.substring(split)).toString();
+  }
+
+  private void showDeckSummaries() {
+    DeckCatalog catalog = DeckCatalogStore.load(this, mBiblio);
+    List<DeckSummaryAdapter.Summary> summaries = new ArrayList<>();
+    for (DeckDefinition deck : catalog.decks) {
+      List<CardInfo> members = new ArrayList<>();
+      int mainCount = 0;
+      int sideboardCount = 0;
+      for (CardInfo card : mBiblio.cards) {
+        if (!card.getDecks().contains(deck.getName())) continue;
+        members.add(card);
+        if (card.isSideboardForDeck(deck.getName())) sideboardCount += card.getQuantityCount();
+        else mainCount += card.getQuantityCount();
+      }
+      Collections.sort(members, (left, right) -> Long.compare(left.getAddedAt(), right.getAddedAt()));
+      summaries.add(new DeckSummaryAdapter.Summary(
+          deck, members.isEmpty() ? null : members.get(0), mainCount, sideboardCount));
+    }
+    Collections.sort(summaries, (left, right) ->
+        Long.compare(left.deck.getCreatedAt(), right.deck.getCreatedAt()));
+    totalText.setText(getResources().getQuantityString(
+        R.plurals.deck_count, summaries.size(), summaries.size()));
+    mAdapter = new DeckSummaryAdapter(
+        summaries,
+        gridMode,
+        new DeckSummaryAdapter.Listener() {
+          @Override public void onOpen(DeckDefinition deck) {
+            currentFilterKey = "deck:" + deck.getName();
+            refreshUI();
+          }
+
+          @Override public void onEdit(DeckDefinition deck) {
+            openDeckBuilder(deck);
+          }
+        },
+        Typeface.createFromAsset(getAssets(), "title_font.ttf"));
+    mRecyclerView.setAdapter(mAdapter);
   }
 
   /** Keeps different printings of one name adjacent without losing the selected group order. */
@@ -1194,7 +1416,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       } else {
         representative.setQuantityCount(representative.getQuantityCount() + card.getQuantityCount());
         for (String group : card.getGroups()) representative.addGroup(group);
-        for (String deck : card.getDecks()) representative.addDeck(deck);
+        for (String deck : card.getDecks()) representative.setDeckZone(deck, card.isSideboardForDeck(deck));
         changed = true;
       }
     }
@@ -1250,7 +1472,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void updateFilterOptions() {
     if (filterSpinner == null || mBiblio == null) return;
     filterOptions.clear();
-    filterOptions.add(new GroupFilterOption("all", getString(R.string.all_cards)));
+    filterOptions.add(new GroupFilterOption("all", getString(
+        currentSection == SECTION_GROUPS ? R.string.all_decks : R.string.all_cards)));
     if (currentSection == SECTION_SETS) {
       filterLabel.setText(R.string.expansion_filter_label);
       Map<String, FilterCount> sets = new LinkedHashMap<>();
@@ -1278,8 +1501,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
       if (!hasRememberedSet && filterOptions.size() > 1) currentFilterKey = filterOptions.get(1).key;
     } else if (currentSection == SECTION_GROUPS) {
-      filterLabel.setText(R.string.grouping_filter_label);
-      appendGroupFilterOptions(false);
+      filterLabel.setText(R.string.deck_filter_label);
       appendGroupFilterOptions(true);
     } else {
       filterLabel.setText(R.string.filter_cards);
@@ -1298,30 +1520,64 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     updatingFilterSpinner = false;
   }
 
-  private void promptForBulkGroup() {
+  private void promptForDeckCreation(final CardInfo initialCard) {
+    int padding = (int) (16 * getResources().getDisplayMetrics().density);
+    LinearLayout content = new LinearLayout(this);
+    content.setOrientation(LinearLayout.VERTICAL);
+    content.setPadding(padding, padding / 2, padding, 0);
     final EditText input = new EditText(this);
-    input.setHint(R.string.group_name);
-    int padding = (int) (20 * getResources().getDisplayMetrics().density);
-    input.setPadding(padding, 0, padding, 0);
+    input.setHint(R.string.deck_name);
+    final Spinner formats = new Spinner(this);
+    final TextView rules = new TextView(this);
+    rules.setPadding(0, padding, 0, padding / 2);
+    List<String> labels = new ArrayList<>();
+    for (DeckFormatRule rule : DeckFormatRules.INSTANCE.getAll()) labels.add(rule.getLabel());
+    ArrayAdapter<String> formatAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, labels);
+    formatAdapter.setDropDownViewResource(R.layout.spinner_item);
+    formats.setAdapter(formatAdapter);
+    rules.setText(DeckFormatRules.INSTANCE.getAll().get(0).getSummary());
+    formats.setOnItemSelectedListener(new SimpleItemSelectedListener(position -> {
+      DeckFormatRule selected = DeckFormatRules.INSTANCE.getAll().get(position);
+      rules.setText(selected.getSummary());
+      return kotlin.Unit.INSTANCE;
+    }));
+    content.addView(input, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    content.addView(formats, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, (int) (48 * getResources().getDisplayMetrics().density)));
+    content.addView(rules, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     new AlertDialog.Builder(this)
-        .setTitle(R.string.create_group)
-        .setMessage(collectGroupNames(false).isEmpty() ? getString(R.string.create_first_group) : "")
-        .setView(input)
-        .setPositiveButton(R.string.ok, (dialog, which) -> {
+        .setTitle(R.string.create_deck)
+        .setMessage(collectGroupNames(true).isEmpty() ? getString(R.string.create_first_deck) : "")
+        .setView(content)
+        .setPositiveButton(R.string.continue_label, (dialog, which) -> {
           String name = input.getText().toString().trim();
           if (name.length() == 0) return;
-          Intent intent = new Intent(this, GroupBuilderActivity.class);
-          intent.putExtra(GroupBuilderActivity.EXTRA_GROUP_NAME, name);
-          intent.putExtra(GroupBuilderActivity.EXTRA_SORT, currentSortMode);
-          intent.putExtra(GroupBuilderActivity.EXTRA_QUERY, currentTextFilter);
-          startActivity(intent);
+          DeckFormatRule selected = DeckFormatRules.INSTANCE.getAll().get(formats.getSelectedItemPosition());
+          DeckDefinition deck = DeckCatalogStore.upsert(this, mBiblio, name, selected.getId());
+          if (initialCard == null) openDeckBuilder(deck);
+          else showDeckZonePicker(initialCard, deck.getName());
         })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
   }
 
+  private void openDeckBuilder(DeckDefinition deck) {
+    Intent intent = new Intent(this, GroupBuilderActivity.class);
+    intent.putExtra(GroupBuilderActivity.EXTRA_DECK_NAME, deck.getName());
+    intent.putExtra(GroupBuilderActivity.EXTRA_FORMAT_ID, deck.getFormatId());
+    intent.putExtra(GroupBuilderActivity.EXTRA_SORT, currentSortMode);
+    intent.putExtra(GroupBuilderActivity.EXTRA_QUERY, currentTextFilter);
+    startActivity(intent);
+  }
+
   private void appendGroupFilterOptions(boolean decks) {
-    for (String name : collectGroupNames(decks)) {
+    Set<String> names = decks ? new LinkedHashSet<>() : collectGroupNames(false);
+    if (decks) {
+      for (DeckDefinition definition : DeckCatalogStore.load(this, mBiblio).decks) names.add(definition.getName());
+    }
+    for (String name : names) {
       int count = 0;
       for (CardInfo card : mBiblio.cards) {
         if ((decks ? card.getDecks() : card.getGroups()).contains(name)) {
@@ -1360,66 +1616,67 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   public void showOrganizerDialog(final CardInfo card) {
     final String[] options = {
-        getString(R.string.add_to_group),
         getString(R.string.add_to_deck),
         getString(R.string.remove_assignment)
     };
     new AlertDialog.Builder(this)
         .setTitle(R.string.organize_card)
         .setItems(options, (dialog, which) -> {
-          if (which == 0) showGroupPicker(card, false);
-          if (which == 1) showGroupPicker(card, true);
-          if (which == 2) showRemoveAssignmentDialog(card);
+          if (which == 0) showGroupPicker(card, true);
+          if (which == 1) showRemoveAssignmentDialog(card);
         })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
   }
 
   private void showGroupPicker(final CardInfo card, final boolean deck) {
-    List<String> existing = new ArrayList<>(collectGroupNames(deck));
-    existing.removeAll(deck ? card.getDecks() : card.getGroups());
-    existing.add(getString(deck ? R.string.new_deck : R.string.new_group));
+    List<String> existing = new ArrayList<>();
+    for (DeckDefinition definition : DeckCatalogStore.load(this, mBiblio).decks) {
+      if (!card.getDecks().contains(definition.getName())) existing.add(definition.getName());
+    }
+    existing.add(getString(R.string.new_deck));
     final String[] names = existing.toArray(new String[0]);
     new AlertDialog.Builder(this)
-        .setTitle(deck ? R.string.add_to_deck : R.string.add_to_group)
+        .setTitle(R.string.add_to_deck)
         .setItems(names, (dialog, which) -> {
           if (which == names.length - 1) {
-            showNewGroupDialog(card, deck);
+            promptForDeckCreation(card);
           } else {
-            addCardToGroup(card, names[which], deck);
+            showDeckZonePicker(card, names[which]);
           }
         })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
   }
 
-  private void showNewGroupDialog(final CardInfo card, final boolean deck) {
-    final EditText input = new EditText(this);
-    input.setHint(deck ? R.string.deck_name : R.string.group_name);
-    int padding = (int) (20 * getResources().getDisplayMetrics().density);
-    input.setPadding(padding, 0, padding, 0);
+  private void showDeckZonePicker(final CardInfo card, final String deckName) {
+    DeckDefinition definition = null;
+    for (DeckDefinition candidate : DeckCatalogStore.load(this, mBiblio).decks) {
+      if (candidate.getName().equalsIgnoreCase(deckName)) definition = candidate;
+    }
+    if (definition != null && DeckFormatRules.byId(definition.getFormatId()).getMaximumSideboard() == 0) {
+      card.setDeckZone(deckName, false);
+      saveCollectionAndRefresh();
+      Toast.makeText(this, R.string.card_assignment_saved, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    final String[] zones = { getString(R.string.main_deck), getString(R.string.sideboard) };
     new AlertDialog.Builder(this)
-        .setTitle(deck ? R.string.new_deck : R.string.new_group)
-        .setView(input)
-        .setPositiveButton(R.string.ok, (dialog, which) -> addCardToGroup(card, input.getText().toString(), deck))
+        .setTitle(getString(R.string.choose_deck_zone, deckName))
+        .setItems(zones, (dialog, which) -> {
+          card.setDeckZone(deckName, which == 1);
+          saveCollectionAndRefresh();
+          Toast.makeText(this, R.string.card_assignment_saved, Toast.LENGTH_SHORT).show();
+        })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
   }
 
-  private void addCardToGroup(CardInfo card, String name, boolean deck) {
-    boolean changed = deck ? card.addDeck(name) : card.addGroup(name);
-    if (!changed) return;
-    saveCollectionAndRefresh();
-    Toast.makeText(this, R.string.card_assignment_saved, Toast.LENGTH_SHORT).show();
-  }
-
   private void showRemoveAssignmentDialog(final CardInfo card) {
     final List<AssignmentRef> assignments = new ArrayList<>();
-    for (String name : card.getGroups()) {
-      assignments.add(new AssignmentRef(name, false, getString(R.string.group_filter, name)));
-    }
     for (String name : card.getDecks()) {
-      assignments.add(new AssignmentRef(name, true, getString(R.string.deck_filter, name)));
+      String zone = getString(card.isSideboardForDeck(name) ? R.string.sideboard : R.string.main_deck);
+      assignments.add(new AssignmentRef(name, true, getString(R.string.deck_assignment, name, zone)));
     }
     if (assignments.isEmpty()) {
       Toast.makeText(this, R.string.no_assignments, Toast.LENGTH_SHORT).show();
@@ -1431,8 +1688,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         .setTitle(R.string.remove_assignment)
         .setItems(labels, (dialog, which) -> {
           AssignmentRef assignment = assignments.get(which);
-          if (assignment.deck) card.removeDeck(assignment.name);
-          else card.removeGroup(assignment.name);
+          card.removeDeck(assignment.name);
           saveCollectionAndRefresh();
           Toast.makeText(this, R.string.card_assignment_removed, Toast.LENGTH_SHORT).show();
         })
@@ -1542,6 +1798,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           current.setPrintingUuid(cardinfoForUpdate.getPrintingUuid());
           current.setSetCode(cardinfoForUpdate.getSetCode());
           current.setSetName(cardinfoForUpdate.getSetName());
+          current.setCollectorNumber(cardinfoForUpdate.getCollectorNumber());
           current.setFinish(cardinfoForUpdate.getFinish());
           current.lstDescription = cardinfoForUpdate.lstDescription;
         }
@@ -1566,8 +1823,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   @Override public void onClick(View v) {
     int viewId = v.getId();
     if (viewId == R.id.btnOk) {
-      doSearch(txtSearch.getText().toString());
-      showRecycler();
+      submitScannedCard(txtSearch.getText().toString());
     } else if (viewId == R.id.btnCancel) {
       showRecycler();
     } else if (viewId == R.id.fabOcr) {
@@ -1575,13 +1831,129 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
   }
 
+  private void submitScannedCard(String scannedName) {
+    String normalizedName = scannedName == null ? "" : scannedName.trim();
+    if (normalizedName.length() == 0) {
+      Snackbar.make(findViewById(R.id.ocrCaptureRoot), R.string.empty_scan_name,
+          Snackbar.LENGTH_SHORT).show();
+      return;
+    }
+    doSearch(normalizedName);
+    if (closeAfterScanCheck.isChecked()) {
+      showRecycler();
+    } else {
+      prepareScannerForNextCard();
+    }
+  }
+
+  /** Keeps the camera open and ready while the repository completes metadata in the background. */
+  private void prepareScannerForNextCard() {
+    hideNamePredictions();
+    suppressPredictionWatcher = true;
+    txtSearch.setText("");
+    suppressPredictionWatcher = false;
+    txtSearch.clearFocus();
+    InputMethodManager keyboard =
+        (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+    keyboard.hideSoftInputFromWindow(txtSearch.getWindowToken(), 0);
+  }
+
   private void showCardAddedSnackbar(CardInfo card) {
-    lytRecycler.post(() -> Snackbar.make(
-            lytRecycler, getString(R.string.card_added, card.getName()), Snackbar.LENGTH_LONG)
-        .setAction(R.string.view_card, view -> {
-          openCardDetails(card);
-        })
-        .show());
+    final String cardId = card.getCollectionItemId();
+    activeScanCardId = cardId;
+    activeScanMetadataFailed = false;
+    findViewById(R.id.ocrCaptureRoot).post(() -> {
+      if (!cardId.equals(activeScanCardId) || isFinishing() || isDestroyed()) return;
+      boolean metadataFailedBeforeDisplay = activeScanMetadataFailed;
+      if (activeScanSnackbar != null) activeScanSnackbar.dismiss();
+      // Dismissing the previous feedback clears its id in the callback; claim this scan again.
+      activeScanCardId = cardId;
+      activeScanMetadataFailed = metadataFailedBeforeDisplay;
+
+      Snackbar snackbar = Snackbar.make(
+              findViewById(R.id.ocrCaptureRoot), scanFeedbackText(card, false), 9000)
+          .setBackgroundTint(MagicPalette.primaryVariantColor(this))
+          .setTextColor(Color.WHITE)
+          .setActionTextColor(MagicPalette.secondaryColor(this))
+          .setAction(R.string.view_card, view -> openCardDetails(card));
+      TextView message = snackbar.getView().findViewById(
+          com.google.android.material.R.id.snackbar_text);
+      message.setMaxLines(3);
+
+      RoundedCardImageView thumbnail = new RoundedCardImageView(this);
+      thumbnail.setContentDescription(getString(R.string.added_card_thumbnail));
+      thumbnail.setScaleType(ImageView.ScaleType.FIT_CENTER);
+      thumbnail.setImageResource(R.drawable.backmtg);
+      ViewGroup parent = (ViewGroup) message.getParent();
+      if (parent instanceof LinearLayout) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(48), dp(68));
+        params.gravity = Gravity.CENTER_VERTICAL;
+        params.setMarginStart(dp(12));
+        params.setMarginEnd(dp(10));
+        parent.addView(thumbnail, 0, params);
+      }
+
+      activeScanSnackbar = snackbar;
+      activeScanThumbnail = thumbnail;
+      activeScanMessage = message;
+      snackbar.addCallback(new Snackbar.Callback() {
+        @Override public void onDismissed(Snackbar dismissed, int event) {
+          if (activeScanSnackbar != dismissed) return;
+          activeScanSnackbar = null;
+          activeScanThumbnail = null;
+          activeScanMessage = null;
+          activeScanCardId = null;
+          activeScanMetadataFailed = false;
+        }
+      });
+      updateCardAddedSnackbar(card, activeScanMetadataFailed);
+      snackbar.show();
+    });
+  }
+
+  private void updateCardAddedSnackbar(CardInfo card, boolean metadataFailed) {
+    if (card == null || activeScanCardId == null ||
+        !activeScanCardId.equals(card.getCollectionItemId())) return;
+    activeScanMetadataFailed = metadataFailed;
+    if (activeScanMessage != null) {
+      activeScanMessage.setText(scanFeedbackText(card, metadataFailed));
+    }
+    if (activeScanThumbnail != null && safe(card.getImgPath()).trim().length() > 0) {
+      CardImageCache.displayKeepingCurrent(this, card.getImgPath(), activeScanThumbnail);
+    }
+  }
+
+  private String scanFeedbackText(CardInfo card, boolean metadataFailed) {
+    String name = safe(card.getName()).trim();
+    if (metadataFailed) return getString(R.string.card_added_metadata_error, name);
+
+    List<String> metadata = new ArrayList<>();
+    String setName = safe(card.getSetName()).trim();
+    String setCode = safe(card.getSetCode()).trim();
+    if (setName.length() > 0 && setCode.length() > 0) metadata.add(setName + " (" + setCode + ")");
+    else if (setName.length() > 0) metadata.add(setName);
+    else if (setCode.length() > 0) metadata.add(setCode);
+    if (safe(card.getCollectorNumber()).trim().length() > 0) {
+      metadata.add("#" + card.getCollectorNumber().trim());
+    }
+    if (safe(card.getFinish()).trim().length() > 0) {
+      metadata.add(getString("foil".equalsIgnoreCase(card.getFinish())
+          ? R.string.foil : R.string.nonfoil));
+    }
+    String price = safe(card.getPrice()).trim();
+    if (price.length() > 0) metadata.add(price);
+
+    boolean metadataReady = safe(card.getPrintingUuid()).trim().length() > 0 ||
+        safe(card.getImgPath()).trim().length() > 0 || !metadata.isEmpty();
+    if (!metadataReady) return getString(R.string.card_added_loading, name);
+    String details = metadata.isEmpty()
+        ? getString(R.string.card_metadata_updated)
+        : TextUtils.join(" · ", metadata);
+    return getString(R.string.card_added_ready, name, details);
+  }
+
+  private int dp(int value) {
+    return Math.round(value * getResources().getDisplayMetrics().density);
   }
 
   /** Opens a card without losing the exact row/offset currently visible in the collection. */

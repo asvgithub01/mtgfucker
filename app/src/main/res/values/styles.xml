@@ -1,19 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Mtg" parent="Theme.MaterialComponents.Light.NoActionBar">
-        <item name="colorPrimary">@color/mtg_green</item>
-        <item name="colorPrimaryVariant">@color/mtg_green_dark</item>
-        <item name="colorSecondary">@color/mtg_gold</item>
+    <style name="Theme.Mtg.Base" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:navigationBarColor">@color/mtg_green_dark</item>
-        <item name="android:statusBarColor">@color/mtg_green_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowBackground">?android:attr/colorBackground</item>
     </style>
-    <style name="Theme.Mtg.Splash" parent="Theme.MaterialComponents.Light.NoActionBar">
+
+    <style name="Theme.Mtg.Green" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#245B43</item><item name="colorPrimaryVariant">#173C2C</item>
+        <item name="colorSecondary">#E0B64B</item><item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#F6F1E7</item><item name="colorSurface">#FFFCF6</item><item name="colorOnSurface">#171B19</item>
+        <item name="appMutedColor">#6E746F</item><item name="appGlassBaseColor">#EE173C2C</item><item name="appGlassDeepColor">#F20A1915</item>
+        <item name="appGlassTextColor">#D5E8DF</item><item name="appActionStartColor">#5CE0B64B</item><item name="appActionEndColor">#452CB47A</item>
+    </style>
+
+    <style name="Theme.Mtg.Red" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#A63A3D</item><item name="colorPrimaryVariant">#54191D</item>
+        <item name="colorSecondary">#FFB36B</item><item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#F8ECE9</item><item name="colorSurface">#FFF8F6</item><item name="colorOnSurface">#251516</item>
+        <item name="appMutedColor">#785D5D</item><item name="appGlassBaseColor">#EE54191D</item><item name="appGlassDeepColor">#F2240A0D</item>
+        <item name="appGlassTextColor">#F6D9D5</item><item name="appActionStartColor">#66FFB36B</item><item name="appActionEndColor">#55D94B50</item>
+    </style>
+
+    <style name="Theme.Mtg.Blue" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#356CA8</item><item name="colorPrimaryVariant">#173B61</item>
+        <item name="colorSecondary">#79CEFF</item><item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#ECF3FA</item><item name="colorSurface">#F8FBFF</item><item name="colorOnSurface">#111C27</item>
+        <item name="appMutedColor">#5D6C7A</item><item name="appGlassBaseColor">#EE173B61</item><item name="appGlassDeepColor">#F2091D31</item>
+        <item name="appGlassTextColor">#D7EAF8</item><item name="appActionStartColor">#6679CEFF</item><item name="appActionEndColor">#554F83D1</item>
+    </style>
+
+    <style name="Theme.Mtg.Black" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#51485B</item><item name="colorPrimaryVariant">#211C27</item>
+        <item name="colorSecondary">#C39BDD</item><item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#EDEAEF</item><item name="colorSurface">#F8F5FA</item><item name="colorOnSurface">#1A171D</item>
+        <item name="appMutedColor">#69626E</item><item name="appGlassBaseColor">#F02C2632</item><item name="appGlassDeepColor">#F20E0C11</item>
+        <item name="appGlassTextColor">#E9E0ED</item><item name="appActionStartColor">#66C39BDD</item><item name="appActionEndColor">#554E3A5A</item>
+    </style>
+
+    <style name="Theme.Mtg.White" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#B9A76F</item><item name="colorPrimaryVariant">#665C42</item>
+        <item name="colorSecondary">#F0CF62</item><item name="colorOnPrimary">#211F18</item>
+        <item name="android:colorBackground">#FAF8F0</item><item name="colorSurface">#FFFFFF</item><item name="colorOnSurface">#27241D</item>
+        <item name="appMutedColor">#736E61</item><item name="appGlassBaseColor">#EE665C42</item><item name="appGlassDeepColor">#F22A271F</item>
+        <item name="appGlassTextColor">#FFF8E2</item><item name="appActionStartColor">#70FFF0B0</item><item name="appActionEndColor">#55B9A76F</item>
+    </style>
+
+    <style name="Theme.Mtg.Metal" parent="Theme.Mtg.Base">
+        <item name="colorPrimary">#6F7F89</item><item name="colorPrimaryVariant">#35434B</item>
+        <item name="colorSecondary">#B9D8DF</item><item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:colorBackground">#ECEFF1</item><item name="colorSurface">#F8FAFB</item><item name="colorOnSurface">#182027</item>
+        <item name="appMutedColor">#65717A</item><item name="appGlassBaseColor">#EE35434B</item><item name="appGlassDeepColor">#F2151D22</item>
+        <item name="appGlassTextColor">#E0EBEE</item><item name="appActionStartColor">#70D9F0F4</item><item name="appActionEndColor">#556F7F89</item>
+    </style>
+
+    <style name="Theme.Mtg" parent="Theme.Mtg.Green" />
+    <style name="Theme.Mtg.Splash" parent="Theme.Mtg.Green">
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowNoTitle">true</item>
-        <item name="android:windowBackground">@color/mtg_green_dark</item>
-        <item name="android:navigationBarColor">@color/mtg_green_dark</item>
-        <item name="android:statusBarColor">@color/mtg_green_dark</item>
     </style>
 </resources>

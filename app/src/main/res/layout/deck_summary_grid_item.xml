@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="286dp" android:layout_margin="5dp" android:background="@drawable/bg_arcane_card_row" android:padding="5dp">
+    <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgDeckCover" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@string/deck_cover" android:scaleType="centerCrop" />
+    <ImageView android:id="@+id/imgFoilBadge" android:layout_width="31dp" android:layout_height="31dp" android:layout_gravity="top|start" android:layout_margin="8dp" android:contentDescription="@string/foil_card_badge" android:src="@drawable/ic_foil_badge" android:visibility="gone" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:background="#D9001712" android:orientation="vertical" android:padding="9dp">
+        <TextView android:id="@+id/txtDeckName" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="#FFFFFF" android:textSize="20sp" />
+        <TextView android:id="@+id/txtDeckFormat" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/colorSecondary" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:id="@+id/txtDeckCounts" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/appGlassTextColor" android:textSize="12sp" />
+    </LinearLayout>
+    <ImageButton android:id="@+id/btnEditDeck" android:layout_width="42dp" android:layout_height="42dp" android:layout_gravity="top|end" android:background="@drawable/bg_arcane_action" android:contentDescription="@string/edit_deck" android:padding="10dp" android:src="@android:drawable/ic_menu_edit" />
+</FrameLayout>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="ok">OK</string>
+    <string name="cancel">Cancelar</string>
     <string name="permission_camera_rationale">Access to the camera is needed for detection</string>
     <string name="no_camera_permission">This application cannot run because it does not have the camera permission. The application will now exit.</string>
     <string name="low_storage_error">Ocr dependencies cannot be downloaded due to low device storage</string>
@@ -23,6 +24,7 @@
     <string name="edition_selected">Seleccionada %1$s (%2$s)</string>
     <string name="edition_metadata">N.º %1$s · %2$s · %3$s</string>
     <string name="foil">foil</string>
+    <string name="foil_card_badge">Carta foil</string>
     <string name="nonfoil">no foil</string>
     <string name="no_price">Precio no disponible</string>
     <string name="refresh_prices">Actualizar precio</string>
@@ -71,24 +73,54 @@
     <string name="card_name_hint">Nombre de la carta</string>
     <string name="nav_library">Biblio</string>
     <string name="nav_sets">Expansiones</string>
-    <string name="nav_groups">Agrupaciones</string>
+    <string name="nav_groups">Mazos</string>
+    <string name="nav_collections">Colecciones</string>
     <string name="settings">Ajustes</string>
-    <string name="settings_future_message">Ajustes de fuente de precios próximamente</string>
+    <string name="magic_color_title">Elige tu color de Magic</string>
+    <string name="magic_color_description">La paleta se aplica a toda la app y a los reflejos animados de cada sección.</string>
+    <string name="palette_green">Verde · naturaleza</string>
+    <string name="palette_red">Rojo · fuego</string>
+    <string name="palette_blue">Azul · conocimiento</string>
+    <string name="palette_black">Negro · oscuridad</string>
+    <string name="palette_white">Blanco · luz</string>
+    <string name="palette_metal">Gris metal · artefacto</string>
+    <string name="search_sets_hint">Buscar colección por nombre, código o tipo…</string>
+    <string name="loading_set_catalog">Cargando todas las colecciones de Magic…</string>
+    <string name="set_catalog_error">No se pudo cargar el catálogo de colecciones.</string>
+    <string name="set_catalog_metadata">%1$s · %2$s · %3$d cartas</string>
+    <string name="add_set_favorite">Marcar %1$s como favorita</string>
+    <string name="remove_set_favorite">Quitar %1$s de favoritas</string>
+    <plurals name="set_catalog_count">
+        <item quantity="one">%d colección</item>
+        <item quantity="other">%d colecciones</item>
+    </plurals>
     <string name="scan_card">Escanear carta</string>
     <string name="increase_quantity">Añadir una copia</string>
     <string name="decrease_quantity">Quitar una copia</string>
     <string name="expansion_filter_label">Expansión</string>
     <string name="expansion_background">Carta de fondo de la expansión</string>
+    <string name="collection_art_background">Ilustración de fondo de la colección</string>
     <string name="grouping_filter_label">Agrupación o mazo</string>
     <string name="filter_with_count">%1$s (%2$d)</string>
     <string name="suggestion_with_language">%1$s · %2$s</string>
-    <string name="card_added">%1$s añadida a tu Biblio</string>
+    <string name="close_scanner_after_add">Cerrar el escáner tras añadir</string>
+    <string name="empty_scan_name">Toca el nombre de la carta antes de añadirla</string>
+    <string name="card_added_loading">✓ %1$s añadida\nObteniendo edición, imagen y precio…</string>
+    <string name="card_added_ready">✓ %1$s añadida\n%2$s</string>
+    <string name="card_added_metadata_error">✓ %1$s añadida\nNo se pudieron completar sus datos ahora</string>
+    <string name="card_metadata_updated">Datos de la carta actualizados</string>
+    <string name="added_card_thumbnail">Imagen de la carta recién añadida</string>
     <string name="view_card">Ver carta</string>
     <string name="card_detail">Detalle de carta</string>
     <string name="card_rules">Texto de la carta</string>
     <string name="editions">Ediciones</string>
     <string name="collapse_editions">Desliza hacia arriba para elegir edición</string>
     <string name="add_this_printing">Añadir otra copia de esta edición</string>
+    <string name="remove_this_printing">Quitar una copia de esta edición</string>
+    <string name="no_copies_to_remove">No tienes copias de esta edición</string>
+    <string name="last_copy_removed">Se eliminó la última copia de esta edición</string>
+    <string name="copy_removed">Copia eliminada: %1$s · quedan %2$d</string>
+    <string name="card_language">Idioma de la carta</string>
     <string name="copy_added">Copia añadida: %1$s · ahora tienes %2$d</string>
     <string name="copy_count_saved">Guardado en la colección · %1$d copias de esta edición</string>
     <string name="copy_add_error">No se pudo añadir la copia</string>
@@ -99,11 +131,31 @@
     <string name="save_group">Guardar agrupación</string>
     <string name="selected_cards_count">%1$d seleccionadas</string>
     <string name="group_created">Agrupación “%1$s” creada con %2$d cartas</string>
+    <string name="create_deck">Crear mazo</string>
+    <string name="create_first_deck">Todavía no tienes mazos. Elige nombre y formato para crear el primero.</string>
+    <string name="continue_label">Continuar</string>
+    <string name="all_decks">Todos los mazos</string>
+    <string name="deck_filter_label">Mazo</string>
+    <string name="choose_deck_cards">Cartas de %1$s</string>
+    <string name="save_deck">Guardar mazo</string>
+    <string name="main_deck">Mazo</string>
+    <string name="sideboard">Banquillo</string>
+    <string name="choose_deck_zone">Añadir a %1$s como…</string>
+    <string name="deck_assignment">%1$s · %2$s</string>
+    <string name="deck_selection_count">Mazo: %1$d · Banquillo: %2$d</string>
+    <string name="deck_saved">Mazo “%1$s” guardado · %2$d + %3$d de banquillo</string>
+    <string name="deck_card_counts">%1$d cartas + %2$d de banquillo</string>
+    <string name="deck_cover">Portada del mazo</string>
+    <string name="edit_deck">Editar mazo</string>
+    <plurals name="deck_count">
+        <item quantity="one">%d mazo</item>
+        <item quantity="other">%d mazos</item>
+    </plurals>
     <string name="back">Volver</string>
     <string-array name="collection_sort_options">
         <item>Orden de entrada</item>
         <item>Nombre (A–Z)</item>
         <item>Precio (mayor a menor)</item>
-        <item>Colección/edición MTG</item>
+        <item>Orden de colección (n.º)</item>
     </string-array>
 </resources>

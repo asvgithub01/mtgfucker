@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
@@ -31,8 +32,11 @@ class SetCollectionActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var status: TextView
     private lateinit var setCode: String
+    private lateinit var recycler: RecyclerView
+    private var galleryMode = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_set_collection)
         setCode = intent.getStringExtra(EXTRA_SET_CODE).orEmpty()
@@ -52,9 +56,24 @@ class SetCollectionActivity : AppCompatActivity() {
             addButton.text = getString(R.string.add_selected_cards_count, selectedCount)
             selectAll.isChecked = adapter.areAllSelected()
         }
-        findViewById<RecyclerView>(R.id.setCollectionRecycler).apply {
-            layoutManager = GridLayoutManager(this@SetCollectionActivity, 2)
+        galleryMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_SET_GALLERY, true)
+        recycler = findViewById<RecyclerView>(R.id.setCollectionRecycler).apply {
+            layoutManager = GridLayoutManager(this@SetCollectionActivity, if (galleryMode) 2 else 1)
             adapter = this@SetCollectionActivity.adapter
+        }
+        findViewById<ImageButton>(R.id.btnSetViewMode).apply {
+            fun render() {
+                setImageResource(if (galleryMode) android.R.drawable.ic_menu_sort_by_size else android.R.drawable.ic_menu_gallery)
+                contentDescription = getString(if (galleryMode) R.string.show_as_list else R.string.show_as_grid)
+            }
+            render()
+            setOnClickListener {
+                galleryMode = !galleryMode
+                getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_SET_GALLERY, galleryMode).apply()
+                recycler.layoutManager = GridLayoutManager(this@SetCollectionActivity, if (galleryMode) 2 else 1)
+                adapter.notifyDataSetChanged()
+                render()
+            }
         }
         findViewById<Spinner>(R.id.spinnerSetSort).apply {
             adapter = ArrayAdapter.createFromResource(
@@ -115,6 +134,7 @@ class SetCollectionActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_SET_CODE = "setCode"
         const val EXTRA_SET_NAME = "setName"
+        private const val PREF_SET_GALLERY = "set_gallery_mode"
     }
 }
 
@@ -193,11 +213,18 @@ private class SetCardAdapter(
             if (currentPosition != RecyclerView.NO_POSITION) notifyItemChanged(currentPosition)
             onSelectionChanged(newSelectionCount())
         }
+        holder.itemView.animate().cancel()
+        holder.itemView.alpha = .45f
+        holder.itemView.scaleX = .93f
+        holder.itemView.scaleY = .93f
+        holder.itemView.rotationY = if (position % 2 == 0) -4f else 4f
+        holder.itemView.animate().alpha(1f).scaleX(1f).scaleY(1f).rotationY(0f).setDuration(320L).start()
     }
 
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val price: TextView = view.findViewById(R.id.txtSetCardPrice)
         private val image: ImageView = view.findViewById(R.id.imgSetCard)
+        private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val check: CheckBox = view.findViewById(R.id.checkSetCard)
 
         fun bind(item: SetCardOption, selected: Boolean, owned: Boolean, toggle: () -> Unit) {
@@ -215,6 +242,7 @@ private class SetCardAdapter(
             }
             check.isChecked = selected
             check.isEnabled = !owned
+            foilBadge.visibility = if (CardFinish.isFoil(item.finish)) View.VISIBLE else View.GONE
             CardImageCache.display(itemView.context, item.imageUrl, image)
             itemView.setOnClickListener { if (!owned) toggle() }
             check.setOnClickListener { if (!owned) toggle() }

@@ -3,8 +3,12 @@ package io.asv.mtgocr.ocrreader.data
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.util.Log
 import okhttp3.OkHttpClient
+import java.util.LinkedHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 data class CardEditionOption(
@@ -41,6 +45,14 @@ data class SetCardOption(
     val currency: String?
 )
 
+data class MagicSetOption(
+    val code: String,
+    val name: String,
+    val releaseDate: String,
+    val type: String,
+    val cardCount: Int
+)
+
 data class LocalCardNameMatch(
     val canonicalName: String,
     val displayName: String
@@ -63,10 +75,44 @@ class CardRepository private constructor(context: Context) {
     private val priceProvider = MtgJsonPriceDataProvider(context.applicationContext, dao, client)
     private val nameResolver = MtgJsonCardNameResolver(context.applicationContext, dao, client)
     private val executor = Executors.newSingleThreadExecutor()
+    private val imageExecutor = Executors.newFixedThreadPool(2)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val optionCache = object : LinkedHashMap<String, List<CardEditionOption>>(48, .75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CardEditionOption>>?): Boolean {
+            return size > 48
+        }
+    }
 
-    fun loadCard(cardName: String, forcePriceRefresh: Boolean = false, callback: (List<CardEditionOption>, Throwable?) -> Unit) {
+    fun loadSetCatalog(
+        forceRefresh: Boolean = false,
+        callback: (List<MagicSetOption>, Throwable?) -> Unit
+    ) {
         executor.execute {
+            try {
+                val sets = catalog.sets(forceRefresh).map {
+                    MagicSetOption(it.code, it.name, it.releaseDate, it.type, it.cardCount)
+                }
+                mainHandler.post { callback(sets, null) }
+            } catch (error: Throwable) {
+                mainHandler.post { callback(emptyList(), error) }
+            }
+        }
+    }
+
+    fun loadCard(
+        cardName: String,
+        forcePriceRefresh: Boolean = false,
+        deliverEditionsBeforePrices: Boolean = false,
+        callback: (List<CardEditionOption>, Throwable?) -> Unit
+    ): Future<*> {
+        if (!forcePriceRefresh) {
+            cachedOptions(cardName)?.let { cached ->
+                mainHandler.post { callback(cached, null) }
+                return CompletedFuture
+            }
+        }
+        return executor.submit {
+            val startedAt = SystemClock.elapsedRealtime()
             try {
                 var resolution = nameResolver.cached(cardName)
                 var canonicalName = resolution?.canonicalName ?: cardName
@@ -84,18 +130,44 @@ class CardRepository private constructor(context: Context) {
                     nameResolver.remember(cardName, printings.first().name)
                     resolution = nameResolver.cached(cardName)
                 }
+                val printingUuids = printings.map { it.uuid }
+                val cachedPrices = dao.pricesFor(printingUuids)
+                val initialOptions = combine(
+                    printings,
+                    cachedPrices,
+                    resolution?.displayName ?: printings.first().name
+                )
+                cacheOptions(cardName, canonicalName, initialOptions)
+                if (deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
+                Log.d(TAG, "Ediciones de $canonicalName disponibles en ${SystemClock.elapsedRealtime() - startedAt} ms")
+
+                // Edition metadata must not wait for the costly global price snapshot. Show the
+                // list first, and only publish a second result if prices actually need loading.
+                if (!forcePriceRefresh && cachedPrices.isNotEmpty()) {
+                    if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
+                    return@submit
+                }
                 val prices = try {
-                    priceProvider.prices(printings.map { it.uuid }.toSet(), forcePriceRefresh)
-                } catch (_: Exception) {
-                    dao.pricesFor(printings.map { it.uuid })
+                    priceProvider.prices(printingUuids.toSet(), forcePriceRefresh)
+                } catch (priceError: Exception) {
+                    Log.w(TAG, "No se pudieron actualizar los precios de $canonicalName", priceError)
+                    if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
+                    return@submit
+                }
+                if (prices == cachedPrices) {
+                    if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
+                    return@submit
                 }
                 val options = combine(
                     printings,
                     prices,
                     resolution?.displayName ?: printings.first().name
                 )
+                cacheOptions(cardName, canonicalName, options)
+                if (Thread.currentThread().isInterrupted) return@submit
                 mainHandler.post { callback(options, null) }
             } catch (error: Throwable) {
+                if (Thread.currentThread().isInterrupted) return@submit
                 mainHandler.post { callback(emptyList(), error) }
             }
         }
@@ -184,12 +256,13 @@ class CardRepository private constructor(context: Context) {
         setCode: String,
         collectorNumber: String,
         callback: (List<CardImageVariant>, Throwable?) -> Unit
-    ) {
-        executor.execute {
+    ): Future<*> {
+        return imageExecutor.submit {
             try {
                 val variants = imageProvider.getImageLanguages(setCode, collectorNumber)
                 mainHandler.post { callback(variants, null) }
             } catch (error: Throwable) {
+                if (Thread.currentThread().isInterrupted) return@submit
                 mainHandler.post { callback(emptyList(), error) }
             }
         }
@@ -259,10 +332,29 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    @Synchronized
+    private fun cachedOptions(cardName: String): List<CardEditionOption>? =
+        optionCache[MtgJsonCatalogDataProvider.normalize(cardName)]
+
+    @Synchronized
+    private fun cacheOptions(requestedName: String, canonicalName: String, options: List<CardEditionOption>) {
+        optionCache[MtgJsonCatalogDataProvider.normalize(requestedName)] = options
+        optionCache[MtgJsonCatalogDataProvider.normalize(canonicalName)] = options
+    }
+
     companion object {
+        private const val TAG = "CardRepository"
         @Volatile private var instance: CardRepository? = null
         @JvmStatic fun get(context: Context): CardRepository = instance ?: synchronized(this) {
             instance ?: CardRepository(context.applicationContext).also { instance = it }
         }
     }
+}
+
+private object CompletedFuture : Future<Unit> {
+    override fun cancel(mayInterruptIfRunning: Boolean) = false
+    override fun isCancelled() = false
+    override fun isDone() = true
+    override fun get() = Unit
+    override fun get(timeout: Long, unit: TimeUnit) = Unit
 }

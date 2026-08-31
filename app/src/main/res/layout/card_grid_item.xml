@@ -9,14 +9,15 @@
         android:id="@+id/lytViewHolder"
         android:layout_width="match_parent"
         android:layout_height="260dp"
-        android:background="#202020"
+        android:background="@android:color/transparent"
         android:orientation="vertical">
 
-        <FrameLayout
+        <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:background="#202020">
 
-            <ImageView
+            <io.asv.mtgocr.ocrreader.RoundedCardImageView
                 android:id="@+id/imgCard"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -29,6 +30,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="top|start"
                 android:layout_margin="6dp"
+                android:layout_marginTop="30dp"
                 android:background="#D9000000"
                 android:paddingStart="7dp"
                 android:paddingTop="4dp"
@@ -59,9 +61,20 @@
                 android:background="@drawable/bg_quantity_badge"
                 android:gravity="center"
                 android:minWidth="34dp"
-                android:textColor="@color/mtg_gold"
+                android:textColor="?attr/colorSecondary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/imgFoilBadge"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="86dp"
+                android:layout_marginEnd="8dp"
+                android:contentDescription="@string/foil_card_badge"
+                android:src="@drawable/ic_foil_badge"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -90,7 +103,7 @@
                     android:textColor="#F1F1F1"
                     android:textSize="11sp" />
             </LinearLayout>
-        </FrameLayout>
+        </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
     </LinearLayout>
 
     <TextView

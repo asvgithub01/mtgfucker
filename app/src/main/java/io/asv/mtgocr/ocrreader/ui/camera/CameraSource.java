@@ -1104,9 +1104,15 @@ public class CameraSource {
          */
         @SuppressLint("Assert")
         void release() {
-            assert (mProcessingThread.getState() == State.TERMINATED);
-            mDetector.release();
-            mDetector = null;
+            // stop() joins the processing thread and deliberately clears mProcessingThread before
+            // reaching here. The old assertion dereferenced that null field when assertions were
+            // enabled, crashing the whole app while OcrCaptureActivity was being destroyed.
+            synchronized (mLock) {
+                if (mDetector != null) {
+                    mDetector.release();
+                    mDetector = null;
+                }
+            }
         }
 
         /**

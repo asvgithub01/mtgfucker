@@ -44,7 +44,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     // each data item is just a string in this case
     public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
     LinearLayout mLytViewHolder;
-    ImageView mImgCard;
+    ImageView mImgCard, mFoilBadge;
     ImageButton btnOrganize;
     TextView txtQuantity;
 
@@ -55,6 +55,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       mTxtUndo = (TextView) v.findViewById(R.id.txtUndo);
       mTxtGroups = (TextView) v.findViewById(R.id.txtGroups);
       mImgCard = (ImageView) v.findViewById(R.id.imgCard);
+      mFoilBadge = (ImageView) v.findViewById(R.id.imgFoilBadge);
       btnOrganize = (ImageButton) v.findViewById(R.id.btnOrganizeCard);
       txtQuantity = (TextView) v.findViewById(R.id.txtCardQuantity);
       mLytViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
@@ -191,6 +192,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mtxtName.setText(item.getName());
       holder.mtxtPrice.setText(item.getPrice());
       holder.txtQuantity.setText(String.valueOf(item.getQuantityCount()));
+      holder.mFoilBadge.setVisibility(CardFinish.isFoil(item.getFinish()) ? View.VISIBLE : View.GONE);
       StringBuilder groups = new StringBuilder();
       if (item.getSetName() != null && item.getSetName().trim().length() > 0) {
         if (gridMode) groups.append(mContext.getString(R.string.grid_set_overlay, item.getSetName()));
@@ -201,13 +203,15 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       } else if (gridMode) {
         groups.append(mContext.getString(R.string.personal_collection_label));
       }
-      if (!item.getGroups().isEmpty()) {
-        if (groups.length() > 0) groups.append(" · ");
-        groups.append("Agrupaciones: ").append(android.text.TextUtils.join(", ", item.getGroups()));
-      }
       if (!item.getDecks().isEmpty()) {
         if (groups.length() > 0) groups.append(" · ");
-        groups.append("Mazos: ").append(android.text.TextUtils.join(", ", item.getDecks()));
+        groups.append("Mazos: ");
+        for (int deckIndex = 0; deckIndex < item.getDecks().size(); deckIndex++) {
+          if (deckIndex > 0) groups.append(", ");
+          String deck = item.getDecks().get(deckIndex);
+          groups.append(deck);
+          if (item.isSideboardForDeck(deck)) groups.append(" (banquillo)");
+        }
       }
       holder.mTxtGroups.setText(groups.toString());
       holder.mTxtGroups.setVisibility(groups.length() > 0 ? View.VISIBLE : View.GONE);
@@ -225,6 +229,18 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
         }
       });
       CardImageCache.display(mContext, item.getImgPath(), holder.mImgCard);
+      if (gridMode) {
+        holder.itemView.animate().cancel();
+        // Never fade a recycled image from near-transparent: Glide may finish in the same frame,
+        // which looked like a brightness flash while scrolling the gallery. Keep only a restrained
+        // spatial entrance so cards still feel alive without blinking.
+        holder.itemView.setAlpha(1f);
+        holder.itemView.setScaleX(.97f);
+        holder.itemView.setScaleY(.97f);
+        holder.itemView.setRotationY(position % 2 == 0 ? -2f : 2f);
+        holder.itemView.animate().scaleX(1f).scaleY(1f).rotationY(0f)
+            .setDuration(220L).start();
+      }
     }
   }
 

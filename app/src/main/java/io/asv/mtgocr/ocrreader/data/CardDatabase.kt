@@ -66,6 +66,16 @@ data class CardNameAliasEntity(
     val updatedAt: Long
 )
 
+@Entity(tableName = "magic_sets", primaryKeys = ["code"])
+data class MagicSetEntity(
+    val code: String,
+    val name: String,
+    val releaseDate: String,
+    val type: String,
+    val cardCount: Int,
+    val updatedAt: Long
+)
+
 @Dao
 interface CardDao {
     @Query("SELECT * FROM card_printings WHERE normalizedName = :name ORDER BY releaseDate DESC, setCode, collectorNumber")
@@ -79,6 +89,9 @@ interface CardDao {
 
     @Query("SELECT * FROM card_set_sync WHERE normalizedName = :name")
     fun syncedSets(name: String): List<CardSetSyncEntity>
+
+    @Query("SELECT * FROM card_set_sync WHERE normalizedName = :name AND setCode = '*' LIMIT 1")
+    fun cardDiscoverySync(name: String): CardSetSyncEntity?
 
     @Query("SELECT * FROM card_set_sync WHERE normalizedName = '*' AND setCode = :setCode LIMIT 1")
     fun fullSetSync(setCode: String): CardSetSyncEntity?
@@ -112,6 +125,12 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM card_name_aliases")
     fun cardNameAliasCount(): Int
 
+    @Query("SELECT * FROM magic_sets ORDER BY releaseDate, name")
+    fun magicSets(): List<MagicSetEntity>
+
+    @Query("SELECT * FROM card_set_sync WHERE normalizedName = '__catalog__' AND setCode = '*' LIMIT 1")
+    fun magicSetCatalogSync(): CardSetSyncEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun savePrintings(printings: List<CardPrintingEntity>)
 
@@ -129,6 +148,9 @@ interface CardDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun saveCardNameAliases(aliases: List<CardNameAliasEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun saveMagicSets(sets: List<MagicSetEntity>)
 }
 
 @Database(
@@ -137,9 +159,10 @@ interface CardDao {
         CardPriceEntity::class,
         CardSetSyncEntity::class,
         OwnedPrintingEntity::class,
-        CardNameAliasEntity::class
+        CardNameAliasEntity::class,
+        MagicSetEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class CardDatabase : RoomDatabase() {
@@ -153,7 +176,7 @@ abstract class CardDatabase : RoomDatabase() {
                 context.applicationContext,
                 CardDatabase::class.java,
                 "mtg_catalog.db"
-            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -166,6 +189,22 @@ abstract class CardDatabase : RoomDatabase() {
                         `language` TEXT NOT NULL,
                         `updatedAt` INTEGER NOT NULL,
                         PRIMARY KEY(`normalizedAlias`)
+                    )""".trimIndent()
+                )
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `magic_sets` (
+                        `code` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `releaseDate` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `cardCount` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`code`)
                     )""".trimIndent()
                 )
             }

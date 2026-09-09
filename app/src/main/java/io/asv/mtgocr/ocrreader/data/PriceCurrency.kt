@@ -71,8 +71,12 @@ object PriceCurrency {
     }
 
     @JvmStatic
-    fun amount(context: Context, card: CardInfo): Double {
-        val rawAmount = rawAmount(card) ?: return 0.0
+    fun amount(context: Context, card: CardInfo): Double = amountOrNull(context, card) ?: 0.0
+
+    /** Parsed, condition-adjusted display amount, or null when this card has no usable price. */
+    @JvmStatic
+    fun amountOrNull(context: Context, card: CardInfo): Double? {
+        val rawAmount = rawAmount(card) ?: return null
         val adjusted = CardCondition.adjustedAmount(rawAmount, card.condition)
         return convert(context, adjusted, sourceCurrency(card.basePrice))
     }

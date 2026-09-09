@@ -2042,8 +2042,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     return value == null ? "" : value;
   }
 
-  private boolean hasPriceForTotal(CardInfo card) { return PriceCurrency.hasAmount(card); }
-
   private boolean matchesCurrentFilter(CardInfo card) {
     String query = normalizeForFilter(currentTextFilter);
     if (query.length() > 0) {
@@ -2591,22 +2589,26 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void updateScanSessionUi() {
     syncSessionCardsFromCollection();
+    int sessionCopies = sessionCopyCount();
     if (scanSessionButton != null) {
-      scanSessionButton.setText(getString(R.string.scan_session_count, sessionCopyCount()));
+      scanSessionButton.setText(getString(R.string.scan_session_count, sessionCopies));
     }
     if (scanSessionDialog != null) {
-      scanSessionDialog.setTitle(getString(R.string.scan_session_title, sessionCopyCount()));
+      scanSessionDialog.setTitle(getString(R.string.scan_session_title, sessionCopies));
     }
     if (scanSessionTotalText != null) {
       double total = 0d;
-      int totalCopies = sessionCopyCount();
-      int pricedCopies = ScanSessionCounts.priced(scannedSessionCards);
-      boolean allPricesReady = totalCopies > 0 && pricedCopies == totalCopies;
+      int totalCopies = sessionCopies;
+      int pricedCopies = 0;
       for (CardInfo card : scannedSessionCards) {
-        if (hasPriceForTotal(card)) {
-          total += parseCardPrice(card) * card.getQuantityCount();
+        Double amount = PriceCurrency.amountOrNull(this, card);
+        if (amount != null) {
+          int quantity = card.getQuantityCount();
+          pricedCopies += quantity;
+          total += amount * quantity;
         }
       }
+      boolean allPricesReady = totalCopies > 0 && pricedCopies == totalCopies;
       String formattedTotal = PriceCurrency.format(this, total, PriceCurrency.preferred(this));
       scanSessionTotalText.setText(!allPricesReady && totalCopies > 0
           ? getString(R.string.scan_session_total_progress, pricedCopies, totalCopies, formattedTotal)
@@ -2980,7 +2982,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private boolean hasCardPrice(CardInfo card) {
-    return card != null && PriceCurrency.hasAmount(card);
+    return card != null && (safe(card.getPriceM()).trim().length() > 0 ||
+        safe(card.getPrice()).trim().length() > 0);
   }
 
   private boolean isCardDataComplete(CardInfo card) {

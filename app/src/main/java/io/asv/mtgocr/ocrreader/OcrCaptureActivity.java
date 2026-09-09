@@ -533,7 +533,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           // existing background metadata pipeline and update both snackbar and session history.
           submitScannedCard(match.getDisplayName(), match.getLanguage());
         } else {
-          addIdentifiedPrintingForLanguage(option, match.getLanguage());
+          addIdentifiedPrinting(option, match.getLanguage());
         }
         return kotlin.Unit.INSTANCE;
       });
@@ -584,7 +584,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       List<CardEditionOption> options = new ArrayList<>();
       for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
       CardEditionOption preferred = ScanPrintingPolicy.preferred(options);
-      if (preferred != null) addIdentifiedPrintingForLanguage(preferred, nameMatch.getLanguage());
+      if (preferred != null) addIdentifiedPrinting(preferred, nameMatch.getLanguage());
       else {
         scanInProgress = false;
         cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
@@ -592,7 +592,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     if (candidates.size() == 1) {
-      addIdentifiedPrintingForLanguage(candidates.get(0).getOption(), nameMatch.getLanguage());
+      addIdentifiedPrinting(candidates.get(0).getOption(), nameMatch.getLanguage());
       return;
     }
     String[] labels = new String[candidates.size()];
@@ -610,7 +610,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     new AlertDialog.Builder(this)
         .setTitle(R.string.scan_choose_printing)
         .setItems(labels, (dialog, which) ->
-            addIdentifiedPrintingForLanguage(candidates.get(which).getOption(), nameMatch.getLanguage()))
+            addIdentifiedPrinting(candidates.get(which).getOption(), nameMatch.getLanguage()))
         .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
           scanInProgress = false;
           scanStability.allowRepeat();
@@ -1576,26 +1576,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     showNextCardReadySnackbar();
     startCameraSource();
-  }
-
-  /** Chooses a printing that actually exists in the OCR-detected language before persisting it. */
-  private void addIdentifiedPrintingForLanguage(CardEditionOption fallback, String detectedLanguage) {
-    String language = CardLanguage.toCode(detectedLanguage);
-    if (language.isEmpty() || "en".equals(language)) {
-      addIdentifiedPrinting(fallback, language);
-      return;
-    }
-    scanInProgress = true;
-    cardScanGuide.setMessage(getString(R.string.scan_selecting_language_edition, language));
-    cardRepository.findLocalizedEdition(
-        fallback.getCardName(), language, fallback.getFinish(), lockedSetCodes(), (localized, error) -> {
-          if (!isScannerReaderActive()) {
-            scanInProgress = false;
-            return kotlin.Unit.INSTANCE;
-          }
-          addIdentifiedPrinting(localized == null ? fallback : localized, language);
-          return kotlin.Unit.INSTANCE;
-        });
   }
 
   private void applyCollectionLayoutMode() {
@@ -2979,19 +2959,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     root.announceForAccessibility(getString(R.string.scan_name_recognized_audible));
   }
 
-  private void playCardInfoReadyFeedback() {
-    try {
-      if (scanToneGenerator == null) {
-        scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
-      }
-      scanToneGenerator.startTone(ToneGenerator.TONE_PROP_ACK, 220);
-    } catch (RuntimeException error) {
-      Log.w(TAG, "No se pudo reproducir el sonido de datos completos", error);
-    }
-    findViewById(R.id.ocrCaptureRoot)
-        .announceForAccessibility(getString(R.string.scan_info_ready_audible));
-  }
-
   private void registerSessionScan(CardInfo card) {
     rememberSessionScan(card);
     String cardId = card.getCollectionItemId();
@@ -3124,8 +3091,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       final String cardId = card.getCollectionItemId();
       activeScanCardId = cardId;
       activeScanMetadataFailed = false;
-      playCardInfoReadyFeedback();
-
       Snackbar snackbar = Snackbar.make(
               findViewById(R.id.ocrCaptureRoot), " ", 6500)
           .setBackgroundTint(MagicPalette.primaryVariantColor(this))

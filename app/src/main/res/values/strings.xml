@@ -185,7 +185,6 @@
     <string name="scan_align_card">Alinea una carta dentro del marco</string>
     <string name="scan_reading_name">Nombre detectado: %1$s</string>
     <string name="scan_comparing_art">Comparando la ilustración de %1$s…</string>
-    <string name="scan_selecting_language_edition">Buscando una edición disponible en %1$s…</string>
     <string name="scan_identification_failed">No se pudo comparar la ilustración; puedes confirmar el nombre</string>
     <string name="scan_no_set_match">No hay coincidencias para la edición bloqueada</string>
     <string name="scan_choose_printing">Elige la impresión correcta</string>
@@ -213,7 +212,6 @@
     <string name="delete_session_card">Eliminar carta de la sesión y la colección</string>
     <string name="session_card_deleted">Carta eliminada de la sesión</string>
     <string name="scan_name_recognized_audible">Nombre de carta reconocido</string>
-    <string name="scan_info_ready_audible">Información de la carta completada</string>
     <string name="scan_added_audible">Carta añadida</string>
     <string name="select_all_session_cards">Seleccionar todas</string>
     <string name="select_session_card">Seleccionar carta para la agrupación</string>

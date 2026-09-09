@@ -263,7 +263,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int pendingSessionScrollOffset;
   private String activeScanGroupName = "";
   private ToneGenerator scanToneGenerator;
-  private final CardScanStability scanStability = new CardScanStability(1, 1_800L);
+  private final CardScanStability scanStability =
+      new CardScanStability(2, 1_800L, 300L, 2, 250L);
   private boolean scanLookupInFlight;
   private boolean scanInProgress;
   private long lastOcrLookupAt;
@@ -482,14 +483,26 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void handleAutomaticOcr(List<String> candidates) {
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
-        !isScannerReaderActive() || scanLookupInFlight || scanInProgress) return;
+        !isScannerReaderActive()) return;
     long now = SystemClock.elapsedRealtime();
+    if (candidates == null || candidates.isEmpty()) {
+      // Two sustained frames without a recognizable title mean that the card has left the guide. This
+      // rearms an identical name without allowing a single OCR dropout to duplicate the card.
+      scanStability.observeNoCandidate(now);
+      return;
+    }
+    if (scanLookupInFlight || scanInProgress) return;
     if (now - lastOcrLookupAt < 120L) return;
     lastOcrLookupAt = now;
     scanLookupInFlight = true;
     cardRepository.matchLocalOcrText(candidates, match -> {
       scanLookupInFlight = false;
-      if (match == null || !isScannerReaderActive() || scanInProgress) {
+      if (!isScannerReaderActive() || scanInProgress) {
+        return kotlin.Unit.INSTANCE;
+      }
+      if (match == null) {
+        // Motion between cards often produces OCR fragments rather than a completely empty frame.
+        scanStability.observeNoCandidate(SystemClock.elapsedRealtime());
         return kotlin.Unit.INSTANCE;
       }
       String displayName = match.getDisplayName();

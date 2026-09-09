@@ -252,15 +252,9 @@ class CardRepository private constructor(context: Context) {
     }
 
     /** Local-only OCR lookup: never downloads AtomicCards and never calls a remote search API. */
-    fun matchLocalOcrText(
-        candidates: List<String>,
-        observedColor: String?,
-        callback: (LocalCardNameMatch?) -> Unit
-    ) {
+    fun matchLocalOcrText(candidates: List<String>, callback: (LocalCardNameMatch?) -> Unit) {
         nameExecutor.execute {
-            val resolution = runCatching {
-                nameResolver.resolveLocalOcrCandidates(candidates, observedColor)
-            }.getOrNull()
+            val resolution = runCatching { nameResolver.resolveLocalOcrCandidates(candidates) }.getOrNull()
             val match = resolution?.let {
                 LocalCardNameMatch(it.canonicalName, it.displayName, CardLanguage.toCode(it.language))
             }

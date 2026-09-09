@@ -1215,15 +1215,12 @@ public class CameraSource {
                 // frame.
 
                 try {
-                    CardFrameColorContext.set(CardFrameColorDetector.detect(
-                            data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation));
                     OcrLumaEnhancer.enhance(
                             data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
                     mDetector.receiveFrame(outputFrame);
                 } catch (Throwable t) {
                     Log.e(TAG, "Exception thrown from receiver.", t);
                 } finally {
-                    CardFrameColorContext.clear();
                     mCamera.addCallbackBuffer(data.array());
                 }
             }

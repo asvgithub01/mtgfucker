@@ -480,14 +480,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (cardNameSuggestions != null) cardNameSuggestions.setVisibility(View.GONE);
   }
 
-  private void handleAutomaticOcr(List<String> candidates, String observedColor) {
+  private void handleAutomaticOcr(List<String> candidates) {
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
         !isScannerReaderActive() || scanLookupInFlight || scanInProgress) return;
     long now = SystemClock.elapsedRealtime();
     if (now - lastOcrLookupAt < 120L) return;
     lastOcrLookupAt = now;
     scanLookupInFlight = true;
-    cardRepository.matchLocalOcrText(candidates, observedColor, match -> {
+    cardRepository.matchLocalOcrText(candidates, match -> {
       scanLookupInFlight = false;
       if (match == null || !isScannerReaderActive() || scanInProgress) {
         return kotlin.Unit.INSTANCE;
@@ -1496,14 +1496,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (useMlKitJapaneseOcr) {
       MlKitJapaneseTextDetector mlKitRecognizer = new MlKitJapaneseTextDetector();
       mlKitRecognizer.setProcessor(new MlKitOcrDetectorProcessor(mGraphicOverlay,
-          (candidates, observedColor) -> runOnUiThread(
-              () -> handleAutomaticOcr(candidates, observedColor))));
+          candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
       textRecognizer = mlKitRecognizer;
     } else {
       TextRecognizer mobileVisionRecognizer = new TextRecognizer.Builder(context).build();
       mobileVisionRecognizer.setProcessor(new OcrDetectorProcessor(mGraphicOverlay,
-          (candidates, observedColor) -> runOnUiThread(
-              () -> handleAutomaticOcr(candidates, observedColor))));
+          candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
       textRecognizer = mobileVisionRecognizer;
     }
 

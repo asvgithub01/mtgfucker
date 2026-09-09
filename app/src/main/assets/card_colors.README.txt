@@ -1,6 +1,0 @@
-card_colors.tsv.gz contains only the English card/face name and its printed color codes.
-It was generated from Scryfall's Oracle Cards bulk dataset dated 2026-09-09.
-Source metadata: https://api.scryfall.com/bulk-data
-
-The scanner uses this compact offline index only to reject high-confidence white/blue OCR
-mismatches. Unknown, colorless and multicolored entries never reject a name.

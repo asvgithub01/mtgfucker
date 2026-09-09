@@ -35,19 +35,4 @@ class OcrNameIndexTest {
 
         assertEquals("Land Tax", index.match(listOf("lend", "Tar--"))?.canonicalName)
     }
-
-    @Test fun whiteFrameDisambiguatesExileFromExactBlueGuileOcr() {
-        val colors = CardColorIndex.from(mapOf("Exile" to "W", "Guile" to "U"))
-        val index = OcrNameIndex(listOf(alias("Exile"), alias("Guile")), colors)
-
-        assertEquals("Guile", index.match(listOf("Guile"))?.canonicalName)
-        assertEquals("Exile", index.match(listOf("Guile"), "W")?.canonicalName)
-    }
-
-    @Test fun colorAssistGivesShortOldFrameNamesOneExtraOcrError() {
-        val colors = CardColorIndex.from(mapOf("Tariff" to "W", "Guile" to "U"))
-        val index = OcrNameIndex(listOf(alias("Tariff"), alias("Guile")), colors)
-
-        assertEquals("Tariff", index.match(listOf("Tarlf"), "W")?.canonicalName)
-    }
 }

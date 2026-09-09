@@ -1,6 +1,11 @@
 package io.asv.mtgocr.ocrreader
 
+import android.app.AlertDialog
+import android.content.Intent
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -20,6 +25,7 @@ import com.google.android.material.snackbar.Snackbar
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.SetCardOption
+import io.asv.mtgocr.ocrreader.model.CardInfo
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -34,6 +40,7 @@ class SetCollectionActivity : AppCompatActivity() {
     private lateinit var setCode: String
     private lateinit var recycler: RecyclerView
     private var galleryMode = true
+    private var pendingScrollState: Parcelable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
@@ -51,11 +58,17 @@ class SetCollectionActivity : AppCompatActivity() {
         status = findViewById(R.id.txtSetCollectionStatus)
         addButton = findViewById(R.id.btnAddSetCards)
         selectAll = findViewById(R.id.checkSelectAllSetCards)
-        adapter = SetCardAdapter { selectedCount ->
-            addButton.isEnabled = selectedCount > 0
-            addButton.text = getString(R.string.add_selected_cards_count, selectedCount)
-            selectAll.isChecked = adapter.areAllSelected()
-        }
+        adapter = SetCardAdapter(
+            onSelectionChanged = { selectedCount ->
+                addButton.isEnabled = selectedCount > 0
+                addButton.text = getString(R.string.add_selected_cards_count, selectedCount)
+                selectAll.isChecked = adapter.areAllSelected()
+            },
+            onGalleryClicked = ::openGallery,
+            onDetailsClicked = { card ->
+                openCardDetails(card)
+            }
+        )
         galleryMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_SET_GALLERY, true)
         recycler = findViewById<RecyclerView>(R.id.setCollectionRecycler).apply {
             layoutManager = GridLayoutManager(this@SetCollectionActivity, if (galleryMode) 2 else 1)
@@ -91,6 +104,11 @@ class SetCollectionActivity : AppCompatActivity() {
         loadSet()
     }
 
+    override fun onResume() {
+        super.onResume()
+        restoreScrollPosition()
+    }
+
     private fun loadSet() {
         progress.visibility = View.VISIBLE
         status.text = getString(R.string.loading_set_cards)
@@ -100,11 +118,65 @@ class SetCollectionActivity : AppCompatActivity() {
                 status.text = error.message ?: getString(R.string.set_cards_error)
                 return@result
             }
-            repository.ownedPrintingUuids { ownedUuids ->
-                adapter.submit(cards, ownedUuids)
-                status.text = resources.getQuantityString(R.plurals.set_cards_found, cards.size, cards.size)
-            }
+            val ownedCards = LegacyCollectionStore.cards(this)
+                .filter { it.printingUuid.orEmpty().isNotBlank() }
+                .associateBy { it.printingUuid.orEmpty() }
+            adapter.submit(cards, ownedCards)
+            val ownedCount = cards.count { it.printingUuid in ownedCards }
+            status.text = getString(
+                R.string.owned_and_missing_cards,
+                cards.size,
+                ownedCount,
+                cards.size - ownedCount
+            )
         }
+    }
+
+    private fun openCardDetails(card: SetCardOption) {
+        adapter.ownedCard(card.printingUuid)?.let { owned ->
+            openOwnedCardDetails(owned)
+            return
+        }
+        val details = buildList {
+            add("${card.setName} (${card.setCode}) · #${card.collectorNumber}")
+            add(getString(R.string.card_missing_disabled))
+            if (card.typeLine.isNotBlank()) add(card.typeLine)
+            if (card.rulesText.isNotBlank()) add(card.rulesText)
+        }.joinToString("\n\n")
+        AlertDialog.Builder(this)
+            .setTitle(card.cardName)
+            .setMessage(details)
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
+    private fun openGallery(card: SetCardOption) {
+        rememberScrollPosition()
+        val opened = CardGalleryLauncher.openSetCards(
+            this,
+            adapter.visibleItems(),
+            card.printingUuid,
+            adapter.ownedCollectionItemIds()
+        )
+        if (!opened) pendingScrollState = null
+    }
+
+    private fun openOwnedCardDetails(card: CardInfo) {
+        rememberScrollPosition()
+        startActivity(Intent(this, Main2Activity::class.java).apply {
+            putExtra(Main2Activity.EXTRA_CARD_NAME, card.name)
+            putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, card.collectionItemId)
+        })
+    }
+
+    private fun rememberScrollPosition() {
+        pendingScrollState = recycler.layoutManager?.onSaveInstanceState()
+    }
+
+    private fun restoreScrollPosition() {
+        val state = pendingScrollState ?: return
+        pendingScrollState = null
+        recycler.post { recycler.layoutManager?.onRestoreInstanceState(state) }
     }
 
     private fun addSelectedCards() {
@@ -122,10 +194,7 @@ class SetCollectionActivity : AppCompatActivity() {
         val latest = added.last()
         Snackbar.make(addButton, resources.getQuantityString(R.plurals.cards_added, added.size, added.size), Snackbar.LENGTH_LONG)
             .setAction(R.string.view_card) {
-                startActivity(android.content.Intent(this, Main2Activity::class.java).apply {
-                    putExtra(Main2Activity.EXTRA_CARD_NAME, latest.name)
-                    putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, latest.collectionItemId)
-                })
+                openOwnedCardDetails(latest)
             }
             .show()
         loadSet()
@@ -139,18 +208,22 @@ class SetCollectionActivity : AppCompatActivity() {
 }
 
 private class SetCardAdapter(
-    private val onSelectionChanged: (Int) -> Unit
+    private val onSelectionChanged: (Int) -> Unit,
+    private val onGalleryClicked: (SetCardOption) -> Unit,
+    private val onDetailsClicked: (SetCardOption) -> Unit
 ) : RecyclerView.Adapter<SetCardAdapter.Holder>() {
     private var sourceItems: List<SetCardOption> = emptyList()
     private var items: List<SetCardOption> = emptyList()
     private val selectedUuids = linkedSetOf<String>()
     private val ownedUuids = linkedSetOf<String>()
+    private var ownedCardsByPrinting: Map<String, CardInfo> = emptyMap()
     private var sortMode: Int = 0
 
-    fun submit(cards: List<SetCardOption>, owned: Set<String>) {
+    fun submit(cards: List<SetCardOption>, owned: Map<String, CardInfo>) {
         sourceItems = cards
+        ownedCardsByPrinting = owned
         ownedUuids.clear()
-        ownedUuids += owned.intersect(cards.map { it.printingUuid }.toSet())
+        ownedUuids += owned.keys.intersect(cards.map { it.printingUuid }.toSet())
         selectedUuids.clear()
         selectedUuids += ownedUuids
         applySort()
@@ -194,6 +267,13 @@ private class SetCardAdapter(
         it.printingUuid in selectedUuids && it.printingUuid !in ownedUuids
     }
 
+    fun visibleItems(): List<SetCardOption> = items.toList()
+
+    fun ownedCard(printingUuid: String): CardInfo? = ownedCardsByPrinting[printingUuid]
+
+    fun ownedCollectionItemIds(): Map<String, String> = ownedCardsByPrinting
+        .mapValues { (_, card) -> card.collectionItemId }
+
     fun areAllSelected(): Boolean = items.isNotEmpty() && items.all { it.printingUuid in selectedUuids }
 
     private fun newSelectionCount(): Int = selectedUuids.count { it !in ownedUuids }
@@ -207,7 +287,13 @@ private class SetCardAdapter(
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
         val owned = item.printingUuid in ownedUuids
-        holder.bind(item, item.printingUuid in selectedUuids, owned) {
+        holder.bind(
+            item,
+            item.printingUuid in selectedUuids,
+            owned,
+            onGalleryClicked,
+            onDetailsClicked
+        ) {
             if (!selectedUuids.add(item.printingUuid)) selectedUuids.remove(item.printingUuid)
             val currentPosition = holder.bindingAdapterPosition
             if (currentPosition != RecyclerView.NO_POSITION) notifyItemChanged(currentPosition)
@@ -226,8 +312,17 @@ private class SetCardAdapter(
         private val image: ImageView = view.findViewById(R.id.imgSetCard)
         private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val check: CheckBox = view.findViewById(R.id.checkSetCard)
+        private val gallery: ImageButton = view.findViewById(R.id.btnSetCardGallery)
+        private val details: ImageButton = view.findViewById(R.id.btnSetCardDetails)
 
-        fun bind(item: SetCardOption, selected: Boolean, owned: Boolean, toggle: () -> Unit) {
+        fun bind(
+            item: SetCardOption,
+            selected: Boolean,
+            owned: Boolean,
+            openGallery: (SetCardOption) -> Unit,
+            openDetails: (SetCardOption) -> Unit,
+            toggle: () -> Unit
+        ) {
             price.text = item.price?.let { amount ->
                 runCatching {
                     NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
@@ -244,7 +339,19 @@ private class SetCardAdapter(
             check.isEnabled = !owned
             foilBadge.visibility = if (CardFinish.isFoil(item.finish)) View.VISIBLE else View.GONE
             CardImageCache.display(itemView.context, item.imageUrl, image)
-            itemView.setOnClickListener { if (!owned) toggle() }
+            image.alpha = if (owned) 1f else .38f
+            image.colorFilter = if (owned) null else ColorMatrixColorFilter(
+                ColorMatrix().apply { setSaturation(0f) }
+            )
+            image.contentDescription = itemView.context.getString(
+                if (owned) R.string.open_card_gallery else R.string.card_missing_disabled
+            )
+            image.setOnClickListener { openGallery(item) }
+            gallery.setOnClickListener { openGallery(item) }
+            details.isEnabled = true
+            details.alpha = 1f
+            details.setOnClickListener { openDetails(item) }
+            itemView.setOnClickListener { if (owned) openDetails(item) else toggle() }
             check.setOnClickListener { if (!owned) toggle() }
         }
     }

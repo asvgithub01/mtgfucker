@@ -42,8 +42,8 @@ open class RoundedCardImageView @JvmOverloads constructor(
             return
         }
 
-        // A real Magic card's corner radius is roughly 5% of its width. Masking a fraction farther
-        // in also removes the pale JPEG antialiasing halo instead of leaving a one-pixel white arc.
+        // The slightly generous mask also removes the pale matte included in some card JPEGs.
+        // List layouts now fit the whole drawable, so this rounding no longer hides the top edge.
         val radius = min(visibleCardBounds.width() * .07f, visibleCardBounds.height() * .05f)
         cardClipPath.rewind()
         cardClipPath.addRoundRect(visibleCardBounds, radius, radius, Path.Direction.CW)

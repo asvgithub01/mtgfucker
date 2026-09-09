@@ -6,40 +6,34 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
 
     fun match(rawQueries: List<String>): CardNameAliasEntity? {
         var best: CardNameAliasEntity? = null
-        var bestDistance = Int.MAX_VALUE
+        var bestScore = Int.MAX_VALUE
         var tiedCanonical = false
-        val queries = rawQueries.asSequence()
-            .map(MtgJsonParsers::normalizeSearchName)
-            .filter { it.length >= 3 }
-            .distinct()
-            .take(10)
-            .toList()
+        val queries = OcrNameQueries.from(rawQueries)
 
         for (query in queries) {
-            val limit = allowedDistance(query.length)
-            for (length in (query.length - limit).coerceAtLeast(1)..query.length + limit) {
+            for (length in (query.normalized.length - query.maxDistance).coerceAtLeast(1)..
+                query.normalized.length + query.maxDistance) {
                 for (candidate in byLength[length].orEmpty()) {
-                    val distance = boundedLevenshtein(query, candidate.normalizedAlias, limit)
-                    if (distance > limit) continue
-                    if (distance < bestDistance) {
+                    val distance = boundedLevenshtein(
+                        query.normalized,
+                        candidate.normalizedAlias,
+                        query.maxDistance
+                    )
+                    if (distance > query.maxDistance) continue
+                    val score = query.score(distance)
+                    if (score < bestScore) {
                         best = candidate
-                        bestDistance = distance
+                        bestScore = score
                         tiedCanonical = false
-                    } else if (distance == bestDistance && best != null &&
+                    } else if (score == bestScore && best != null &&
                         !candidate.canonicalName.equals(best.canonicalName, ignoreCase = true)) {
                         tiedCanonical = true
                     }
                 }
             }
-            if (bestDistance == 0) break
+            if (bestScore == 0) break
         }
         return if (best == null || tiedCanonical) null else best
-    }
-
-    private fun allowedDistance(length: Int): Int = when {
-        length >= 13 -> 3
-        length >= 7 -> 2
-        else -> 1
     }
 
     private fun boundedLevenshtein(left: String, right: String, limit: Int): Int {
@@ -59,5 +53,79 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
             previous = current
         }
         return previous[right.length]
+    }
+}
+
+/**
+ * Builds full title candidates from the pieces delivered by Mobile Vision.
+ *
+ * The same alias table powers autocomplete and OCR. Mobile Vision can nevertheless split a title
+ * into fragments ("lend", "Tar--"). Comparing only each fragment can select a short card name or
+ * miss the title entirely, so contiguous fragments are joined and ranked ahead of partial text.
+ */
+internal object OcrNameQueries {
+    data class Query(
+        val normalized: String,
+        val maxDistance: Int,
+        private val omittedCharacters: Int
+    ) {
+        fun score(distance: Int): Int = distance + omittedCharacters
+    }
+
+    fun from(rawQueries: List<String>): List<Query> {
+        val fragments = rawQueries.asSequence()
+            .map(MtgJsonParsers::normalizeSearchName)
+            .filter { it.isNotBlank() }
+            .fold(mutableListOf<String>()) { result, value ->
+                // A detector occasionally reports the same line as both block and component.
+                if (result.lastOrNull() != value) result += value
+                result
+            }
+            .take(8)
+
+        if (fragments.isEmpty()) return emptyList()
+
+        val variants = LinkedHashSet<String>()
+        if (fragments.size > 1) {
+            // Prefer the complete observed title, then contiguous subphrases, then individual
+            // detections. This also covers split words without inventing a remote lookup.
+            variants += fragments.joinToString(" ")
+            val largestWindow = minOf(4, fragments.size)
+            for (windowSize in largestWindow downTo 2) {
+                for (start in 0..fragments.size - windowSize) {
+                    variants += fragments.subList(start, start + windowSize).joinToString(" ")
+                }
+            }
+        }
+        variants += fragments
+
+        val usable = variants.filter { normalized ->
+            normalized.length <= 80 && (
+                normalized.length >= 3 || normalized.any { character ->
+                    Character.isLetter(character) &&
+                        Character.UnicodeScript.of(character.code) != Character.UnicodeScript.LATIN
+                }
+            )
+        }
+        val completeLength = usable.maxOfOrNull(String::length) ?: return emptyList()
+        return usable
+            .map { normalized ->
+                Query(
+                    normalized = normalized,
+                    maxDistance = allowedDistance(normalized.length),
+                    omittedCharacters = (completeLength - normalized.length).coerceAtLeast(0)
+                )
+            }
+            .sortedWith(compareBy<Query> { it.score(0) }.thenByDescending { it.normalized.length })
+            .take(16)
+    }
+
+    private fun allowedDistance(length: Int): Int = when {
+        length >= 13 -> 3
+        length >= 7 -> 2
+        // Very short CJK titles are valid card names, but accepting even one edit would make a
+        // one/two-symbol OCR result dangerously broad. They are therefore exact-match only.
+        length <= 2 -> 0
+        else -> 1
     }
 }

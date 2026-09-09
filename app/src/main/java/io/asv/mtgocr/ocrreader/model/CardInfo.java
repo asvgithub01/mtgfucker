@@ -23,6 +23,8 @@ public class CardInfo implements Serializable {
     private String setName;
     private String collectorNumber;
     private String finish;
+    /** Scryfall/BCP-47-style code for the physical card language (en, es, ja, zhs...). */
+    private String languageCode;
     private String condition;
     private ArrayList<String> personalCollections;
     private ArrayList<String> decks;
@@ -144,6 +146,14 @@ public class CardInfo implements Serializable {
 
     public void setFinish(String finish) {
         this.finish = finish;
+    }
+
+    public String getLanguageCode() {
+        return languageCode == null ? "" : languageCode;
+    }
+
+    public void setLanguageCode(String languageCode) {
+        this.languageCode = languageCode == null ? "" : languageCode;
     }
 
     public String getCondition() {

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="132dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginTop="5dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="5dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="3dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/imgPhotoScan"
+            android:layout_width="112dp"
+            android:layout_height="112dp"
+            android:contentDescription="@string/photo_scan_image"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/txtPhotoScanTotal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="?attr/colorPrimary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txtPhotoScanState"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="?attr/colorSecondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/txtPhotoScanSummary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:textColor="?attr/appMutedColor"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnDeletePhotoScan"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/delete_photo_scan"
+            android:padding="9dp"
+            android:src="@drawable/ic_delete"
+            app:tint="?attr/colorPrimary" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

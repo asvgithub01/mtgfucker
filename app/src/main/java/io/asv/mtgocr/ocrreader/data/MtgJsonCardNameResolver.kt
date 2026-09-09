@@ -32,6 +32,9 @@ class MtgJsonCardNameResolver(
 
     fun resolveLocalOcrCandidates(cardNames: List<String>): Resolution? {
         cardNames.asSequence().mapNotNull(::cached).firstOrNull()?.let { return it }
+        // Autocomplete and automatic OCR must consult the same complete local alias catalog even
+        // when the eager index build has not finished yet.
+        if (ocrNameIndex == null && dao.cardNameAliasCount() > 0) prepareOcrNameIndex()
         ocrNameIndex?.match(cardNames)?.let { return it.toResolution() }
         if (!atomicCardsFile.exists()) return null
         val parsed = atomicCardsFile.source().buffer().use { compressed ->
@@ -42,6 +45,28 @@ class MtgJsonCardNameResolver(
         return Resolution(parsed.canonicalName, parsed.displayName, parsed.language).also {
             saveAliases(parsed.displayName, it)
         }
+    }
+
+    /** Returns one result per OCR line so a single photo can contain several physical cards. */
+    fun resolveLocalOcrLines(lines: List<String>): List<Pair<String, Resolution>> {
+        return lines.asSequence()
+            .map(String::trim)
+            .filter { it.length in 2..60 && it.any(Char::isLetter) }
+            .take(100)
+            .mapNotNull { raw ->
+                val exact = cached(raw)
+                val fuzzyEligible = raw.length in 4..42 && raw.count { it == ' ' } <= 7
+                val resolution = exact ?: if (fuzzyEligible) {
+                    val normalized = MtgJsonParsers.normalizeSearchName(raw)
+                    val prefix = normalized.take(3)
+                    if (prefix.length < 2) null else {
+                        val nearby = dao.cardNameAliasesByPrefix(prefix, prefix + '\uFFFF', 64)
+                        OcrNameIndex(nearby).match(listOf(raw))?.toResolution()
+                    }
+                } else null
+                resolution?.let { raw to it }
+            }
+            .toList()
     }
 
     /** Builds the Room prefix index only from the already downloaded local JSON. */

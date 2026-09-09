@@ -4,15 +4,19 @@ import kotlin.math.abs
 
 /** Shared paging thresholds so the gesture and its finishing animation stay in sync. */
 internal object PageTurnPolicy {
-    // A completed turn now needs roughly one quarter of the visible width instead of half.
-    const val DRAG_DISTANCE_FRACTION = .72f
-    const val COMMIT_FRACTION = .34f
+    // About 15% of the visible width is enough: deliberate, but comfortable one-handed.
+    const val DRAG_DISTANCE_FRACTION = .60f
+    const val COMMIT_FRACTION = .25f
+    const val FLING_VELOCITY_PX_PER_MS = .45f
 
     fun dragFraction(distance: Float, pageWidth: Int): Float =
         (distance / (pageWidth.coerceAtLeast(1) * DRAG_DISTANCE_FRACTION)).coerceIn(-1f, 1f)
 
-    fun shouldCommit(fraction: Float, targetReady: Boolean): Boolean =
-        targetReady && abs(fraction) >= COMMIT_FRACTION
+    fun shouldCommit(fraction: Float, velocityX: Float = 0f, targetReady: Boolean): Boolean =
+        targetReady && (
+            abs(fraction) >= COMMIT_FRACTION ||
+                abs(velocityX) >= FLING_VELOCITY_PX_PER_MS && fraction * velocityX > 0f
+            )
 
     fun shouldCancelForReversal(
         initialDirection: Int,

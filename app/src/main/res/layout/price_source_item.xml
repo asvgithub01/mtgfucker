@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:layout_marginBottom="7dp"
+    android:background="@drawable/bg_palette_option"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp">
+
+    <TextView
+        android:id="@+id/txtPriceSourcePriority"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/bg_quantity_badge"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+        <TextView
+            android:id="@+id/txtPriceSourceName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+        <TextView
+            android:id="@+id/txtPriceSourceDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?attr/appGlassTextColor"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="40dp"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/reorder_price_source"
+        android:gravity="center"
+        android:text="↕"
+        android:textColor="?attr/colorSecondary"
+        android:textSize="24sp" />
+</LinearLayout>

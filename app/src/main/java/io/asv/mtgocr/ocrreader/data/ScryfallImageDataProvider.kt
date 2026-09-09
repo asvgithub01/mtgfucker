@@ -22,6 +22,14 @@ data class CardImageVariant(
     val imageUrl: String
 )
 
+data class LocalizedPrintingVariant(
+    val setCode: String,
+    val collectorNumber: String,
+    val languageCode: String,
+    val printedName: String,
+    val imageUrl: String
+)
+
 /** Scryfall is deliberately responsible only for printing discovery and card imagery. */
 class ScryfallImageDataProvider(private val client: OkHttpClient) {
     fun getPrintingImages(cardName: String): List<ScryfallPrintingHint> {
@@ -106,6 +114,44 @@ class ScryfallImageDataProvider(private val client: OkHttpClient) {
             }
         }
         return variants.distinctBy { it.languageCode }
+    }
+
+    /** All physical printings of one card that actually exist in the requested language. */
+    fun getLocalizedPrintings(cardName: String, languageCode: String): List<LocalizedPrintingVariant> {
+        val rootUrl = "https://api.scryfall.com/cards/search".toHttpUrl().newBuilder()
+            .addQueryParameter("q", "!\"${cardName.trim()}\" lang:${languageCode.lowercase()} game:paper")
+            .addQueryParameter("unique", "prints")
+            .addQueryParameter("order", "released")
+            .addQueryParameter("dir", "desc")
+            .addQueryParameter("include_multilingual", "true")
+            .build().toString()
+        val variants = mutableListOf<LocalizedPrintingVariant>()
+        var nextUrl: String? = rootUrl
+        while (nextUrl != null) {
+            val request = Request.Builder().url(nextUrl)
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "application/json;q=0.9,*/*;q=0.8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (response.code == 404) return emptyList()
+                if (!response.isSuccessful) error("Scryfall idiomas devolvió HTTP ${response.code}")
+                val root = JSONObject(response.body?.string().orEmpty())
+                val data = root.getJSONArray("data")
+                for (index in 0 until data.length()) {
+                    val card = data.getJSONObject(index)
+                    val image = cardImage(card, "large") ?: continue
+                    variants += LocalizedPrintingVariant(
+                        card.getString("set").uppercase(),
+                        card.getString("collector_number"),
+                        card.optString("lang", languageCode),
+                        card.optString("printed_name", card.optString("name")),
+                        image
+                    )
+                }
+                nextUrl = if (root.optBoolean("has_more")) root.optString("next_page").ifBlank { null } else null
+            }
+        }
+        return variants.distinctBy { it.setCode to it.collectorNumber }
     }
 
     private fun searchPrintings(query: String, includeMultilingual: Boolean): List<ScryfallPrintingHint> {

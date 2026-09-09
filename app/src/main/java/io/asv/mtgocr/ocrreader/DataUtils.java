@@ -5,6 +5,7 @@ import android.util.Log;
 
 import io.asv.mtgocr.ocrreader.model.CardInfo;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -44,17 +45,37 @@ public class DataUtils {
     }
 
     /*test*/
-    public static <T extends Serializable> void saveSerializable(Context context, T objectToSave, String fileName) {
+    public static synchronized <T extends Serializable> void saveSerializable(
+            Context context, T objectToSave, String fileName) {
+        File target = new File(context.getFilesDir(), fileName);
+        File temporary = new File(context.getFilesDir(), fileName + ".tmp");
+        File backup = new File(context.getFilesDir(), fileName + ".bak");
         try {
-            FileOutputStream fileOutputStream = context.openFileOutput(fileName, Context.MODE_PRIVATE);
+            FileOutputStream fileOutputStream = new FileOutputStream(temporary, false);
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
 
             objectOutputStream.writeObject(objectToSave);
 
             objectOutputStream.close();
             fileOutputStream.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+            if (backup.exists() && !backup.delete()) {
+                throw new IOException("No se pudo borrar el backup antiguo de " + fileName);
+            }
+            if (target.exists() && !target.renameTo(backup)) {
+                throw new IOException("No se pudo respaldar " + fileName);
+            }
+            if (!temporary.renameTo(target)) {
+                if (backup.exists()) backup.renameTo(target);
+                throw new IOException("No se pudo publicar " + fileName);
+            }
+            if (backup.exists() && !backup.delete()) {
+                Log.w("DataUtils", "No se pudo borrar el backup de " + fileName);
+            }
+        } catch (Exception e) {
+            if (temporary.exists() && !temporary.delete()) {
+                Log.w("DataUtils", "No se pudo borrar el temporal de " + fileName);
+            }
+            Log.e("DataUtils", "No se pudo guardar " + fileName, e);
         }
     }
 
@@ -71,6 +92,9 @@ public class DataUtils {
         T objectToReturn = null;
 
         try {
+            File target = new File(context.getFilesDir(), fileName);
+            File backup = new File(context.getFilesDir(), fileName + ".bak");
+            if (!target.exists() && backup.exists()) backup.renameTo(target);
             FileInputStream fileInputStream = context.openFileInput(fileName);
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
             objectToReturn = (T) objectInputStream.readObject();

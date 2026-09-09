@@ -87,7 +87,7 @@ object CardImageCache {
 
         // The downloaded file is for subsequent/offline requests. Reloading the exact same bitmap
         // from that file as soon as it finishes used to clear and redraw the target a second time.
-        download(context.applicationContext, url, null)
+        download(context.applicationContext, url, null, cached)
     }
 
     @JvmStatic
@@ -96,17 +96,26 @@ object CardImageCache {
         if (url.isNotBlank()) download(context.applicationContext, url, null)
     }
 
-    private fun download(context: Context, url: String, onCached: ((File) -> Unit)?) {
-        val destination = cachedFile(context, url)
-        if (destination.isFile && destination.length() > 0L) {
-            onCached?.let { callback -> mainHandler.post { callback(destination) } }
-            return
-        }
+    private fun download(
+        context: Context,
+        url: String,
+        onCached: ((File) -> Unit)?,
+        knownDestination: File? = null
+    ) {
+        // Hashing every URL and probing the filesystem here used to run on the caller. refreshUI()
+        // prefetches the whole collection, so doing that work on the main thread blocked the first
+        // screen for more than five seconds and caused an input-dispatch ANR. Deduplication is the
+        // only synchronous operation; all digest and disk work belongs to the cache executor.
         if (!downloads.add(url)) return
 
         executor.execute {
             var temporary: File? = null
             try {
+                val destination = knownDestination ?: cachedFile(context, url)
+                if (destination.isFile && destination.length() > 0L) {
+                    onCached?.let { callback -> mainHandler.post { callback(destination) } }
+                    return@execute
+                }
                 destination.parentFile?.mkdirs()
                 temporary = File(destination.parentFile, "${destination.name}.${Thread.currentThread().id}.tmp")
                 val request = Request.Builder()
@@ -142,9 +151,15 @@ object CardImageCache {
 
     private fun cachedFile(context: Context, url: String): File {
         val directory = File(context.filesDir, "card_images")
-        val digest = MessageDigest.getInstance("SHA-256")
-            .digest(url.toByteArray(Charsets.UTF_8))
-            .joinToString("") { "%02x".format(it) }
+        val bytes = MessageDigest.getInstance("SHA-256").digest(url.toByteArray(Charsets.UTF_8))
+        val alphabet = "0123456789abcdef"
+        val chars = CharArray(bytes.size * 2)
+        bytes.forEachIndexed { index, byte ->
+            val value = byte.toInt() and 0xff
+            chars[index * 2] = alphabet[value ushr 4]
+            chars[index * 2 + 1] = alphabet[value and 0x0f]
+        }
+        val digest = String(chars)
         return File(directory, "$digest.image")
     }
 }

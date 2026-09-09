@@ -23,4 +23,16 @@ class OcrNameIndexTest {
         val index = OcrNameIndex(listOf(alias("Firebolt"), alias("Fireball")))
         assertNull(index.match(listOf("Firebalt")))
     }
+
+    @Test fun correctsNoisyCompleteLandTaxTitle() {
+        val index = OcrNameIndex(listOf(alias("Land Tax"), alias("Lend")))
+
+        assertEquals("Land Tax", index.match(listOf("lend Tar--"))?.canonicalName)
+    }
+
+    @Test fun joinsSplitOcrFragmentsBeforeChoosingAnExactShortName() {
+        val index = OcrNameIndex(listOf(alias("Land Tax"), alias("Lend")))
+
+        assertEquals("Land Tax", index.match(listOf("lend", "Tar--"))?.canonicalName)
+    }
 }

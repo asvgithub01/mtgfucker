@@ -12,6 +12,10 @@ class MtgJsonCatalogDataProvider(
     private val client: OkHttpClient,
     private val imageProvider: ScryfallImageDataProvider
 ) {
+    /** Immediate Room-only lookup used by the scanner before any stale-cache refresh. */
+    fun cachedEditions(cardName: String): List<CardPrintingEntity> =
+        dao.printingsByName(normalize(cardName))
+
     fun sets(forceRefresh: Boolean = false): List<MagicSetEntity> {
         val cached = dao.magicSets()
         val syncedAt = dao.magicSetCatalogSync()?.updatedAt ?: 0L

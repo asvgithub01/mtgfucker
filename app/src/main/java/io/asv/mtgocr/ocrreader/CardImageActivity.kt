@@ -1,5 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
@@ -27,9 +28,12 @@ class CardImageActivity : AppCompatActivity() {
     private lateinit var languageSpinner: Spinner
     private lateinit var progress: ProgressBar
     private lateinit var pageStatus: TextView
+    private lateinit var price: TextView
+    private lateinit var detailsButton: Button
     private lateinit var foilBadge: ImageView
     private var variants: List<CardImageVariant> = emptyList()
     private var pages: List<EditionImagePage> = emptyList()
+    private var galleryToken: String = ""
     private var currentPage = 0
     private var languageRequest = 0
     private var languageLoadTask: Future<*>? = null
@@ -53,11 +57,15 @@ class CardImageActivity : AppCompatActivity() {
         languageSpinner = findViewById(R.id.cardLanguageSpinner)
         progress = findViewById(R.id.cardLanguageProgress)
         pageStatus = findViewById(R.id.txtCardImagePage)
+        price = findViewById(R.id.txtCardImagePrice)
+        detailsButton = findViewById(R.id.btnCardImageDetails)
         foilBadge = findViewById(R.id.imgFullscreenFoilBadge)
         findViewById<Button>(R.id.btnCloseCardImage).setOnClickListener { finish() }
+        detailsButton.setOnClickListener { openCurrentCardDetails() }
         val imageUrl = intent.getStringExtra(EXTRA_IMAGE_URL)
         val setCode = intent.getStringExtra(EXTRA_SET_CODE).orEmpty()
         val collectorNumber = intent.getStringExtra(EXTRA_COLLECTOR_NUMBER).orEmpty()
+        galleryToken = intent.getStringExtra(EXTRA_GALLERY_TOKEN).orEmpty()
         pages = editionPagesFromIntent(imageUrl, setCode, collectorNumber)
         currentPage = (savedInstanceState?.getInt(STATE_CURRENT_PAGE)
             ?: intent.getIntExtra(EXTRA_EDITION_INDEX, 0))
@@ -80,12 +88,28 @@ class CardImageActivity : AppCompatActivity() {
         fallbackSetCode: String,
         fallbackCollectorNumber: String
     ): List<EditionImagePage> {
+        CardGalleryStore.get(galleryToken)?.takeIf { it.isNotEmpty() }?.let { stored ->
+            return stored.map { page ->
+                EditionImagePage(
+                    page.imageUrl,
+                    page.label,
+                    page.setCode,
+                    page.collectorNumber,
+                    page.priceLabel.ifBlank { getString(R.string.no_price) },
+                    page.finish,
+                    page.cardName,
+                    page.collectionItemId
+                )
+            }
+        }
         val urls = intent.getStringArrayListExtra(EXTRA_EDITION_IMAGE_URLS).orEmpty()
         val labels = intent.getStringArrayListExtra(EXTRA_EDITION_LABELS).orEmpty()
         val sets = intent.getStringArrayListExtra(EXTRA_EDITION_SET_CODES).orEmpty()
         val collectors = intent.getStringArrayListExtra(EXTRA_EDITION_COLLECTOR_NUMBERS).orEmpty()
         val prices = intent.getStringArrayListExtra(EXTRA_EDITION_PRICES).orEmpty()
         val finishes = intent.getStringArrayListExtra(EXTRA_EDITION_FINISHES).orEmpty()
+        val cardNames = intent.getStringArrayListExtra(EXTRA_CARD_NAMES).orEmpty()
+        val collectionItemIds = intent.getStringArrayListExtra(EXTRA_COLLECTION_ITEM_IDS).orEmpty()
         val completeCount = minOf(urls.size, labels.size, sets.size, collectors.size)
         if (completeCount > 0) {
             return (0 until completeCount).mapNotNull { index ->
@@ -96,7 +120,9 @@ class CardImageActivity : AppCompatActivity() {
                         sets[index],
                         collectors[index],
                         prices.getOrNull(index) ?: getString(R.string.no_price),
-                        finishes.getOrNull(index).orEmpty()
+                        finishes.getOrNull(index).orEmpty(),
+                        cardNames.getOrNull(index).orEmpty(),
+                        collectionItemIds.getOrNull(index).orEmpty()
                     )
                 }
             }
@@ -109,7 +135,9 @@ class CardImageActivity : AppCompatActivity() {
                     fallbackSetCode,
                     fallbackCollectorNumber,
                     getString(R.string.no_price),
-                    intent.getStringExtra(EXTRA_FINISH).orEmpty()
+                    intent.getStringExtra(EXTRA_FINISH).orEmpty(),
+                    "",
+                    ""
                 )
             )
         }.orEmpty()
@@ -187,7 +215,7 @@ class CardImageActivity : AppCompatActivity() {
         foilBadge.alpha = (1f - progress * 1.35f).coerceAtLeast(0f)
     }
 
-    private fun finishPageDrag(fraction: Float, @Suppress("UNUSED_PARAMETER") velocityX: Float) {
+    private fun finishPageDrag(fraction: Float, velocityX: Float) {
         if (pageTurnAnimating) return
         val direction = activeDragDirection.takeIf { it != 0 } ?: if (fraction < 0f) 1 else -1
         val targetIndex = currentPage + direction
@@ -196,7 +224,7 @@ class CardImageActivity : AppCompatActivity() {
             boundPages[target] == targetIndex && target.drawable != null
         // Distance, not a short fling, decides the page. Reversing the finger is handled as an
         // explicit cancellation by ZoomableImageView rather than becoming an opposite page turn.
-        val shouldCommit = PageTurnPolicy.shouldCommit(fraction, targetReady)
+        val shouldCommit = PageTurnPolicy.shouldCommit(fraction, velocityX, targetReady)
         if (!shouldCommit) {
             animateTurnBack()
             return
@@ -338,12 +366,36 @@ class CardImageActivity : AppCompatActivity() {
             R.string.image_page_status,
             currentPage + 1,
             pages.size,
-            page.label,
-            page.priceLabel
+            page.label
         )
+        price.text = page.priceLabel
+        price.setTextColor(
+            getColor(
+                if (page.priceLabel == getString(R.string.no_price)) {
+                    R.color.scan_total_incomplete
+                } else {
+                    R.color.scan_total_complete
+                }
+            )
+        )
+        detailsButton.visibility = if (
+            page.cardName.isNotBlank() && page.collectionItemId.isNotBlank()
+        ) View.VISIBLE else View.GONE
         foilBadge.visibility = if (CardFinish.isFoil(page.finish)) View.VISIBLE else View.GONE
         foilBadge.alpha = 1f
         loadLanguages(page)
+    }
+
+    private fun openCurrentCardDetails() {
+        val page = pages.getOrNull(currentPage) ?: return
+        if (page.cardName.isBlank() || page.collectionItemId.isBlank()) return
+        startActivity(Intent(this, Main2Activity::class.java).apply {
+            putExtra(Main2Activity.EXTRA_CARD_NAME, page.cardName)
+            putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, page.collectionItemId)
+        })
+        // The gallery is only an intermediate view. Removing it from the task means Back from
+        // the detail returns directly to the card list at the position from which it was opened.
+        finish()
     }
 
     private fun loadLanguages(page: EditionImagePage) {
@@ -386,6 +438,7 @@ class CardImageActivity : AppCompatActivity() {
                 it.setImageDrawable(null)
             }
         }
+        if (isFinishing && galleryToken.isNotBlank()) CardGalleryStore.remove(galleryToken)
         super.onDestroy()
     }
 
@@ -407,6 +460,9 @@ class CardImageActivity : AppCompatActivity() {
         const val EXTRA_EDITION_COLLECTOR_NUMBERS = "editionCollectorNumbers"
         const val EXTRA_EDITION_PRICES = "editionPrices"
         const val EXTRA_EDITION_FINISHES = "editionFinishes"
+        const val EXTRA_CARD_NAMES = "galleryCardNames"
+        const val EXTRA_COLLECTION_ITEM_IDS = "galleryCollectionItemIds"
+        const val EXTRA_GALLERY_TOKEN = "galleryToken"
         const val EXTRA_EDITION_INDEX = "editionIndex"
         private const val STATE_CURRENT_PAGE = "currentPage"
     }
@@ -418,5 +474,7 @@ private data class EditionImagePage(
     val setCode: String,
     val collectorNumber: String,
     val priceLabel: String,
-    val finish: String
+    val finish: String,
+    val cardName: String,
+    val collectionItemId: String
 )

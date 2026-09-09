@@ -21,7 +21,9 @@ class MtgJsonRoomDataProvider(
 
     override fun GetCardInfo(name_card: String, cardInfo: CardInfo) {
         val requestedName = Uri.decode(name_card).trim()
-        repository.loadCard(requestedName, forcePriceRefresh) { options, error ->
+        // Deliver the local catalog + indexed MTGJSON price immediately. A later Scryfall result
+        // may improve the price, but must not hold the session row or its notification hostage.
+        repository.loadCard(requestedName, forcePriceRefresh, true) { options, error ->
             if (error != null || options.isEmpty()) {
                 sendMessage(ERROR, cardInfo)
                 return@loadCard
@@ -34,6 +36,7 @@ class MtgJsonRoomDataProvider(
             cardInfo.printingUuid = representative.printingUuid
             cardInfo.setCode = representative.setCode
             cardInfo.setName = representative.setName
+            cardInfo.collectorNumber = representative.collectorNumber
             cardInfo.finish = representative.finish
             representative.price?.let { amount ->
                 val display = "%.2f %s".format(amount, representative.currency.orEmpty())

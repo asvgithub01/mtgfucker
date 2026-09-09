@@ -2,6 +2,7 @@ package io.asv.mtgocr.ocrreader
 
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.Parcelable
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -30,8 +31,10 @@ class GroupBuilderActivity : AppCompatActivity() {
     private lateinit var deckName: String
     private lateinit var formatId: String
     private lateinit var count: TextView
+    private lateinit var recycler: RecyclerView
     private var sortMode = 0
     private var query = ""
+    private var pendingScrollState: Parcelable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
@@ -54,10 +57,12 @@ class GroupBuilderActivity : AppCompatActivity() {
         count = findViewById(R.id.txtGroupSelectionCount)
         adapter = DeckCardsAdapter(
             Typeface.createFromAsset(assets, "title_font.ttf"),
-            rule.maximumSideboard > 0
-        ) { updateCount() }
+            rule.maximumSideboard > 0,
+            changed = { updateCount() },
+            onImageClicked = ::openGallery
+        )
         adapter.initialize(collection.cards, deckName)
-        findViewById<RecyclerView>(R.id.groupCardsRecycler).apply {
+        recycler = findViewById<RecyclerView>(R.id.groupCardsRecycler).apply {
             layoutManager = LinearLayoutManager(this@GroupBuilderActivity)
             adapter = this@GroupBuilderActivity.adapter
         }
@@ -83,6 +88,20 @@ class GroupBuilderActivity : AppCompatActivity() {
             })
         }
         refresh()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val state = pendingScrollState ?: return
+        pendingScrollState = null
+        recycler.post { recycler.layoutManager?.onRestoreInstanceState(state) }
+    }
+
+    private fun openGallery(card: CardInfo) {
+        pendingScrollState = recycler.layoutManager?.onSaveInstanceState()
+        if (!CardGalleryLauncher.openCards(this, adapter.visibleItems(), card.collectionItemId)) {
+            pendingScrollState = null
+        }
     }
 
     private fun refresh() {
@@ -143,7 +162,8 @@ class GroupBuilderActivity : AppCompatActivity() {
 private class DeckCardsAdapter(
     private val titleTypeface: Typeface,
     private val allowSideboard: Boolean,
-    private val changed: () -> Unit
+    private val changed: () -> Unit,
+    private val onImageClicked: (CardInfo) -> Unit
 ) : RecyclerView.Adapter<DeckCardsAdapter.Holder>() {
     private var items: List<CardInfo> = emptyList()
     val selectedZones = linkedMapOf<String, Boolean>()
@@ -155,6 +175,7 @@ private class DeckCardsAdapter(
     }
 
     fun submit(cards: List<CardInfo>) { items = cards; notifyDataSetChanged() }
+    fun visibleItems(): List<CardInfo> = items.toList()
     override fun getItemCount() = items.size
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = Holder(
         LayoutInflater.from(parent.context).inflate(R.layout.group_card_item, parent, false), titleTypeface
@@ -162,7 +183,7 @@ private class DeckCardsAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val card = items[position]
-        holder.bind(card, selectedZones[card.collectionItemId], allowSideboard) { action ->
+        holder.bind(card, selectedZones[card.collectionItemId], allowSideboard, onImageClicked) { action ->
             when (action) {
                 DeckRowAction.TOGGLE_SELECTED -> {
                     if (selectedZones.containsKey(card.collectionItemId)) selectedZones.remove(card.collectionItemId)
@@ -187,7 +208,13 @@ private class DeckCardsAdapter(
         private val quantity: TextView = view.findViewById<TextView>(R.id.txtGroupCardQuantity).also { it.typeface = typeface }
         private val zone: TextView = view.findViewById(R.id.btnDeckZone)
 
-        fun bind(card: CardInfo, selectedZone: Boolean?, allowSideboard: Boolean, action: (DeckRowAction) -> Unit) {
+        fun bind(
+            card: CardInfo,
+            selectedZone: Boolean?,
+            allowSideboard: Boolean,
+            openImage: (CardInfo) -> Unit,
+            action: (DeckRowAction) -> Unit
+        ) {
             name.text = card.name
             edition.text = listOf(card.setName.orEmpty(), card.setCode.orEmpty(), card.finish.orEmpty())
                 .filter { it.isNotBlank() }.joinToString(" · ")
@@ -197,6 +224,8 @@ private class DeckCardsAdapter(
             zone.visibility = if (selectedZone != null && allowSideboard) View.VISIBLE else View.INVISIBLE
             zone.text = itemView.context.getString(if (selectedZone == true) R.string.sideboard else R.string.main_deck)
             CardImageCache.display(itemView.context, card.imgPath, image)
+            image.contentDescription = itemView.context.getString(R.string.open_card_gallery)
+            image.setOnClickListener { openImage(card) }
             itemView.setOnClickListener { action(DeckRowAction.TOGGLE_SELECTED) }
             check.setOnClickListener { action(DeckRowAction.TOGGLE_SELECTED) }
             zone.setOnClickListener { action(DeckRowAction.TOGGLE_ZONE) }

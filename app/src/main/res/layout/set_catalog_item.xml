@@ -13,7 +13,29 @@
     app:cardElevation="3dp">
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical" android:orientation="horizontal" android:padding="10dp">
-        <TextView android:id="@+id/txtCatalogSetCode" android:layout_width="64dp" android:layout_height="64dp" android:background="@drawable/bg_quantity_badge" android:gravity="center" android:maxLines="1" android:textColor="?attr/colorSecondary" android:textSize="17sp" />
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_quantity_badge">
+            <ImageView
+                android:id="@+id/imgCatalogSetSymbol"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="4dp"
+                android:contentDescription="@string/set_symbol"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/txtCatalogSetCode"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:layout_gravity="bottom"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="?attr/colorSecondary"
+                android:textSize="13sp" />
+        </FrameLayout>
         <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
             <TextView android:id="@+id/txtCatalogSetName" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="?attr/colorOnSurface" android:textSize="20sp" />
             <TextView android:id="@+id/txtCatalogSetMetadata" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:ellipsize="end" android:maxLines="2" android:textColor="?attr/appMutedColor" android:textSize="13sp" />

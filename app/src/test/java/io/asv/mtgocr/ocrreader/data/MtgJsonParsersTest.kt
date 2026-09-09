@@ -51,6 +51,54 @@ class MtgJsonParsersTest {
     }
 
     @Test
+    fun priceProviderOrderIsAppliedIndependentlyForEachFinish() {
+        val uuid = "ordered-printing"
+        val json = """
+            {"data":{"$uuid":{"paper":{
+              "cardmarket":{"retail":{"normal":{"2026-08-16":10.0}},"currency":"EUR"},
+              "tcgplayer":{"retail":{"normal":{"2026-08-16":12.0},"foil":{"2026-08-16":24.0}},"currency":"USD"}
+            }}}}
+        """.trimIndent()
+
+        val prices = MtgJsonParsers.readPrices(
+            Buffer().writeUtf8(json),
+            setOf(uuid),
+            listOf("tcgplayer", "cardmarket")
+        )
+
+        assertEquals("tcgplayer", prices.single { it.finish == "normal" }.provider)
+        assertEquals(12.0, prices.single { it.finish == "normal" }.amount, 0.001)
+        assertEquals("tcgplayer", prices.single { it.finish == "foil" }.provider)
+    }
+
+    @Test
+    fun streamsEverySupportedProviderIntoTheLocalPriceIndex() {
+        val json = """
+            {"data":{
+              "one":{"paper":{
+                "cardmarket":{"retail":{"normal":{"2026-09-02":1.5}},"currency":"EUR"},
+                "tcgplayer":{"retail":{"normal":{"2026-09-02":2.0},"foil":{"2026-09-02":4.0}},"currency":"USD"},
+                "unknown":{"retail":{"normal":{"2026-09-02":99.0}},"currency":"USD"}
+              }},
+              "two":{"paper":{
+                "cardsphere":{"retail":{"normal":{"2026-09-02":3.0}},"currency":"USD"}
+              }}
+            }}
+        """.trimIndent()
+        val batches = mutableListOf<List<MtgJsonParsers.ParsedPrice>>()
+
+        MtgJsonParsers.streamAllPrices(Buffer().writeUtf8(json), batchSize = 2) {
+            batches += it
+        }
+
+        val prices = batches.flatten()
+        assertEquals(4, prices.size)
+        assertEquals(setOf("cardmarket", "tcgplayer", "cardsphere"), prices.map { it.provider }.toSet())
+        assertTrue(batches.size >= 2)
+        assertTrue(prices.any { it.printingUuid == "one" && it.finish == "foil" && it.amount == 4.0 })
+    }
+
+    @Test
     fun resolvesSpanishNameAndToleratesOcrMistake() {
         val json = """
             {"meta":{"date":"2026-08-16"},"data":{
@@ -110,6 +158,24 @@ class MtgJsonParsersTest {
     }
 
     @Test
+    fun localOcrFallbackJoinsFragmentsAndCorrectsLandTax() {
+        val json = """
+            {"meta":{},"data":{
+              "Land Tax":[{"name":"Land Tax","foreignData":[]}],
+              "Lend":[{"name":"Lend","foreignData":[]}]
+            }}
+        """.trimIndent()
+
+        val resolved = MtgJsonParsers.readBestLocalOcrCardName(
+            Buffer().writeUtf8(json),
+            listOf("lend", "Tar--")
+        )
+
+        assertEquals("Land Tax", resolved?.canonicalName)
+        assertEquals(2, resolved?.distance)
+    }
+
+    @Test
     fun streamsEnglishAndLocalizedNamesForPredictionIndex() {
         val json = """
             {"meta":{},"data":{
@@ -136,5 +202,27 @@ class MtgJsonParsersTest {
                 it.language == "Spanish"
         })
         assertTrue(indexed.any { it.displayName == "Mox Opal" && it.language == "English" })
+    }
+
+    @Test
+    fun localOcrResolvesJapanesePrintedNameToCanonicalCard() {
+        val json = """
+            {"meta":{},"data":{
+              "Lightning Bolt":[{
+                "name":"Lightning Bolt",
+                "foreignData":[{"language":"Japanese","name":"稲妻"}]
+              }]
+            }}
+        """.trimIndent()
+
+        val resolved = MtgJsonParsers.readBestLocalOcrCardName(
+            Buffer().writeUtf8(json),
+            listOf("稲妻")
+        )
+
+        assertEquals("Lightning Bolt", resolved?.canonicalName)
+        assertEquals("稲妻", resolved?.displayName)
+        assertEquals("Japanese", resolved?.language)
+        assertEquals(0, resolved?.distance)
     }
 }

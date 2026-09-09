@@ -41,6 +41,18 @@ data class CardPriceEntity(
     val updatedAt: Long
 )
 
+/** Every provider value from the latest MTGJSON daily snapshot, ready for indexed lookup. */
+@Entity(tableName = "price_snapshot", primaryKeys = ["printingUuid", "finish", "provider"])
+data class PriceSnapshotEntity(
+    val printingUuid: String,
+    val finish: String,
+    val provider: String,
+    val amount: Double,
+    val currency: String,
+    val priceDate: String,
+    val updatedAt: Long
+)
+
 @Entity(tableName = "card_set_sync", primaryKeys = ["normalizedName", "setCode"])
 data class CardSetSyncEntity(
     val normalizedName: String,
@@ -86,6 +98,9 @@ interface CardDao {
 
     @Query("SELECT * FROM card_prices WHERE printingUuid IN (:uuids)")
     fun pricesFor(uuids: List<String>): List<CardPriceEntity>
+
+    @Query("SELECT * FROM price_snapshot WHERE printingUuid IN (:uuids)")
+    fun snapshotPricesFor(uuids: List<String>): List<PriceSnapshotEntity>
 
     @Query("SELECT * FROM card_set_sync WHERE normalizedName = :name")
     fun syncedSets(name: String): List<CardSetSyncEntity>
@@ -141,6 +156,15 @@ interface CardDao {
     fun savePrices(prices: List<CardPriceEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun savePriceSnapshot(prices: List<PriceSnapshotEntity>)
+
+    @Query("DELETE FROM card_prices WHERE printingUuid IN (:uuids)")
+    fun deletePricesFor(uuids: List<String>)
+
+    @Query("DELETE FROM price_snapshot WHERE updatedAt != :snapshotTimestamp")
+    fun deleteOldPriceSnapshot(snapshotTimestamp: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun saveSetSync(sync: CardSetSyncEntity)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -160,12 +184,13 @@ interface CardDao {
     entities = [
         CardPrintingEntity::class,
         CardPriceEntity::class,
+        PriceSnapshotEntity::class,
         CardSetSyncEntity::class,
         OwnedPrintingEntity::class,
         CardNameAliasEntity::class,
         MagicSetEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class CardDatabase : RoomDatabase() {
@@ -179,7 +204,7 @@ abstract class CardDatabase : RoomDatabase() {
                 context.applicationContext,
                 CardDatabase::class.java,
                 "mtg_catalog.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -208,6 +233,23 @@ abstract class CardDatabase : RoomDatabase() {
                         `cardCount` INTEGER NOT NULL,
                         `updatedAt` INTEGER NOT NULL,
                         PRIMARY KEY(`code`)
+                    )""".trimIndent()
+                )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `price_snapshot` (
+                        `printingUuid` TEXT NOT NULL,
+                        `finish` TEXT NOT NULL,
+                        `provider` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `currency` TEXT NOT NULL,
+                        `priceDate` TEXT NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`printingUuid`, `finish`, `provider`)
                     )""".trimIndent()
                 )
             }

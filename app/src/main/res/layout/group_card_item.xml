@@ -3,7 +3,7 @@
     android:layout_width="match_parent" android:layout_height="92dp" android:background="?attr/colorSurface" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="12dp">
     <CheckBox android:id="@+id/checkGroupCard" android:layout_width="48dp" android:layout_height="48dp" android:buttonTint="?attr/colorPrimary" />
     <FrameLayout android:layout_width="48dp" android:layout_height="70dp" android:layout_marginEnd="12dp">
-        <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgGroupCard" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="centerCrop" />
+        <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgGroupCard" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" />
         <ImageView android:id="@+id/imgFoilBadge" android:layout_width="21dp" android:layout_height="21dp" android:layout_gravity="bottom|end" android:contentDescription="@string/foil_card_badge" android:src="@drawable/ic_foil_badge" android:visibility="gone" />
     </FrameLayout>
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">

@@ -159,22 +159,12 @@ internal object MtgJsonParsers {
 
     /** Matches a small OCR candidate set in a single pass over the local AtomicCards JSON. */
     fun readBestLocalOcrCardName(source: BufferedSource, queries: List<String>): ResolvedCardName? {
-        data class Query(val normalized: String, val maxDistance: Int)
-
-        val normalizedQueries = queries.asSequence()
-            .map(::normalizeSearchName)
-            .filter { it.length >= 3 }
-            .distinct()
-            .take(8)
-            .map { normalized ->
-                // Automatic additions must be conservative: one OCR error for short names,
-                // two only for names long enough to make accidental matches unlikely.
-                Query(normalized, if (normalized.length >= 12) 2 else 1)
-            }
-            .toList()
+        val normalizedQueries = OcrNameQueries.from(queries)
         if (normalizedQueries.isEmpty()) return null
 
         var best: ResolvedCardName? = null
+        var bestScore = Int.MAX_VALUE
+        var tiedCanonical = false
         val reader = JsonReader.of(source)
         reader.beginObject()
         while (reader.hasNext()) {
@@ -193,9 +183,16 @@ internal object MtgJsonParsers {
                         for (query in normalizedQueries) {
                             if (kotlin.math.abs(normalizedCandidate.length - query.normalized.length) > query.maxDistance) continue
                             val distance = boundedLevenshtein(query.normalized, normalizedCandidate, query.maxDistance)
-                            if (distance <= query.maxDistance && (best == null || distance < best.distance)) {
+                            if (distance > query.maxDistance) continue
+                            val score = query.score(distance)
+                            if (score < bestScore) {
                                 best = ResolvedCardName(canonicalKey, candidateName, language, distance)
-                                if (distance == 0) return best
+                                bestScore = score
+                                tiedCanonical = false
+                                if (score == 0) return best
+                            } else if (score == bestScore && best != null &&
+                                !canonicalKey.equals(best.canonicalName, ignoreCase = true)) {
+                                tiedCanonical = true
                             }
                         }
                     }
@@ -205,7 +202,7 @@ internal object MtgJsonParsers {
             reader.endObject()
         }
         reader.endObject()
-        return best
+        return if (tiedCanonical) null else best
     }
 
     /** Streams every English and translated name without retaining the full MTGJSON file in RAM. */
@@ -322,7 +319,11 @@ internal object MtgJsonParsers {
         val date: String
     )
 
-    fun readPrices(source: BufferedSource, wantedUuids: Set<String>): List<ParsedPrice> {
+    fun readPrices(
+        source: BufferedSource,
+        wantedUuids: Set<String>,
+        providerOrder: List<String> = listOf("cardmarket", "tcgplayer", "cardkingdom", "cardsphere")
+    ): List<ParsedPrice> {
         val reader = JsonReader.of(source)
         val result = mutableListOf<ParsedPrice>()
         reader.beginObject()
@@ -334,7 +335,7 @@ internal object MtgJsonParsers {
             reader.beginObject()
             while (reader.hasNext()) {
                 val uuid = reader.nextName()
-                if (uuid in wantedUuids) result += readPriceEntry(reader, uuid) else reader.skipValue()
+                if (uuid in wantedUuids) result += readPriceEntry(reader, uuid, providerOrder) else reader.skipValue()
             }
             reader.endObject()
         }
@@ -342,7 +343,53 @@ internal object MtgJsonParsers {
         return result
     }
 
-    private fun readPriceEntry(reader: JsonReader, uuid: String): List<ParsedPrice> {
+    /** Streams the complete daily paper-price snapshot in database-sized batches. */
+    fun streamAllPrices(
+        source: BufferedSource,
+        batchSize: Int = 1_000,
+        onBatch: (List<ParsedPrice>) -> Unit
+    ) {
+        val batch = ArrayList<ParsedPrice>(batchSize)
+        fun flush() {
+            if (batch.isEmpty()) return
+            onBatch(batch.toList())
+            batch.clear()
+        }
+
+        val reader = JsonReader.of(source)
+        reader.beginObject()
+        while (reader.hasNext()) {
+            if (reader.nextName() != "data") {
+                reader.skipValue()
+                continue
+            }
+            reader.beginObject()
+            while (reader.hasNext()) {
+                val uuid = reader.nextName()
+                readAllPriceEntry(reader, uuid).forEach { price ->
+                    batch += price
+                    if (batch.size >= batchSize) flush()
+                }
+            }
+            reader.endObject()
+        }
+        reader.endObject()
+        flush()
+    }
+
+    private fun readPriceEntry(
+        reader: JsonReader,
+        uuid: String,
+        providerOrder: List<String>
+    ): List<ParsedPrice> {
+        val all = readAllPriceEntry(reader, uuid)
+        val priority = providerOrder.withIndex().associate { it.value to it.index }
+        return all.groupBy { it.finish }.mapNotNull { (_, candidates) ->
+            candidates.minByOrNull { priority[it.provider] ?: Int.MAX_VALUE }
+        }
+    }
+
+    private fun readAllPriceEntry(reader: JsonReader, uuid: String): List<ParsedPrice> {
         val all = mutableListOf<ParsedPrice>()
         reader.beginObject()
         while (reader.hasNext()) {
@@ -353,13 +400,16 @@ internal object MtgJsonParsers {
             reader.beginObject()
             while (reader.hasNext()) {
                 val provider = reader.nextName()
-                all += readProviderPrice(reader, uuid, provider)
+                if (provider in supportedPaperPriceProviders) {
+                    all += readProviderPrice(reader, uuid, provider)
+                } else {
+                    reader.skipValue()
+                }
             }
             reader.endObject()
         }
         reader.endObject()
-        val preferred = all.filter { it.provider == "cardmarket" }
-        return if (preferred.isNotEmpty()) preferred else all.groupBy { it.finish }.mapNotNull { it.value.firstOrNull() }
+        return all
     }
 
     private fun readProviderPrice(reader: JsonReader, uuid: String, provider: String): List<ParsedPrice> {
@@ -391,4 +441,11 @@ internal object MtgJsonParsers {
             dated.maxByOrNull { it.second }?.let { ParsedPrice(uuid, it.first, it.third, currency, provider, it.second) }
         }
     }
+
+    private val supportedPaperPriceProviders = setOf(
+        "cardmarket",
+        "tcgplayer",
+        "cardkingdom",
+        "cardsphere"
+    )
 }

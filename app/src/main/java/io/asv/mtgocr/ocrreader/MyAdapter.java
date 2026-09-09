@@ -46,7 +46,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
     LinearLayout mLytViewHolder;
     ImageView mImgCard, mFoilBadge;
-    ImageButton btnOrganize;
+    ImageButton btnOrganize, btnDetails, btnGallery;
     TextView txtQuantity;
 
     public ViewHolder(View v) {
@@ -58,6 +58,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       mImgCard = (ImageView) v.findViewById(R.id.imgCard);
       mFoilBadge = (ImageView) v.findViewById(R.id.imgFoilBadge);
       btnOrganize = (ImageButton) v.findViewById(R.id.btnOrganizeCard);
+      btnDetails = (ImageButton) v.findViewById(R.id.btnCardDetails);
+      btnGallery = (ImageButton) v.findViewById(R.id.btnCardGallery);
       txtQuantity = (TextView) v.findViewById(R.id.txtCardQuantity);
       mLytViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
 
@@ -226,7 +228,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       };
       holder.mLytViewHolder.setOnClickListener(openEditions);
       holder.mtxtName.setOnClickListener(openEditions);
-      holder.mImgCard.setOnClickListener(openEditions);
+      holder.btnDetails.setOnClickListener(openEditions);
+      holder.mImgCard.setContentDescription(mContext.getString(R.string.open_card_gallery));
+      View.OnClickListener openGallery = view -> mContext.openCardGallery(item, mDataset);
+      holder.mImgCard.setOnClickListener(openGallery);
+      holder.btnGallery.setOnClickListener(openGallery);
       holder.btnOrganize.setOnClickListener(new View.OnClickListener() {
         @Override public void onClick(View v) {
           mContext.showOrganizerDialog(item);

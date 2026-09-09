@@ -5,7 +5,7 @@
     android:background="?android:attr/selectableItemBackground"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:padding="6dp">
+    android:padding="2dp">
 
     <TextView
         android:id="@+id/txtSetCardPrice"
@@ -16,7 +16,7 @@
 
     <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
         android:layout_width="match_parent"
-        android:layout_height="210dp">
+        android:layout_height="wrap_content">
         <io.asv.mtgocr.ocrreader.RoundedCardImageView
             android:id="@+id/imgSetCard"
             android:layout_width="match_parent"
@@ -32,6 +32,26 @@
             android:contentDescription="@string/foil_card_badge"
             android:src="@drawable/ic_foil_badge"
             android:visibility="gone" />
+        <ImageButton
+            android:id="@+id/btnSetCardGallery"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
+            android:background="#DDFFFFFF"
+            android:contentDescription="@string/open_card_gallery"
+            android:padding="7dp"
+            android:src="@android:drawable/ic_menu_gallery" />
+        <ImageButton
+            android:id="@+id/btnSetCardDetails"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="#DDFFFFFF"
+            android:contentDescription="@string/view_card_details"
+            android:padding="7dp"
+            android:src="@android:drawable/ic_menu_info_details" />
     </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
 
     <CheckBox

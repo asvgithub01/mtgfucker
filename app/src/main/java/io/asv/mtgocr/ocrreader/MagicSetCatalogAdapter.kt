@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import io.asv.mtgocr.ocrreader.data.MagicSetOption
@@ -15,10 +16,14 @@ internal object MagicSetCatalogOrder {
     fun filterAndSort(
         source: List<MagicSetOption>,
         favorites: Set<String>,
-        query: String
+        query: String,
+        ownedSetCodes: Set<String> = emptySet(),
+        onlyOwned: Boolean = false
     ): List<MagicSetOption> {
         val normalizedQuery = normalize(query)
+        val normalizedOwned = ownedSetCodes.mapTo(HashSet()) { it.uppercase(Locale.ROOT) }
         return source.asSequence()
+            .filter { !onlyOwned || it.code.uppercase(Locale.ROOT) in normalizedOwned }
             .filter {
                 normalizedQuery.isBlank() ||
                     normalize("${it.name} ${it.code} ${it.type}").contains(normalizedQuery)
@@ -66,6 +71,9 @@ class MagicSetCatalogAdapter(
     private var visible: List<MagicSetOption> = emptyList()
     private var query = ""
     private var favorites = FavoriteSetStore.codes(context)
+    private var ownedSetCodes: Set<String> = emptySet()
+    private var ownedSetCounts: Map<String, Int> = emptyMap()
+    private var onlyOwned = false
 
     fun submit(items: List<MagicSetOption>) {
         source = items
@@ -77,11 +85,20 @@ class MagicSetCatalogAdapter(
         applyFilter()
     }
 
+    fun setOwnedSets(counts: Map<String, Int>, showOnlyOwned: Boolean) {
+        ownedSetCounts = counts.mapKeys { (code, _) -> code.uppercase(Locale.ROOT) }
+        ownedSetCodes = ownedSetCounts.keys
+        onlyOwned = showOnlyOwned
+        applyFilter()
+    }
+
     fun visibleCount(): Int = visible.size
 
     private fun applyFilter() {
         favorites = FavoriteSetStore.codes(context)
-        visible = MagicSetCatalogOrder.filterAndSort(source, favorites, query)
+        visible = MagicSetCatalogOrder.filterAndSort(
+            source, favorites, query, ownedSetCodes, onlyOwned
+        )
         notifyDataSetChanged()
     }
 
@@ -94,7 +111,12 @@ class MagicSetCatalogAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = visible[position]
-        holder.bind(item, item.code in favorites, onOpen) {
+        holder.bind(
+            item,
+            item.code in favorites,
+            ownedSetCounts[item.code.uppercase(Locale.ROOT)] ?: 0,
+            onOpen
+        ) {
             FavoriteSetStore.toggle(context, item.code)
             applyFilter()
         }
@@ -104,14 +126,27 @@ class MagicSetCatalogAdapter(
         private val code: TextView = view.findViewById<TextView>(R.id.txtCatalogSetCode).also { it.typeface = titleTypeface }
         private val name: TextView = view.findViewById<TextView>(R.id.txtCatalogSetName).also { it.typeface = titleTypeface }
         private val metadata: TextView = view.findViewById(R.id.txtCatalogSetMetadata)
+        private val symbol: ImageView = view.findViewById(R.id.imgCatalogSetSymbol)
         private val favorite: ImageButton = view.findViewById(R.id.btnFavoriteSet)
 
-        fun bind(item: MagicSetOption, isFavorite: Boolean, open: (MagicSetOption) -> Unit, toggle: () -> Unit) {
+        fun bind(
+            item: MagicSetOption,
+            isFavorite: Boolean,
+            ownedCount: Int,
+            open: (MagicSetOption) -> Unit,
+            toggle: () -> Unit
+        ) {
             code.text = item.code
             name.text = item.name
-            metadata.text = itemView.context.getString(
+            SetSymbolLoader.display(itemView.context, item.code, symbol)
+            val catalogMetadata = itemView.context.getString(
                 R.string.set_catalog_metadata, item.releaseDate, item.type, item.cardCount
             )
+            metadata.text = "$catalogMetadata · ${itemView.context.getString(
+                R.string.set_catalog_owned_progress,
+                ownedCount,
+                item.cardCount
+            )}"
             favorite.setImageResource(if (isFavorite) R.drawable.ic_star_filled else R.drawable.ic_star_outline)
             favorite.setColorFilter(
                 if (isFavorite) MagicPalette.secondaryColor(itemView.context)

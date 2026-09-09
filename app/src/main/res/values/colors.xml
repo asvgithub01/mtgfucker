@@ -9,6 +9,8 @@
     <color name="mtg_surface">#FFFCF6</color>
     <color name="mtg_gold">#E0B64B</color>
     <color name="mtg_muted">#6E746F</color>
+    <color name="scan_total_incomplete">#FFB300</color>
+    <color name="scan_total_complete">#43A047</color>
     <style name="MyTheme" >
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>

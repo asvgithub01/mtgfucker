@@ -16,7 +16,7 @@
             android:alpha="0"
             android:enabled="false"
             android:paddingTop="52dp"
-            android:paddingBottom="48dp" />
+            android:paddingBottom="74dp" />
 
         <io.asv.mtgocr.ocrreader.ZoomableImageView
             android:id="@+id/nextCardImage"
@@ -25,7 +25,7 @@
             android:alpha="0"
             android:enabled="false"
             android:paddingTop="52dp"
-            android:paddingBottom="48dp" />
+            android:paddingBottom="74dp" />
 
         <io.asv.mtgocr.ocrreader.ZoomableImageView
             android:id="@+id/fullscreenCardImage"
@@ -34,7 +34,7 @@
             android:clickable="true"
             android:contentDescription="@string/card_image"
             android:paddingTop="52dp"
-            android:paddingBottom="48dp" />
+            android:paddingBottom="74dp" />
 
         <ImageView
             android:id="@+id/imgFullscreenFoilBadge"
@@ -42,11 +42,46 @@
             android:layout_height="48dp"
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="24dp"
-            android:layout_marginBottom="64dp"
+            android:layout_marginBottom="82dp"
             android:contentDescription="@string/foil_card_badge"
             android:src="@drawable/ic_foil_badge"
             android:visibility="gone" />
     </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp">
+
+        <TextView
+            android:id="@+id/txtCardImagePrice"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/gallery_price_badge"
+            android:gravity="center"
+            android:minWidth="112dp"
+            android:paddingStart="18dp"
+            android:paddingTop="9dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="9dp"
+            android:textColor="@color/scan_total_complete"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnCardImageDetails"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:text="@string/view_card_details"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

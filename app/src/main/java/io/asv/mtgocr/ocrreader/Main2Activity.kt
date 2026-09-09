@@ -25,6 +25,7 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.snackbar.Snackbar
 import io.asv.mtgocr.ocrreader.data.CardEditionOption
 import io.asv.mtgocr.ocrreader.data.CardImageVariant
+import io.asv.mtgocr.ocrreader.data.CardLanguage
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.OwnedPrintingEntity
@@ -222,7 +223,10 @@ class Main2Activity : AppCompatActivity() {
 
     private fun showSelectedImage(option: CardEditionOption) {
         displayedOption = option
-        CardImageCache.display(this, option.imageUrl, image)
+        val owned = ownedCard().takeIf {
+            it?.printingUuid == option.printingUuid && it.finish == option.finish
+        }
+        CardImageCache.display(this, owned?.imgPath?.takeIf { it.isNotBlank() } ?: option.imageUrl, image)
         foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
         title.text = option.displayName
         type.text = option.typeLine
@@ -317,16 +321,43 @@ class Main2Activity : AppCompatActivity() {
                 loaded.map { "${languageLabel(it.languageCode)} — ${it.printedName}" }
             ).also { it.setDropDownViewResource(R.layout.spinner_item) }
             languageSpinner.visibility = View.VISIBLE
-            val preferred = loaded.indexOfFirst { it.imageUrl == option.imageUrl }
+            val owned = ownedCard().takeIf {
+                it?.printingUuid == option.printingUuid && it.finish == option.finish
+            }
+            val savedLanguage = CardLanguage.toCode(owned?.languageCode)
+            val preferred = loaded.indexOfFirst {
+                savedLanguage.isNotBlank() && it.languageCode == savedLanguage
+            }.takeIf { it >= 0 }
+                ?: loaded.indexOfFirst { it.imageUrl == owned?.imgPath || it.imageUrl == option.imageUrl }
                 .takeIf { it >= 0 }
                 ?: loaded.indexOfFirst { it.languageCode == "en" }.coerceAtLeast(0)
             languageSpinner.setSelection(preferred, false)
+            loaded.getOrNull(preferred)?.let { applyLanguageVariant(option, it) }
             languageSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
                 languageVariants.getOrNull(position)?.let { variant ->
-                    CardImageCache.displayKeepingCurrent(this, variant.imageUrl, image)
+                    applyLanguageVariant(option, variant)
                 }
             }
         }
+    }
+
+    private fun ownedCard() = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+        ?.firstOrNull { it.collectionItemId == collectionItemId }
+
+    private fun applyLanguageVariant(option: CardEditionOption, variant: CardImageVariant) {
+        CardImageCache.displayKeepingCurrent(this, variant.imageUrl, image)
+        val isOwnedPrinting = selected?.let {
+            it.printingUuid == option.printingUuid && it.finish == option.finish
+        } == true
+        if (!isOwnedPrinting) return
+        LegacyCollectionStore.updateLanguageVariant(
+            this,
+            collectionItemId,
+            variant.languageCode,
+            variant.imageUrl
+        )
+        legacyImageUrl = variant.imageUrl
+        setResult(RESULT_OK)
     }
 
     override fun onDestroy() {
@@ -349,6 +380,10 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun openCardImage(option: CardEditionOption) {
+        val owned = ownedCard().takeIf {
+            it?.printingUuid == option.printingUuid && it.finish == option.finish
+        }
+        val selectedImageUrl = owned?.imgPath?.takeIf { it.isNotBlank() } ?: option.imageUrl
         val pages = editionOptions
             .filter { !it.imageUrl.isNullOrBlank() }
             .groupBy { it.printingUuid }
@@ -365,13 +400,16 @@ class Main2Activity : AppCompatActivity() {
             .ifEmpty { listOf(option) }
         val initialIndex = pages.indexOfFirst { it.printingUuid == option.printingUuid }.coerceAtLeast(0)
         startActivity(Intent(this, CardImageActivity::class.java).apply {
-            putExtra(CardImageActivity.EXTRA_IMAGE_URL, option.imageUrl)
+            putExtra(CardImageActivity.EXTRA_IMAGE_URL, selectedImageUrl)
             putExtra(CardImageActivity.EXTRA_SET_CODE, option.setCode)
             putExtra(CardImageActivity.EXTRA_COLLECTOR_NUMBER, option.collectorNumber)
             putExtra(CardImageActivity.EXTRA_FINISH, option.finish)
             putStringArrayListExtra(
                 CardImageActivity.EXTRA_EDITION_IMAGE_URLS,
-                ArrayList(pages.map { it.imageUrl.orEmpty() })
+                ArrayList(pages.map {
+                    if (it.printingUuid == option.printingUuid) selectedImageUrl.orEmpty()
+                    else it.imageUrl.orEmpty()
+                })
             )
             putStringArrayListExtra(
                 CardImageActivity.EXTRA_EDITION_LABELS,
@@ -468,6 +506,7 @@ private class EditionAdapter(
         private val price: TextView = view.findViewById(R.id.txtEditionPrice)
         private val radio: RadioButton = view.findViewById(R.id.radioOwnedEdition)
         private val image: ImageView = view.findViewById(R.id.imgEditionThumbnail)
+        private val setSymbol: ImageView = view.findViewById(R.id.imgEditionSetSymbol)
         private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val addCopy: ImageButton = view.findViewById(R.id.btnAddEditionCopy)
         private val removeCopy: ImageButton = view.findViewById(R.id.btnRemoveEditionCopy)
@@ -484,6 +523,7 @@ private class EditionAdapter(
             onRemoveCopy: (CardEditionOption) -> Unit
         ) {
             setName.text = "${option.setName} (${option.setCode})"
+            SetSymbolLoader.display(itemView.context, option.setCode, setSymbol)
             metadata.text = itemView.context.getString(
                 R.string.edition_metadata,
                 option.collectorNumber,

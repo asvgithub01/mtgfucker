@@ -28,4 +28,17 @@ class MagicSetCatalogOrderTest {
                 .map { it.code }
         )
     }
+
+    @Test
+    fun ownedFilterKeepsOnlySetsPresentInTheCollection() {
+        val result = MagicSetCatalogOrder.filterAndSort(
+            listOf(masters, alliances, alpha),
+            emptySet(),
+            "",
+            setOf("all", "2xm"),
+            onlyOwned = true
+        )
+
+        assertEquals(listOf("ALL", "2XM"), result.map { it.code })
+    }
 }

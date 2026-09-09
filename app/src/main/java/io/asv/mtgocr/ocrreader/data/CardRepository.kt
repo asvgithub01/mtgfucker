@@ -55,7 +55,8 @@ data class MagicSetOption(
 
 data class LocalCardNameMatch(
     val canonicalName: String,
-    val displayName: String
+    val displayName: String,
+    val language: String
 )
 
 data class CardNameSuggestion(
@@ -64,7 +65,37 @@ data class CardNameSuggestion(
     val language: String
 )
 
+data class PhotoCardNameMatch(
+    val canonicalName: String,
+    val displayName: String,
+    val language: String,
+    val detectedText: String
+)
+
+internal object LocalizedEditionPolicy {
+    fun select(
+        options: List<CardEditionOption>,
+        variants: List<LocalizedPrintingVariant>,
+        preferredFinish: String,
+        lockedSetCodes: Set<String>
+    ): CardEditionOption? {
+        val localized = variants.associateBy {
+            it.setCode.uppercase() to it.collectorNumber.lowercase()
+        }
+        val locked = lockedSetCodes.mapTo(HashSet()) { it.trim().uppercase() }
+        val eligible = options.mapNotNull { option ->
+            if (locked.isNotEmpty() && option.setCode.uppercase() !in locked) return@mapNotNull null
+            val variant = localized[option.setCode.uppercase() to option.collectorNumber.lowercase()]
+                ?: return@mapNotNull null
+            option.copy(imageUrl = variant.imageUrl, displayName = variant.printedName)
+        }
+        val sameFinish = eligible.filter { it.finish.equals(preferredFinish, ignoreCase = true) }
+        return ScanPrintingPolicy.preferred(sameFinish.ifEmpty { eligible })
+    }
+}
+
 class CardRepository private constructor(context: Context) {
+    private val appContext = context.applicationContext
     private val dao = CardDatabase.get(context).cardDao()
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -74,8 +105,19 @@ class CardRepository private constructor(context: Context) {
     private val artworkIdentifier = CardArtworkIdentifier(context.applicationContext, client)
     private val catalog = MtgJsonCatalogDataProvider(dao, client, imageProvider)
     private val priceProvider = MtgJsonPriceDataProvider(context.applicationContext, dao, client)
+    private val scryfallPriceProvider = ScryfallPriceDataProvider(client)
     private val nameResolver = MtgJsonCardNameResolver(context.applicationContext, dao, client)
+    // Network-heavy metadata/price requests are deliberately kept serial, but OCR name matching
+    // must never wait behind them: the camera should accept the next card while previous cards are
+    // still being enriched in the background.
     private val executor = Executors.newSingleThreadExecutor()
+    // Small Room reads/writes used to complete a scan must not wait behind Scryfall HTTP calls.
+    private val selectionExecutor = Executors.newSingleThreadExecutor()
+    // The tiny Room lookup that acknowledges an OCR hit must never sit behind artwork downloads
+    // or language-image requests. Those can occupy imageExecutor for seconds on a slow network.
+    private val quickScanExecutor = Executors.newFixedThreadPool(2)
+    private val priceIndexExecutor = Executors.newSingleThreadExecutor()
+    private val nameExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newFixedThreadPool(2)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val optionCache = object : LinkedHashMap<String, List<CardEditionOption>>(48, .75f, true) {
@@ -107,7 +149,7 @@ class CardRepository private constructor(context: Context) {
         callback: (List<CardEditionOption>, Throwable?) -> Unit
     ): Future<*> {
         if (!forcePriceRefresh) {
-            cachedOptions(cardName)?.let { cached ->
+            cachedOptions(cardName)?.takeIf(::hasReadyRepresentative)?.let { cached ->
                 mainHandler.post { callback(cached, null) }
                 return CompletedFuture
             }
@@ -117,6 +159,31 @@ class CardRepository private constructor(context: Context) {
             try {
                 var resolution = nameResolver.cached(cardName)
                 var canonicalName = resolution?.canonicalName ?: cardName
+                var deliveredLocalOptions = false
+                if (deliverEditionsBeforePrices) {
+                    val localPrintings = catalog.cachedEditions(canonicalName)
+                    if (localPrintings.isNotEmpty()) {
+                        if (resolution == null) {
+                            nameResolver.remember(cardName, localPrintings.first().name)
+                            resolution = nameResolver.cached(cardName)
+                        }
+                        val sourceOrder = PriceSourcePreferences.priorityIds(appContext)
+                        val localPrices = priceProvider.cachedPrices(
+                            localPrintings.mapTo(LinkedHashSet()) { it.uuid },
+                            sourceOrder.filter { it != PriceSourcePreferences.SCRYFALL }
+                        )
+                        val localOptions = combine(
+                            localPrintings,
+                            localPrices,
+                            resolution?.displayName ?: localPrintings.first().name
+                        )
+                        cacheOptions(cardName, canonicalName, localOptions)
+                        mainHandler.post { callback(localOptions, null) }
+                        deliveredLocalOptions = true
+                        Log.d(TAG, "Datos locales de $canonicalName disponibles en " +
+                            "${SystemClock.elapsedRealtime() - startedAt} ms")
+                    }
+                }
                 val printings = try {
                     catalog.editions(canonicalName)
                 } catch (firstError: Exception) {
@@ -132,30 +199,26 @@ class CardRepository private constructor(context: Context) {
                     resolution = nameResolver.cached(cardName)
                 }
                 val printingUuids = printings.map { it.uuid }
-                val cachedPrices = dao.pricesFor(printingUuids)
+                val sourceOrder = PriceSourcePreferences.priorityIds(appContext)
+                val cachedPrices = priceProvider.cachedPrices(
+                    printingUuids.toSet(),
+                    sourceOrder.filter { it != PriceSourcePreferences.SCRYFALL }
+                )
                 val initialOptions = combine(
                     printings,
                     cachedPrices,
                     resolution?.displayName ?: printings.first().name
                 )
                 cacheOptions(cardName, canonicalName, initialOptions)
-                if (deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
+                if (deliverEditionsBeforePrices && !deliveredLocalOptions) {
+                    mainHandler.post { callback(initialOptions, null) }
+                }
                 Log.d(TAG, "Ediciones de $canonicalName disponibles en ${SystemClock.elapsedRealtime() - startedAt} ms")
 
-                // Edition metadata must not wait for the costly global price snapshot. Show the
-                // list first, and only publish a second result if prices actually need loading.
-                if (!forcePriceRefresh && cachedPrices.isNotEmpty()) {
-                    if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
-                    return@submit
-                }
-                val prices = try {
-                    priceProvider.prices(printingUuids.toSet(), forcePriceRefresh)
-                } catch (priceError: Exception) {
-                    Log.w(TAG, "No se pudieron actualizar los precios de $canonicalName", priceError)
-                    if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
-                    return@submit
-                }
-                if (prices == cachedPrices) {
+                // The complete MTGJSON snapshot is locally indexed, so this is now a bounded
+                // UUID lookup rather than another walk through the global compressed file.
+                val prices = preferredPrices(printings, forcePriceRefresh)
+                if (prices.toSet() == cachedPrices.toSet()) {
                     if (!deliverEditionsBeforePrices) mainHandler.post { callback(initialOptions, null) }
                     return@submit
                 }
@@ -175,14 +238,14 @@ class CardRepository private constructor(context: Context) {
     }
 
     fun selectedEdition(collectionItemId: String, callback: (OwnedPrintingEntity?) -> Unit) {
-        executor.execute {
+        selectionExecutor.execute {
             val selected = dao.ownedPrinting(collectionItemId)
             mainHandler.post { callback(selected) }
         }
     }
 
     fun ownedPrintingUuids(callback: (Set<String>) -> Unit) {
-        executor.execute {
+        selectionExecutor.execute {
             val uuids = dao.ownedPrintings().map { it.printingUuid }.toSet()
             mainHandler.post { callback(uuids) }
         }
@@ -190,10 +253,32 @@ class CardRepository private constructor(context: Context) {
 
     /** Local-only OCR lookup: never downloads AtomicCards and never calls a remote search API. */
     fun matchLocalOcrText(candidates: List<String>, callback: (LocalCardNameMatch?) -> Unit) {
-        executor.execute {
+        nameExecutor.execute {
             val resolution = runCatching { nameResolver.resolveLocalOcrCandidates(candidates) }.getOrNull()
-            val match = resolution?.let { LocalCardNameMatch(it.canonicalName, it.displayName) }
+            val match = resolution?.let {
+                LocalCardNameMatch(it.canonicalName, it.displayName, CardLanguage.toCode(it.language))
+            }
             mainHandler.post { callback(match) }
+        }
+    }
+
+    /** Matches every plausible title in a still image instead of stopping at the first card. */
+    fun matchLocalPhotoText(
+        lines: List<String>,
+        callback: (List<PhotoCardNameMatch>) -> Unit
+    ) {
+        nameExecutor.execute {
+            val matches = runCatching { nameResolver.resolveLocalOcrLines(lines) }
+                .getOrDefault(emptyList())
+                .map { (detectedText, resolution) ->
+                    PhotoCardNameMatch(
+                        resolution.canonicalName,
+                        resolution.displayName,
+                        CardLanguage.toCode(resolution.language),
+                        detectedText
+                    )
+                }
+            mainHandler.post { callback(matches) }
         }
     }
 
@@ -227,7 +312,7 @@ class CardRepository private constructor(context: Context) {
         cardName: String,
         lockedSetCodes: Set<String> = emptySet(),
         callback: (CardEditionOption?, Throwable?) -> Unit
-    ): Future<*> = imageExecutor.submit {
+    ): Future<*> = quickScanExecutor.submit {
         try {
             val resolution = nameResolver.cached(cardName)
             val canonicalName = resolution?.canonicalName ?: cardName
@@ -243,7 +328,11 @@ class CardRepository private constructor(context: Context) {
             val printings = if (cached.isNotEmpty()) cached else catalog.editions(canonicalName)
             val eligible = printings.filter { locked.isEmpty() || it.setCode.uppercase() in locked }
             if (eligible.isEmpty()) error("No hay impresiones disponibles para '$cardName'")
-            val prices = dao.pricesFor(eligible.map { it.uuid })
+            val prices = priceProvider.cachedPrices(
+                eligible.mapTo(LinkedHashSet()) { it.uuid },
+                PriceSourcePreferences.priorityIds(appContext)
+                    .filter { it != PriceSourcePreferences.SCRYFALL }
+            )
             val options = combine(
                 eligible,
                 prices,
@@ -252,19 +341,30 @@ class CardRepository private constructor(context: Context) {
             val representative = ScanPrintingPolicy.preferred(options)
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(representative, null) }
         } catch (error: Throwable) {
+            Log.w(TAG, "Falló el lookup local rápido de '$cardName'", error)
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, error) }
         }
     }
 
     fun prepareCardNamePredictor(callback: (Boolean) -> Unit = {}) {
-        executor.execute {
+        nameExecutor.execute {
             val ready = runCatching { nameResolver.preparePredictionIndex() }.getOrDefault(false)
             mainHandler.post { callback(ready) }
         }
     }
 
+    /** Warms the complete daily price index without blocking OCR name recognition. */
+    fun preparePriceIndex(callback: (Boolean) -> Unit = {}) {
+        priceIndexExecutor.execute {
+            val ready = runCatching { priceProvider.prepare(false) }
+                .onFailure { Log.w(TAG, "No se pudo preparar el índice local de precios", it) }
+                .isSuccess
+            mainHandler.post { callback(ready) }
+        }
+    }
+
     fun suggestCardNames(query: String, callback: (List<CardNameSuggestion>) -> Unit) {
-        executor.execute {
+        nameExecutor.execute {
             runCatching { nameResolver.preparePredictionIndex() }
             val suggestions = runCatching { nameResolver.suggestions(query, 6) }
                 .getOrDefault(emptyList())
@@ -278,11 +378,7 @@ class CardRepository private constructor(context: Context) {
             try {
                 val printings = catalog.setCards(setCode)
                 if (printings.isEmpty()) error("No se encontraron cartas para el set $setCode")
-                val prices = try {
-                    priceProvider.prices(printings.map { it.uuid }.toSet())
-                } catch (_: Exception) {
-                    dao.pricesFor(printings.map { it.uuid })
-                }
+                val prices = preferredPrices(printings, false)
                 val pricesByPrinting = prices.groupBy { it.printingUuid }
                 val cards = printings.map { printing ->
                     val availablePrices = pricesByPrinting[printing.uuid].orEmpty()
@@ -335,7 +431,7 @@ class CardRepository private constructor(context: Context) {
         finish: String,
         callback: () -> Unit = {}
     ) {
-        executor.execute {
+        selectionExecutor.execute {
             dao.saveOwnedPrinting(
                 OwnedPrintingEntity(collectionItemId, cardName, printingUuid, finish, System.currentTimeMillis())
             )
@@ -344,7 +440,7 @@ class CardRepository private constructor(context: Context) {
     }
 
     fun selectEdition(collectionItemId: String, option: CardEditionOption, callback: () -> Unit) {
-        executor.execute {
+        selectionExecutor.execute {
             dao.saveOwnedPrinting(
                 OwnedPrintingEntity(
                     collectionItemId,
@@ -395,6 +491,84 @@ class CardRepository private constructor(context: Context) {
     @Synchronized
     private fun cachedOptions(cardName: String): List<CardEditionOption>? =
         optionCache[MtgJsonCatalogDataProvider.normalize(cardName)]
+
+    private fun hasReadyRepresentative(options: List<CardEditionOption>): Boolean {
+        val representative = ScanPrintingPolicy.preferred(options) ?: return false
+        return !representative.imageUrl.isNullOrBlank() &&
+            representative.price != null &&
+            representative.setCode.isNotBlank() &&
+            representative.collectorNumber.isNotBlank()
+    }
+
+    /** Selects an edition that is known to have a physical image in the OCR-detected language. */
+    fun findLocalizedEdition(
+        cardName: String,
+        languageCode: String,
+        preferredFinish: String = "nonfoil",
+        lockedSetCodes: Set<String> = emptySet(),
+        callback: (CardEditionOption?, Throwable?) -> Unit
+    ) {
+        loadCard(cardName, false, false) { options, loadError ->
+            if (loadError != null || options.isEmpty()) {
+                callback(null, loadError)
+                return@loadCard
+            }
+            imageExecutor.execute {
+                try {
+                    val localized = imageProvider.getLocalizedPrintings(
+                        options.first().cardName,
+                        languageCode
+                    )
+                    val selected = LocalizedEditionPolicy.select(
+                        options, localized, preferredFinish, lockedSetCodes
+                    )
+                    mainHandler.post { callback(selected, null) }
+                } catch (error: Throwable) {
+                    mainHandler.post { callback(null, error) }
+                }
+            }
+        }
+    }
+
+    /** Clears presentation caches after the user changes the provider priority. */
+    fun invalidatePriceSourceOrder() {
+        synchronized(this) { optionCache.clear() }
+    }
+
+    private fun preferredPrices(
+        printings: List<CardPrintingEntity>,
+        forceRefresh: Boolean
+    ): List<CardPriceEntity> {
+        val order = PriceSourcePreferences.priorityIds(appContext)
+        val mtgOrder = order.filter { it != PriceSourcePreferences.SCRYFALL }
+        val uuids = printings.map { it.uuid }.toSet()
+        val mtgPrices = runCatching { priceProvider.prices(uuids, forceRefresh, mtgOrder) }
+            .onFailure { Log.w(TAG, "No se pudieron obtener precios MTGJSON", it) }
+            .getOrElse { dao.pricesFor(uuids.toList()) }
+        val priority = order.withIndex().associate { it.value to it.index }
+        val mtgByPrintingAndFinish = mtgPrices.associateBy { it.printingUuid to it.finish }
+        val scryfallPriority = priority[PriceSourcePreferences.SCRYFALL]
+        // Do not make a web request when a higher-priority local provider already has every
+        // finish. Scryfall remains an exact-printing fallback where its configured position wins.
+        val scryfallPrintings = if (scryfallPriority == null) emptyList() else printings.filter { printing ->
+            printing.finishes.split(',').filter { it.isNotBlank() }.ifEmpty { listOf("nonfoil") }
+                .map { if (it == "nonfoil") "normal" else it }
+                .any { finish ->
+                    val local = mtgByPrintingAndFinish[printing.uuid to finish]
+                    local == null || scryfallPriority < (priority[local.provider] ?: Int.MAX_VALUE)
+                }
+        }
+        val scryfallPrices = if (scryfallPrintings.isNotEmpty()) {
+            runCatching { scryfallPriceProvider.prices(scryfallPrintings) }
+                .onFailure { Log.w(TAG, "No se pudieron obtener precios Scryfall", it) }
+                .getOrDefault(emptyList())
+        } else emptyList()
+        return (mtgPrices + scryfallPrices)
+            .groupBy { it.printingUuid to it.finish }
+            .mapNotNull { (_, candidates) ->
+                candidates.minByOrNull { priority[it.provider] ?: Int.MAX_VALUE }
+            }
+    }
 
     @Synchronized
     private fun cacheOptions(requestedName: String, canonicalName: String, options: List<CardEditionOption>) {

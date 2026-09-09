@@ -11,6 +11,12 @@ import java.util.Locale
 object LegacyCollectionStore {
     private const val FILE_NAME = "myBiblio.Json"
 
+    /** Returns the persisted cards so catalog screens use the collection file as source of truth. */
+    fun cards(context: Context): List<CardInfo> =
+        DataUtils.readSerializable<Biblio>(context, FILE_NAME)?.cards?.toList()
+            ?: OcrCaptureActivity.mBiblio?.cards?.toList()
+            ?: emptyList()
+
     fun add(context: Context, options: List<SetCardOption>): List<CardInfo> {
         val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
             ?: Biblio(FILE_NAME, "Mis Cartukis")
@@ -159,6 +165,23 @@ object LegacyCollectionStore {
             ?: return null
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
         card.condition = condition
+        DataUtils.saveSerializable(context, collection, collection.nameFile)
+        OcrCaptureActivity.mBiblio = collection
+        return card
+    }
+
+    fun updateLanguageVariant(
+        context: Context,
+        collectionItemId: String,
+        languageCode: String,
+        imageUrl: String
+    ): CardInfo? {
+        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
+            ?: OcrCaptureActivity.mBiblio
+            ?: return null
+        val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
+        card.languageCode = CardLanguage.toCode(languageCode)
+        card.imgPath = imageUrl
         DataUtils.saveSerializable(context, collection, collection.nameFile)
         OcrCaptureActivity.mBiblio = collection
         return card

@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="104dp"
+    android:layout_height="128dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="10dp"
@@ -9,12 +12,20 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
+    <CheckBox
+        android:id="@+id/scanSessionSelected"
+        android:layout_width="40dp"
+        android:layout_height="match_parent"
+        android:buttonTint="?attr/colorPrimary"
+        android:contentDescription="@string/select_session_card" />
+
     <io.asv.mtgocr.ocrreader.RoundedCardImageView
         android:id="@+id/scanSessionImage"
         android:layout_width="52dp"
-        android:layout_height="92dp"
+        android:layout_height="100dp"
         android:contentDescription="@string/added_card_thumbnail"
-        android:scaleType="fitCenter" />
+        android:scaleType="fitCenter"
+        android:src="@drawable/backmtg" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -49,27 +60,110 @@
             android:layout_marginTop="3dp"
             android:background="@drawable/spinner_background"
             android:clickable="true"
+            android:ellipsize="end"
             android:focusable="true"
             android:gravity="center"
-            android:minWidth="96dp"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
+            android:minWidth="86dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:singleLine="true"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/scanSessionPrice"
+    <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_marginStart="8dp"
-        android:background="@drawable/bg_quantity_badge"
-        android:paddingStart="10dp"
-        android:paddingTop="6dp"
-        android:paddingEnd="10dp"
-        android:paddingBottom="6dp"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/scanSessionPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_quantity_badge"
+            android:paddingStart="8dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="5dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:layout_marginTop="3dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/scanSessionDecrease"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_arcane_action"
+                android:contentDescription="@string/decrease_quantity"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text="−"
+                android:textColor="#FFF1BE"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/scanSessionQuantity"
+                android:layout_width="30dp"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:textColor="?attr/colorSecondary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/scanSessionIncrease"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_arcane_action"
+                android:contentDescription="@string/increase_quantity"
+                android:gravity="center"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text="+"
+                android:textColor="#FFF1BE"
+                android:textSize="19sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/scanSessionRefresh"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/retry_card_info"
+                android:padding="8dp"
+                android:src="@drawable/ic_refresh"
+                android:tint="#5C4930" />
+
+            <ImageButton
+                android:id="@+id/scanSessionDelete"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/delete_session_card"
+                android:padding="8dp"
+                android:src="@drawable/ic_delete"
+                android:tint="#A12828" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

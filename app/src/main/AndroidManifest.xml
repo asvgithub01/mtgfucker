@@ -61,6 +61,11 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Mtg" />
+        <activity
+            android:name=".PhotoScanDetailActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
     </application>
 
 </manifest>

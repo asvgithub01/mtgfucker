@@ -58,7 +58,7 @@
             android:layout_height="69dp"
             android:layout_gravity="center"
             android:adjustViewBounds="false"
-            android:scaleType="fitXY" />
+            android:scaleType="fitCenter" />
           <ImageView
             android:id="@+id/imgFoilBadge"
             android:layout_width="23dp"
@@ -80,6 +80,24 @@
           android:textColor="?attr/colorSecondary"
           android:textSize="18sp"
           android:textStyle="bold" />
+        <ImageButton
+          android:id="@+id/btnCardDetails"
+          android:layout_width="34dp"
+          android:layout_height="34dp"
+          android:layout_gravity="center_vertical"
+          android:background="?attr/selectableItemBackgroundBorderless"
+          android:contentDescription="@string/view_card_details"
+          android:padding="6dp"
+          android:src="@android:drawable/ic_menu_info_details" />
+        <ImageButton
+          android:id="@+id/btnCardGallery"
+          android:layout_width="34dp"
+          android:layout_height="34dp"
+          android:layout_gravity="center_vertical"
+          android:background="?attr/selectableItemBackgroundBorderless"
+          android:contentDescription="@string/open_card_gallery"
+          android:padding="6dp"
+          android:src="@android:drawable/ic_menu_gallery" />
         <ImageButton
           android:id="@+id/btnOrganizeCard"
           android:layout_width="36dp"

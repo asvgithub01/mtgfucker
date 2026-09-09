@@ -11,6 +11,7 @@ import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
 import io.asv.mtgocr.ocrreader.data.CardImageVariant
 import io.asv.mtgocr.ocrreader.data.CardRepository
@@ -370,7 +371,7 @@ class CardImageActivity : AppCompatActivity() {
         )
         price.text = page.priceLabel
         price.setTextColor(
-            getColor(
+            ContextCompat.getColor(this,
                 if (page.priceLabel == getString(R.string.no_price)) {
                     R.color.scan_total_incomplete
                 } else {

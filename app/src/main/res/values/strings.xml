@@ -185,6 +185,7 @@
     <string name="scan_align_card">Alinea una carta dentro del marco</string>
     <string name="scan_reading_name">Nombre detectado: %1$s</string>
     <string name="scan_comparing_art">Comparando la ilustración de %1$s…</string>
+    <string name="scan_selecting_language_edition">Buscando una edición disponible en %1$s…</string>
     <string name="scan_identification_failed">No se pudo comparar la ilustración; puedes confirmar el nombre</string>
     <string name="scan_no_set_match">No hay coincidencias para la edición bloqueada</string>
     <string name="scan_choose_printing">Elige la impresión correcta</string>
@@ -201,6 +202,14 @@
     <string name="scan_metadata_incomplete">Faltan datos. Pulsa actualizar para reintentarlo.</string>
     <string name="retry_card_info">Volver a obtener la información de esta carta</string>
     <string name="refresh_session_cards">Actualizar todas</string>
+    <string name="refresh_missing_session_cards">Actualizar faltantes</string>
+    <string name="display_currency_title">Divisa mostrada</string>
+    <string name="display_currency_description">Todos los precios y totales se convierten a esta divisa con un cambio diario almacenado.</string>
+    <string-array name="display_currency_options">
+        <item>EUR · Euro (€)</item>
+        <item>USD · Dólar ($)</item>
+    </string-array>
+    <string name="collection_total_price">Total: %1$s</string>
     <string name="delete_session_card">Eliminar carta de la sesión y la colección</string>
     <string name="session_card_deleted">Carta eliminada de la sesión</string>
     <string name="scan_name_recognized_audible">Nombre de carta reconocido</string>

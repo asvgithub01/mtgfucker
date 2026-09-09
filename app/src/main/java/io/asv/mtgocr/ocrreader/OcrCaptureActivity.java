@@ -69,6 +69,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -100,6 +101,7 @@ import io.asv.mtgocr.ocrreader.data.IDataProvider;
 import io.asv.mtgocr.ocrreader.data.MtgJsonRoomDataProvider;
 import io.asv.mtgocr.ocrreader.data.MagicSetOption;
 import io.asv.mtgocr.ocrreader.data.PriceSourcePreferences;
+import io.asv.mtgocr.ocrreader.data.PriceCurrency;
 import io.asv.mtgocr.ocrreader.data.PhotoCardNameMatch;
 import io.asv.mtgocr.ocrreader.model.Biblio;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
@@ -116,7 +118,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -124,7 +125,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Random;
-import java.text.NumberFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -242,6 +242,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private TextView activeScanPrice;
   private final List<CardInfo> scannedSessionCards = new ArrayList<>();
   private final Set<String> selectedSessionCardIds = new LinkedHashSet<>();
+  private final ScanSessionRefreshCoordinator sessionRefreshCoordinator =
+      new ScanSessionRefreshCoordinator();
   private CheckBox selectAllSessionCards;
   private TextView sessionSelectionCount;
   private Button createSessionGroupButton;
@@ -254,7 +256,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private final Set<String> scanLanguageReselectAttemptedIds = new LinkedHashSet<>();
   private ScanSessionAdapter scanSessionAdapter;
   private AlertDialog scanSessionDialog;
+  private ListView scanSessionList;
   private boolean scanSessionOpen;
+  private boolean reopenScanSessionAfterDetail;
+  private int pendingSessionScrollPosition;
+  private int pendingSessionScrollOffset;
+  private String activeScanGroupName = "";
   private ToneGenerator scanToneGenerator;
   private final CardScanStability scanStability = new CardScanStability(1, 1_800L);
   private boolean scanLookupInFlight;
@@ -334,7 +341,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           @Override public void onCondition(CardInfo card) { showCardConditionPicker(card); }
           @Override public void onIncreaseQuantity(CardInfo card) { increaseSessionCardQuantity(card); }
           @Override public void onDecreaseQuantity(CardInfo card) { decreaseSessionCardQuantity(card); }
-          @Override public void onRefresh(CardInfo card) { retrySessionCard(card); }
+          @Override public void onRefresh(CardInfo card) { retrySessionCard(card, true); }
           @Override public void onDelete(CardInfo card) { deleteSessionCard(card); }
           @Override public void onSelection(CardInfo card, boolean selected) {
             if (selected) selectedSessionCardIds.add(card.getCollectionItemId());
@@ -526,7 +533,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           // existing background metadata pipeline and update both snackbar and session history.
           submitScannedCard(match.getDisplayName(), match.getLanguage());
         } else {
-          addIdentifiedPrinting(option, match.getLanguage());
+          addIdentifiedPrintingForLanguage(option, match.getLanguage());
         }
         return kotlin.Unit.INSTANCE;
       });
@@ -577,7 +584,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       List<CardEditionOption> options = new ArrayList<>();
       for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
       CardEditionOption preferred = ScanPrintingPolicy.preferred(options);
-      if (preferred != null) addIdentifiedPrinting(preferred, nameMatch.getLanguage());
+      if (preferred != null) addIdentifiedPrintingForLanguage(preferred, nameMatch.getLanguage());
       else {
         scanInProgress = false;
         cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
@@ -585,7 +592,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     if (candidates.size() == 1) {
-      addIdentifiedPrinting(candidates.get(0).getOption(), nameMatch.getLanguage());
+      addIdentifiedPrintingForLanguage(candidates.get(0).getOption(), nameMatch.getLanguage());
       return;
     }
     String[] labels = new String[candidates.size()];
@@ -603,7 +610,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     new AlertDialog.Builder(this)
         .setTitle(R.string.scan_choose_printing)
         .setItems(labels, (dialog, which) ->
-            addIdentifiedPrinting(candidates.get(which).getOption(), nameMatch.getLanguage()))
+            addIdentifiedPrintingForLanguage(candidates.get(which).getOption(), nameMatch.getLanguage()))
         .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
           scanInProgress = false;
           scanStability.allowRepeat();
@@ -1185,17 +1192,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void showTotalPrice(List<CardInfo> lstGrp) {
-    try {
-      float sum = 0.0f;
-      for (int i = 0; i < lstGrp.size(); i++) {
-        CardInfo card = lstGrp.get(i);
-        sum = sum + ((float) parseCardPrice(card) * card.getQuantityCount());
-      }
-      TextView txtTotal = (TextView) findViewById(R.id.txtTotal);
-      txtTotal.setText(String.format(Locale.getDefault(), "Total Price: %.2f", sum));
-    } catch (NumberFormatException e) {
-      e.printStackTrace();
+    double sum = 0.0;
+    for (CardInfo card : lstGrp) {
+      sum += PriceCurrency.amount(this, card) * card.getQuantityCount();
     }
+    TextView txtTotal = (TextView) findViewById(R.id.txtTotal);
+    txtTotal.setText(getString(R.string.collection_total_price,
+        PriceCurrency.format(this, sum, PriceCurrency.preferred(this))));
   }
 
   private void setUpItemTouchHelper() {
@@ -1544,6 +1547,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   @Override protected void onResume() {
     super.onResume();
     boolean returningFromCardDetail = cardDetailOpen;
+    boolean returningToScanSession = reopenScanSessionAfterDetail;
     if (firstResume) {
       // onCreate() has just loaded and rendered this same collection. Reading the serialized file
       // and rebuilding the adapter again here delayed the first frame and compounded startup ANRs.
@@ -1552,7 +1556,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       Biblio persisted = DataUtils.readSerializable(this, mBiblio.nameFile);
       if (persisted != null) {
         mBiblio = persisted;
-        if (consolidateIdenticalCopies()) {
+        // Keep every physical scan addressable throughout an active session. Consolidating here
+        // used to replace IDs after opening a detail and made session/selection/group counts drift.
+        if (scannedSessionCards.isEmpty() && consolidateIdenticalCopies()) {
           DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
         }
         if (mRecyclerView != null) refreshUI();
@@ -1563,8 +1569,33 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       pendingDetailScrollItemId = null;
     }
     updateScanSessionUi();
+    if (returningToScanSession) {
+      reopenScanSessionAfterDetail = false;
+      findViewById(R.id.ocrCaptureRoot).post(() -> showScanSession(false));
+      return;
+    }
     showNextCardReadySnackbar();
     startCameraSource();
+  }
+
+  /** Chooses a printing that actually exists in the OCR-detected language before persisting it. */
+  private void addIdentifiedPrintingForLanguage(CardEditionOption fallback, String detectedLanguage) {
+    String language = CardLanguage.toCode(detectedLanguage);
+    if (language.isEmpty() || "en".equals(language)) {
+      addIdentifiedPrinting(fallback, language);
+      return;
+    }
+    scanInProgress = true;
+    cardScanGuide.setMessage(getString(R.string.scan_selecting_language_edition, language));
+    cardRepository.findLocalizedEdition(
+        fallback.getCardName(), language, fallback.getFinish(), lockedSetCodes(), (localized, error) -> {
+          if (!isScannerReaderActive()) {
+            scanInProgress = false;
+            return kotlin.Unit.INSTANCE;
+          }
+          addIdentifiedPrinting(localized == null ? fallback : localized, language);
+          return kotlin.Unit.INSTANCE;
+        });
   }
 
   private void applyCollectionLayoutMode() {
@@ -1600,6 +1631,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    * rest of the processing pipeline.
    */
   @Override protected void onDestroy() {
+    sessionRefreshCoordinator.close();
     super.onDestroy();
     autoOcrHandler.removeCallbacksAndMessages(null);
     if (activeScanSnackbar != null) activeScanSnackbar.dismiss();
@@ -2016,33 +2048,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private double parseCardPrice(CardInfo card) {
-    // A USD fallback is useful on the row, but must not be added to a total labelled as EUR.
-    if (safe(card.getPrice()).toUpperCase(Locale.ROOT).contains("USD")) return 0d;
-    String raw = card.getPriceM();
-    if (raw == null || raw.trim().length() == 0) {
-      raw = card.getPrice();
-    } else {
-      try {
-        return CardCondition.adjustedAmount(Double.parseDouble(raw.trim()), card.getCondition());
-      } catch (NumberFormatException ignored) { }
-    }
-    if (raw == null) return 0d;
-    try {
-      String cleaned = raw.replaceAll("[^0-9,.-]", "").replace(',', '.');
-      return cleaned.length() == 0 ? 0d : Double.parseDouble(cleaned);
-    } catch (Exception ignored) {
-      return 0d;
-    }
+    return PriceCurrency.amount(this, card);
   }
 
   private String safe(String value) {
     return value == null ? "" : value;
   }
 
-  private boolean hasEuroPriceForTotal(CardInfo card) {
-    return hasCardPrice(card) &&
-        !safe(card.getPrice()).toUpperCase(Locale.ROOT).contains("USD");
-  }
+  private boolean hasPriceForTotal(CardInfo card) { return hasCardPrice(card); }
 
   private boolean matchesCurrentFilter(CardInfo card) {
     String query = normalizeForFilter(currentTextFilter);
@@ -2397,6 +2410,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (mPersistorMode.equals("0"))//biblio
     {
       if (cardInfo != null) {
+        if (!activeScanGroupName.isEmpty()) cardInfo.addGroup(activeScanGroupName);
         mBiblio.addCard(cardInfo);
         // Session state is the scanner's lightweight UI. Rebuilding and prefetching the complete
         // collection here used to freeze preview frames after every recognized card.
@@ -2449,6 +2463,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           current.setFinish(cardinfoForUpdate.getFinish());
           current.setLanguageCode(cardinfoForUpdate.getLanguageCode());
           current.lstDescription = cardinfoForUpdate.lstDescription;
+          propagateMetadataToIdenticalCopies(current);
         }
         refreshCollectionUiIfVisible();
       }
@@ -2486,6 +2501,31 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void setUpPriceSourceSettings() {
+    Spinner currencySpinner = findViewById(R.id.displayCurrencySpinner);
+    currencySpinner.setSelection(PriceCurrency.USD.equals(PriceCurrency.preferred(this)) ? 1 : 0, false);
+    currencySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+      private boolean initialized;
+
+      @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        String chosen = position == 1 ? PriceCurrency.USD : PriceCurrency.EUR;
+        boolean changed = !chosen.equals(PriceCurrency.preferred(OcrCaptureActivity.this));
+        PriceCurrency.select(OcrCaptureActivity.this, chosen);
+        if (initialized && changed) {
+          refreshUI();
+          updateScanSessionUi();
+        }
+        initialized = true;
+      }
+
+      @Override public void onNothingSelected(AdapterView<?> parent) { }
+    });
+    PriceCurrency.refreshRateIfNeeded(this, updated -> {
+      if (updated && !isFinishing() && !isDestroyed()) {
+        refreshUI();
+        updateScanSessionUi();
+      }
+      return kotlin.Unit.INSTANCE;
+    });
     RecyclerView sources = findViewById(R.id.priceSourcesRecycler);
     sources.setLayoutManager(new LinearLayoutManager(this));
     sources.setNestedScrollingEnabled(false);
@@ -2559,9 +2599,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private int sessionCopyCount() {
-    int count = 0;
-    for (CardInfo card : scannedSessionCards) count += card.getQuantityCount();
-    return count;
+    return ScanSessionCounts.total(scannedSessionCards);
   }
 
   private void updateScanSessionUi() {
@@ -2569,17 +2607,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (scanSessionButton != null) {
       scanSessionButton.setText(getString(R.string.scan_session_count, sessionCopyCount()));
     }
+    if (scanSessionDialog != null) {
+      scanSessionDialog.setTitle(getString(R.string.scan_session_title, sessionCopyCount()));
+    }
     if (scanSessionTotalText != null) {
       double total = 0d;
       boolean allPricesReady = !scannedSessionCards.isEmpty();
       for (CardInfo card : scannedSessionCards) {
         total += parseCardPrice(card) * card.getQuantityCount();
-        if (!hasEuroPriceForTotal(card)) allPricesReady = false;
+        if (!hasPriceForTotal(card)) allPricesReady = false;
       }
-      NumberFormat formatter = NumberFormat.getCurrencyInstance(Locale.getDefault());
-      formatter.setCurrency(Currency.getInstance("EUR"));
       scanSessionTotalText.setText(
-          getString(R.string.scan_session_total, formatter.format(total)));
+          getString(R.string.scan_session_total,
+              PriceCurrency.format(this, total, PriceCurrency.preferred(this))));
       int totalColor = scannedSessionCards.isEmpty()
           ? MagicPalette.secondaryColor(this)
           : ContextCompat.getColor(this, allPricesReady
@@ -2609,6 +2649,44 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void showScanSession() {
+    showScanSession(true);
+  }
+
+  /** Refreshed metadata for one printing/language updates every matching physical copy. */
+  private void propagateMetadataToIdenticalCopies(CardInfo source) {
+    if (mBiblio == null || source == null) return;
+    String sourcePrinting = safe(source.getPrintingUuid()).trim();
+    String sourceName = normalizeForFilter(source.getName());
+    String sourceFinish = safe(source.getFinish()).trim();
+    String sourceLanguage = CardLanguage.toCode(source.getLanguageCode());
+    for (CardInfo candidate : mBiblio.cards) {
+      if (candidate == source) continue;
+      String candidatePrinting = safe(candidate.getPrintingUuid()).trim();
+      boolean sameResolvedPrinting = !sourcePrinting.isEmpty() &&
+          sourcePrinting.equals(candidatePrinting) &&
+          sourceFinish.equalsIgnoreCase(safe(candidate.getFinish()).trim());
+      boolean unresolvedCopy = candidatePrinting.isEmpty() &&
+          sourceName.equals(normalizeForFilter(candidate.getName()));
+      if ((!sameResolvedPrinting && !unresolvedCopy) ||
+          !sourceLanguage.equals(CardLanguage.toCode(candidate.getLanguageCode()))) continue;
+      candidate.setName(source.getName());
+      candidate.setPrice(source.getBasePrice());
+      candidate.setPriceL(source.getPriceL());
+      candidate.setPriceM(source.getPriceM());
+      candidate.setPriceH(source.getPriceH());
+      candidate.setDescription(source.getDescription());
+      candidate.setImgPath(source.getImgPath());
+      candidate.setPrintingUuid(source.getPrintingUuid());
+      candidate.setSetCode(source.getSetCode());
+      candidate.setSetName(source.getSetName());
+      candidate.setCollectorNumber(source.getCollectorNumber());
+      candidate.setFinish(source.getFinish());
+      candidate.lstDescription = source.lstDescription;
+    }
+    syncSessionCardsFromCollection();
+  }
+
+  private void showScanSession(boolean resetSelection) {
     updateScanSessionUi();
     if (scannedSessionCards.isEmpty()) {
       AlertDialog emptyDialog = new AlertDialog.Builder(this)
@@ -2619,25 +2697,36 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       showScanSessionDialog(emptyDialog);
       return;
     }
-    selectedSessionCardIds.clear();
-    for (CardInfo card : scannedSessionCards) {
-      selectedSessionCardIds.add(card.getCollectionItemId());
+    if (resetSelection) {
+      selectedSessionCardIds.clear();
+      for (CardInfo card : scannedSessionCards) {
+        selectedSessionCardIds.add(card.getCollectionItemId());
+      }
     }
     LinearLayout content = new LinearLayout(this);
     content.setOrientation(LinearLayout.VERTICAL);
     LinearLayout header = new LinearLayout(this);
-    header.setGravity(Gravity.CENTER_VERTICAL);
+    header.setOrientation(LinearLayout.VERTICAL);
     header.setPadding(dp(18), dp(8), dp(10), dp(6));
     TextView hint = new TextView(this);
     hint.setText(R.string.scan_session_choose_edition_hint);
     hint.setTextColor(MagicPalette.secondaryColor(this));
-    header.addView(hint, new LinearLayout.LayoutParams(0,
-        LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+    header.addView(hint, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    LinearLayout refreshActions = new LinearLayout(this);
+    refreshActions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+    Button refreshMissing = new Button(this);
+    refreshMissing.setText(R.string.refresh_missing_session_cards);
+    refreshMissing.setOnClickListener(view -> refreshSessionCards(true));
+    refreshActions.addView(refreshMissing, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     Button refreshAll = new Button(this);
     refreshAll.setText(R.string.refresh_session_cards);
-    refreshAll.setOnClickListener(view -> retryAllSessionCards());
-    header.addView(refreshAll, new LinearLayout.LayoutParams(
+    refreshAll.setOnClickListener(view -> refreshSessionCards(false));
+    refreshActions.addView(refreshAll, new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    header.addView(refreshActions, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     content.addView(header, new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     LinearLayout selection = new LinearLayout(this);
@@ -2670,6 +2759,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     content.addView(selection, new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     ListView list = new ListView(this);
+    scanSessionList = list;
     list.setAdapter(scanSessionAdapter);
     list.setMinimumHeight(dp(220));
     content.addView(list, new LinearLayout.LayoutParams(
@@ -2681,10 +2771,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         .create();
     showScanSessionDialog(dialog);
     updateSessionSelectionUi();
+    if (!resetSelection) {
+      list.post(() -> list.setSelectionFromTop(
+          Math.max(0, pendingSessionScrollPosition), pendingSessionScrollOffset));
+    }
   }
 
   private void updateSessionSelectionUi() {
-    int selected = selectedSessionCardIds.size();
+    int selected = ScanSessionCounts.selected(scannedSessionCards, selectedSessionCardIds);
     if (sessionSelectionCount != null) {
       sessionSelectionCount.setText(getString(R.string.session_selection_count, selected));
     }
@@ -2692,7 +2786,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (selectAllSessionCards != null) {
       updatingSessionSelection = true;
       selectAllSessionCards.setChecked(!scannedSessionCards.isEmpty() &&
-          selected == scannedSessionCards.size());
+          selectedSessionCardIds.size() == scannedSessionCards.size());
       updatingSessionSelection = false;
     }
   }
@@ -2724,7 +2818,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             CardInfo card = findCollectionCard(collectionItemId);
             if (card != null) {
               card.addGroup(name);
-              count++;
+              count += card.getQuantityCount();
             }
           }
           DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
@@ -2745,6 +2839,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanSessionDialog.setOnDismissListener(dismissed -> {
       scanSessionOpen = false;
       scanSessionDialog = null;
+      scanSessionList = null;
       selectAllSessionCards = null;
       sessionSelectionCount = null;
       createSessionGroupButton = null;
@@ -2756,21 +2851,36 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void openSessionCardDetails(CardInfo card) {
+    rememberSessionScrollForDetail();
+    reopenScanSessionAfterDetail = true;
     cardDetailOpen = true;
     if (scanSessionDialog != null) scanSessionDialog.dismiss();
-    openCardDetails(card);
+    Intent intent = new Intent(this, Main2Activity.class);
+    intent.putExtra(Main2Activity.EXTRA_CARD_NAME, card.getName());
+    intent.putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, card.getCollectionItemId());
+    startActivity(intent);
   }
 
   private void openSessionCardGallery(CardInfo card) {
+    rememberSessionScrollForDetail();
     List<CardInfo> latestFirst = new ArrayList<>(scannedSessionCards);
     Collections.reverse(latestFirst);
-    boolean opened = openCardGallery(card, latestFirst);
+    boolean opened = CardGalleryLauncher.openCards(this, latestFirst, card.getCollectionItemId());
     if (opened && scanSessionDialog != null) {
+      reopenScanSessionAfterDetail = true;
+      cardDetailOpen = true;
       scanSessionDialog.dismiss();
     }
   }
 
-  private void retrySessionCard(CardInfo sessionCard) {
+  private void rememberSessionScrollForDetail() {
+    if (scanSessionList == null) return;
+    pendingSessionScrollPosition = Math.max(0, scanSessionList.getFirstVisiblePosition());
+    View first = scanSessionList.getChildAt(0);
+    pendingSessionScrollOffset = first == null ? 0 : first.getTop() - scanSessionList.getPaddingTop();
+  }
+
+  private void retrySessionCard(CardInfo sessionCard, boolean forcePriceRefresh) {
     CardInfo current = findCollectionCard(sessionCard.getCollectionItemId());
     if (current == null || scanMetadataLoadingIds.contains(current.getCollectionItemId())) return;
     String id = current.getCollectionItemId();
@@ -2781,15 +2891,26 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (!wasComplete) scanReadyNotifiedIds.remove(id);
     updateScanSessionUi();
     int persistorIndex = findCardInfoInPersistor(current);
-    if (persistorIndex >= 0) requestCardInfo(current, persistorIndex, false);
+    if (persistorIndex >= 0) requestCardInfo(current, persistorIndex, forcePriceRefresh);
   }
 
-  private void retryAllSessionCards() {
-    List<CardInfo> pending = new ArrayList<>(scannedSessionCards);
-    for (CardInfo card : pending) {
-      if (!scanMetadataLoadingIds.contains(card.getCollectionItemId())) {
-        retrySessionCard(card);
+  private void refreshSessionCards(boolean missingOnly) {
+    ScanSessionRefreshCoordinator.Task task = new ScanSessionRefreshCoordinator.Task() {
+      @Override public boolean isIncomplete(CardInfo card) { return !isCardDataComplete(card); }
+
+      @Override public void refresh(CardInfo card, boolean forcePriceRefresh) {
+        if (!scanMetadataLoadingIds.contains(card.getCollectionItemId())) {
+          retrySessionCard(card, forcePriceRefresh);
+        }
       }
+    };
+    if (missingOnly) {
+      sessionRefreshCoordinator.refreshMissing(scannedSessionCards, task);
+    } else {
+      cardRepository.refreshPriceIndex(updated -> {
+        sessionRefreshCoordinator.refreshAll(scannedSessionCards, task);
+        return kotlin.Unit.INSTANCE;
+      });
     }
   }
 
@@ -3011,6 +3132,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           .setTextColor(Color.WHITE)
           .setActionTextColor(MagicPalette.secondaryColor(this));
       ViewGroup snackbarView = (ViewGroup) snackbar.getView();
+      ViewGroup.LayoutParams rawSnackbarParams = snackbarView.getLayoutParams();
+      if (rawSnackbarParams instanceof ViewGroup.MarginLayoutParams) {
+        ViewGroup.MarginLayoutParams snackbarParams =
+            (ViewGroup.MarginLayoutParams) rawSnackbarParams;
+        snackbarParams.bottomMargin += dp(40);
+        snackbarView.setLayoutParams(snackbarParams);
+      }
       View defaultContent = snackbarView.getChildAt(0);
       if (defaultContent != null) defaultContent.setVisibility(View.GONE);
 
@@ -3105,7 +3233,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       CardImageCache.displayKeepingCurrent(this, card.getImgPath(), activeScanThumbnail);
     }
     if (activeScanPrice != null) {
-      String price = safe(card.getPrice()).trim();
+      String price = PriceCurrency.format(this, card);
       activeScanPrice.setText(price);
       activeScanPrice.setVisibility(price.length() == 0 ? View.GONE : View.VISIBLE);
     }
@@ -3218,14 +3346,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         break;
       }
     }
-    scannedSessionCards.removeIf(card -> collectionItemId.equals(card.getCollectionItemId()));
+    for (int index = scannedSessionCards.size() - 1; index >= 0; index--) {
+      if (collectionItemId.equals(scannedSessionCards.get(index).getCollectionItemId())) {
+        scannedSessionCards.remove(index);
+      }
+    }
     selectedSessionCardIds.remove(collectionItemId);
     scanMetadataLoadingIds.remove(collectionItemId);
     scanMetadataFailedIds.remove(collectionItemId);
     scanReadyNotifiedIds.remove(collectionItemId);
     scanLanguageLoadingIds.remove(collectionItemId);
     scanLanguageReselectAttemptedIds.remove(collectionItemId);
-    readyScanNotifications.removeIf(card -> collectionItemId.equals(card.getCollectionItemId()));
+    java.util.Iterator<CardInfo> readyIterator = readyScanNotifications.iterator();
+    while (readyIterator.hasNext()) {
+      if (collectionItemId.equals(readyIterator.next().getCollectionItemId())) readyIterator.remove();
+    }
     if (activeScanCardId != null && activeScanCardId.equals(collectionItemId) &&
         activeScanSnackbar != null) {
       activeScanSnackbar.dismiss();
@@ -3291,6 +3426,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void openScannerWithEngine(boolean mlKitJapanese) {
+    activeScanGroupName = currentFilterKey.startsWith("group:")
+        ? currentFilterKey.substring("group:".length())
+        : "";
     if (useMlKitJapaneseOcr != mlKitJapanese || mCameraSource == null) {
       if (mPreview != null) mPreview.release();
       mCameraSource = null;

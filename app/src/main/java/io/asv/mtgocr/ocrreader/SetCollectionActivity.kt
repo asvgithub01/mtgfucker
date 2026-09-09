@@ -25,10 +25,8 @@ import com.google.android.material.snackbar.Snackbar
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.SetCardOption
+import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import io.asv.mtgocr.ocrreader.model.CardInfo
-import java.text.NumberFormat
-import java.util.Currency
-import java.util.Locale
 
 class SetCollectionActivity : AppCompatActivity() {
     private lateinit var repository: CardRepository
@@ -59,6 +57,7 @@ class SetCollectionActivity : AppCompatActivity() {
         addButton = findViewById(R.id.btnAddSetCards)
         selectAll = findViewById(R.id.checkSelectAllSetCards)
         adapter = SetCardAdapter(
+            context = this,
             onSelectionChanged = { selectedCount ->
                 addButton.isEnabled = selectedCount > 0
                 addButton.text = getString(R.string.add_selected_cards_count, selectedCount)
@@ -208,6 +207,7 @@ class SetCollectionActivity : AppCompatActivity() {
 }
 
 private class SetCardAdapter(
+    private val context: android.content.Context,
     private val onSelectionChanged: (Int) -> Unit,
     private val onGalleryClicked: (SetCardOption) -> Unit,
     private val onDetailsClicked: (SetCardOption) -> Unit
@@ -240,7 +240,10 @@ private class SetCardAdapter(
     private fun applySort() {
         items = when (sortMode) {
             1 -> sourceItems.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.cardName })
-            2 -> sourceItems.sortedByDescending { it.price ?: Double.NEGATIVE_INFINITY }
+            2 -> sourceItems.sortedByDescending {
+                it.price?.let { price -> PriceCurrency.convert(context, price, it.currency.orEmpty()) }
+                    ?: Double.NEGATIVE_INFINITY
+            }
             3 -> sourceItems.sortedWith { left, right ->
                 val bySet = left.setName.compareTo(right.setName, ignoreCase = true)
                 if (bySet != 0) {
@@ -324,11 +327,7 @@ private class SetCardAdapter(
             toggle: () -> Unit
         ) {
             price.text = item.price?.let { amount ->
-                runCatching {
-                    NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                        currency = Currency.getInstance(item.currency ?: "EUR")
-                    }.format(amount)
-                }.getOrElse { "%.2f %s".format(amount, item.currency.orEmpty()) }
+                PriceCurrency.format(itemView.context, amount, item.currency ?: PriceCurrency.EUR)
             } ?: itemView.context.getString(R.string.no_price)
             check.text = if (owned) {
                 "${item.cardName} · #${item.collectorNumber} · ${itemView.context.getString(R.string.already_owned)}"

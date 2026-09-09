@@ -308,6 +308,30 @@
                     android:text="@string/price_sources_description"
                     android:textColor="?attr/appGlassTextColor"
                     android:textSize="14sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/display_currency_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:text="@string/display_currency_description"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="14sp" />
+                <Spinner
+                    android:id="@+id/displayCurrencySpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/spinner_background"
+                    android:entries="@array/display_currency_options"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp" />
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/priceSourcesRecycler"
                     android:layout_width="match_parent"

@@ -363,6 +363,17 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** Refreshes the global daily snapshot once before a multi-card session refresh. */
+    fun refreshPriceIndex(callback: (Boolean) -> Unit = {}) {
+        priceIndexExecutor.execute {
+            val ready = runCatching { priceProvider.prepare(true) }
+                .onFailure { Log.w(TAG, "No se pudo actualizar el índice global de precios", it) }
+                .isSuccess
+            if (ready) invalidatePriceSourceOrder()
+            mainHandler.post { callback(ready) }
+        }
+    }
+
     fun suggestCardNames(query: String, callback: (List<CardNameSuggestion>) -> Unit) {
         nameExecutor.execute {
             runCatching { nameResolver.preparePredictionIndex() }

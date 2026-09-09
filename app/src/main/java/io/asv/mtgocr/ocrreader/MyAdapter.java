@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
+import io.asv.mtgocr.ocrreader.data.PriceCurrency;
 import io.asv.mtgocr.ocrreader.model.CardCondition;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -193,7 +194,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mtxtPrice.setVisibility(View.VISIBLE);
 
       holder.mtxtName.setText(item.getName());
-      holder.mtxtPrice.setText(item.getPrice());
+      holder.mtxtPrice.setText(PriceCurrency.format(mContext, item));
       holder.txtQuantity.setText(String.valueOf(item.getQuantityCount()));
       holder.mFoilBadge.setVisibility(CardFinish.isFoil(item.getFinish()) ? View.VISIBLE : View.GONE);
       StringBuilder groups = new StringBuilder();

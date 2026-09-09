@@ -20,11 +20,10 @@ import com.bumptech.glide.Glide
 import io.asv.mtgocr.ocrreader.data.CardEditionOption
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
+import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import io.asv.mtgocr.ocrreader.data.ScanPrintingPolicy
 import io.asv.mtgocr.ocrreader.model.CardInfo
 import java.io.File
-import java.text.NumberFormat
-import java.util.Currency
 import java.util.Locale
 
 class PhotoScanDetailActivity : AppCompatActivity() {
@@ -76,8 +75,10 @@ class PhotoScanDetailActivity : AppCompatActivity() {
     private fun render() {
         val owned = LegacyCollectionStore.cards(this)
         adapter.submit(entry.cards, owned)
-        val currencyCode = entry.cards.firstOrNull()?.currency?.ifBlank { "EUR" } ?: "EUR"
-        val formatted = formatMoney(entry.totalPrice(), currencyCode)
+        val convertedTotal = entry.cards.sumOf { card ->
+            PriceCurrency.convert(this, (card.price ?: 0.0) * card.detectedQuantity, card.currency)
+        }
+        val formatted = PriceCurrency.format(this, convertedTotal, PriceCurrency.preferred(this))
         total.text = getString(R.string.photo_total_price, formatted)
         val count = entry.cards.sumOf { it.detectedQuantity }
         summary.text = getString(R.string.photo_detail_summary, count)
@@ -107,7 +108,7 @@ class PhotoScanDetailActivity : AppCompatActivity() {
             }
             val labels = options.map {
                 "${it.setName} (${it.setCode}) · #${it.collectorNumber} · ${it.finish} · " +
-                    (it.price?.let { price -> formatMoney(price, it.currency ?: "EUR") }
+                    (it.price?.let { price -> PriceCurrency.format(this, price, it.currency ?: PriceCurrency.EUR) }
                         ?: getString(R.string.no_price))
             }.toTypedArray()
             AlertDialog.Builder(this)
@@ -236,12 +237,6 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         currency = currency ?: "EUR"
     )
 
-    private fun formatMoney(amount: Double, currencyCode: String): String = runCatching {
-        NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-            currency = Currency.getInstance(currencyCode)
-        }.format(amount)
-    }.getOrElse { "%.2f %s".format(amount, currencyCode) }
-
     companion object {
         const val EXTRA_PHOTO_SCAN_ID = "photoScanId"
     }
@@ -300,7 +295,9 @@ private class DetectedCardAdapter(
             removeCard: (PhotoScanCard) -> Unit
         ) {
             name.text = card.displayName
-            val price = card.price?.let { "%.2f %s".format(it, card.currency) }
+            val price = card.price?.let {
+                PriceCurrency.format(itemView.context, it, card.currency)
+            }
                 ?: itemView.context.getString(R.string.no_price)
             meta.text = itemView.context.getString(
                 R.string.detected_card_meta,

@@ -3,6 +3,7 @@ package io.asv.mtgocr.ocrreader
 import android.content.Context
 import android.content.Intent
 import io.asv.mtgocr.ocrreader.data.SetCardOption
+import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import io.asv.mtgocr.ocrreader.model.CardInfo
 
 /** Opens the existing full-screen card pager with the cards currently visible in a list. */
@@ -18,7 +19,7 @@ object CardGalleryLauncher {
                 cardLabel(card.name.orEmpty(), card.setCode.orEmpty(), card.collectorNumber.orEmpty()),
                 card.setCode.orEmpty(),
                 card.collectorNumber.orEmpty(),
-                card.price.orEmpty(),
+                PriceCurrency.format(context, card),
                 card.finish.orEmpty()
             )
         }
@@ -41,7 +42,9 @@ object CardGalleryLauncher {
                 cardLabel(card.cardName, card.setCode, card.collectorNumber),
                 card.setCode,
                 card.collectorNumber,
-                card.price?.let { "%.2f %s".format(it, card.currency.orEmpty()) }.orEmpty(),
+                card.price?.let {
+                    PriceCurrency.format(context, it, card.currency.orEmpty())
+                }.orEmpty(),
                 card.finish
             )
         }
@@ -64,7 +67,7 @@ object CardGalleryLauncher {
                 cardLabel(card.displayName, card.setCode, card.collectorNumber),
                 card.setCode,
                 card.collectorNumber,
-                card.price?.let { "%.2f %s".format(it, card.currency) }.orEmpty(),
+                card.price?.let { PriceCurrency.format(context, it, card.currency) }.orEmpty(),
                 card.finish
             )
         }

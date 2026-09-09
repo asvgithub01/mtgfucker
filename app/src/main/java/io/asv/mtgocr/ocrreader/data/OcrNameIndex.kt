@@ -102,8 +102,7 @@ internal object OcrNameQueries {
         val usable = variants.filter { normalized ->
             normalized.length <= 80 && (
                 normalized.length >= 3 || normalized.any { character ->
-                    Character.isLetter(character) &&
-                        Character.UnicodeScript.of(character.code) != Character.UnicodeScript.LATIN
+                    Character.isLetter(character) && character.code > 127
                 }
             )
         }

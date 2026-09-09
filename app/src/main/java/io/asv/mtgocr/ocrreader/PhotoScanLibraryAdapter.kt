@@ -8,10 +8,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import java.io.File
-import java.text.NumberFormat
-import java.util.Currency
-import java.util.Locale
 
 class PhotoScanLibraryAdapter(
     private val onOpen: (PhotoScanEntry) -> Unit,
@@ -44,12 +42,18 @@ class PhotoScanLibraryAdapter(
 
         fun bind(entry: PhotoScanEntry, open: (PhotoScanEntry) -> Unit, remove: (PhotoScanEntry) -> Unit) {
             Glide.with(itemView.context).load(File(entry.imagePath)).dontAnimate().centerCrop().into(image)
-            val currency = entry.cards.firstOrNull()?.currency?.ifBlank { "EUR" } ?: "EUR"
-            total.text = runCatching {
-                NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                    this.currency = Currency.getInstance(currency)
-                }.format(entry.totalPrice())
-            }.getOrElse { "%.2f %s".format(entry.totalPrice(), currency) }
+            val convertedTotal = entry.cards.sumOf { card ->
+                PriceCurrency.convert(
+                    itemView.context,
+                    (card.price ?: 0.0) * card.detectedQuantity,
+                    card.currency
+                )
+            }
+            total.text = PriceCurrency.format(
+                itemView.context,
+                convertedTotal,
+                PriceCurrency.preferred(itemView.context)
+            )
             summary.text = entry.cards.joinToString(" · ") {
                 "${it.detectedQuantity}× ${it.displayName}"
             }.ifBlank { itemView.context.getString(R.string.photo_no_cards_yet) }

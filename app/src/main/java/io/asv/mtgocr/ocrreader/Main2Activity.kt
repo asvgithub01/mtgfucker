@@ -29,10 +29,9 @@ import io.asv.mtgocr.ocrreader.data.CardLanguage
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.OwnedPrintingEntity
+import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardCondition
-import java.text.NumberFormat
-import java.util.Currency
 import java.util.Locale
 import java.util.concurrent.Future
 
@@ -61,6 +60,7 @@ class Main2Activity : AppCompatActivity() {
     private var editionOptions: List<CardEditionOption> = emptyList()
     private var languageVariants: List<CardImageVariant> = emptyList()
     private var languageRequest = 0
+    private var languageEditionReselectAttempted = false
     private var cardLoadTask: Future<*>? = null
     private var languageLoadTask: Future<*>? = null
     private var ownedCondition: String = CardCondition.NEAR_MINT
@@ -239,7 +239,8 @@ class Main2Activity : AppCompatActivity() {
     private fun refreshOwnedConditionPrice() {
         val card = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
             ?.firstOrNull { it.collectionItemId == collectionItemId }
-        val value = card?.price?.takeIf { it.isNotBlank() } ?: getString(R.string.no_price)
+        val value = card?.let { PriceCurrency.format(this, it) }?.takeIf { it.isNotBlank() }
+            ?: getString(R.string.no_price)
         conditionPrice.text = getString(R.string.card_condition_price, value)
     }
 
@@ -313,6 +314,32 @@ class Main2Activity : AppCompatActivity() {
             if (isFinishing || isDestroyed) return@loadImageLanguages
             if (request != languageRequest) return@loadImageLanguages
             languageProgress.visibility = View.GONE
+            val savedCard = ownedCard()
+            val savedLanguage = CardLanguage.toCode(savedCard?.languageCode)
+            if (savedLanguage.isNotBlank() && savedLanguage != "en" &&
+                loaded.none { it.languageCode == savedLanguage } &&
+                !languageEditionReselectAttempted
+            ) {
+                languageEditionReselectAttempted = true
+                repository.findLocalizedEdition(cardName, savedLanguage, option.finish) { localized, _ ->
+                    if (localized != null && !isFinishing && !isDestroyed) {
+                        repository.selectEdition(collectionItemId, localized) {
+                            LegacyCollectionStore.updateSelectedEdition(this, collectionItemId, localized)
+                            selected = OwnedPrintingEntity(
+                                collectionItemId,
+                                localized.cardName,
+                                localized.printingUuid,
+                                localized.finish,
+                                System.currentTimeMillis()
+                            )
+                            adapter.setSelected(selected)
+                            showSelectedImage(localized)
+                            setResult(RESULT_OK)
+                        }
+                    }
+                }
+                return@loadImageLanguages
+            }
             if (loaded.isEmpty()) return@loadImageLanguages
             languageVariants = loaded
             languageSpinner.adapter = ArrayAdapter(
@@ -324,9 +351,9 @@ class Main2Activity : AppCompatActivity() {
             val owned = ownedCard().takeIf {
                 it?.printingUuid == option.printingUuid && it.finish == option.finish
             }
-            val savedLanguage = CardLanguage.toCode(owned?.languageCode)
+            val savedLanguageForPrinting = CardLanguage.toCode(owned?.languageCode)
             val preferred = loaded.indexOfFirst {
-                savedLanguage.isNotBlank() && it.languageCode == savedLanguage
+                savedLanguageForPrinting.isNotBlank() && it.languageCode == savedLanguageForPrinting
             }.takeIf { it >= 0 }
                 ?: loaded.indexOfFirst { it.imageUrl == owned?.imgPath || it.imageUrl == option.imageUrl }
                 .takeIf { it >= 0 }
@@ -437,11 +464,7 @@ class Main2Activity : AppCompatActivity() {
 
     private fun formatEditionPrice(option: CardEditionOption): String {
         val value = option.price?.let { amount ->
-            runCatching {
-                NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                    currency = Currency.getInstance(option.currency ?: "EUR")
-                }.format(amount)
-            }.getOrElse { "%.2f %s".format(amount, option.currency.orEmpty()) }
+            PriceCurrency.format(this, amount, option.currency ?: PriceCurrency.EUR)
         } ?: getString(R.string.no_price)
         return getString(R.string.near_mint_price_value, value)
     }
@@ -531,11 +554,7 @@ private class EditionAdapter(
                 if (option.isFoil) itemView.context.getString(R.string.foil) else itemView.context.getString(R.string.nonfoil)
             )
             val priceValue = option.price?.let { amount ->
-                runCatching {
-                    NumberFormat.getCurrencyInstance(Locale.getDefault()).apply {
-                        currency = Currency.getInstance(option.currency ?: "EUR")
-                    }.format(amount)
-                }.getOrElse { "%.2f %s".format(amount, option.currency.orEmpty()) }
+                PriceCurrency.format(itemView.context, amount, option.currency ?: PriceCurrency.EUR)
             } ?: itemView.context.getString(R.string.no_price)
             price.text = itemView.context.getString(R.string.near_mint_price_value, priceValue)
             CardImageCache.display(itemView.context, option.imageUrl, image)

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="128dp"
     android:background="?attr/selectableItemBackground"
@@ -12,9 +13,18 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
+    <TextView
+        android:id="@+id/scanSessionNumber"
+        android:layout_width="50dp"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:textColor="?attr/colorSecondary"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
     <CheckBox
         android:id="@+id/scanSessionSelected"
-        android:layout_width="40dp"
+        android:layout_width="36dp"
         android:layout_height="match_parent"
         android:buttonTint="?attr/colorPrimary"
         android:contentDescription="@string/select_session_card" />
@@ -153,7 +163,7 @@
                 android:contentDescription="@string/retry_card_info"
                 android:padding="8dp"
                 android:src="@drawable/ic_refresh"
-                android:tint="#5C4930" />
+                app:tint="#5C4930" />
 
             <ImageButton
                 android:id="@+id/scanSessionDelete"
@@ -163,7 +173,7 @@
                 android:contentDescription="@string/delete_session_card"
                 android:padding="8dp"
                 android:src="@drawable/ic_delete"
-                android:tint="#A12828" />
+                app:tint="#A12828" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

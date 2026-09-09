@@ -12,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
 import io.asv.mtgocr.ocrreader.model.CardCondition;
+import io.asv.mtgocr.ocrreader.data.PriceCurrency;
 import java.util.List;
 
 /** Latest-first summary of cards added during the current scanner session. */
@@ -51,6 +52,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     View view = convertView;
     if (view == null) view = LayoutInflater.from(context).inflate(R.layout.scan_session_item, parent, false);
     CardInfo card = getItem(position);
+    TextView number = view.findViewById(R.id.scanSessionNumber);
     ImageView image = view.findViewById(R.id.scanSessionImage);
     TextView name = view.findViewById(R.id.scanSessionName);
     TextView edition = view.findViewById(R.id.scanSessionEdition);
@@ -63,6 +65,13 @@ final class ScanSessionAdapter extends BaseAdapter {
     ImageButton delete = view.findViewById(R.id.scanSessionDelete);
     CheckBox selected = view.findViewById(R.id.scanSessionSelected);
     name.setText(card.getName());
+    int chronologicalIndex = cards.size() - 1 - position;
+    kotlin.ranges.IntRange copyRange = ScanSessionCounts.range(cards, chronologicalIndex);
+    int firstCopy = copyRange.getFirst();
+    int lastCopy = copyRange.getLast();
+    number.setText(firstCopy == lastCopy
+        ? "#" + firstCopy
+        : "#" + firstCopy + "–#" + lastCopy);
     String setName = card.getSetName() == null ? "" : card.getSetName().trim();
     String setCode = card.getSetCode() == null ? "" : card.getSetCode().trim();
     String collector = card.getCollectorNumber() == null ? "" : card.getCollectorNumber().trim();
@@ -79,7 +88,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     quantity.setText(String.valueOf(card.getQuantityCount()));
     decrease.setOnClickListener(clicked -> listener.onDecreaseQuantity(card));
     increase.setOnClickListener(clicked -> listener.onIncreaseQuantity(card));
-    String value = card.getPrice() == null ? "" : card.getPrice().trim();
+    String value = PriceCurrency.format(context, card);
     price.setText(value);
     price.setVisibility(value.isEmpty() ? View.INVISIBLE : View.VISIBLE);
     String imageUrl = card.getImgPath() == null ? "" : card.getImgPath().trim();

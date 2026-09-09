@@ -2042,7 +2042,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     return value == null ? "" : value;
   }
 
-  private boolean hasPriceForTotal(CardInfo card) { return hasCardPrice(card); }
+  private boolean hasPriceForTotal(CardInfo card) { return PriceCurrency.hasAmount(card); }
 
   private boolean matchesCurrentFilter(CardInfo card) {
     String query = normalizeForFilter(currentTextFilter);
@@ -2599,14 +2599,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     if (scanSessionTotalText != null) {
       double total = 0d;
-      boolean allPricesReady = !scannedSessionCards.isEmpty();
+      int totalCopies = sessionCopyCount();
+      int pricedCopies = ScanSessionCounts.priced(scannedSessionCards);
+      boolean allPricesReady = totalCopies > 0 && pricedCopies == totalCopies;
       for (CardInfo card : scannedSessionCards) {
-        total += parseCardPrice(card) * card.getQuantityCount();
-        if (!hasPriceForTotal(card)) allPricesReady = false;
+        if (hasPriceForTotal(card)) {
+          total += parseCardPrice(card) * card.getQuantityCount();
+        }
       }
-      scanSessionTotalText.setText(
-          getString(R.string.scan_session_total,
-              PriceCurrency.format(this, total, PriceCurrency.preferred(this))));
+      String formattedTotal = PriceCurrency.format(this, total, PriceCurrency.preferred(this));
+      scanSessionTotalText.setText(!allPricesReady && totalCopies > 0
+          ? getString(R.string.scan_session_total_progress, pricedCopies, totalCopies, formattedTotal)
+          : getString(R.string.scan_session_total, formattedTotal));
       int totalColor = scannedSessionCards.isEmpty()
           ? MagicPalette.secondaryColor(this)
           : ContextCompat.getColor(this, allPricesReady
@@ -2976,7 +2980,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private boolean hasCardPrice(CardInfo card) {
-    return safe(card.getPriceM()).trim().length() > 0 || safe(card.getPrice()).trim().length() > 0;
+    return card != null && PriceCurrency.hasAmount(card);
   }
 
   private boolean isCardDataComplete(CardInfo card) {

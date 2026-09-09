@@ -194,6 +194,7 @@
     <string name="scan_session_count">Sesión (%1$d)</string>
     <string name="scan_session_total_empty">Total: 0,00 €</string>
     <string name="scan_session_total">Total: %1$s</string>
+    <string name="scan_session_total_progress">%1$d/%2$d · Total: %3$s</string>
     <string name="scan_session_title">Capturas de esta sesión (%1$d)</string>
     <string name="scan_session_no_cards">Todavía no has escaneado ninguna carta en esta sesión.</string>
     <string name="scan_session_choose_edition_hint">Toca una carta para revisar o cambiar su edición.</string>

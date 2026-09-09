@@ -18,5 +18,16 @@ class ScanSessionCountsTest {
         assertEquals(4..6, ScanSessionCounts.range(cards, 2))
     }
 
+    @Test
+    fun priceProgressCountsOnlyPhysicalCopiesIncludedInTheTotal() {
+        val medianPrice = card("A", 2).apply { priceM = "0.20" }
+        val basePrice = CardInfo("B", "1,50 EUR", "", "", "2")
+        val unavailable = CardInfo("C", "sin precio", "", "", "3")
+        val cards = listOf(medianPrice, basePrice, unavailable)
+
+        assertEquals(7, ScanSessionCounts.total(cards))
+        assertEquals(4, ScanSessionCounts.priced(cards))
+    }
+
     private fun card(name: String, quantity: Int) = CardInfo(name, "", "", "", quantity.toString())
 }

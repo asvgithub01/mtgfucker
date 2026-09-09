@@ -72,14 +72,18 @@ object PriceCurrency {
 
     @JvmStatic
     fun amount(context: Context, card: CardInfo): Double {
-        val rawAmount = PriceMath.parse(card.priceM).orElse { PriceMath.parse(card.basePrice) } ?: return 0.0
+        val rawAmount = rawAmount(card) ?: return 0.0
         val adjusted = CardCondition.adjustedAmount(rawAmount, card.condition)
         return convert(context, adjusted, sourceCurrency(card.basePrice))
     }
 
+    /** True only when the same value used by [amount] can actually be parsed. */
+    @JvmStatic
+    fun hasAmount(card: CardInfo): Boolean = rawAmount(card) != null
+
     @JvmStatic
     fun format(context: Context, card: CardInfo): String {
-        if (PriceMath.parse(card.priceM).orElse { PriceMath.parse(card.basePrice) } == null) return ""
+        if (!hasAmount(card)) return ""
         return formatAmount(amount(context, card), preferred(context))
     }
 
@@ -133,6 +137,9 @@ object PriceCurrency {
         .getFloat(KEY_EUR_USD, DEFAULT_EUR_USD)
         .toDouble()
         .coerceAtLeast(0.0001)
+
+    private fun rawAmount(card: CardInfo): Double? =
+        PriceMath.parse(card.priceM).orElse { PriceMath.parse(card.basePrice) }
 
     private fun formatAmount(amount: Double, currencyCode: String): String {
         return runCatching {

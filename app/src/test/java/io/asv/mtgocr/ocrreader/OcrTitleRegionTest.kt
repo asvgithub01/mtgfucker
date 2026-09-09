@@ -11,4 +11,13 @@ class OcrTitleRegionTest {
         assertFalse(region.contains(540, 1200))
         assertFalse(region.contains(10, 10))
     }
+
+    @Test fun contrastSampleStaysInsideTheNameHeaderAndOutOfArtwork() {
+        val title = OcrTitleRegion.forFrame(1080, 2400)
+        val sample = OcrTitleRegion.contrastSampleForFrame(1080, 2400)
+        assertTrue(sample.left > title.left)
+        assertTrue(sample.right < title.right)
+        assertTrue(sample.bottom < title.bottom)
+        assertTrue(sample.top == title.top)
+    }
 }

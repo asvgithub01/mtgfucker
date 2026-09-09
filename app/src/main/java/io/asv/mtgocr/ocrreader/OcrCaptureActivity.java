@@ -482,7 +482,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void handleAutomaticOcr(List<String> candidates) {
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
-        !isScannerReaderActive() || scanLookupInFlight || scanInProgress) return;
+        !isScannerReaderActive()) return;
+    if (candidates == null || candidates.isEmpty()) {
+      // This does not slow down recognition: it only rearms the last name after two clear frames.
+      scanStability.observeNoCandidate();
+      return;
+    }
+    scanStability.observeCandidatePresent();
+    if (scanLookupInFlight || scanInProgress) return;
     long now = SystemClock.elapsedRealtime();
     if (now - lastOcrLookupAt < 120L) return;
     lastOcrLookupAt = now;

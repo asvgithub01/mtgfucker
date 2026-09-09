@@ -7,15 +7,25 @@ public final class OcrTitleRegion {
   private OcrTitleRegion() { }
 
   public static Bounds forFrame(int width, int height) {
+    return boundsForCard(width, height, .03f, .025f, .97f, .22f);
+  }
+
+  /** Inner printed-name strip, excluding artwork and dark card edges from contrast statistics. */
+  public static Bounds contrastSampleForFrame(int width, int height) {
+    return boundsForCard(width, height, .08f, .025f, .92f, .105f);
+  }
+
+  private static Bounds boundsForCard(int width, int height, float leftFraction,
+      float topFraction, float rightFraction, float bottomFraction) {
     float cardHeight = Math.min(height * .72f, width * .92f / CARD_ASPECT_RATIO);
     float cardWidth = cardHeight * CARD_ASPECT_RATIO;
     float cardLeft = (width - cardWidth) / 2f;
     float cardTop = (height - cardHeight) / 2f;
     return new Bounds(
-        Math.round(cardLeft + cardWidth * .03f),
-        Math.round(cardTop + cardHeight * .025f),
-        Math.round(cardLeft + cardWidth * .97f),
-        Math.round(cardTop + cardHeight * .22f)
+        Math.round(cardLeft + cardWidth * leftFraction),
+        Math.round(cardTop + cardHeight * topFraction),
+        Math.round(cardLeft + cardWidth * rightFraction),
+        Math.round(cardTop + cardHeight * bottomFraction)
     );
   }
 

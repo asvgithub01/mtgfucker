@@ -44,8 +44,7 @@ final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLin
         addCandidate(candidates, line.getText());
       }
     }
-    // Empty frames are meaningful: they let the activity detect a physical-card transition.
-    if (listener != null) listener.onTextCandidates(candidates);
+    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
   }
 
   private static void addCandidate(List<String> candidates, String rawText) {

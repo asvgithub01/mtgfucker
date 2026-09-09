@@ -6,6 +6,7 @@ import android.util.SparseArray;
 import com.google.android.gms.vision.Detector;
 
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
+import io.asv.mtgocr.ocrreader.ui.camera.CardFrameColorContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
 /** Extracts title candidates from ML Kit while keeping the proven local name-matching flow. */
 final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLine> {
   interface TextCandidateListener {
-    void onTextCandidates(List<String> candidates);
+    void onTextCandidates(List<String> candidates, String observedColor);
   }
 
   private final GraphicOverlay<?> graphicOverlay;
@@ -44,7 +45,9 @@ final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLin
         addCandidate(candidates, line.getText());
       }
     }
-    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
+    if (listener != null && !candidates.isEmpty()) {
+      listener.onTextCandidates(candidates, CardFrameColorContext.current());
+    }
   }
 
   private static void addCandidate(List<String> candidates, String rawText) {

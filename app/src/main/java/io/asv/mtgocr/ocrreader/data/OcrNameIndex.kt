@@ -1,19 +1,27 @@
 package io.asv.mtgocr.ocrreader.data
 
 /** In-memory fuzzy lookup for imperfect OCR from faded, white-framed and older cards. */
-internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
+internal class OcrNameIndex(
+    aliases: List<CardNameAliasEntity>,
+    private val colorIndex: CardColorIndex? = null
+) {
     private val byLength = aliases.groupBy { it.normalizedAlias.length }
 
-    fun match(rawQueries: List<String>): CardNameAliasEntity? {
+    fun match(rawQueries: List<String>, observedColor: String? = null): CardNameAliasEntity? {
         var best: CardNameAliasEntity? = null
         var bestScore = Int.MAX_VALUE
         var tiedCanonical = false
-        val queries = OcrNameQueries.from(rawQueries)
+        val colorAssisted = colorIndex?.isReliableObservedColor(observedColor) == true
+        val queries = OcrNameQueries.from(rawQueries, colorAssisted)
 
         for (query in queries) {
             for (length in (query.normalized.length - query.maxDistance).coerceAtLeast(1)..
                 query.normalized.length + query.maxDistance) {
                 for (candidate in byLength[length].orEmpty()) {
+                    if (colorAssisted &&
+                        colorIndex?.isCompatible(candidate.canonicalName, observedColor) == false) {
+                        continue
+                    }
                     val distance = boundedLevenshtein(
                         query.normalized,
                         candidate.normalizedAlias,
@@ -72,7 +80,7 @@ internal object OcrNameQueries {
         fun score(distance: Int): Int = distance + omittedCharacters
     }
 
-    fun from(rawQueries: List<String>): List<Query> {
+    fun from(rawQueries: List<String>, colorAssisted: Boolean = false): List<Query> {
         val fragments = rawQueries.asSequence()
             .map(MtgJsonParsers::normalizeSearchName)
             .filter { it.isNotBlank() }
@@ -111,7 +119,8 @@ internal object OcrNameQueries {
             .map { normalized ->
                 Query(
                     normalized = normalized,
-                    maxDistance = allowedDistance(normalized.length),
+                    maxDistance = allowedDistance(normalized.length) +
+                        if (colorAssisted && normalized.length in 4..6) 1 else 0,
                     omittedCharacters = (completeLength - normalized.length).coerceAtLeast(0)
                 )
             }

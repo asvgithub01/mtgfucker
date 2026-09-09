@@ -24,18 +24,27 @@ class MtgJsonCardNameResolver(
     private val cacheDirectory = File(context.cacheDir, "mtgjson").apply { mkdirs() }
     private val atomicCardsFile = File(cacheDirectory, "AtomicCards.json.gz")
     private val predictionIndexMarker = File(cacheDirectory, "AtomicCards.names-indexed")
+    private val cardColorIndex by lazy {
+        context.assets.open("card_colors.tsv.gz").use(CardColorIndex::read)
+    }
     @Volatile private var ocrNameIndex: OcrNameIndex? = null
 
     fun cached(cardName: String): Resolution? {
         return dao.cardNameAlias(MtgJsonParsers.normalizeSearchName(cardName))?.toResolution()
     }
 
-    fun resolveLocalOcrCandidates(cardNames: List<String>): Resolution? {
-        cardNames.asSequence().mapNotNull(::cached).firstOrNull()?.let { return it }
+    fun resolveLocalOcrCandidates(
+        cardNames: List<String>,
+        observedColor: String? = null
+    ): Resolution? {
+        cardNames.asSequence()
+            .mapNotNull(::cached)
+            .firstOrNull { cardColorIndex.isCompatible(it.canonicalName, observedColor) }
+            ?.let { return it }
         // Autocomplete and automatic OCR must consult the same complete local alias catalog even
         // when the eager index build has not finished yet.
         if (ocrNameIndex == null && dao.cardNameAliasCount() > 0) prepareOcrNameIndex()
-        ocrNameIndex?.match(cardNames)?.let { return it.toResolution() }
+        ocrNameIndex?.match(cardNames, observedColor)?.let { return it.toResolution() }
         if (!atomicCardsFile.exists()) return null
         val parsed = atomicCardsFile.source().buffer().use { compressed ->
             GzipSource(compressed).buffer().use { source ->
@@ -102,7 +111,9 @@ class MtgJsonCardNameResolver(
     }
 
     private fun prepareOcrNameIndex() {
-        if (ocrNameIndex == null) ocrNameIndex = OcrNameIndex(dao.allCardNameAliases())
+        if (ocrNameIndex == null) {
+            ocrNameIndex = OcrNameIndex(dao.allCardNameAliases(), cardColorIndex)
+        }
     }
 
     fun suggestions(query: String, limit: Int): List<Resolution> {

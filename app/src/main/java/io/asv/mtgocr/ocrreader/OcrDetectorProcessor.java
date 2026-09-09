@@ -19,6 +19,7 @@ import android.util.SparseArray;
 import android.graphics.Rect;
 
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
+import io.asv.mtgocr.ocrreader.ui.camera.CardFrameColorContext;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.text.TextBlock;
 import com.google.android.gms.vision.text.Text;
@@ -35,7 +36,7 @@ public class OcrDetectorProcessor implements Detector.Processor<TextBlock> {
     private final TextCandidateListener listener;
 
     interface TextCandidateListener {
-        void onTextCandidates(List<String> candidates);
+        void onTextCandidates(List<String> candidates, String observedColor);
     }
 
     OcrDetectorProcessor(GraphicOverlay<OcrGraphic> ocrGraphicOverlay,
@@ -88,7 +89,9 @@ public class OcrDetectorProcessor implements Detector.Processor<TextBlock> {
             }
             if (acceptedBlock) mGraphicOverlay.add(new OcrGraphic(mGraphicOverlay, item));
         }
-        if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
+        if (listener != null && !candidates.isEmpty()) {
+            listener.onTextCandidates(candidates, CardFrameColorContext.current());
+        }
     }
 
     private static void addCandidate(List<String> candidates, String rawText) {

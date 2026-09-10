@@ -4,7 +4,10 @@ package io.asv.mtgocr.ocrreader.data
 internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
     private val byLength = aliases.groupBy { it.normalizedAlias.length }
 
-    fun match(rawQueries: List<String>): CardNameAliasEntity? {
+    fun match(
+        rawQueries: List<String>,
+        allowedCanonicalNames: Set<String>? = null
+    ): CardNameAliasEntity? {
         var best: CardNameAliasEntity? = null
         var bestScore = Int.MAX_VALUE
         var tiedCanonical = false
@@ -14,6 +17,9 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
             for (length in (query.normalized.length - query.maxDistance).coerceAtLeast(1)..
                 query.normalized.length + query.maxDistance) {
                 for (candidate in byLength[length].orEmpty()) {
+                    if (allowedCanonicalNames != null &&
+                        candidate.canonicalName.lowercase(java.util.Locale.ROOT) !in
+                        allowedCanonicalNames) continue
                     val distance = boundedLevenshtein(
                         query.normalized,
                         candidate.normalizedAlias,

@@ -128,6 +128,8 @@ class CardRepository private constructor(context: Context) {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val setAliasesInFlight: MutableSet<String> =
         Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    private val bundledAliasesLoaded: MutableSet<String> =
+        Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private val optionCache = object : LinkedHashMap<String, List<CardEditionOption>>(48, .75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CardEditionOption>>?): Boolean {
             return size > 48
@@ -158,19 +160,24 @@ class CardRepository private constructor(context: Context) {
         val now = System.currentTimeMillis()
         for (setCode in ScanSetLockPolicy.expand(lockedSetCodes)) {
             val key = "${setCode}_${languageCode}"
-            if (now - preferences.getLong(key, 0L) < SET_ALIAS_MAX_AGE_MILLIS) continue
+            val remoteIsFresh = now - preferences.getLong(key, 0L) < SET_ALIAS_MAX_AGE_MILLIS
+            if (remoteIsFresh && key in bundledAliasesLoaded) continue
             if (!setAliasesInFlight.add(key)) continue
             setAliasExecutor.execute {
                 try {
-                    val bundledNames = bundledSetOcrAliases(setCode, languageCode)
-                    if (bundledNames.isNotEmpty()) {
-                        nameResolver.rememberLocalizedAliases(bundledNames)
-                        Log.i(TAG, "Alias OCR incluidos $key: ${bundledNames.size}")
+                    if (bundledAliasesLoaded.add(key)) {
+                        val bundledNames = bundledSetOcrAliases(setCode, languageCode)
+                        if (bundledNames.isNotEmpty()) {
+                            nameResolver.rememberLocalizedAliases(bundledNames)
+                            Log.i(TAG, "Alias OCR incluidos $key: ${bundledNames.size}")
+                        }
                     }
-                    val names = imageProvider.getSetLocalizedNames(setCode, languageCode)
-                    nameResolver.rememberLocalizedAliases(names)
-                    preferences.edit().putLong(key, System.currentTimeMillis()).apply()
-                    Log.i(TAG, "Alias OCR $key actualizados: ${names.size}")
+                    if (!remoteIsFresh) {
+                        val names = imageProvider.getSetLocalizedNames(setCode, languageCode)
+                        nameResolver.rememberLocalizedAliases(names)
+                        preferences.edit().putLong(key, System.currentTimeMillis()).apply()
+                        Log.i(TAG, "Alias OCR $key actualizados: ${names.size}")
+                    }
                 } catch (error: Throwable) {
                     Log.w(TAG, "No se pudieron actualizar los alias OCR de $key", error)
                 } finally {
@@ -308,9 +315,19 @@ class CardRepository private constructor(context: Context) {
     }
 
     /** Local-only OCR lookup: never downloads AtomicCards and never calls a remote search API. */
-    fun matchLocalOcrText(candidates: List<String>, callback: (LocalCardNameMatch?) -> Unit) {
+    fun matchLocalOcrText(
+        candidates: List<String>,
+        lockedSetCodes: Set<String> = emptySet(),
+        callback: (LocalCardNameMatch?) -> Unit
+    ) {
         nameExecutor.execute {
-            val resolution = runCatching { nameResolver.resolveLocalOcrCandidates(candidates) }.getOrNull()
+            val locked = ScanSetLockPolicy.expand(lockedSetCodes)
+            val allowedCanonicalNames = if (locked.isEmpty()) null else {
+                dao.cardNamesBySetCodes(locked.toList()).mapTo(HashSet()) { it.lowercase(Locale.ROOT) }
+            }
+            val resolution = runCatching {
+                nameResolver.resolveLocalOcrCandidates(candidates, allowedCanonicalNames)
+            }.getOrNull()
             val match = resolution?.let {
                 LocalCardNameMatch(it.canonicalName, it.displayName, CardLanguage.toCode(it.language))
             }

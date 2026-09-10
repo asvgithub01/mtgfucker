@@ -96,6 +96,9 @@ interface CardDao {
     @Query("SELECT * FROM card_printings WHERE setCode = :setCode ORDER BY CAST(collectorNumber AS INTEGER), collectorNumber, name")
     fun printingsBySet(setCode: String): List<CardPrintingEntity>
 
+    @Query("SELECT DISTINCT name FROM card_printings WHERE setCode IN (:setCodes)")
+    fun cardNamesBySetCodes(setCodes: List<String>): List<String>
+
     @Query("SELECT * FROM card_prices WHERE printingUuid IN (:uuids)")
     fun pricesFor(uuids: List<String>): List<CardPriceEntity>
 

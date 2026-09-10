@@ -522,7 +522,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanLookupInFlight = true;
     scanLookupStartedAt = now;
     scanLookupBlockedFrames = 0;
-    cardRepository.matchLocalOcrText(candidates, match -> {
+    cardRepository.matchLocalOcrText(candidates, lockedSetCodes(), match -> {
       finishScannerLookupGate();
       if (match == null) {
         logOcrMiss(candidates);

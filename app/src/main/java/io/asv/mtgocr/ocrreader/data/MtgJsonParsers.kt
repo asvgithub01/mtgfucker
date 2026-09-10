@@ -158,7 +158,11 @@ internal object MtgJsonParsers {
     }
 
     /** Matches a small OCR candidate set in a single pass over the local AtomicCards JSON. */
-    fun readBestLocalOcrCardName(source: BufferedSource, queries: List<String>): ResolvedCardName? {
+    fun readBestLocalOcrCardName(
+        source: BufferedSource,
+        queries: List<String>,
+        allowedCanonicalNames: Set<String>? = null
+    ): ResolvedCardName? {
         val normalizedQueries = OcrNameQueries.from(queries)
         if (normalizedQueries.isEmpty()) return null
 
@@ -175,6 +179,11 @@ internal object MtgJsonParsers {
             reader.beginObject()
             while (reader.hasNext()) {
                 val canonicalKey = reader.nextName()
+                if (allowedCanonicalNames != null &&
+                    canonicalKey.lowercase(java.util.Locale.ROOT) !in allowedCanonicalNames) {
+                    reader.skipValue()
+                    continue
+                }
                 reader.beginArray()
                 while (reader.hasNext()) {
                     val candidates = readAtomicNames(reader, canonicalKey)

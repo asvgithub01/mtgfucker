@@ -5,6 +5,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Abigale, Poet Laureate // Heroic Stanza",
+    "printedName": "Avelina, poeta laureada",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Abstract Paintmage",
     "printedName": "Magapincel abstracta",
     "languageCode": "es"
@@ -12,6 +17,11 @@
   {
     "canonicalName": "Additive Evolution",
     "printedName": "Evolución acumulativa",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Adventurous Eater // Have a Bite",
+    "printedName": "Valiente voraz",
     "languageCode": "es"
   },
   {
@@ -90,6 +100,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Blazing Firesinger // Seething Song",
+    "printedName": "Cantora ígnea flamante",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Blech, Loafing Pest",
     "printedName": "Blech, la Plaga holgazana",
     "languageCode": "es"
@@ -120,6 +135,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Campus Composer // Aqueous Aria",
+    "printedName": "Compositor del campus",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Cauldron of Essence",
     "printedName": "Caldero de esencias",
     "languageCode": "es"
@@ -132,6 +152,11 @@
   {
     "canonicalName": "Chase Inspiration",
     "printedName": "Tras la inspiración",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Cheerful Osteomancer // Raise Dead",
+    "printedName": "Osteomante jubilosa",
     "languageCode": "es"
   },
   {
@@ -250,13 +275,48 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Elite Interceptor // Rejoinder",
+    "printedName": "Interceptora de élite",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Embrace the Paradox",
     "printedName": "Aceptar la paradoja",
     "languageCode": "es"
   },
   {
+    "canonicalName": "Emeritus of Abundance // Regrowth",
+    "printedName": "Emérita de la abundancia",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Emeritus of Conflict // Lightning Bolt",
+    "printedName": "Emérita del conflicto",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Emeritus of Ideation // Ancestral Recall",
+    "printedName": "Emérito de la ideación",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Emeritus of Truce // Swords to Plowshares",
+    "printedName": "Emérito de la tregua",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Emeritus of Woe // Demonic Tutor",
+    "printedName": "Emérita de la miseria",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Emil, Vastlands Roamer",
     "printedName": "Emil, errante de las Tierras Extensas",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Encouraging Aviator // Jump",
+    "printedName": "Aviadora alentadora",
     "languageCode": "es"
   },
   {
@@ -390,6 +450,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Goblin Glasswright // Craft with Pride",
+    "printedName": "Trasgo vidriólogo",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Graduation Day",
     "printedName": "Día de la graduación",
     "languageCode": "es"
@@ -397,6 +462,11 @@
   {
     "canonicalName": "Grapple with Death",
     "printedName": "Forcejear con la muerte",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Grave Researcher // Reanimate",
+    "printedName": "Necroinvestigador",
     "languageCode": "es"
   },
   {
@@ -420,6 +490,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Harmonized Trio // Brainstorm",
+    "printedName": "Trío en armonía",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Harsh Annotation",
     "printedName": "Nota despiadada",
     "languageCode": "es"
@@ -432,6 +507,11 @@
   {
     "canonicalName": "Homesickness",
     "printedName": "Morriña",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Honorbound Page // Forum's Favor",
+    "printedName": "Bedel con sentido del honor",
     "languageCode": "es"
   },
   {
@@ -460,6 +540,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Infirmary Healer // Stream of Life",
+    "printedName": "Sanadora de la enfermería",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Informed Inkwright",
     "printedName": "Tintólogo informado",
     "languageCode": "es"
@@ -485,8 +570,28 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Jadzi, Steward of Fate // Oracle's Gift",
+    "printedName": "Jadzi, custodio del destino",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Joined Researchers // Secret Rendezvous",
+    "printedName": "Investigadoras unidas",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Killian's Confidence",
     "printedName": "Confianza de Killian",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Kirol, History Buff // Pack a Punch",
+    "printedName": "Kirol, pujanza histórica",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Landscape Painter // Vibrant Idea",
+    "printedName": "Pintora de paisajes",
     "languageCode": "es"
   },
   {
@@ -500,8 +605,18 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Leech Collector // Bloodletting",
+    "printedName": "Coleccionista de sanguijuelas",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Living History",
     "printedName": "Historia en vida",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Lluwen, Exchange Student // Pest Friend",
+    "printedName": "Lluwen, alumno de intercambio",
     "languageCode": "es"
   },
   {
@@ -517,6 +632,11 @@
   {
     "canonicalName": "Lumaret's Favor",
     "printedName": "Favor de los lúmarets",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Maelstrom Artisan // Rocket Volley",
+    "printedName": "Artesano del remolino",
     "languageCode": "es"
   },
   {
@@ -675,6 +795,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Pigment Wrangler // Striking Palette",
+    "printedName": "Domadora de pigmentos",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Plains",
     "printedName": "Llanura",
     "languageCode": "es"
@@ -775,6 +900,11 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Quill-Blade Laureate // Twofold Intent",
+    "printedName": "Laureada de la filopluma",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Rabid Attack",
     "printedName": "Ataque con rabia",
     "languageCode": "es"
@@ -840,6 +970,21 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Sanar, Unfinished Genius // Wild Idea",
+    "printedName": "Sánar, genio sin terminar",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Scathing Shadelock // Venomous Words",
+    "printedName": "Calumniadora mordaz",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Scheming Silvertongue // Sign in Blood",
+    "printedName": "Maquinadora con pico de oro",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Scolding Administrator",
     "printedName": "Administrativo regañón",
     "languageCode": "es"
@@ -877,6 +1022,11 @@
   {
     "canonicalName": "Silverquill, the Disputant",
     "printedName": "Plumargéntum, el argüidor",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Skycoach Conductor // All Aboard",
+    "printedName": "Piloto del aerocar",
     "languageCode": "es"
   },
   {
@@ -925,8 +1075,18 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Spellbook Seeker // Careful Study",
+    "printedName": "Buscador de libros de hechizos",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Spirit Mascot",
     "printedName": "Espíritu mascota",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Spiritcall Enthusiast // Scrollboost",
+    "printedName": "Llamaespíritus entusiasta",
     "languageCode": "es"
   },
   {
@@ -980,8 +1140,18 @@
     "languageCode": "es"
   },
   {
+    "canonicalName": "Strife Scholar // Awaken the Ages",
+    "printedName": "Estudioso de la Pugna",
+    "languageCode": "es"
+  },
+  {
     "canonicalName": "Strixhaven Skycoach",
     "printedName": "Aerocar de Strixhaven",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Studious First-Year // Rampant Growth",
+    "printedName": "Novata aplicada",
     "languageCode": "es"
   },
   {
@@ -1017,6 +1187,11 @@
   {
     "canonicalName": "Tackle Artist",
     "printedName": "Artista del derribo",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Tam, Observant Sequencer // Deep Sight",
+    "printedName": "Tam, secuenciadora perspicaz",
     "languageCode": "es"
   },
   {
@@ -1102,6 +1277,11 @@
   {
     "canonicalName": "Unsubtle Mockery",
     "printedName": "Caricatura poco sutil",
+    "languageCode": "es"
+  },
+  {
+    "canonicalName": "Vastlands Scavenger // Bind to Life",
+    "printedName": "Recolector de las Tierras Extensas",
     "languageCode": "es"
   },
   {

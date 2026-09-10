@@ -71,4 +71,26 @@ class OcrNameIndexTest {
         )
         assertEquals("Diario de sueños", index.match(listOf("diario de suenos"))?.canonicalName)
     }
+
+    @Test fun completeTitleBeatsAnExactShortCardNameReportedInTheSameFrame() {
+        val sanar = CardNameAliasEntity(
+            normalizedAlias = "sanar genio sin terminar",
+            canonicalName = "Sanar, Unfinished Genius // Wild Idea",
+            displayName = "Sánar, genio sin terminar",
+            language = "es",
+            updatedAt = 1L
+        )
+        val index = OcrNameIndex(listOf(alias("Terminar"), sanar))
+
+        assertEquals(
+            sanar.canonicalName,
+            index.match(listOf("terminar", "sanar genio sin terminar"))?.canonicalName
+        )
+    }
+
+    @Test fun lockedSetNamesRejectAnExactCardFromAnotherSet() {
+        val index = OcrNameIndex(listOf(alias("Terminar")))
+
+        assertNull(index.match(listOf("terminar"), setOf("another canonical name")))
+    }
 }

@@ -30,16 +30,29 @@ class MtgJsonCardNameResolver(
         return dao.cardNameAlias(MtgJsonParsers.normalizeSearchName(cardName))?.toResolution()
     }
 
-    fun resolveLocalOcrCandidates(cardNames: List<String>): Resolution? {
-        cardNames.asSequence().mapNotNull(::cached).firstOrNull()?.let { return it }
+    fun resolveLocalOcrCandidates(
+        cardNames: List<String>,
+        allowedCanonicalNames: Set<String>? = null
+    ): Resolution? {
+        // Rank exact matches through the same joined-title queries as fuzzy matching. Returning the
+        // first raw exact fragment made "terminar" beat "Sanar, genio sin terminar".
+        OcrNameQueries.from(cardNames).asSequence()
+            .mapNotNull { query -> cached(query.normalized) }
+            .firstOrNull { allowedCanonicalNames == null ||
+                it.canonicalName.lowercase(java.util.Locale.ROOT) in allowedCanonicalNames }
+            ?.let { return it }
         // Autocomplete and automatic OCR must consult the same complete local alias catalog even
         // when the eager index build has not finished yet.
         if (ocrNameIndex == null && dao.cardNameAliasCount() > 0) prepareOcrNameIndex()
-        ocrNameIndex?.match(cardNames)?.let { return it.toResolution() }
+        ocrNameIndex?.match(cardNames, allowedCanonicalNames)?.let { return it.toResolution() }
         if (!atomicCardsFile.exists()) return null
         val parsed = atomicCardsFile.source().buffer().use { compressed ->
             GzipSource(compressed).buffer().use { source ->
-                MtgJsonParsers.readBestLocalOcrCardName(source, cardNames)
+                MtgJsonParsers.readBestLocalOcrCardName(
+                    source,
+                    cardNames,
+                    allowedCanonicalNames
+                )
             }
         } ?: return null
         return Resolution(parsed.canonicalName, parsed.displayName, parsed.language).also {

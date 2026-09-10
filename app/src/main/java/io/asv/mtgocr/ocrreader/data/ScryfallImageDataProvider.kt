@@ -115,12 +115,19 @@ class ScryfallImageDataProvider(private val client: OkHttpClient) {
                 for (index in 0 until data.length()) {
                     val card = data.getJSONObject(index)
                     val printedName = card.optString("printed_name").trim()
-                    if (printedName.isEmpty()) continue
-                    results += LocalizedCardName(
-                        canonicalName = card.getString("name"),
-                        printedName = printedName,
-                        languageCode = card.optString("lang", languageCode)
-                    )
+                    val canonicalName = card.getString("name")
+                    val language = card.optString("lang", languageCode)
+                    if (printedName.isNotEmpty()) {
+                        results += LocalizedCardName(canonicalName, printedName, language)
+                    }
+                    val faces = card.optJSONArray("card_faces")
+                    if (faces != null) for (faceIndex in 0 until faces.length()) {
+                        val faceName = faces.getJSONObject(faceIndex)
+                            .optString("printed_name").trim()
+                        if (faceName.isNotEmpty()) {
+                            results += LocalizedCardName(canonicalName, faceName, language)
+                        }
+                    }
                 }
                 nextUrl = if (root.optBoolean("has_more")) {
                     root.optString("next_page").ifBlank { null }

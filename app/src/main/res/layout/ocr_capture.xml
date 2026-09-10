@@ -404,11 +404,33 @@
             android:textSize="14sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/txtScanDebugStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/btnScanSession"
+            android:layout_centerHorizontal="true"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/bg_scan_debug_status"
+            android:elevation="8dp"
+            android:gravity="center"
+            android:maxLines="2"
+            android:paddingStart="12dp"
+            android:paddingTop="7dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="7dp"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
         <ListView
             android:id="@+id/cardNameSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/btnScanSession"
+            android:layout_below="@id/txtScanDebugStatus"
             android:layout_alignStart="@id/txtSearch"
             android:layout_alignEnd="@id/txtSearch"
             android:layout_marginTop="4dp"

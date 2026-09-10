@@ -23,4 +23,16 @@ public class Biblio implements Serializable {
     public void addCard(CardInfo cardInfo){
         this.cards.add(cardInfo);
     }
+
+    /** Returns a detached graph that background serialization can traverse safely. */
+    public Biblio snapshotForPersistence() {
+        Biblio copy = new Biblio(nameFile, name);
+        copy.cards.ensureCapacity(cards == null ? 0 : cards.size());
+        if (cards != null) {
+            for (CardInfo card : cards) {
+                copy.cards.add(card == null ? null : card.snapshotForPersistence());
+            }
+        }
+        return copy;
+    }
 }

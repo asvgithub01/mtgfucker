@@ -79,6 +79,49 @@ public class CardInfo implements Serializable {
         this.sideboardDecks = new ArrayList<String>();
     }
 
+    /**
+     * Creates an immutable-for-the-writer snapshot of this legacy serializable model.
+     * Scanner metadata callbacks keep mutating the live instance on the main thread, so handing
+     * that instance to a background ObjectOutputStream can otherwise throw
+     * ConcurrentModificationException while it traverses one of the nested lists.
+     */
+    public CardInfo snapshotForPersistence() {
+        CardInfo copy = new CardInfo(name, price, description, imgPath, quantity);
+        copy.collectionItemId = collectionItemId;
+        copy.addedAt = addedAt;
+        copy.printingUuid = printingUuid;
+        copy.setCode = setCode;
+        copy.setName = setName;
+        copy.collectorNumber = collectorNumber;
+        copy.finish = finish;
+        copy.languageCode = languageCode;
+        copy.condition = condition;
+        copy.priceL = priceL;
+        copy.priceM = priceM;
+        copy.priceH = priceH;
+        copy.personalCollections = personalCollections == null
+                ? new ArrayList<String>() : new ArrayList<String>(personalCollections);
+        copy.decks = decks == null ? new ArrayList<String>() : new ArrayList<String>(decks);
+        copy.sideboardDecks = sideboardDecks == null
+                ? new ArrayList<String>() : new ArrayList<String>(sideboardDecks);
+        copy.lstDescription = new ArrayList<DescriptionMtgInfo>();
+        if (lstDescription != null) {
+            for (DescriptionMtgInfo descriptionItem : lstDescription) {
+                if (descriptionItem == null) {
+                    copy.lstDescription.add(null);
+                    continue;
+                }
+                DescriptionMtgInfo itemCopy = new DescriptionMtgInfo();
+                itemCopy.name = descriptionItem.name;
+                itemCopy.imgPath = descriptionItem.imgPath;
+                itemCopy.description = descriptionItem.description;
+                itemCopy.languague = descriptionItem.languague;
+                copy.lstDescription.add(itemCopy);
+            }
+        }
+        return copy;
+    }
+
     public String getCollectionItemId() {
         ensureCollectionItemId();
         return collectionItemId;

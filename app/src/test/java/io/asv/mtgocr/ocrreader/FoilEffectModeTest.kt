@@ -9,14 +9,14 @@ class FoilEffectModeTest {
     @Test
     fun `effects can be independently combined and removed`() {
         var mask = FoilEffectMode.DEFAULT
-        assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.HOLOGRAPHIC))
+        assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.RAINBOW))
 
         mask = FoilEffectMode.withMode(mask, FoilEffectMode.RAINBOW_ALT, true)
-        assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.HOLOGRAPHIC))
+        assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.RAINBOW))
         assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.RAINBOW_ALT))
 
-        mask = FoilEffectMode.withMode(mask, FoilEffectMode.HOLOGRAPHIC, false)
-        assertFalse(FoilEffectMode.isEnabled(mask, FoilEffectMode.HOLOGRAPHIC))
+        mask = FoilEffectMode.withMode(mask, FoilEffectMode.RAINBOW, false)
+        assertFalse(FoilEffectMode.isEnabled(mask, FoilEffectMode.RAINBOW))
         assertTrue(FoilEffectMode.isEnabled(mask, FoilEffectMode.RAINBOW_ALT))
     }
 

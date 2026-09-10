@@ -358,7 +358,7 @@ internal object FoilEffectMode {
     const val RAINBOW_ALT = 1 shl 2
     const val IRIDESCENT = 1 shl 3
     const val ALL = HOLOGRAPHIC or RAINBOW or RAINBOW_ALT or IRIDESCENT
-    const val DEFAULT = HOLOGRAPHIC
+    const val DEFAULT = RAINBOW
 
     fun isEnabled(mask: Int, mode: Int): Boolean = mask and mode != 0
 

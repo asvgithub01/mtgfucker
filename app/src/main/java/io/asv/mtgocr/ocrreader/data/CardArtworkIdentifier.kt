@@ -41,7 +41,7 @@ class CardArtworkIdentifier(
         } finally {
             cameraBitmap.recycle()
         }
-        val locked = lockedSetCodes.mapTo(HashSet()) { it.trim().uppercase(Locale.US) }
+        val locked = ScanSetLockPolicy.expand(lockedSetCodes)
         val unique = options.asSequence()
             .filter { it.imageUrl?.isNotBlank() == true }
             .filter { locked.isEmpty() || it.setCode.uppercase(Locale.US) in locked }

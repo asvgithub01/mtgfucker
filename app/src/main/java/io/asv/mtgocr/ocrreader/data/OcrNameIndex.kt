@@ -20,6 +20,11 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
                         query.maxDistance
                     )
                     if (distance > query.maxDistance) continue
+                    if (!OcrFuzzyMatchPolicy.isPlausible(
+                            query.normalized,
+                            candidate.normalizedAlias,
+                            distance
+                        )) continue
                     val score = query.score(distance)
                     if (score < bestScore) {
                         best = candidate
@@ -50,6 +55,52 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
                 rowMinimum = minOf(rowMinimum, current[j + 1])
             }
             if (rowMinimum > limit) return limit + 1
+            previous = current
+        }
+        return previous[right.length]
+    }
+}
+
+/** Shared guard for both the in-memory OCR index and its streaming-file fallback. */
+internal object OcrFuzzyMatchPolicy {
+    /**
+     * Avoids inventing a card from a long shared suffix when OCR read a different short word.
+     * For example, "cima del espectaculo" used to resolve to "Maga del espectaculo" because
+     * replacing the complete first word still fitted the three-edit allowance for long titles.
+     */
+    fun isPlausible(query: String, candidate: String, distance: Int): Boolean {
+        if (distance == 0) return true
+        val queryWords = query.split(' ')
+        val candidateWords = candidate.split(' ')
+        if (queryWords.size < 2 || queryWords.size != candidateWords.size) return true
+
+        val differing = queryWords.indices.filter { queryWords[it] != candidateWords[it] }
+        if (differing.size != 1) return true
+        val index = differing.single()
+        val observed = queryWords[index]
+        val expected = candidateWords[index]
+        val longest = maxOf(observed.length, expected.length)
+        if (minOf(observed.length, expected.length) < 3) return true
+
+        val matchingContextLength = queryWords.indices
+            .filter { it != index }
+            .sumOf { queryWords[it].length }
+        val wordDistance = levenshtein(observed, expected)
+        return matchingContextLength < 6 || wordDistance * 2 <= longest
+    }
+
+    private fun levenshtein(left: String, right: String): Int {
+        var previous = IntArray(right.length + 1) { it }
+        for (i in left.indices) {
+            val current = IntArray(right.length + 1)
+            current[0] = i + 1
+            for (j in right.indices) {
+                current[j + 1] = minOf(
+                    current[j] + 1,
+                    previous[j + 1] + 1,
+                    previous[j] + if (left[i] == right[j]) 0 else 1
+                )
+            }
             previous = current
         }
         return previous[right.length]

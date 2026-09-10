@@ -82,7 +82,7 @@ internal object LocalizedEditionPolicy {
         val localized = variants.associateBy {
             it.setCode.uppercase() to it.collectorNumber.lowercase()
         }
-        val locked = lockedSetCodes.mapTo(HashSet()) { it.trim().uppercase() }
+        val locked = ScanSetLockPolicy.expand(lockedSetCodes)
         val eligible = options.mapNotNull { option ->
             if (locked.isNotEmpty() && option.setCode.uppercase() !in locked) return@mapNotNull null
             val variant = localized[option.setCode.uppercase() to option.collectorNumber.lowercase()]
@@ -319,7 +319,7 @@ class CardRepository private constructor(context: Context) {
             val canonicalName = resolution?.canonicalName ?: cardName
             val normalizedName = MtgJsonCatalogDataProvider.normalize(canonicalName)
             val cached = dao.printingsByName(normalizedName)
-            val locked = lockedSetCodes.mapTo(HashSet()) { it.trim().uppercase() }
+            val locked = ScanSetLockPolicy.expand(lockedSetCodes)
             // With no set lock, quick mode must acknowledge the scan immediately. The caller can
             // persist the OCR name now and let the normal metadata request resolve it in background.
             if (cached.isEmpty() && locked.isEmpty()) {

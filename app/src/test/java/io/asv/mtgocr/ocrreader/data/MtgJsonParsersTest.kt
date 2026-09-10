@@ -2,6 +2,7 @@ package io.asv.mtgocr.ocrreader.data
 
 import okio.Buffer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -173,6 +174,24 @@ class MtgJsonParsersTest {
 
         assertEquals("Land Tax", resolved?.canonicalName)
         assertEquals(2, resolved?.distance)
+    }
+
+    @Test
+    fun localOcrFallbackRejectsDifferentWordBeforeSharedSuffix() {
+        val json = """
+            {"meta":{},"data":{
+              "Spectacle Mage":[{"name":"Spectacle Mage","foreignData":[
+                {"language":"Spanish","name":"Maga del espectáculo"}
+              ]}]
+            }}
+        """.trimIndent()
+
+        val resolved = MtgJsonParsers.readBestLocalOcrCardName(
+            Buffer().writeUtf8(json),
+            listOf("cima del espectaculo")
+        )
+
+        assertNull(resolved)
     }
 
     @Test

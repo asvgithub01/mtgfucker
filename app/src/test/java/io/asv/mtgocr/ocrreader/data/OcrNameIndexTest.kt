@@ -45,4 +45,10 @@ class OcrNameIndexTest {
             index.match(listOf("(Eowyn, Shieldmaiden"))?.canonicalName
         )
     }
+
+    @Test fun rejectsACompletelyDifferentShortWordBeforeALongSharedSuffix() {
+        val index = OcrNameIndex(listOf(alias("Maga del espectáculo")))
+
+        assertNull(index.match(listOf("cima del espectaculo")))
+    }
 }

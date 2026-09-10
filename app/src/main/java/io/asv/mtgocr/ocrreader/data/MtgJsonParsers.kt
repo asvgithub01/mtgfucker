@@ -184,6 +184,11 @@ internal object MtgJsonParsers {
                             if (kotlin.math.abs(normalizedCandidate.length - query.normalized.length) > query.maxDistance) continue
                             val distance = boundedLevenshtein(query.normalized, normalizedCandidate, query.maxDistance)
                             if (distance > query.maxDistance) continue
+                            if (!OcrFuzzyMatchPolicy.isPlausible(
+                                    query.normalized,
+                                    normalizedCandidate,
+                                    distance
+                                )) continue
                             val score = query.score(distance)
                             if (score < bestScore) {
                                 best = ResolvedCardName(canonicalKey, candidateName, language, distance)

@@ -201,7 +201,7 @@ private class DeckCardsAdapter(
 
     class Holder(view: View, typeface: Typeface) : RecyclerView.ViewHolder(view) {
         private val check: CheckBox = view.findViewById(R.id.checkGroupCard)
-        private val image: ImageView = view.findViewById(R.id.imgGroupCard)
+        private val image: RoundedCardImageView = view.findViewById(R.id.imgGroupCard)
         private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val name: TextView = view.findViewById<TextView>(R.id.txtGroupCardName).also { it.typeface = typeface }
         private val edition: TextView = view.findViewById(R.id.txtGroupCardEdition)
@@ -220,6 +220,7 @@ private class DeckCardsAdapter(
                 .filter { it.isNotBlank() }.joinToString(" · ")
             quantity.text = card.quantityCount.toString()
             foilBadge.visibility = if (CardFinish.isFoil(card.finish)) View.VISIBLE else View.GONE
+            image.setFoilEffect(CardFinish.isFoil(card.finish))
             check.isChecked = selectedZone != null
             zone.visibility = if (selectedZone != null && allowSideboard) View.VISIBLE else View.INVISIBLE
             zone.text = itemView.context.getString(if (selectedZone == true) R.string.sideboard else R.string.main_deck)

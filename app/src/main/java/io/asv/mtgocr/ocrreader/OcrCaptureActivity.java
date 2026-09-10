@@ -3384,6 +3384,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (activeScanThumbnail != null && safe(card.getImgPath()).trim().length() > 0) {
       CardImageCache.displayKeepingCurrent(this, card.getImgPath(), activeScanThumbnail);
     }
+    if (activeScanThumbnail != null) {
+      activeScanThumbnail.setFoilEffect(CardFinish.isFoil(card.getFinish()));
+    }
     if (activeScanPrice != null) {
       String price = PriceCurrency.format(this, card);
       activeScanPrice.setText(price);

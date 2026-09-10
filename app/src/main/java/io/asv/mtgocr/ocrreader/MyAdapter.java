@@ -46,7 +46,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     // each data item is just a string in this case
     public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
     LinearLayout mLytViewHolder;
-    ImageView mImgCard, mFoilBadge;
+    RoundedCardImageView mImgCard;
+    ImageView mFoilBadge;
     ImageButton btnOrganize, btnDetails, btnGallery;
     TextView txtQuantity;
 
@@ -56,7 +57,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       mtxtName = (TextView) v.findViewById(R.id.txtName);
       mTxtUndo = (TextView) v.findViewById(R.id.txtUndo);
       mTxtGroups = (TextView) v.findViewById(R.id.txtGroups);
-      mImgCard = (ImageView) v.findViewById(R.id.imgCard);
+      mImgCard = (RoundedCardImageView) v.findViewById(R.id.imgCard);
       mFoilBadge = (ImageView) v.findViewById(R.id.imgFoilBadge);
       btnOrganize = (ImageButton) v.findViewById(R.id.btnOrganizeCard);
       btnDetails = (ImageButton) v.findViewById(R.id.btnCardDetails);
@@ -196,7 +197,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mtxtName.setText(item.getName());
       holder.mtxtPrice.setText(PriceCurrency.format(mContext, item));
       holder.txtQuantity.setText(String.valueOf(item.getQuantityCount()));
-      holder.mFoilBadge.setVisibility(CardFinish.isFoil(item.getFinish()) ? View.VISIBLE : View.GONE);
+      boolean foil = CardFinish.isFoil(item.getFinish());
+      holder.mFoilBadge.setVisibility(foil ? View.VISIBLE : View.GONE);
+      holder.mImgCard.setFoilEffect(foil);
       StringBuilder groups = new StringBuilder();
       if (item.getSetName() != null && item.getSetName().trim().length() > 0) {
         if (gridMode) groups.append(mContext.getString(R.string.grid_set_overlay, item.getSetName()));

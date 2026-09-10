@@ -53,7 +53,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     if (view == null) view = LayoutInflater.from(context).inflate(R.layout.scan_session_item, parent, false);
     CardInfo card = getItem(position);
     TextView number = view.findViewById(R.id.scanSessionNumber);
-    ImageView image = view.findViewById(R.id.scanSessionImage);
+    RoundedCardImageView image = view.findViewById(R.id.scanSessionImage);
     TextView name = view.findViewById(R.id.scanSessionName);
     TextView edition = view.findViewById(R.id.scanSessionEdition);
     TextView condition = view.findViewById(R.id.scanSessionCondition);
@@ -92,6 +92,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     price.setText(value);
     price.setVisibility(value.isEmpty() ? View.INVISIBLE : View.VISIBLE);
     String imageUrl = card.getImgPath() == null ? "" : card.getImgPath().trim();
+    image.setFoilEffect(CardFinish.isFoil(card.getFinish()));
     if (imageUrl.isEmpty()) {
       Object boundUrl = image.getTag(R.id.card_image_cache_url);
       if (!"".equals(boundUrl) || image.getDrawable() == null) {

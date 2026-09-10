@@ -349,6 +349,7 @@ class CardImageActivity : AppCompatActivity() {
             target.setImageDrawable(null)
         }
         boundPages[target] = pageIndex
+        target.setFoilEffect(page?.let { CardFinish.isFoil(it.finish) } == true)
         CardImageCache.display(this, page?.imageUrl, target)
     }
 
@@ -382,8 +383,10 @@ class CardImageActivity : AppCompatActivity() {
         detailsButton.visibility = if (
             page.cardName.isNotBlank() && page.collectionItemId.isNotBlank()
         ) View.VISIBLE else View.GONE
-        foilBadge.visibility = if (CardFinish.isFoil(page.finish)) View.VISIBLE else View.GONE
+        val foil = CardFinish.isFoil(page.finish)
+        foilBadge.visibility = if (foil) View.VISIBLE else View.GONE
         foilBadge.alpha = 1f
+        image.setFoilEffect(foil)
         loadLanguages(page)
     }
 

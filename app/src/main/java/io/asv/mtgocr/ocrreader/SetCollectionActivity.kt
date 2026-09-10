@@ -312,7 +312,7 @@ private class SetCardAdapter(
 
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
         private val price: TextView = view.findViewById(R.id.txtSetCardPrice)
-        private val image: ImageView = view.findViewById(R.id.imgSetCard)
+        private val image: RoundedCardImageView = view.findViewById(R.id.imgSetCard)
         private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val check: CheckBox = view.findViewById(R.id.checkSetCard)
         private val gallery: ImageButton = view.findViewById(R.id.btnSetCardGallery)
@@ -337,6 +337,7 @@ private class SetCardAdapter(
             check.isChecked = selected
             check.isEnabled = !owned
             foilBadge.visibility = if (CardFinish.isFoil(item.finish)) View.VISIBLE else View.GONE
+            image.setFoilEffect(CardFinish.isFoil(item.finish))
             CardImageCache.display(itemView.context, item.imageUrl, image)
             image.alpha = if (owned) 1f else .38f
             image.colorFilter = if (owned) null else ColorMatrixColorFilter(

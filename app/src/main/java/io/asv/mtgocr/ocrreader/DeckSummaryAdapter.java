@@ -61,6 +61,8 @@ public final class DeckSummaryAdapter extends RecyclerView.Adapter<DeckSummaryAd
     else holder.cover.setImageResource(R.drawable.ic_groups);
     holder.foilBadge.setVisibility(
         item.cover != null && CardFinish.isFoil(item.cover.getFinish()) ? View.VISIBLE : View.GONE);
+    holder.cover.setFoilEffect(
+        item.cover != null && CardFinish.isFoil(item.cover.getFinish()));
     holder.itemView.setOnClickListener(view -> listener.onOpen(item.deck));
     holder.edit.setOnClickListener(view -> listener.onEdit(item.deck));
     holder.itemView.animate().cancel();
@@ -74,7 +76,7 @@ public final class DeckSummaryAdapter extends RecyclerView.Adapter<DeckSummaryAd
   @Override public int getItemCount() { return items.size(); }
 
   static final class Holder extends RecyclerView.ViewHolder {
-    final ImageView cover;
+    final RoundedCardImageView cover;
     final ImageView foilBadge;
     final TextView name;
     final TextView counts;

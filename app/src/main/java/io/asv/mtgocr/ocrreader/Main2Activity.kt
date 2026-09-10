@@ -43,7 +43,7 @@ class Main2Activity : AppCompatActivity() {
     private lateinit var collectionItemId: String
     private lateinit var title: TextView
     private lateinit var status: TextView
-    private lateinit var image: ImageView
+    private lateinit var image: RoundedCardImageView
     private lateinit var foilBadge: ImageView
     private lateinit var progress: ProgressBar
     private lateinit var type: TextView
@@ -96,7 +96,9 @@ class Main2Activity : AppCompatActivity() {
                 ownedCondition = owned.condition
                 legacyImageUrl = owned.imgPath.orEmpty()
                 CardImageCache.display(this, owned.imgPath, image)
-                foilBadge.visibility = if (CardFinish.isFoil(owned.finish)) View.VISIBLE else View.GONE
+                val foil = CardFinish.isFoil(owned.finish)
+                foilBadge.visibility = if (foil) View.VISIBLE else View.GONE
+                image.setFoilEffect(foil)
                 type.text = listOf(owned.setName.orEmpty(), owned.setCode.orEmpty(), owned.finish.orEmpty())
                     .filter { it.isNotBlank() }.joinToString(" · ")
                 rules.text = owned.description.orEmpty()
@@ -228,6 +230,7 @@ class Main2Activity : AppCompatActivity() {
         }
         CardImageCache.display(this, owned?.imgPath?.takeIf { it.isNotBlank() } ?: option.imageUrl, image)
         foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
+        image.setFoilEffect(option.isFoil)
         title.text = option.displayName
         type.text = option.typeLine
         rules.text = option.rulesText.ifBlank { getString(R.string.card_rules) }
@@ -528,7 +531,7 @@ private class EditionAdapter(
         private val metadata: TextView = view.findViewById(R.id.txtEditionMetadata)
         private val price: TextView = view.findViewById(R.id.txtEditionPrice)
         private val radio: RadioButton = view.findViewById(R.id.radioOwnedEdition)
-        private val image: ImageView = view.findViewById(R.id.imgEditionThumbnail)
+        private val image: RoundedCardImageView = view.findViewById(R.id.imgEditionThumbnail)
         private val setSymbol: ImageView = view.findViewById(R.id.imgEditionSetSymbol)
         private val foilBadge: ImageView = view.findViewById(R.id.imgFoilBadge)
         private val addCopy: ImageButton = view.findViewById(R.id.btnAddEditionCopy)
@@ -559,6 +562,7 @@ private class EditionAdapter(
             price.text = itemView.context.getString(R.string.near_mint_price_value, priceValue)
             CardImageCache.display(itemView.context, option.imageUrl, image)
             foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
+            image.setFoilEffect(option.isFoil)
             itemView.setBackgroundResource(if (option.isFoil) R.drawable.bg_arcane_foil_row else R.drawable.bg_arcane_edition_row)
             radio.isChecked = selected
             copyCount.text = quantity.toString()

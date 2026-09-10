@@ -62,6 +62,15 @@ open class RoundedCardImageView @JvmOverloads constructor(
     private var foilAgslOverlay: FoilAgslOverlay? = null
     private var foilPhase = 0f
     private var foilEffectEnabled = false
+    private var foilEffectModes = FoilEffectMode.DEFAULT
+
+    /** Selects which foil layers are combined. A zero mask leaves the card completely untouched. */
+    fun setFoilEffectModes(modes: Int) {
+        val sanitized = modes and FoilEffectMode.ALL
+        if (foilEffectModes == sanitized) return
+        foilEffectModes = sanitized
+        invalidate()
+    }
 
     /** Enables the shared animated liquid-glass sheen used only by physical foil finishes. */
     fun setFoilEffect(enabled: Boolean) {
@@ -191,7 +200,7 @@ open class RoundedCardImageView @JvmOverloads constructor(
 
         val agsl = foilAgslOverlay
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && agsl != null) {
-            agsl.draw(canvas, visibleCardBounds, radius, foilPhase)
+            agsl.draw(canvas, visibleCardBounds, radius, foilPhase, foilEffectModes)
         } else {
             // Lightweight fallback for Android 12 and earlier.
             shaderMatrix.reset()
@@ -235,10 +244,17 @@ private class FoilAgslOverlay private constructor() {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.SCREEN)
     }
 
-    fun draw(canvas: Canvas, bounds: RectF, radius: Float, phase: Float) {
+    fun draw(canvas: Canvas, bounds: RectF, radius: Float, phase: Float, effects: Int) {
         shader.setFloatUniform("uOrigin", bounds.left, bounds.top)
         shader.setFloatUniform("uSize", bounds.width(), bounds.height())
         shader.setFloatUniform("uPhase", phase)
+        shader.setFloatUniform(
+            "uEffects",
+            FoilEffectMode.strength(effects, FoilEffectMode.HOLOGRAPHIC),
+            FoilEffectMode.strength(effects, FoilEffectMode.RAINBOW),
+            FoilEffectMode.strength(effects, FoilEffectMode.RAINBOW_ALT),
+            FoilEffectMode.strength(effects, FoilEffectMode.IRIDESCENT)
+        )
         canvas.drawRoundRect(bounds, radius, radius, paint)
     }
 
@@ -253,6 +269,7 @@ private class FoilAgslOverlay private constructor() {
             uniform float2 uOrigin;
             uniform float2 uSize;
             uniform float uPhase;
+            uniform float4 uEffects;
 
             half3 spectrum(float value) {
                 float3 offsets = float3(0.00, 0.33, 0.67);
@@ -264,33 +281,91 @@ private class FoilAgslOverlay private constructor() {
                 float2 p = uv - 0.5;
                 p.x *= uSize.x / max(uSize.y, 1.0);
 
-                // Intersecting waves emulate microscopic foil grooves rather than a flat gradient.
+                // Holographic: sharp moving diffraction and a bright specular sweep.
                 float flowA = sin((p.x * 5.2 + p.y * 3.1
                     + sin(p.y * 8.0 - uPhase * 6.28318) * 0.34) * 6.28318);
                 float flowB = sin((length(p + float2(-0.18, 0.12)) * 8.5
                     - uPhase * 1.7 + flowA * 0.08) * 6.28318);
-                float interference = 0.5 + 0.5 * (flowA * 0.58 + flowB * 0.42);
+                float interference = clamp(0.5 + 0.5 * (flowA * 0.58 + flowB * 0.42), 0.0, 1.0);
 
                 float diagonal = uv.x * 0.82 + uv.y * 0.36;
                 float sweepCenter = -0.22 + uPhase * 1.55;
-                float sweep = pow(max(0.0, 1.0 - abs(diagonal - sweepCenter) / 0.24), 2.4);
+                float sweep = pow(max(0.0, 1.0 - abs(diagonal - sweepCenter) / 0.28), 2.0);
                 float caustic = pow(0.5 + 0.5 * sin(
                     (uv.x * 2.6 - uv.y * 3.7 + interference * 0.27 + uPhase) * 6.28318
-                ), 5.0);
+                ), 4.0);
 
-                float hue = fract(
+                float holoHue = fract(
                     uv.x * 0.48 - uv.y * 0.26 + interference * 0.16 + uPhase * 0.18
                 );
-                half3 rainbow = spectrum(hue);
-                float alpha = 0.022
-                    + interference * 0.025
-                    + sweep * 0.145
-                    + caustic * 0.052;
-                half3 color = mix(half3(1.0), rainbow, 0.76) * half(alpha);
-                return half4(color, half(alpha));
+                float holoAlpha = uEffects.x * (
+                    0.080 + interference * 0.065 + sweep * 0.330 + caustic * 0.115
+                );
+                half3 holoColor = mix(half3(1.0), spectrum(holoHue), 0.82);
+
+                // Rainbow: broad diagonal bands with saturated, clearly separated colours.
+                float rainbowWave = 0.5 + 0.5 * sin(
+                    (uv.x * 3.2 + uv.y * 1.35 - uPhase * 0.72 + flowA * 0.035) * 6.28318
+                );
+                float rainbowAlpha = uEffects.y * (0.115 + pow(rainbowWave, 1.7) * 0.335);
+                half3 rainbowColor = spectrum(fract(
+                    uv.x * 0.92 + uv.y * 0.38 - uPhase * 0.36
+                ));
+
+                // Rainbow alt: concentric/morie bands travel against the diagonal version.
+                float rings = length(p + float2(
+                    0.15 * sin(uPhase * 6.28318),
+                    0.12 * cos(uPhase * 6.28318)
+                ));
+                float altWave = 0.5 + 0.5 * sin(
+                    (rings * 10.5 - uv.x * 1.8 + uPhase * 1.15) * 6.28318
+                );
+                float altAlpha = uEffects.z * (0.105 + pow(altWave, 2.1) * 0.345);
+                half3 altColor = spectrum(fract(
+                    rings * 2.25 - uv.y * 0.45 + uPhase * 0.52 + 0.18
+                ));
+
+                // Iridescent: a slower pearlescent oil-slick field, strongest at curved edges.
+                float pearl = 0.5 + 0.5 * sin(
+                    (uv.x * 1.1 - uv.y * 1.55 + interference * 0.22 + uPhase * 0.27) * 6.28318
+                );
+                float edge = smoothstep(0.12, 0.68, length(p));
+                float iriAlpha = uEffects.w * (0.110 + pearl * 0.205 + edge * 0.105);
+                half3 iriColor = mix(
+                    spectrum(fract(pearl * 0.48 + uPhase * 0.12 + 0.56)),
+                    half3(0.88, 0.98, 1.0),
+                    half(0.32 + edge * 0.24)
+                );
+
+                float alpha = min(0.82, holoAlpha + rainbowAlpha + altAlpha + iriAlpha);
+                half3 premultiplied =
+                    holoColor * half(holoAlpha) +
+                    rainbowColor * half(rainbowAlpha) +
+                    altColor * half(altAlpha) +
+                    iriColor * half(iriAlpha);
+                // Preserve premultiplied-alpha invariants when several test layers are enabled.
+                premultiplied = min(premultiplied, half3(alpha));
+                return half4(premultiplied, half(alpha));
             }
         """
     }
+}
+
+/** Bit mask shared by the gallery controls and the shader, kept pure for unit testing. */
+internal object FoilEffectMode {
+    const val HOLOGRAPHIC = 1
+    const val RAINBOW = 1 shl 1
+    const val RAINBOW_ALT = 1 shl 2
+    const val IRIDESCENT = 1 shl 3
+    const val ALL = HOLOGRAPHIC or RAINBOW or RAINBOW_ALT or IRIDESCENT
+    const val DEFAULT = HOLOGRAPHIC
+
+    fun isEnabled(mask: Int, mode: Int): Boolean = mask and mode != 0
+
+    fun withMode(mask: Int, mode: Int, enabled: Boolean): Int =
+        if (enabled) (mask or mode) and ALL else (mask and mode.inv()) and ALL
+
+    fun strength(mask: Int, mode: Int): Float = if (isEnabled(mask, mode)) 1f else 0f
 }
 
 /** One clock drives every visible foil card, avoiding a ValueAnimator per RecyclerView row. */

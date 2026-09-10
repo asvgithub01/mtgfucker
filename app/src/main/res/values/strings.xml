@@ -25,6 +25,11 @@
     <string name="edition_metadata">N.º %1$s · %2$s · %3$s</string>
     <string name="foil">foil</string>
     <string name="foil_card_badge">Carta foil</string>
+    <string name="foil_effects">Efectos foil</string>
+    <string name="foil_effect_holographic">Holo</string>
+    <string name="foil_effect_rainbow">Rainbow</string>
+    <string name="foil_effect_rainbow_alt">Rainbow alt</string>
+    <string name="foil_effect_iridescent">Iridescente</string>
     <string name="nonfoil">no foil</string>
     <string name="no_price">Precio no disponible</string>
     <string name="refresh_prices">Actualizar precio</string>

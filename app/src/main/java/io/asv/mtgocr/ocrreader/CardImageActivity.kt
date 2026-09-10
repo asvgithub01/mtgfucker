@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.Glide
+import com.google.android.material.button.MaterialButtonToggleGroup
 import io.asv.mtgocr.ocrreader.data.CardImageVariant
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import java.util.Locale
@@ -32,6 +33,8 @@ class CardImageActivity : AppCompatActivity() {
     private lateinit var price: TextView
     private lateinit var detailsButton: Button
     private lateinit var foilBadge: ImageView
+    private lateinit var foilEffectControls: View
+    private lateinit var foilEffectToggleGroup: MaterialButtonToggleGroup
     private var variants: List<CardImageVariant> = emptyList()
     private var pages: List<EditionImagePage> = emptyList()
     private var galleryToken: String = ""
@@ -40,6 +43,7 @@ class CardImageActivity : AppCompatActivity() {
     private var languageLoadTask: Future<*>? = null
     private var pageTurnAnimating = false
     private var activeDragDirection = 0
+    private var foilEffectMask = FoilEffectMode.DEFAULT
     private val boundPages = IdentityHashMap<ZoomableImageView, Int>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +65,13 @@ class CardImageActivity : AppCompatActivity() {
         price = findViewById(R.id.txtCardImagePrice)
         detailsButton = findViewById(R.id.btnCardImageDetails)
         foilBadge = findViewById(R.id.imgFullscreenFoilBadge)
+        foilEffectControls = findViewById(R.id.foilEffectControls)
+        foilEffectToggleGroup = findViewById(R.id.foilEffectToggleGroup)
+        foilEffectMask = savedInstanceState?.getInt(
+            STATE_FOIL_EFFECT_MASK,
+            FoilEffectMode.DEFAULT
+        ) ?: FoilEffectMode.DEFAULT
+        configureFoilEffectControls()
         findViewById<Button>(R.id.btnCloseCardImage).setOnClickListener { finish() }
         detailsButton.setOnClickListener { openCurrentCardDetails() }
         val imageUrl = intent.getStringExtra(EXTRA_IMAGE_URL)
@@ -81,6 +92,7 @@ class CardImageActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt(STATE_CURRENT_PAGE, currentPage)
+        outState.putInt(STATE_FOIL_EFFECT_MASK, foilEffectMask)
         super.onSaveInstanceState(outState)
     }
 
@@ -349,7 +361,7 @@ class CardImageActivity : AppCompatActivity() {
             target.setImageDrawable(null)
         }
         boundPages[target] = pageIndex
-        target.setFoilEffect(page?.let { CardFinish.isFoil(it.finish) } == true)
+        applyFoilEffect(target, page)
         CardImageCache.display(this, page?.imageUrl, target)
     }
 
@@ -385,9 +397,46 @@ class CardImageActivity : AppCompatActivity() {
         ) View.VISIBLE else View.GONE
         val foil = CardFinish.isFoil(page.finish)
         foilBadge.visibility = if (foil) View.VISIBLE else View.GONE
+        foilEffectControls.visibility = if (foil) View.VISIBLE else View.GONE
         foilBadge.alpha = 1f
-        image.setFoilEffect(foil)
+        applyFoilEffect(image, page)
         loadLanguages(page)
+    }
+
+    private fun configureFoilEffectControls() {
+        val buttons = listOf(
+            R.id.toggleFoilHolographic to FoilEffectMode.HOLOGRAPHIC,
+            R.id.toggleFoilRainbow to FoilEffectMode.RAINBOW,
+            R.id.toggleFoilRainbowAlt to FoilEffectMode.RAINBOW_ALT,
+            R.id.toggleFoilIridescent to FoilEffectMode.IRIDESCENT
+        )
+        buttons.forEach { (buttonId, mode) ->
+            foilEffectToggleGroup.checkState(buttonId, FoilEffectMode.isEnabled(foilEffectMask, mode))
+        }
+        foilEffectToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            val mode = buttons.firstOrNull { it.first == checkedId }?.second
+                ?: return@addOnButtonCheckedListener
+            foilEffectMask = FoilEffectMode.withMode(foilEffectMask, mode, isChecked)
+            refreshVisibleFoilEffects()
+        }
+    }
+
+    private fun MaterialButtonToggleGroup.checkState(buttonId: Int, checked: Boolean) {
+        if (checked) check(buttonId) else uncheck(buttonId)
+    }
+
+    private fun refreshVisibleFoilEffects() {
+        listOf(image, previousImage, nextImage).distinct().forEach { target ->
+            val pageIndex = boundPages[target]
+            applyFoilEffect(target, pageIndex?.let(pages::getOrNull))
+        }
+    }
+
+    private fun applyFoilEffect(target: ZoomableImageView, page: EditionImagePage?) {
+        target.setFoilEffectModes(foilEffectMask)
+        target.setFoilEffect(
+            page?.let { CardFinish.isFoil(it.finish) } == true && foilEffectMask != 0
+        )
     }
 
     private fun openCurrentCardDetails() {
@@ -469,6 +518,7 @@ class CardImageActivity : AppCompatActivity() {
         const val EXTRA_GALLERY_TOKEN = "galleryToken"
         const val EXTRA_EDITION_INDEX = "editionIndex"
         private const val STATE_CURRENT_PAGE = "currentPage"
+        private const val STATE_FOIL_EFFECT_MASK = "foilEffectMask"
     }
 }
 

@@ -220,8 +220,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int currentSection = SECTION_LIBRARY;
   private final Handler autoOcrHandler = new Handler(Looper.getMainLooper());
   private final ExecutorService collectionSaveExecutor = Executors.newSingleThreadExecutor();
+  private final ExecutorService sessionPriceExecutor = Executors.newSingleThreadExecutor();
   private final ExecutorService photoImportExecutor = Executors.newSingleThreadExecutor();
   private Runnable pendingCollectionSave;
+  private Runnable pendingSessionPriceUpdate;
+  private int sessionPriceUpdateGeneration;
   private CardRepository cardRepository;
   private Runnable pendingNamePrediction;
   private boolean gridMode = false;
@@ -1568,6 +1571,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         if (scannedSessionCards.isEmpty() && consolidateIdenticalCopies()) {
           DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
         }
+        syncSessionCardsFromCollection();
         if (mRecyclerView != null) refreshUI();
       }
     }
@@ -1634,6 +1638,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       mPreview.release();
     }
     collectionSaveExecutor.shutdown();
+    sessionPriceExecutor.shutdownNow();
     photoImportExecutor.shutdown();
   }
 
@@ -2588,7 +2593,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void updateScanSessionUi() {
-    syncSessionCardsFromCollection();
     int sessionCopies = sessionCopyCount();
     if (scanSessionButton != null) {
       scanSessionButton.setText(getString(R.string.scan_session_count, sessionCopies));
@@ -2596,38 +2600,68 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (scanSessionDialog != null) {
       scanSessionDialog.setTitle(getString(R.string.scan_session_title, sessionCopies));
     }
-    if (scanSessionTotalText != null) {
-      double total = 0d;
-      int totalCopies = sessionCopies;
-      int pricedCopies = 0;
-      for (CardInfo card : scannedSessionCards) {
-        Double amount = PriceCurrency.amountOrNull(this, card);
-        if (amount != null) {
-          int quantity = card.getQuantityCount();
-          pricedCopies += quantity;
-          total += amount * quantity;
-        }
-      }
-      boolean allPricesReady = totalCopies > 0 && pricedCopies == totalCopies;
-      String formattedTotal = PriceCurrency.format(this, total, PriceCurrency.preferred(this));
-      scanSessionTotalText.setText(!allPricesReady && totalCopies > 0
-          ? getString(R.string.scan_session_total_progress, pricedCopies, totalCopies, formattedTotal)
-          : getString(R.string.scan_session_total, formattedTotal));
-      int totalColor = scannedSessionCards.isEmpty()
-          ? MagicPalette.secondaryColor(this)
-          : ContextCompat.getColor(this, allPricesReady
-              ? R.color.scan_total_complete : R.color.scan_total_incomplete);
-      scanSessionTotalText.setTextColor(totalColor);
-      if (total > lastDisplayedSessionTotal + .0001d) {
-        scanSessionTotalText.animate().cancel();
-        scanSessionTotalText.setScaleX(.88f);
-        scanSessionTotalText.setScaleY(.88f);
-        scanSessionTotalText.setAlpha(.65f);
-        scanSessionTotalText.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(360L).start();
-      }
-      lastDisplayedSessionTotal = total;
+    scheduleScanSessionTotalUpdate();
+    if (scanSessionOpen && scanSessionAdapter != null) scanSessionAdapter.notifyDataSetChanged();
+  }
+
+  /** Price aggregation is deliberately kept away from OCR and camera callbacks. */
+  private void scheduleScanSessionTotalUpdate() {
+    if (scanSessionTotalText == null) return;
+    int generation = ++sessionPriceUpdateGeneration;
+    if (pendingSessionPriceUpdate != null) {
+      autoOcrHandler.removeCallbacks(pendingSessionPriceUpdate);
     }
-    if (scanSessionAdapter != null) scanSessionAdapter.notifyDataSetChanged();
+    pendingSessionPriceUpdate = () -> {
+      pendingSessionPriceUpdate = null;
+      List<CardInfo> snapshot = new ArrayList<>(scannedSessionCards);
+      if (sessionPriceExecutor.isShutdown()) return;
+      sessionPriceExecutor.execute(() -> {
+        double total = 0d;
+        int totalCopies = 0;
+        int pricedCopies = 0;
+        for (CardInfo card : snapshot) {
+          int quantity = card.getQuantityCount();
+          totalCopies += quantity;
+          Double amount = PriceCurrency.amountOrNull(getApplicationContext(), card);
+          if (amount != null) {
+            pricedCopies += quantity;
+            total += amount * quantity;
+          }
+        }
+        final double calculatedTotal = total;
+        final int calculatedCopies = totalCopies;
+        final int calculatedPricedCopies = pricedCopies;
+        autoOcrHandler.post(() -> {
+          if (generation != sessionPriceUpdateGeneration || isFinishing() || isDestroyed()) return;
+          renderScanSessionTotal(calculatedPricedCopies, calculatedCopies, calculatedTotal);
+        });
+      });
+    };
+    // While the camera is live, coalesce metadata callbacks and let OCR frames win. The session
+    // dialog stops the camera, so its total can be refreshed immediately.
+    autoOcrHandler.postDelayed(pendingSessionPriceUpdate, isScannerReaderActive() ? 600L : 0L);
+  }
+
+  private void renderScanSessionTotal(int pricedCopies, int totalCopies, double total) {
+    if (scanSessionTotalText == null) return;
+    boolean allPricesReady = totalCopies > 0 && pricedCopies == totalCopies;
+    String formattedTotal = PriceCurrency.format(this, total, PriceCurrency.preferred(this));
+    scanSessionTotalText.setText(!allPricesReady && totalCopies > 0
+        ? getString(R.string.scan_session_total_progress, pricedCopies, totalCopies, formattedTotal)
+        : getString(R.string.scan_session_total, formattedTotal));
+    int totalColor = totalCopies == 0
+        ? MagicPalette.secondaryColor(this)
+        : ContextCompat.getColor(this, allPricesReady
+            ? R.color.scan_total_complete : R.color.scan_total_incomplete);
+    scanSessionTotalText.setTextColor(totalColor);
+    if (total > lastDisplayedSessionTotal + .0001d) {
+      scanSessionTotalText.animate().cancel();
+      scanSessionTotalText.setScaleX(.88f);
+      scanSessionTotalText.setScaleY(.88f);
+      scanSessionTotalText.setAlpha(.65f);
+      scanSessionTotalText.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(360L).start();
+    }
+    lastDisplayedSessionTotal = total;
   }
 
   /** Rebinds session rows after the collection is reloaded or card detail writes a newer object. */
@@ -2680,6 +2714,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void showScanSession(boolean resetSelection) {
+    syncSessionCardsFromCollection();
     updateScanSessionUi();
     if (scannedSessionCards.isEmpty()) {
       AlertDialog emptyDialog = new AlertDialog.Builder(this)

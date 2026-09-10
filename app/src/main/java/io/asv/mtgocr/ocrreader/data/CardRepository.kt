@@ -98,8 +98,9 @@ class CardRepository private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val dao = CardDatabase.get(context).cardDao()
     private val client = OkHttpClient.Builder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build()
     private val imageProvider = ScryfallImageDataProvider(client)
     private val artworkIdentifier = CardArtworkIdentifier(context.applicationContext, client)

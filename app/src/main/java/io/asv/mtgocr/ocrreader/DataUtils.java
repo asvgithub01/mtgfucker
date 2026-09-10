@@ -68,9 +68,8 @@ public class DataUtils {
                 if (backup.exists()) backup.renameTo(target);
                 throw new IOException("No se pudo publicar " + fileName);
             }
-            if (backup.exists() && !backup.delete()) {
-                Log.w("DataUtils", "No se pudo borrar el backup de " + fileName);
-            }
+            // Deliberately retain the previous known-good generation. A schema or serialization
+            // regression must not be able to replace the user's only copy of the collection.
         } catch (Exception e) {
             if (temporary.exists() && !temporary.delete()) {
                 Log.w("DataUtils", "No se pudo borrar el temporal de " + fileName);
@@ -89,23 +88,28 @@ public class DataUtils {
      */
 
     public static <T extends Serializable> T readSerializable(Context context, String fileName) {
-        T objectToReturn = null;
-
-        try {
-            File target = new File(context.getFilesDir(), fileName);
-            File backup = new File(context.getFilesDir(), fileName + ".bak");
-            if (!target.exists() && backup.exists()) backup.renameTo(target);
-            FileInputStream fileInputStream = context.openFileInput(fileName);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-            objectToReturn = (T) objectInputStream.readObject();
-
-            objectInputStream.close();
-            fileInputStream.close();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+        File target = new File(context.getFilesDir(), fileName);
+        File backup = new File(context.getFilesDir(), fileName + ".bak");
+        T value = readSerializableFile(target);
+        if (value != null) return value;
+        value = readSerializableFile(backup);
+        if (value != null) {
+            Log.e("DataUtils", "Se recuperó " + fileName + " desde el backup");
+            return value;
         }
+        return null;
+    }
 
-        return objectToReturn;
+    @SuppressWarnings("unchecked")
+    private static <T extends Serializable> T readSerializableFile(File file) {
+        if (file == null || !file.isFile() || file.length() == 0L) return null;
+        try (FileInputStream input = new FileInputStream(file);
+             ObjectInputStream objects = new ObjectInputStream(input)) {
+            return (T) objects.readObject();
+        } catch (IOException | ClassNotFoundException | ClassCastException error) {
+            Log.e("DataUtils", "No se pudo leer " + file.getAbsolutePath(), error);
+            return null;
+        }
     }
 
     /**

@@ -7,6 +7,13 @@ import java.util.ArrayList;
  * Created by Alberto on 16/10/2016.
  */
 public class Biblio implements Serializable {
+    /**
+     * The collection has been serialized since the original 2016 version. Keep its historical
+     * identifier forever: adding a helper method must never make thousands of saved cards
+     * unreadable.
+     */
+    private static final long serialVersionUID = -2428653643628406405L;
+
     public String nameFile;
     private String name;
     public ArrayList<CardInfo> cards;

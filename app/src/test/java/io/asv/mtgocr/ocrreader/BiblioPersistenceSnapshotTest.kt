@@ -6,8 +6,16 @@ import io.asv.mtgocr.ocrreader.model.DescriptionMtgInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Test
+import java.io.ObjectStreamClass
 
 class BiblioPersistenceSnapshotTest {
+    @Test fun serializationIdRemainsCompatibleWithTheOriginalCollection() {
+        assertEquals(
+            -2428653643628406405L,
+            ObjectStreamClass.lookup(Biblio::class.java).serialVersionUID
+        )
+    }
+
     @Test fun snapshotDetachesCardsAndEveryMutableNestedList() {
         val collection = Biblio("myBiblio.Json", "Biblioteca")
         val card = CardInfo("Exile", "1.50 USD", "rules", "image", "1")

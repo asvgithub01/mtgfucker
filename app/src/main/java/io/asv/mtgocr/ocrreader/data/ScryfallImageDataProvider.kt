@@ -30,6 +30,12 @@ data class LocalizedPrintingVariant(
     val imageUrl: String
 )
 
+data class LocalizedCardName(
+    val canonicalName: String,
+    val printedName: String,
+    val languageCode: String
+)
+
 /** Scryfall is deliberately responsible only for printing discovery and card imagery. */
 class ScryfallImageDataProvider(private val client: OkHttpClient) {
     fun getPrintingImages(cardName: String): List<ScryfallPrintingHint> {
@@ -82,6 +88,46 @@ class ScryfallImageDataProvider(private val client: OkHttpClient) {
 
     fun getSetImages(setCode: String): List<ScryfallPrintingHint> {
         return searchPrintings("set:${setCode.lowercase()} game:paper", includeMultilingual = false)
+    }
+
+    /** Printed names for a set, used to fill gaps in MTGJSON's multilingual name catalog. */
+    fun getSetLocalizedNames(setCode: String, languageCode: String): List<LocalizedCardName> {
+        val results = mutableListOf<LocalizedCardName>()
+        var nextUrl: String? = "https://api.scryfall.com/cards/search".toHttpUrl().newBuilder()
+            .addQueryParameter(
+                "q",
+                "set:${setCode.lowercase()} lang:${languageCode.lowercase()} game:paper"
+            )
+            .addQueryParameter("unique", "prints")
+            .addQueryParameter("order", "set")
+            .addQueryParameter("include_multilingual", "true")
+            .build().toString()
+        while (nextUrl != null) {
+            val request = Request.Builder().url(nextUrl)
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "application/json;q=0.9,*/*;q=0.8")
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (response.code == 404) return emptyList()
+                if (!response.isSuccessful) error("Scryfall idiomas devolvió HTTP ${response.code}")
+                val root = JSONObject(response.body?.string().orEmpty())
+                val data = root.getJSONArray("data")
+                for (index in 0 until data.length()) {
+                    val card = data.getJSONObject(index)
+                    val printedName = card.optString("printed_name").trim()
+                    if (printedName.isEmpty()) continue
+                    results += LocalizedCardName(
+                        canonicalName = card.getString("name"),
+                        printedName = printedName,
+                        languageCode = card.optString("lang", languageCode)
+                    )
+                }
+                nextUrl = if (root.optBoolean("has_more")) {
+                    root.optString("next_page").ifBlank { null }
+                } else null
+            }
+        }
+        return results.distinctBy { MtgJsonParsers.normalizeSearchName(it.printedName) }
     }
 
     fun getImageLanguages(setCode: String, collectorNumber: String): List<CardImageVariant> {

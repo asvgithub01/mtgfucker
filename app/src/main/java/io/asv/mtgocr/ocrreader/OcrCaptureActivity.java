@@ -338,6 +338,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             .getBoolean(PREF_ASK_EDITION_AFTER_SCAN, false));
     lockedSetInput.setText(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getString(PREF_LOCKED_SET, ""));
+    cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
     autoIdentifyCheck.setOnCheckedChangeListener((button, checked) ->
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_AUTO_IDENTIFY, checked).apply());
@@ -348,8 +349,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_ASK_EDITION_AFTER_SCAN, checked).apply());
     lockedSetInput.setOnFocusChangeListener((view, focused) -> {
-      if (!focused) getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
-          .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
+      if (!focused) {
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
+        cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
+      }
     });
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
     scanSessionAdapter = new ScanSessionAdapter(this, scannedSessionCards,
@@ -3600,6 +3604,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         ? currentFilterKey.substring("group:".length())
         : "";
     prepareSessionForActiveGroup();
+    cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
     if (useMlKitJapaneseOcr != mlKitJapanese || mCameraSource == null) {
       if (mPreview != null) mPreview.release();
       mCameraSource = null;

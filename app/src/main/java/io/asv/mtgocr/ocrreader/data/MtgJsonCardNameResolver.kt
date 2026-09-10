@@ -131,6 +131,26 @@ class MtgJsonCardNameResolver(
         )
     }
 
+    /** Adds newly published printed names without waiting for the monthly AtomicCards refresh. */
+    fun rememberLocalizedAliases(names: List<LocalizedCardName>) {
+        val now = System.currentTimeMillis()
+        val aliases = names.mapNotNull { name ->
+            val normalized = MtgJsonParsers.normalizeSearchName(name.printedName)
+            if (normalized.isBlank()) null else CardNameAliasEntity(
+                normalizedAlias = normalized,
+                canonicalName = name.canonicalName,
+                displayName = name.printedName,
+                language = name.languageCode,
+                updatedAt = now
+            )
+        }
+        if (aliases.isEmpty()) return
+        dao.saveCardNameAliases(aliases)
+        // Keep fuzzy matching current as well; the old immutable index remains usable until this
+        // replacement has been completely built on the background alias warm-up executor.
+        ocrNameIndex = OcrNameIndex(dao.allCardNameAliases())
+    }
+
     fun resolve(cardName: String): Resolution? {
         cached(cardName)?.let { return it }
         ensureAtomicCardsFile()

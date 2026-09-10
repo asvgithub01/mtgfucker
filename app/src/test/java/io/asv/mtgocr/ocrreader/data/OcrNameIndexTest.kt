@@ -51,4 +51,24 @@ class OcrNameIndexTest {
 
         assertNull(index.match(listOf("cima del espectaculo")))
     }
+
+    @Test fun refusesToPromoteAReadFragmentToACompleteTitle() {
+        val index = OcrNameIndex(listOf(alias("La Biblioplex"), alias("Sueños robados")))
+
+        assertNull(index.match(listOf("biblioplex")))
+        assertNull(index.match(listOf("suenos")))
+    }
+
+    @Test fun matchesCurrentSetSpanishNamesOnceLocalizedAliasesAreAvailable() {
+        val index = OcrNameIndex(listOf(
+            alias("Guardatomos de la Biblioplex"),
+            alias("Diario de sueños")
+        ))
+
+        assertEquals(
+            "Guardatomos de la Biblioplex",
+            index.match(listOf("guarda tmons de la biblioplex"))?.canonicalName
+        )
+        assertEquals("Diario de sueños", index.match(listOf("diario de suenos"))?.canonicalName)
+    }
 }

@@ -72,7 +72,15 @@ internal object OcrFuzzyMatchPolicy {
         if (distance == 0) return true
         val queryWords = query.split(' ')
         val candidateWords = candidate.split(' ')
-        if (queryWords.size < 2 || queryWords.size != candidateWords.size) return true
+        if (queryWords.size != candidateWords.size) {
+            // Never promote a whole-word fragment ("biblioplex" / "suenos") to a longer title.
+            // Missing letters are tolerated below; missing complete words are not.
+            val paddedQuery = " $query "
+            val paddedCandidate = " $candidate "
+            return !paddedQuery.contains(paddedCandidate) &&
+                !paddedCandidate.contains(paddedQuery)
+        }
+        if (queryWords.size < 2) return true
 
         val differing = queryWords.indices.filter { queryWords[it] != candidateWords[it] }
         if (differing.size != 1) return true

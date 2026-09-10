@@ -6,7 +6,11 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import okhttp3.OkHttpClient
+import org.json.JSONArray
+import java.util.Collections
 import java.util.LinkedHashMap
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
@@ -120,7 +124,10 @@ class CardRepository private constructor(context: Context) {
     private val priceIndexExecutor = Executors.newSingleThreadExecutor()
     private val nameExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newFixedThreadPool(2)
+    private val setAliasExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val setAliasesInFlight: MutableSet<String> =
+        Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
     private val optionCache = object : LinkedHashMap<String, List<CardEditionOption>>(48, .75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<CardEditionOption>>?): Boolean {
             return size > 48
@@ -139,6 +146,54 @@ class CardRepository private constructor(context: Context) {
                 mainHandler.post { callback(sets, null) }
             } catch (error: Throwable) {
                 mainHandler.post { callback(emptyList(), error) }
+            }
+        }
+    }
+
+    /** Warms localized OCR aliases for the locked set without ever occupying the OCR executor. */
+    fun prepareLockedSetOcrAliases(lockedSetCodes: Set<String>) {
+        val languageCode = Locale.getDefault().language.lowercase(Locale.US)
+        if (languageCode == "en" || languageCode !in SUPPORTED_ALIAS_LANGUAGES) return
+        val preferences = appContext.getSharedPreferences(SET_ALIAS_PREFERENCES, Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        for (setCode in ScanSetLockPolicy.expand(lockedSetCodes)) {
+            val key = "${setCode}_${languageCode}"
+            if (now - preferences.getLong(key, 0L) < SET_ALIAS_MAX_AGE_MILLIS) continue
+            if (!setAliasesInFlight.add(key)) continue
+            setAliasExecutor.execute {
+                try {
+                    val bundledNames = bundledSetOcrAliases(setCode, languageCode)
+                    if (bundledNames.isNotEmpty()) {
+                        nameResolver.rememberLocalizedAliases(bundledNames)
+                        Log.i(TAG, "Alias OCR incluidos $key: ${bundledNames.size}")
+                    }
+                    val names = imageProvider.getSetLocalizedNames(setCode, languageCode)
+                    nameResolver.rememberLocalizedAliases(names)
+                    preferences.edit().putLong(key, System.currentTimeMillis()).apply()
+                    Log.i(TAG, "Alias OCR $key actualizados: ${names.size}")
+                } catch (error: Throwable) {
+                    Log.w(TAG, "No se pudieron actualizar los alias OCR de $key", error)
+                } finally {
+                    setAliasesInFlight.remove(key)
+                }
+            }
+        }
+    }
+
+    private fun bundledSetOcrAliases(setCode: String, languageCode: String): List<LocalizedCardName> {
+        val path = "ocr_aliases/${setCode.lowercase(Locale.US)}_${languageCode.lowercase(Locale.US)}.json"
+        val json = runCatching {
+            appContext.assets.open(path).bufferedReader().use { it.readText() }
+        }.getOrNull() ?: return emptyList()
+        val array = JSONArray(json)
+        return buildList {
+            for (index in 0 until array.length()) {
+                val value = array.getJSONObject(index)
+                add(LocalizedCardName(
+                    canonicalName = value.getString("canonicalName"),
+                    printedName = value.getString("printedName"),
+                    languageCode = value.optString("languageCode", languageCode)
+                ))
             }
         }
     }
@@ -590,6 +645,9 @@ class CardRepository private constructor(context: Context) {
 
     companion object {
         private const val TAG = "CardRepository"
+        private const val SET_ALIAS_PREFERENCES = "set_ocr_aliases"
+        private val SET_ALIAS_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(7)
+        private val SUPPORTED_ALIAS_LANGUAGES = setOf("es", "fr", "de", "it", "pt", "ja", "ko", "ru")
         @Volatile private var instance: CardRepository? = null
         @JvmStatic fun get(context: Context): CardRepository = instance ?: synchronized(this) {
             instance ?: CardRepository(context.applicationContext).also { instance = it }

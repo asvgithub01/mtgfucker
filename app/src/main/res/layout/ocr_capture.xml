@@ -405,13 +405,36 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/txtScanOcrCharacters"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/btnScanSession"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/bg_scan_debug_status"
+            android:elevation="8dp"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:maxLines="2"
+            android:paddingStart="10dp"
+            android:paddingTop="5dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="5dp"
+            android:text="@string/scan_debug_characters_empty"
+            android:textColor="#D6FF7F"
+            android:textIsSelectable="true"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
             android:id="@+id/txtScanDebugStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/btnScanSession"
+            android:layout_below="@id/txtScanOcrCharacters"
             android:layout_centerHorizontal="true"
             android:layout_marginStart="20dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:layout_marginEnd="20dp"
             android:background="@drawable/bg_scan_debug_status"
             android:elevation="8dp"

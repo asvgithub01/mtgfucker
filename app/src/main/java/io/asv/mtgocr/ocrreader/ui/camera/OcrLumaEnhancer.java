@@ -12,15 +12,13 @@ final class OcrLumaEnhancer {
         int uprightWidth = (rotation & 1) == 1 ? height : width;
         int uprightHeight = (rotation & 1) == 1 ? width : height;
         OcrTitleRegion.Bounds title = OcrTitleRegion.forFrame(uprightWidth, uprightHeight);
-        OcrTitleRegion.Bounds contrastSample =
-                OcrTitleRegion.contrastSampleForFrame(uprightWidth, uprightHeight);
         long sum = 0L;
         long sumSquares = 0L;
         int samples = 0;
         for (int index = 0; index < pixels; index += 16) {
             int x = index % width;
             int y = index / width;
-            if (!isInsideTitle(x, y, width, height, rotation, contrastSample)) continue;
+            if (!isInsideTitle(x, y, width, height, rotation, title)) continue;
             int value = nv21[index] & 0xff;
             sum += value;
             sumSquares += (long) value * value;

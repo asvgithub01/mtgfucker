@@ -35,4 +35,14 @@ class OcrNameIndexTest {
 
         assertEquals("Land Tax", index.match(listOf("lend", "Tar--"))?.canonicalName)
     }
+
+    @Test fun ignoresLeadingCardFrameGlyphsAndFlattensAccents() {
+        val index = OcrNameIndex(listOf(alias("Exile"), alias("Éowyn, Shieldmaiden")))
+
+        assertEquals("Exile", index.match(listOf("(Exile"))?.canonicalName)
+        assertEquals(
+            "Éowyn, Shieldmaiden",
+            index.match(listOf("(Eowyn, Shieldmaiden"))?.canonicalName
+        )
+    }
 }

@@ -178,6 +178,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private EditText lockedSetInput;
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
+  private TextView scanOcrCharacters;
   private Button scanSessionButton;
   private TextView scanSessionTotalText;
   FloatingActionButton fabOcr, fabOcrMlKit;
@@ -267,10 +268,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int pendingSessionScrollOffset;
   private int currentSessionSortMode = ScanSessionSort.ENTRY;
   private String activeScanGroupName = "";
+  private String sessionSourceGroupName = "";
   private ToneGenerator scanToneGenerator;
   private final CardScanStability scanStability = new CardScanStability(1, 1_800L);
   private boolean scanLookupInFlight;
   private boolean scanInProgress;
+  private long lastOcrLookupAt;
   private long scanLookupStartedAt;
   private long scanWorkStartedAt;
   private int scanLookupBlockedFrames;
@@ -278,7 +281,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private String scanWorkDebugLabel = "";
   private Runnable pendingScanDebugHide;
   private long lastOcrMissLoggedAt;
-  private List<String> pendingOcrCandidates;
+  private long lastOcrCharactersAt;
+  private String lastOcrCharacters = "";
   private double lastDisplayedSessionTotal;
   private boolean useMlKitJapaneseOcr;
   private boolean firstResume = true;
@@ -306,6 +310,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     scanDebugStatus = (TextView) findViewById(R.id.txtScanDebugStatus);
+    scanOcrCharacters = (TextView) findViewById(R.id.txtScanOcrCharacters);
     scanSessionButton = (Button) findViewById(R.id.btnScanSession);
     scanSessionTotalText = (TextView) findViewById(R.id.txtScanSessionTotal);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
@@ -494,20 +499,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void handleAutomaticOcr(List<String> candidates) {
+    renderOcrCharacters(candidates);
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
         !isScannerReaderActive()) return;
-    if (candidates == null || candidates.isEmpty()) {
-      // This does not slow down recognition: it only rearms the last name after two clear frames.
-      scanStability.observeNoCandidate();
-      // Do not retry text belonging to a card that has already left the guide.
-      pendingOcrCandidates = null;
-      return;
-    }
-    scanStability.observeCandidatePresent();
     if (scanLookupInFlight) {
-      // Matching can occasionally take 0.5-1s. Keep only the newest frame so the next physical
-      // card is retried as soon as the current lookup returns, without creating an executor queue.
-      pendingOcrCandidates = new ArrayList<>(candidates);
       reportScannerGateBlocked(
           getString(R.string.scan_debug_name_lookup), scanLookupStartedAt,
           ++scanLookupBlockedFrames);
@@ -518,6 +513,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     long now = SystemClock.elapsedRealtime();
+    if (now - lastOcrLookupAt < 120L) return;
+    lastOcrLookupAt = now;
     scanLookupInFlight = true;
     scanLookupStartedAt = now;
     scanLookupBlockedFrames = 0;
@@ -525,32 +522,36 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       finishScannerLookupGate();
       if (match == null) {
         logOcrMiss(candidates);
-      } else if (isScannerReaderActive() && !scanInProgress) {
-        String displayName = match.getDisplayName();
-        cardScanGuide.setMessage(getString(R.string.scan_reading_name, displayName));
-        suppressPredictionWatcher = true;
-        txtSearch.setText(displayName);
-        suppressPredictionWatcher = false;
-        if (scanStability.observe(match.getCanonicalName(), SystemClock.elapsedRealtime())) {
-          Log.i(TAG, "SCAN_OCR accepted name=" + match.getCanonicalName() +
-              " language=" + match.getLanguage() + " metadata=background");
-          playOcrRecognizedFeedback();
-          captureArtworkForIdentification(match);
-        } else {
-          Log.d(TAG, "SCAN_OCR suppressed_same_card name=" + match.getCanonicalName());
-        }
+        return kotlin.Unit.INSTANCE;
       }
-      drainPendingOcrLookup();
+      if (!isScannerReaderActive() || scanInProgress) return kotlin.Unit.INSTANCE;
+      String displayName = match.getDisplayName();
+      cardScanGuide.setMessage(getString(R.string.scan_reading_name, displayName));
+      suppressPredictionWatcher = true;
+      txtSearch.setText(displayName);
+      suppressPredictionWatcher = false;
+      if (scanStability.observe(match.getCanonicalName(), SystemClock.elapsedRealtime())) {
+        Log.i(TAG, "SCAN_OCR accepted name=" + match.getCanonicalName() +
+            " language=" + match.getLanguage());
+        playOcrRecognizedFeedback();
+        captureArtworkForIdentification(match);
+      }
       return kotlin.Unit.INSTANCE;
     });
   }
 
-  private void drainPendingOcrLookup() {
-    if (pendingOcrCandidates == null || pendingOcrCandidates.isEmpty() ||
-        !isScannerReaderActive() || scanInProgress) return;
-    List<String> latest = pendingOcrCandidates;
-    pendingOcrCandidates = null;
-    autoOcrHandler.post(() -> handleAutomaticOcr(latest));
+  private void renderOcrCharacters(List<String> candidates) {
+    if (scanOcrCharacters == null || candidates == null || candidates.isEmpty()) return;
+    int shown = Math.min(4, candidates.size());
+    String raw = TextUtils.join(" | ", candidates.subList(0, shown));
+    if (raw.length() > 180) raw = raw.substring(0, 177) + "…";
+    if (raw.equals(lastOcrCharacters)) return;
+    long now = SystemClock.elapsedRealtime();
+    if (now - lastOcrCharactersAt < 120L) return;
+    lastOcrCharactersAt = now;
+    lastOcrCharacters = raw;
+    scanOcrCharacters.setText(getString(R.string.scan_debug_characters, raw));
+    Log.d(TAG, "SCAN_OCR raw=" + raw);
   }
 
   private void logOcrMiss(List<String> candidates) {
@@ -587,7 +588,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanWorkStartedAt = 0L;
     scanWorkBlockedFrames = 0;
     scanWorkDebugLabel = "";
-    pendingOcrCandidates = null;
   }
 
   private void reportScannerGateBlocked(String label, long startedAt, int blockedFrames) {
@@ -629,6 +629,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void resetScannerGateDiagnostics() {
     scanLookupInFlight = false;
     scanInProgress = false;
+    lastOcrLookupAt = 0L;
     scanLookupStartedAt = 0L;
     scanWorkStartedAt = 0L;
     scanLookupBlockedFrames = 0;
@@ -641,45 +642,29 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void captureArtworkForIdentification(LocalCardNameMatch match) {
     if (mCameraSource == null || scanInProgress || !isScannerReaderActive()) return;
+    beginScannerWork(quickScanCheck.isChecked()
+        ? getString(R.string.scan_debug_card_info)
+        : getString(R.string.scan_debug_artwork));
     if (quickScanCheck.isChecked()) {
-      // The OCR name is already a valid scan result. Persist it now and let all edition, image and
-      // price work use the existing background metadata pipeline; no Room/cache lookup is allowed
-      // to hold the camera gate between physical cards.
       cardScanGuide.setMessage(getString(R.string.scan_reading_name, match.getDisplayName()));
-      Set<String> lockedSets = lockedSetCodes();
-      if (!lockedSets.isEmpty()) {
-        // A set lock still needs local validation, but it is deliberately not a scanner gate.
-        // Keep the recognized card in the session even when its local edition cache is incomplete;
-        // the next physical card can be recognized while this callback resolves the prior one.
-        CardInfo pendingCard = persistRecognizedCardName(
-            match.getDisplayName(), match.getLanguage());
-        String pendingCardId = pendingCard.getCollectionItemId();
-        cardRepository.quickScanCard(match.getCanonicalName(), lockedSets, (option, error) -> {
-          CardInfo current = findCollectionCard(pendingCardId);
-          if (option != null && current != null) {
-            applyLocalScanMetadata(current, option);
-            persistCollectionWithoutBlockingScanner();
-            rememberSessionScan(current);
-            cardRepository.selectEdition(current.getCollectionItemId(), option,
-                () -> kotlin.Unit.INSTANCE);
-            enrichIdentifiedPrinting(current.getCollectionItemId(), option);
-          } else if (isScannerReaderActive()) {
+      cardRepository.quickScanCard(match.getCanonicalName(), lockedSetCodes(), (option, error) -> {
+        finishScannerWorkGate();
+        if (!isScannerReaderActive()) {
+        } else if (error != null) {
+          if (lockedSetCodes().isEmpty()) {
+            submitScannedCard(match.getDisplayName(), match.getLanguage());
+          } else {
             cardScanGuide.setMessage(getString(R.string.scan_no_set_match));
           }
-          if (option == null) finishScanMetadata(pendingCardId, false);
-          return kotlin.Unit.INSTANCE;
-        });
-        if (closeAfterScanCheck.isChecked()) showRecycler();
-        else prepareScannerForNextCard();
-        return;
-      }
-      submitScannedCard(match.getDisplayName(), match.getLanguage());
-      if (isScannerReaderActive()) {
-        cardScanGuide.setMessage(getString(R.string.scan_align_card));
-      }
+        } else if (option == null) {
+          submitScannedCard(match.getDisplayName(), match.getLanguage());
+        } else {
+          addIdentifiedPrinting(option, match.getLanguage());
+        }
+        return kotlin.Unit.INSTANCE;
+      });
       return;
     }
-    beginScannerWork(getString(R.string.scan_debug_artwork));
     cardScanGuide.setMessage(getString(R.string.scan_comparing_art, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
@@ -3602,6 +3587,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     lytSearch.bringToFront();
     scanStability.resetPending();
     resetScannerGateDiagnostics();
+    lastOcrCharacters = "";
+    lastOcrCharactersAt = 0L;
+    if (scanOcrCharacters != null) {
+      scanOcrCharacters.setText(R.string.scan_debug_characters_empty);
+    }
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
   }
 
@@ -3609,6 +3599,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     activeScanGroupName = currentFilterKey.startsWith("group:")
         ? currentFilterKey.substring("group:".length())
         : "";
+    prepareSessionForActiveGroup();
     if (useMlKitJapaneseOcr != mlKitJapanese || mCameraSource == null) {
       if (mPreview != null) mPreview.release();
       mCameraSource = null;
@@ -3619,6 +3610,30 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     showOcr();
     startCameraSource();
+  }
+
+  /** A scanner opened from a group treats that complete group as its visible session baseline. */
+  private void prepareSessionForActiveGroup() {
+    if (activeScanGroupName.isEmpty()) {
+      if (!sessionSourceGroupName.isEmpty()) {
+        scannedSessionCards.clear();
+        selectedSessionCardIds.clear();
+        sessionSourceGroupName = "";
+        updateScanSessionUi();
+      }
+      return;
+    }
+    scannedSessionCards.clear();
+    selectedSessionCardIds.clear();
+    if (mBiblio != null && mBiblio.cards != null) {
+      scannedSessionCards.addAll(
+          ScanSessionCounts.cardsInGroup(mBiblio.cards, activeScanGroupName));
+      for (CardInfo card : scannedSessionCards) {
+        selectedSessionCardIds.add(card.getCollectionItemId());
+      }
+    }
+    sessionSourceGroupName = activeScanGroupName;
+    updateScanSessionUi();
   }
 
   private void showRecycler() {

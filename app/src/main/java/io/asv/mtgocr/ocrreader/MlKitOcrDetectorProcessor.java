@@ -44,8 +44,7 @@ final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLin
         addCandidate(candidates, line.getText());
       }
     }
-    // Empty title frames are also delivered so consecutive physical copies can be separated.
-    if (listener != null) listener.onTextCandidates(candidates);
+    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
   }
 
   private static void addCandidate(List<String> candidates, String rawText) {

@@ -18,5 +18,21 @@ class ScanSessionCountsTest {
         assertEquals(4..6, ScanSessionCounts.range(cards, 2))
     }
 
+    @Test
+    fun groupFilterSeedsTheSessionWithEveryExistingGroupCard() {
+        val first = card("A", 2).apply { addGroup("Caja antigua") }
+        val second = card("B", 1)
+        val third = card("C", 3).apply { addGroup("Caja antigua") }
+
+        val session = ScanSessionCounts.cardsInGroup(
+            listOf(first, second, third),
+            "Caja antigua"
+        )
+
+        assertEquals(listOf(first, third), session)
+        assertEquals(5, ScanSessionCounts.total(session))
+        assertEquals(emptyList<CardInfo>(), ScanSessionCounts.cardsInGroup(listOf(first), ""))
+    }
+
     private fun card(name: String, quantity: Int) = CardInfo(name, "", "", "", quantity.toString())
 }

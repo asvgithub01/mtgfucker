@@ -1,7 +1,6 @@
 package io.asv.mtgocr.ocrreader.ui.camera
 
 import io.asv.mtgocr.ocrreader.OcrTitleRegion
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -37,32 +36,5 @@ class OcrLumaEnhancerTest {
         assertTrue((frame[0].toInt() and 0xff) == 128)
         val center = ((title.top + title.bottom) / 2) * width + (title.left + title.right) / 2
         assertTrue((frame[center].toInt() and 0xff) != 128)
-    }
-
-    @Test fun artworkBrightnessDoesNotDistortOldCardTitleStatistics() {
-        val width = 200
-        val height = 280
-        val ySize = width * height
-        val darkArtwork = ByteArray(ySize + ySize / 2) { 128.toByte() }
-        val brightArtwork = darkArtwork.copyOf()
-        val title = OcrTitleRegion.forFrame(width, height)
-        val sample = OcrTitleRegion.contrastSampleForFrame(width, height)
-
-        for (y in title.top..title.bottom) for (x in title.left..title.right) {
-            darkArtwork[y * width + x] = 45
-            brightArtwork[y * width + x] = 215.toByte()
-        }
-        for (y in sample.top..sample.bottom) for (x in sample.left..sample.right) {
-            darkArtwork[y * width + x] = 220.toByte()
-            brightArtwork[y * width + x] = 220.toByte()
-        }
-        val glyph = ((sample.top + sample.bottom) / 2) * width + sample.left + 2
-        darkArtwork[glyph] = 165.toByte()
-        brightArtwork[glyph] = 165.toByte()
-
-        OcrLumaEnhancer.enhance(darkArtwork, width, height, 0)
-        OcrLumaEnhancer.enhance(brightArtwork, width, height, 0)
-
-        assertEquals(darkArtwork[glyph], brightArtwork[glyph])
     }
 }

@@ -5,6 +5,10 @@ import io.asv.mtgocr.ocrreader.model.CardInfo
 /** Session counters always represent physical copies, never serialized rows or selected IDs. */
 object ScanSessionCounts {
     @JvmStatic
+    fun cardsInGroup(cards: List<CardInfo>, groupName: String): List<CardInfo> =
+        if (groupName.isBlank()) emptyList() else cards.filter { groupName in it.groups }
+
+    @JvmStatic
     fun total(cards: List<CardInfo>): Int = cards.sumOf { it.quantityCount }
 
     @JvmStatic

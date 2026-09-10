@@ -196,10 +196,13 @@
     <string name="scan_candidate_label">%1$s (%2$s) · #%3$s · coincidencia %4$d%%</string>
     <string name="scan_tap_repeat">Toca la cámara para volver a escanear la misma carta</string>
     <string name="scan_debug_name_lookup">matching del nombre</string>
+    <string name="scan_debug_card_info">búsqueda de edición/precio</string>
     <string name="scan_debug_artwork">comparación de ilustración</string>
     <string name="scan_debug_unknown_work">trabajo interno</string>
     <string name="scan_debug_blocked">DEBUG OCR · %1$d frames en espera · %2$s (%3$d ms)</string>
     <string name="scan_debug_recovered">DEBUG OCR · cola recuperada (%1$d frames) · %2$s (%3$d ms)</string>
+    <string name="scan_debug_characters">OCR lee: %1$s</string>
+    <string name="scan_debug_characters_empty">OCR lee: —</string>
     <string name="scan_session_empty">Sesión (0)</string>
     <string name="scan_session_count">Sesión (%1$d)</string>
     <string name="scan_session_total_empty">Total: 0,00 €</string>

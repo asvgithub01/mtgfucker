@@ -28,20 +28,4 @@ class CardScanStabilityTest {
         assertFalse(stability.observe("Mountain", 100))
         assertFalse(stability.observe("Mountain", 700))
     }
-
-    @Test fun twoClearFramesRearmAnIdenticalPhysicalCopyWithoutDelayingFirstHit() {
-        val stability = CardScanStability(requiredHits = 1)
-        assertTrue(stability.observe("Island", 100))
-        assertFalse(stability.observe("Island", 200))
-
-        stability.observeNoCandidate()
-        assertFalse(stability.observe("Island", 300))
-        stability.observeNoCandidate()
-        stability.observeCandidatePresent()
-        stability.observeNoCandidate()
-        assertFalse(stability.observe("Island", 350))
-        stability.observeNoCandidate()
-        stability.observeNoCandidate()
-        assertTrue(stability.observe("Island", 400))
-    }
 }

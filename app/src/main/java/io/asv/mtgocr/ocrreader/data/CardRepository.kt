@@ -326,10 +326,7 @@ class CardRepository private constructor(context: Context) {
                 if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, null) }
                 return@submit
             }
-            // quickScanCard is part of the OCR acknowledgement path and must stay truly local.
-            // A cache miss is reported to the caller; card metadata discovery continues elsewhere
-            // in the background and can take minutes or hit remote rate limits during a burst.
-            val printings = cached
+            val printings = if (cached.isNotEmpty()) cached else catalog.editions(canonicalName)
             val eligible = printings.filter { locked.isEmpty() || it.setCode.uppercase() in locked }
             if (eligible.isEmpty()) error("No hay impresiones disponibles para '$cardName'")
             val prices = priceProvider.cachedPrices(

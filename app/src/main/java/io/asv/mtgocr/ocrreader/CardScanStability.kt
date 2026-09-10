@@ -10,21 +10,15 @@ class CardScanStability(
     private val requiredHits: Int = 2,
     private val maximumGapMs: Long = 1_800L
 ) {
-    private val requiredClearFrames = 2
     private var pendingKey = ""
     private var pendingHits = 0
     private var lastHitAt = 0L
     private var acceptedKey = ""
-    private var clearFrames = 0
 
     fun observe(cardName: String, nowMs: Long): Boolean {
         val key = cardName.trim().lowercase(Locale.ROOT)
         if (key.isEmpty()) return false
-        clearFrames = 0
-        if (key == acceptedKey) {
-            resetPending()
-            return false
-        }
+        if (key == acceptedKey) return false
         if (acceptedKey.isNotEmpty() && key != acceptedKey) acceptedKey = ""
 
         if (key != pendingKey || nowMs - lastHitAt > maximumGapMs) {
@@ -42,25 +36,6 @@ class CardScanStability(
         return true
     }
 
-    /** Rearms an identical title only after the previous physical card visibly leaves the guide. */
-    fun observeNoCandidate() {
-        resetPending()
-        if (acceptedKey.isEmpty()) {
-            clearFrames = 0
-            return
-        }
-        clearFrames++
-        if (clearFrames >= requiredClearFrames) {
-            acceptedKey = ""
-            clearFrames = 0
-        }
-    }
-
-    /** Keeps the clear-frame requirement consecutive even while a name lookup is busy. */
-    fun observeCandidatePresent() {
-        clearFrames = 0
-    }
-
     fun resetPending() {
         pendingKey = ""
         pendingHits = 0
@@ -69,7 +44,6 @@ class CardScanStability(
 
     fun allowRepeat() {
         acceptedKey = ""
-        clearFrames = 0
         resetPending()
     }
 }

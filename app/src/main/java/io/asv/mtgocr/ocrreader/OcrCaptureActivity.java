@@ -265,6 +265,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private boolean reopenScanSessionAfterDetail;
   private int pendingSessionScrollPosition;
   private int pendingSessionScrollOffset;
+  private int currentSessionSortMode = ScanSessionSort.ENTRY;
   private String activeScanGroupName = "";
   private ToneGenerator scanToneGenerator;
   private final CardScanStability scanStability = new CardScanStability(1, 1_800L);
@@ -2879,6 +2880,34 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     hint.setTextColor(MagicPalette.secondaryColor(this));
     header.addView(hint, new LinearLayout.LayoutParams(
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    LinearLayout sorting = new LinearLayout(this);
+    sorting.setGravity(Gravity.CENTER_VERTICAL);
+    TextView sortLabel = new TextView(this);
+    sortLabel.setText(R.string.sort_session_cards);
+    sortLabel.setTextColor(MagicPalette.secondaryColor(this));
+    sortLabel.setPadding(0, 0, dp(8), 0);
+    sorting.addView(sortLabel, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    Spinner sessionSort = new Spinner(this);
+    ArrayAdapter<CharSequence> sessionSortAdapter = ArrayAdapter.createFromResource(
+        this, R.array.scan_session_sort_options, android.R.layout.simple_spinner_item);
+    sessionSortAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    sessionSort.setAdapter(sessionSortAdapter);
+    sessionSort.setSelection(currentSessionSortMode, false);
+    sessionSort.setContentDescription(getString(R.string.sort_session_cards));
+    sessionSort.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+      @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        currentSessionSortMode = position;
+        scanSessionAdapter.setSortMode(position);
+        if (scanSessionList != null) scanSessionList.setSelection(0);
+      }
+
+      @Override public void onNothingSelected(AdapterView<?> parent) { }
+    });
+    sorting.addView(sessionSort, new LinearLayout.LayoutParams(
+        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+    header.addView(sorting, new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     LinearLayout refreshActions = new LinearLayout(this);
     refreshActions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
     Button refreshMissing = new Button(this);
@@ -2926,6 +2955,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     ListView list = new ListView(this);
     scanSessionList = list;
+    scanSessionAdapter.setSortMode(currentSessionSortMode);
     list.setAdapter(scanSessionAdapter);
     list.setMinimumHeight(dp(220));
     content.addView(list, new LinearLayout.LayoutParams(
@@ -3154,18 +3184,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     updateScanSessionUi();
   }
 
-  private boolean hasCardPrice(CardInfo card) {
-    return card != null && (safe(card.getPriceM()).trim().length() > 0 ||
-        safe(card.getPrice()).trim().length() > 0);
-  }
-
   private boolean isCardDataComplete(CardInfo card) {
-    return card != null && hasCardPrice(card) &&
-        safe(card.getImgPath()).trim().length() > 0 &&
-        safe(card.getPrintingUuid()).trim().length() > 0 &&
-        safe(card.getSetCode()).trim().length() > 0 &&
-        safe(card.getCollectorNumber()).trim().length() > 0 &&
-        safe(card.getDescription()).trim().length() > 0;
+    return card != null && ScanSessionSort.isComplete(card);
   }
 
   private void completeScanMetadataWithLanguage(CardInfo card) {

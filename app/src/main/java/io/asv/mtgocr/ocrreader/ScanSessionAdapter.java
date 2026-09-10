@@ -15,11 +15,13 @@ import io.asv.mtgocr.ocrreader.model.CardCondition;
 import io.asv.mtgocr.ocrreader.data.PriceCurrency;
 import java.util.List;
 
-/** Latest-first summary of cards added during the current scanner session. */
+/** Sortable summary of cards added during the current scanner session. */
 final class ScanSessionAdapter extends BaseAdapter {
   private final Context context;
   private final List<CardInfo> cards;
+  private final List<CardInfo> displayCards = new java.util.ArrayList<>();
   private final Listener listener;
+  private int sortMode = ScanSessionSort.ENTRY;
 
   interface Listener {
     void onOpen(CardInfo card);
@@ -38,12 +40,28 @@ final class ScanSessionAdapter extends BaseAdapter {
     this.context = context;
     this.cards = cards;
     this.listener = listener;
+    rebuildDisplayCards();
   }
 
-  @Override public int getCount() { return cards.size(); }
+  void setSortMode(int mode) {
+    sortMode = mode;
+    notifyDataSetChanged();
+  }
+
+  @Override public void notifyDataSetChanged() {
+    rebuildDisplayCards();
+    super.notifyDataSetChanged();
+  }
+
+  private void rebuildDisplayCards() {
+    displayCards.clear();
+    displayCards.addAll(ScanSessionSort.sorted(context, cards, sortMode));
+  }
+
+  @Override public int getCount() { return displayCards.size(); }
 
   @Override public CardInfo getItem(int position) {
-    return cards.get(cards.size() - 1 - position);
+    return displayCards.get(position);
   }
 
   @Override public long getItemId(int position) { return getItem(position).getCollectionItemId().hashCode(); }
@@ -65,7 +83,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     ImageButton delete = view.findViewById(R.id.scanSessionDelete);
     CheckBox selected = view.findViewById(R.id.scanSessionSelected);
     name.setText(card.getName());
-    int chronologicalIndex = cards.size() - 1 - position;
+    int chronologicalIndex = chronologicalIndexOf(card);
     kotlin.ranges.IntRange copyRange = ScanSessionCounts.range(cards, chronologicalIndex);
     int firstCopy = copyRange.getFirst();
     int lastCopy = copyRange.getLast();
@@ -115,5 +133,14 @@ final class ScanSessionAdapter extends BaseAdapter {
     selected.setOnCheckedChangeListener((button, checked) -> listener.onSelection(card, checked));
     view.setOnClickListener(clicked -> listener.onOpen(card));
     return view;
+  }
+
+  private int chronologicalIndexOf(CardInfo card) {
+    String id = card.getCollectionItemId();
+    for (int index = 0; index < cards.size(); index++) {
+      CardInfo candidate = cards.get(index);
+      if (candidate == card || candidate.getCollectionItemId().equals(id)) return index;
+    }
+    return 0;
   }
 }

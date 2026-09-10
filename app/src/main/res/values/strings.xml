@@ -208,6 +208,13 @@
     <string name="scan_session_title">Capturas de esta sesión (%1$d)</string>
     <string name="scan_session_no_cards">Todavía no has escaneado ninguna carta en esta sesión.</string>
     <string name="scan_session_choose_edition_hint">Toca una carta para revisar o cambiar su edición.</string>
+    <string name="sort_session_cards">Ordenar: </string>
+    <string-array name="scan_session_sort_options">
+        <item>Orden de entrada</item>
+        <item>Precio (mayor a menor)</item>
+        <item>Incompletas primero</item>
+        <item>Orden alfabético</item>
+    </string-array>
     <string name="scan_metadata_loading">Cargando edición y precio…</string>
     <string name="scan_metadata_incomplete">Faltan datos. Pulsa actualizar para reintentarlo.</string>
     <string name="retry_card_info">Volver a obtener la información de esta carta</string>

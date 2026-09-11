@@ -247,6 +247,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private TextView activeScanPrice;
   private TextView activeScanQuantity;
   private TextView activeScanDecreaseQuantity;
+  private CheckBox activeScanFoil;
   private final List<CardInfo> scannedSessionCards = new ArrayList<>();
   private final Set<String> selectedSessionCardIds = new LinkedHashSet<>();
   private final ScanSessionRefreshCoordinator sessionRefreshCoordinator =
@@ -3364,6 +3365,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       actionRow.addView(quantity, new LinearLayout.LayoutParams(dp(44), dp(44)));
       actionRow.addView(increaseQuantity, new LinearLayout.LayoutParams(dp(44), dp(44)));
 
+      CheckBox foilCheck = new CheckBox(this);
+      foilCheck.setText(R.string.foil);
+      foilCheck.setTextColor(Color.WHITE);
+      foilCheck.setTextSize(14f);
+      foilCheck.setGravity(Gravity.CENTER_VERTICAL);
+      foilCheck.setMinHeight(dp(44));
+      foilCheck.setPadding(0, 0, dp(4), 0);
+      actionRow.addView(foilCheck, new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.WRAP_CONTENT, dp(44)));
+
       View actionSpacer = new View(this);
       actionRow.addView(actionSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
       TextView viewCardAction = new TextView(this);
@@ -3394,6 +3405,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanPrice = priceBadge;
       activeScanQuantity = quantity;
       activeScanDecreaseQuantity = decreaseQuantity;
+      activeScanFoil = foilCheck;
       snackbar.addCallback(new Snackbar.Callback() {
         @Override public void onDismissed(Snackbar dismissed, int event) {
           if (activeScanSnackbar != dismissed) return;
@@ -3403,6 +3415,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           activeScanPrice = null;
           activeScanQuantity = null;
           activeScanDecreaseQuantity = null;
+          activeScanFoil = null;
           activeScanCardId = null;
           activeScanMetadataFailed = false;
           showNextCardReadySnackbar();
@@ -3444,6 +3457,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanDecreaseQuantity.setEnabled(canDecrease);
       activeScanDecreaseQuantity.setAlpha(canDecrease ? 1f : 0.35f);
     }
+    if (activeScanFoil != null) {
+      activeScanFoil.setOnCheckedChangeListener(null);
+      activeScanFoil.setChecked(CardFinish.isFoil(card.getFinish()));
+      activeScanFoil.setOnCheckedChangeListener((button, checked) ->
+          adjustScanSnackbarFoil(card.getCollectionItemId(), checked));
+    }
   }
 
   private TextView snackbarAction(String label, int contentDescription, float textSize) {
@@ -3470,6 +3489,47 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     updateCardAddedSnackbar(current, false);
   }
 
+  private void adjustScanSnackbarFoil(String collectionItemId, boolean foil) {
+    CardInfo current = findCollectionCard(collectionItemId);
+    if (current == null || CardFinish.isFoil(current.getFinish()) == foil) return;
+    String finish = foil ? "foil" : "nonfoil";
+    current.setFinish(finish);
+    // A price belongs to one exact printing and finish. Do not leave the previous finish's value
+    // visible while the already-cached edition options are resolved on the repository executor.
+    current.setPrice("");
+    current.setPriceL("");
+    current.setPriceM("");
+    current.setPriceH("");
+    persistCollectionWithoutBlockingScanner();
+    rememberSessionScan(current);
+    updateCardAddedSnackbar(current, false);
+
+    String printingUuid = safe(current.getPrintingUuid()).trim();
+    if (printingUuid.length() == 0) return;
+    cardRepository.selectPrinting(
+        collectionItemId, current.getName(), printingUuid, finish, () -> kotlin.Unit.INSTANCE);
+    cardRepository.loadCard(current.getName(), false, false, (options, error) -> {
+      if (error != null || options == null || isFinishing() || isDestroyed()) {
+        return kotlin.Unit.INSTANCE;
+      }
+      CardInfo latest = findCollectionCard(collectionItemId);
+      if (latest == null || !finish.equalsIgnoreCase(safe(latest.getFinish()).trim())) {
+        return kotlin.Unit.INSTANCE;
+      }
+      for (CardEditionOption option : options) {
+        if (printingUuid.equals(safe(option.getPrintingUuid()).trim()) &&
+            finish.equalsIgnoreCase(safe(option.getFinish()).trim())) {
+          applyEditionPrice(latest, option);
+          persistCollectionWithoutBlockingScanner();
+          rememberSessionScan(latest);
+          updateCardAddedSnackbar(latest, false);
+          break;
+        }
+      }
+      return kotlin.Unit.INSTANCE;
+    });
+  }
+
   private String scanFeedbackText(CardInfo card, boolean metadataFailed) {
     String name = safe(card.getName()).trim();
     if (metadataFailed) return getString(R.string.card_added_metadata_error, name);
@@ -3484,7 +3544,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       metadata.add("#" + card.getCollectorNumber().trim());
     }
     if (safe(card.getFinish()).trim().length() > 0) {
-      metadata.add(getString("foil".equalsIgnoreCase(card.getFinish())
+      metadata.add(getString(CardFinish.isFoil(card.getFinish())
           ? R.string.foil : R.string.nonfoil));
     }
     boolean metadataReady = safe(card.getPrintingUuid()).trim().length() > 0 ||

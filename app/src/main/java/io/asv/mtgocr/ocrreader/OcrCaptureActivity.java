@@ -3093,7 +3093,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
     };
     if (missingOnly) {
-      sessionRefreshCoordinator.refreshMissing(scannedSessionCards, task);
+      // Missing prices may not exist in yesterday's local snapshot. Refresh that snapshot once,
+      // then let the coroutine dispatch only the still-incomplete rows.
+      cardRepository.refreshPriceIndex(updated -> {
+        sessionRefreshCoordinator.refreshMissing(scannedSessionCards, task);
+        return kotlin.Unit.INSTANCE;
+      });
     } else {
       cardRepository.refreshPriceIndex(updated -> {
         sessionRefreshCoordinator.refreshAll(scannedSessionCards, task);

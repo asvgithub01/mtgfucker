@@ -10,6 +10,7 @@ import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import androidx.core.content.ContextCompat;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
 import io.asv.mtgocr.ocrreader.model.CardCondition;
 import io.asv.mtgocr.ocrreader.data.PriceCurrency;
@@ -107,8 +108,11 @@ final class ScanSessionAdapter extends BaseAdapter {
     decrease.setOnClickListener(clicked -> listener.onDecreaseQuantity(card));
     increase.setOnClickListener(clicked -> listener.onIncreaseQuantity(card));
     String value = PriceCurrency.format(context, card);
-    price.setText(value);
-    price.setVisibility(value.isEmpty() ? View.INVISIBLE : View.VISIBLE);
+    boolean hasPrice = !value.isEmpty();
+    price.setText(hasPrice ? value : context.getString(R.string.scan_session_price_unavailable));
+    price.setTextColor(ContextCompat.getColor(context,
+        hasPrice ? android.R.color.white : R.color.scan_total_incomplete));
+    price.setVisibility(View.VISIBLE);
     String imageUrl = card.getImgPath() == null ? "" : card.getImgPath().trim();
     image.setFoilEffect(CardFinish.isFoil(card.getFinish()));
     if (imageUrl.isEmpty()) {

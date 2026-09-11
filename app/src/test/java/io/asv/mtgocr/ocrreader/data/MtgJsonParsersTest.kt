@@ -177,6 +177,25 @@ class MtgJsonParsersTest {
     }
 
     @Test
+    fun localOcrFallbackMatchesTextBeforeDoubleFaceSeparator() {
+        val json = """
+            {"meta":{},"data":{
+              "Smaug, the Great Calamity // Spew Flame":[{
+                "name":"Smaug, the Great Calamity // Spew Flame","foreignData":[]
+              }]
+            }}
+        """.trimIndent()
+
+        val resolved = MtgJsonParsers.readBestLocalOcrCardName(
+            Buffer().writeUtf8(json),
+            listOf("Smaug, the Great Calamity")
+        )
+
+        assertEquals("Smaug, the Great Calamity // Spew Flame", resolved?.canonicalName)
+        assertEquals(0, resolved?.distance)
+    }
+
+    @Test
     fun localOcrFallbackRejectsDifferentWordBeforeSharedSuffix() {
         val json = """
             {"meta":{},"data":{

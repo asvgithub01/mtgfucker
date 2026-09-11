@@ -84,7 +84,11 @@ class MtgJsonCardNameResolver(
 
     /** Builds the Room prefix index only from the already downloaded local JSON. */
     fun preparePredictionIndex(): Boolean {
-        if (!atomicCardsFile.exists()) return dao.cardNameAliasCount() > 0
+        if (!atomicCardsFile.exists()) {
+            val aliasesAvailable = dao.cardNameAliasCount() > 0
+            if (aliasesAvailable) prepareOcrNameIndex()
+            return aliasesAvailable
+        }
         val sourceVersion = atomicCardsFile.lastModified().toString()
         val indexCurrent = predictionIndexMarker.takeIf { it.isFile }?.readText() == sourceVersion &&
             dao.cardNameAliasCount() > 0

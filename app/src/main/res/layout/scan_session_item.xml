@@ -63,23 +63,43 @@
             android:textColor="#666666"
             android:textSize="13sp" />
 
-        <TextView
-            android:id="@+id/scanSessionCondition"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
-            android:background="@drawable/spinner_background"
-            android:clickable="true"
-            android:ellipsize="end"
-            android:focusable="true"
-            android:gravity="center"
-            android:minWidth="86dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:singleLine="true"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/scanSessionCondition"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/spinner_background"
+                android:clickable="true"
+                android:ellipsize="end"
+                android:focusable="true"
+                android:gravity="center"
+                android:minWidth="86dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:singleLine="true"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <CheckBox
+                android:id="@+id/scanSessionFoil"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:layout_marginStart="6dp"
+                android:buttonTint="?attr/colorPrimary"
+                android:gravity="center_vertical"
+                android:minHeight="0dp"
+                android:padding="0dp"
+                android:text="@string/foil"
+                android:textColor="#151515"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout

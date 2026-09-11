@@ -179,6 +179,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
   private TextView scanOcrCharacters;
+  private View scanIndexPreparation;
+  private ProgressBar scanIndexPreparationProgress;
+  private TextView scanIndexPreparationText;
   private Button scanSessionButton;
   private TextView scanSessionTotalText;
   FloatingActionButton fabOcr, fabOcrMlKit;
@@ -287,7 +290,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private long lastOcrCharactersAt;
   private String lastOcrCharacters = "";
   private double lastDisplayedSessionTotal;
-  private boolean useMlKitJapaneseOcr;
+  // The maintained scanner is ML Kit Japanese/Latin. Starting with it also avoids destroying the
+  // legacy detector and cold-creating ML Kit at the exact moment the user opens the scanner.
+  private boolean useMlKitJapaneseOcr = true;
+  private boolean nameIndexPreparing;
+  private boolean nameIndexReady;
+  private Runnable pendingNameIndexReadyHide;
   private boolean firstResume = true;
 
   /**
@@ -314,6 +322,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     scanDebugStatus = (TextView) findViewById(R.id.txtScanDebugStatus);
     scanOcrCharacters = (TextView) findViewById(R.id.txtScanOcrCharacters);
+    scanIndexPreparation = findViewById(R.id.scanIndexPreparation);
+    scanIndexPreparationProgress = (ProgressBar) findViewById(R.id.scanIndexPreparationProgress);
+    scanIndexPreparationText = (TextView) findViewById(R.id.scanIndexPreparationText);
     scanSessionButton = (Button) findViewById(R.id.btnScanSession);
     scanSessionTotalText = (TextView) findViewById(R.id.txtScanSessionTotal);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
@@ -364,6 +375,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           @Override public void onOpen(CardInfo card) { openSessionCardDetails(card); }
           @Override public void onImage(CardInfo card) { openSessionCardGallery(card); }
           @Override public void onCondition(CardInfo card) { showCardConditionPicker(card); }
+          @Override public void onFoil(CardInfo card, boolean foil) {
+            adjustScannedCardFoil(card.getCollectionItemId(), foil);
+          }
           @Override public void onIncreaseQuantity(CardInfo card) { increaseSessionCardQuantity(card); }
           @Override public void onDecreaseQuantity(CardInfo card) { decreaseSessionCardQuantity(card); }
           @Override public void onRefresh(CardInfo card) { retrySessionCard(card, true); }
@@ -464,8 +478,55 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       submitScannedCard(selectedName);
       return true;
     });
-    cardRepository.prepareCardNamePredictor(ready -> kotlin.Unit.INSTANCE);
     cardRepository.preparePriceIndex(ready -> kotlin.Unit.INSTANCE);
+  }
+
+  /** Builds the large multilingual name index only when the scanner is actually requested. */
+  private void prepareNameIndexForScanner() {
+    if (nameIndexReady || nameIndexPreparing) {
+      renderNameIndexPreparation();
+      return;
+    }
+    nameIndexPreparing = true;
+    renderNameIndexPreparation();
+    cardRepository.prepareCardNamePredictor(ready -> {
+      if (isFinishing() || isDestroyed()) return kotlin.Unit.INSTANCE;
+      nameIndexPreparing = false;
+      nameIndexReady = ready;
+      if (ready) {
+        scanIndexPreparationProgress.setVisibility(View.GONE);
+        scanIndexPreparationText.setText(R.string.scan_name_index_ready);
+        scanIndexPreparation.setVisibility(View.VISIBLE);
+        scanIndexPreparation.announceForAccessibility(
+            getString(R.string.scan_name_index_ready));
+        if (pendingNameIndexReadyHide != null) {
+          autoOcrHandler.removeCallbacks(pendingNameIndexReadyHide);
+        }
+        pendingNameIndexReadyHide = () -> {
+          pendingNameIndexReadyHide = null;
+          scanIndexPreparation.setVisibility(View.GONE);
+          if (isScannerReaderActive()) {
+            cardScanGuide.setMessage(getString(R.string.scan_align_card));
+          }
+        };
+        autoOcrHandler.postDelayed(pendingNameIndexReadyHide, 650L);
+      } else {
+        scanIndexPreparation.setVisibility(View.GONE);
+      }
+      return kotlin.Unit.INSTANCE;
+    });
+  }
+
+  private void renderNameIndexPreparation() {
+    if (!nameIndexPreparing || !isScannerReaderActive()) {
+      if (!nameIndexReady) scanIndexPreparation.setVisibility(View.GONE);
+      return;
+    }
+    scanIndexPreparationProgress.setVisibility(View.VISIBLE);
+    scanIndexPreparationText.setText(R.string.scan_preparing_name_index);
+    scanIndexPreparation.setVisibility(View.VISIBLE);
+    scanIndexPreparation.bringToFront();
+    cardScanGuide.setMessage(getString(R.string.scan_preparing_name_index));
   }
 
   private void scheduleNamePredictions(String query) {
@@ -509,6 +570,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     renderOcrCharacters(candidates);
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
         !isScannerReaderActive()) return;
+    if (nameIndexPreparing) return;
     if (scanLookupInFlight) {
       reportScannerGateBlocked(
           getString(R.string.scan_debug_name_lookup), scanLookupStartedAt,
@@ -1225,7 +1287,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     setCatalogControls.setVisibility(!settings && catalog ? View.VISIBLE : View.GONE);
     photoControls.setVisibility(!settings && photos ? View.VISIBLE : View.GONE);
     totalText.setVisibility(!settings && !catalog && !photos ? View.VISIBLE : View.GONE);
-    fabOcr.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
+    fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
@@ -3466,7 +3528,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanFoil.setOnCheckedChangeListener(null);
       activeScanFoil.setChecked(CardFinish.isFoil(card.getFinish()));
       activeScanFoil.setOnCheckedChangeListener((button, checked) ->
-          adjustScanSnackbarFoil(card.getCollectionItemId(), checked));
+          adjustScannedCardFoil(card.getCollectionItemId(), checked));
     }
   }
 
@@ -3494,7 +3556,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     updateCardAddedSnackbar(current, false);
   }
 
-  private void adjustScanSnackbarFoil(String collectionItemId, boolean foil) {
+  private void adjustScannedCardFoil(String collectionItemId, boolean foil) {
     CardInfo current = findCollectionCard(collectionItemId);
     if (current == null || CardFinish.isFoil(current.getFinish()) == foil) return;
     String finish = foil ? "foil" : "nonfoil";
@@ -3729,6 +3791,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       scanOcrCharacters.setText(R.string.scan_debug_characters_empty);
     }
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
+    renderNameIndexPreparation();
   }
 
   private void openScannerWithEngine(boolean mlKitJapanese) {
@@ -3746,6 +3809,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       createCameraSource(autoFocus, useFlash);
     }
     showOcr();
+    prepareNameIndexForScanner();
     startCameraSource();
   }
 

@@ -2,7 +2,21 @@ package io.asv.mtgocr.ocrreader.data
 
 /** In-memory fuzzy lookup for imperfect OCR from faded, white-framed and older cards. */
 internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
-    private val byLength = aliases.groupBy { it.normalizedAlias.length }
+    private data class MatchCandidate(
+        val alias: CardNameAliasEntity,
+        val normalizedName: String
+    )
+
+    private val byLength = buildList {
+        aliases.forEach { alias ->
+            val normalizedNames = LinkedHashSet<String>()
+            normalizedNames += alias.normalizedAlias
+            normalizedNames += MtgJsonParsers.ocrSearchNames(alias.displayName)
+            normalizedNames.forEach { normalizedName ->
+                if (normalizedName.isNotBlank()) add(MatchCandidate(alias, normalizedName))
+            }
+        }
+    }.groupBy { it.normalizedName.length }
 
     fun match(
         rawQueries: List<String>,
@@ -16,19 +30,20 @@ internal class OcrNameIndex(aliases: List<CardNameAliasEntity>) {
         for (query in queries) {
             for (length in (query.normalized.length - query.maxDistance).coerceAtLeast(1)..
                 query.normalized.length + query.maxDistance) {
-                for (candidate in byLength[length].orEmpty()) {
+                for (matchCandidate in byLength[length].orEmpty()) {
+                    val candidate = matchCandidate.alias
                     if (allowedCanonicalNames != null &&
                         candidate.canonicalName.lowercase(java.util.Locale.ROOT) !in
                         allowedCanonicalNames) continue
                     val distance = boundedLevenshtein(
                         query.normalized,
-                        candidate.normalizedAlias,
+                        matchCandidate.normalizedName,
                         query.maxDistance
                     )
                     if (distance > query.maxDistance) continue
                     if (!OcrFuzzyMatchPolicy.isPlausible(
                             query.normalized,
-                            candidate.normalizedAlias,
+                            matchCandidate.normalizedName,
                             distance
                         )) continue
                     val score = query.score(distance)

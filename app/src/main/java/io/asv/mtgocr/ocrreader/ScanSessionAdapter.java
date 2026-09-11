@@ -28,6 +28,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     void onOpen(CardInfo card);
     void onImage(CardInfo card);
     void onCondition(CardInfo card);
+    void onFoil(CardInfo card, boolean foil);
     void onIncreaseQuantity(CardInfo card);
     void onDecreaseQuantity(CardInfo card);
     void onRefresh(CardInfo card);
@@ -76,6 +77,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     TextView name = view.findViewById(R.id.scanSessionName);
     TextView edition = view.findViewById(R.id.scanSessionEdition);
     TextView condition = view.findViewById(R.id.scanSessionCondition);
+    CheckBox foil = view.findViewById(R.id.scanSessionFoil);
     Button decrease = view.findViewById(R.id.scanSessionDecrease);
     TextView quantity = view.findViewById(R.id.scanSessionQuantity);
     Button increase = view.findViewById(R.id.scanSessionIncrease);
@@ -104,6 +106,9 @@ final class ScanSessionAdapter extends BaseAdapter {
     String[] conditionLabels = context.getResources().getStringArray(R.array.card_condition_labels);
     condition.setText(conditionLabels[CardCondition.indexOf(card.getCondition())]);
     condition.setOnClickListener(clicked -> listener.onCondition(card));
+    foil.setOnCheckedChangeListener(null);
+    foil.setChecked(CardFinish.isFoil(card.getFinish()));
+    foil.setOnCheckedChangeListener((button, checked) -> listener.onFoil(card, checked));
     quantity.setText(String.valueOf(card.getQuantityCount()));
     decrease.setOnClickListener(clicked -> listener.onDecreaseQuantity(card));
     increase.setOnClickListener(clicked -> listener.onIncreaseQuantity(card));

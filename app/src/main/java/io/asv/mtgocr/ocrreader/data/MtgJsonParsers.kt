@@ -188,25 +188,26 @@ internal object MtgJsonParsers {
                 while (reader.hasNext()) {
                     val candidates = readAtomicNames(reader, canonicalKey)
                     for ((candidateName, language) in candidates) {
-                        val normalizedCandidate = normalizeSearchName(candidateName)
-                        for (query in normalizedQueries) {
-                            if (kotlin.math.abs(normalizedCandidate.length - query.normalized.length) > query.maxDistance) continue
-                            val distance = boundedLevenshtein(query.normalized, normalizedCandidate, query.maxDistance)
-                            if (distance > query.maxDistance) continue
-                            if (!OcrFuzzyMatchPolicy.isPlausible(
-                                    query.normalized,
-                                    normalizedCandidate,
-                                    distance
-                                )) continue
-                            val score = query.score(distance)
-                            if (score < bestScore) {
-                                best = ResolvedCardName(canonicalKey, candidateName, language, distance)
-                                bestScore = score
-                                tiedCanonical = false
-                                if (score == 0) return best
-                            } else if (score == bestScore && best != null &&
-                                !canonicalKey.equals(best.canonicalName, ignoreCase = true)) {
-                                tiedCanonical = true
+                        for (normalizedCandidate in ocrSearchNames(candidateName)) {
+                            for (query in normalizedQueries) {
+                                if (kotlin.math.abs(normalizedCandidate.length - query.normalized.length) > query.maxDistance) continue
+                                val distance = boundedLevenshtein(query.normalized, normalizedCandidate, query.maxDistance)
+                                if (distance > query.maxDistance) continue
+                                if (!OcrFuzzyMatchPolicy.isPlausible(
+                                        query.normalized,
+                                        normalizedCandidate,
+                                        distance
+                                    )) continue
+                                val score = query.score(distance)
+                                if (score < bestScore) {
+                                    best = ResolvedCardName(canonicalKey, candidateName, language, distance)
+                                    bestScore = score
+                                    tiedCanonical = false
+                                    if (score == 0) return best
+                                } else if (score == bestScore && best != null &&
+                                    !canonicalKey.equals(best.canonicalName, ignoreCase = true)) {
+                                    tiedCanonical = true
+                                }
                             }
                         }
                     }
@@ -303,6 +304,22 @@ internal object MtgJsonParsers {
             .replace(nonNameCharacters, " ")
             .trim()
             .replace(repeatedWhitespace, " ")
+    }
+
+    /**
+     * Names of modal/double-faced cards are stored canonically as "front // back", while the
+     * title OCR sees on the front is only the text before the separator. Keep the complete name
+     * as a valid candidate, but also expose its front-face title for matching.
+     */
+    internal fun ocrSearchNames(value: String): List<String> {
+        val names = LinkedHashSet<String>(2)
+        normalizeSearchName(value).takeIf(String::isNotBlank)?.let(names::add)
+        if (value.contains("//")) {
+            normalizeSearchName(value.substringBefore("//"))
+                .takeIf(String::isNotBlank)
+                ?.let(names::add)
+        }
+        return names.toList()
     }
 
     private fun boundedLevenshtein(left: String, right: String, limit: Int): Int {

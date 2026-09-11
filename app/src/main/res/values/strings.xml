@@ -209,6 +209,8 @@
     <string name="scan_debug_recovered">DEBUG OCR · cola recuperada (%1$d frames) · %2$s (%3$d ms)</string>
     <string name="scan_debug_characters">OCR lee: %1$s</string>
     <string name="scan_debug_characters_empty">OCR lee: —</string>
+    <string name="scan_preparing_name_index">Preparando índice de nombres…</string>
+    <string name="scan_name_index_ready">Índice de nombres listo</string>
     <string name="scan_session_empty">Sesión (0)</string>
     <string name="scan_session_count">Sesión (%1$d)</string>
     <string name="scan_session_total_empty">Total: 0,00 €</string>

@@ -93,4 +93,13 @@ class OcrNameIndexTest {
 
         assertNull(index.match(listOf("terminar"), setOf("another canonical name")))
     }
+
+    @Test fun matchesTheFrontTitleOfDoubleFacedCanonicalNames() {
+        val smaug = alias("Smaug, the Great Calamity // Spew Flame")
+        val beorn = alias("Beorn, Reluctant Host // Till and Tend")
+        val index = OcrNameIndex(listOf(smaug, beorn))
+
+        assertEquals(smaug.canonicalName, index.match(listOf("Smaug, the Great Calamity"))?.canonicalName)
+        assertEquals(beorn.canonicalName, index.match(listOf("Beorn, Reluctant Host"))?.canonicalName)
+    }
 }

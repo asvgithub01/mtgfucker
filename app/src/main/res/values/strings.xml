@@ -123,6 +123,12 @@
     <string name="card_added_metadata_error">✓ %1$s añadida\nNo se pudieron completar sus datos ahora</string>
     <string name="card_metadata_updated">Datos de la carta actualizados</string>
     <string name="added_card_thumbnail">Imagen de la carta recién añadida</string>
+    <string name="close_card_added_notification">Cerrar notificación de carta añadida</string>
+    <string name="card_quantity">Cantidad de copias</string>
+    <plurals name="card_quantity_value">
+        <item quantity="one">%d copia</item>
+        <item quantity="other">%d copias</item>
+    </plurals>
     <string name="view_card">Ver carta</string>
     <string name="card_detail">Detalle de carta</string>
     <string name="card_rules">Texto de la carta</string>

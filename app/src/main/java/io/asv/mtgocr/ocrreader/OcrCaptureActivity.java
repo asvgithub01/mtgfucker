@@ -245,6 +245,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private RoundedCardImageView activeScanThumbnail;
   private TextView activeScanMessage;
   private TextView activeScanPrice;
+  private TextView activeScanQuantity;
+  private TextView activeScanDecreaseQuantity;
   private final List<CardInfo> scannedSessionCards = new ArrayList<>();
   private final Set<String> selectedSessionCardIds = new LinkedHashSet<>();
   private final ScanSessionRefreshCoordinator sessionRefreshCoordinator =
@@ -3337,9 +3339,33 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
       summaryRow.addView(textColumn, new LinearLayout.LayoutParams(0,
           LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+      TextView closeAction = snackbarAction("×", R.string.close_card_added_notification, 24f);
+      closeAction.setOnClickListener(view -> snackbar.dismiss());
+      summaryRow.addView(closeAction, new LinearLayout.LayoutParams(dp(44), dp(44)));
       customContent.addView(summaryRow, new LinearLayout.LayoutParams(
           LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+      LinearLayout actionRow = new LinearLayout(this);
+      actionRow.setOrientation(LinearLayout.HORIZONTAL);
+      actionRow.setGravity(Gravity.CENTER_VERTICAL);
+
+      TextView decreaseQuantity = snackbarAction("−", R.string.decrease_quantity, 24f);
+      TextView quantity = new TextView(this);
+      quantity.setTextColor(Color.WHITE);
+      quantity.setTextSize(16f);
+      quantity.setTypeface(Typeface.DEFAULT_BOLD);
+      quantity.setGravity(Gravity.CENTER);
+      quantity.setMinWidth(dp(36));
+      quantity.setContentDescription(getString(R.string.card_quantity));
+      TextView increaseQuantity = snackbarAction("+", R.string.increase_quantity, 24f);
+      decreaseQuantity.setOnClickListener(view -> adjustScanSnackbarQuantity(cardId, -1));
+      increaseQuantity.setOnClickListener(view -> adjustScanSnackbarQuantity(cardId, 1));
+      actionRow.addView(decreaseQuantity, new LinearLayout.LayoutParams(dp(44), dp(44)));
+      actionRow.addView(quantity, new LinearLayout.LayoutParams(dp(44), dp(44)));
+      actionRow.addView(increaseQuantity, new LinearLayout.LayoutParams(dp(44), dp(44)));
+
+      View actionSpacer = new View(this);
+      actionRow.addView(actionSpacer, new LinearLayout.LayoutParams(0, 1, 1f));
       TextView viewCardAction = new TextView(this);
       viewCardAction.setText(R.string.view_card);
       viewCardAction.setTextColor(MagicPalette.secondaryColor(this));
@@ -3356,7 +3382,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
           LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
       actionParams.gravity = Gravity.END;
-      customContent.addView(viewCardAction, actionParams);
+      actionRow.addView(viewCardAction, actionParams);
+      customContent.addView(actionRow, new LinearLayout.LayoutParams(
+          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
       snackbarView.addView(customContent, new ViewGroup.LayoutParams(
           ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -3364,6 +3392,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanThumbnail = thumbnail;
       activeScanMessage = message;
       activeScanPrice = priceBadge;
+      activeScanQuantity = quantity;
+      activeScanDecreaseQuantity = decreaseQuantity;
       snackbar.addCallback(new Snackbar.Callback() {
         @Override public void onDismissed(Snackbar dismissed, int event) {
           if (activeScanSnackbar != dismissed) return;
@@ -3371,6 +3401,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           activeScanThumbnail = null;
           activeScanMessage = null;
           activeScanPrice = null;
+          activeScanQuantity = null;
+          activeScanDecreaseQuantity = null;
           activeScanCardId = null;
           activeScanMetadataFailed = false;
           showNextCardReadySnackbar();
@@ -3401,6 +3433,41 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       activeScanPrice.setText(price);
       activeScanPrice.setVisibility(price.length() == 0 ? View.GONE : View.VISIBLE);
     }
+    if (activeScanQuantity != null) {
+      int quantity = card.getQuantityCount();
+      activeScanQuantity.setText(String.valueOf(quantity));
+      activeScanQuantity.setContentDescription(
+          getResources().getQuantityString(R.plurals.card_quantity_value, quantity, quantity));
+    }
+    if (activeScanDecreaseQuantity != null) {
+      boolean canDecrease = card.getQuantityCount() > 1;
+      activeScanDecreaseQuantity.setEnabled(canDecrease);
+      activeScanDecreaseQuantity.setAlpha(canDecrease ? 1f : 0.35f);
+    }
+  }
+
+  private TextView snackbarAction(String label, int contentDescription, float textSize) {
+    TextView action = new TextView(this);
+    action.setText(label);
+    action.setTextColor(MagicPalette.secondaryColor(this));
+    action.setTextSize(textSize);
+    action.setTypeface(Typeface.DEFAULT_BOLD);
+    action.setGravity(Gravity.CENTER);
+    action.setMinWidth(dp(44));
+    action.setMinHeight(dp(44));
+    action.setContentDescription(getString(contentDescription));
+    return action;
+  }
+
+  private void adjustScanSnackbarQuantity(String collectionItemId, int delta) {
+    CardInfo current = findCollectionCard(collectionItemId);
+    if (current == null || delta == 0) return;
+    int next = Math.max(1, current.getQuantityCount() + delta);
+    if (next == current.getQuantityCount()) return;
+    current.setQuantityCount(next);
+    persistCollectionWithoutBlockingScanner();
+    rememberSessionScan(current);
+    updateCardAddedSnackbar(current, false);
   }
 
   private String scanFeedbackText(CardInfo card, boolean metadataFailed) {

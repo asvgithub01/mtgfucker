@@ -52,8 +52,7 @@
                 android:hint="@string/search_collection_hint"
                 android:imeOptions="actionDone"
                 android:inputType="text"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
+                android:padding="8dp"
                 android:singleLine="true"
                 android:textColor="#111111"
                 android:textColorHint="#777777" />

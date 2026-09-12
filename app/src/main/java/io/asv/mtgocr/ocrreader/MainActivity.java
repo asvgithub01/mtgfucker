@@ -88,7 +88,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
           CardImageCache.display(this, null, launchBackground);
           launchBackground.setImageResource(R.drawable.mtgback);
         } else {
-          CardImageCache.displayKeepingCurrent(this, selected.getImgPath(), launchBackground);
+          CardImageCache.displayKeepingCurrent(
+              this, LaunchArtworkUrl.resolve(selected.getImgPath()), launchBackground);
         }
       });
     });

@@ -16,6 +16,10 @@ object LaunchBackgroundPolicy {
         if (premium && pinnedCollectionItemId.isNotBlank()) {
             withImages.firstOrNull { it.collectionItemId == pinnedCollectionItemId }?.let { return it }
         }
-        return withImages[randomIndex(withImages.size).coerceIn(withImages.indices)]
+        // Prefer cards whose Scryfall image also has an artwork-only crop. Older/imported cards
+        // can still fall back to their original image instead of leaving the launcher empty.
+        val artworkCandidates = withImages.filter { LaunchArtworkUrl.isAvailable(it.imgPath) }
+            .ifEmpty { withImages }
+        return artworkCandidates[randomIndex(artworkCandidates.size).coerceIn(artworkCandidates.indices)]
     }
 }

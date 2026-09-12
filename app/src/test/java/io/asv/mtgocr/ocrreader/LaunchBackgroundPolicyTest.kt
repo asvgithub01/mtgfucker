@@ -35,5 +35,42 @@ class LaunchBackgroundPolicyTest {
         assertNull(LaunchBackgroundPolicy.choose(listOf(card("empty", "")), "", true) { 0 })
     }
 
+    @Test
+    fun randomBackgroundPrefersCardsWithArtworkCrop() {
+        val imported = card("imported", "https://example.com/card.jpg")
+        val scryfall = card(
+            "scryfall",
+            "https://cards.scryfall.io/normal/front/a/b/example.jpg?123"
+        )
+
+        val chosen = LaunchBackgroundPolicy.choose(listOf(imported, scryfall), "", false) { 0 }
+
+        assertEquals("scryfall", chosen?.name)
+    }
+
+    @Test
+    fun scryfallCardImageIsConvertedToArtworkCrop() {
+        assertEquals(
+            "https://cards.scryfall.io/art_crop/front/a/b/example.jpg?123",
+            LaunchArtworkUrl.resolve(
+                "https://cards.scryfall.io/normal/front/a/b/example.jpg?123"
+            )
+        )
+    }
+
+    @Test
+    fun artworkCropAndNonScryfallImagesRemainUsable() {
+        assertEquals(
+            "https://cards.scryfall.io/art_crop/back/a/b/example.jpg?123",
+            LaunchArtworkUrl.resolve(
+                "https://cards.scryfall.io/art_crop/back/a/b/example.jpg?123"
+            )
+        )
+        assertEquals(
+            "https://example.com/card.jpg",
+            LaunchArtworkUrl.resolve("https://example.com/card.jpg")
+        )
+    }
+
     private fun card(name: String, image: String) = CardInfo(name, "", "", image, "1")
 }

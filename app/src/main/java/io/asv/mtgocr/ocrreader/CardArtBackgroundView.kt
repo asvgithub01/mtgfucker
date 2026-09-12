@@ -16,6 +16,7 @@ class CardArtBackgroundView @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : AppCompatImageView(context, attrs) {
     private val artMatrix = Matrix()
+    private var artworkOnly = false
 
     init {
         scaleType = ScaleType.MATRIX
@@ -31,12 +32,30 @@ class CardArtBackgroundView @JvmOverloads constructor(
         updateArtMatrix()
     }
 
+    /** Uses the complete source when it is already Scryfall's artwork-only crop. */
+    fun setArtworkOnly(enabled: Boolean) {
+        if (artworkOnly == enabled) return
+        artworkOnly = enabled
+        post(::updateArtMatrix)
+    }
+
     private fun updateArtMatrix() {
         val source = drawable ?: return
         if (width <= 0 || height <= 0 || source.intrinsicWidth <= 0 || source.intrinsicHeight <= 0) return
 
         val sourceWidth = source.intrinsicWidth.toFloat()
         val sourceHeight = source.intrinsicHeight.toFloat()
+        if (artworkOnly) {
+            val scale = maxOf(width / sourceWidth, height / sourceHeight)
+            artMatrix.reset()
+            artMatrix.setScale(scale, scale)
+            artMatrix.postTranslate(
+                (width - sourceWidth * scale) / 2f,
+                (height - sourceHeight * scale) / 2f
+            )
+            imageMatrix = artMatrix
+            return
+        }
         // Scryfall's normal/large card images use the same card-frame proportions. These bounds
         // retain the art box while excluding the name/mana line and the rules/text area.
         val artLeft = sourceWidth * ART_LEFT

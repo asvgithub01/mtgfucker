@@ -243,6 +243,7 @@
             <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
                 android:orientation="vertical"
                 android:padding="18dp">
                 <TextView

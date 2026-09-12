@@ -30,7 +30,7 @@
     <string name="pin_launch_background_help">Para fijar una carta, abre “Organizar” desde la Biblio y elige “Fijar como fondo inicial”.</string>
     <string name="pin_launch_background">Fijar como fondo inicial</string>
     <string name="unpin_launch_background">Quitar fondo inicial fijado</string>
-    <string name="launch_background_pinned">Esta carta será el fondo inicial de la biblioteca.</string>
+    <string name="launch_background_pinned">Esta carta será el fondo de inicio, Biblio, Mazos, Colecciones y Fotos.</string>
     <string name="launch_background_random">El fondo inicial volverá a elegirse al azar.</string>
     <string name="card_has_no_background_image">Esta carta todavía no tiene una imagen disponible.</string>
     <string name="ocr_success">Text read successfully</string>

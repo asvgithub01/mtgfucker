@@ -317,7 +317,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardRepository = CardRepository.get(this);
     //region asv
 
-    imgBgCard = (ImageView) findViewById(R.id.imgBgCard);
+    imgBgCard = (CardArtBackgroundView) findViewById(R.id.imgBgCard);
     btnOk = (Button) findViewById(R.id.btnOk);
     btnCancel = (Button) findViewById(R.id.btnCancel);
     closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
@@ -1296,6 +1296,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           !LibraryCatalog.DEFAULT_FILE.equals(mBiblio.nameFile);
       PremiumAccess.setEnabled(this, checked);
       updatePremiumSettingsUi();
+      updateSectionBackground();
       if (!checked && wasSecondaryLibrary) {
         Toast.makeText(this, R.string.premium_disabled_return_default, Toast.LENGTH_LONG).show();
         finish();
@@ -1309,6 +1310,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
       LibraryCatalog.clearPinnedBackground(this);
       updatePremiumSettingsUi();
+      updateSectionBackground();
       Toast.makeText(this, R.string.launch_background_random, Toast.LENGTH_SHORT).show();
     });
     updatePremiumSettingsUi();
@@ -1402,16 +1404,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       else applyCollectionLayoutMode();
       refreshUI();
     }
-    if (!settings) updateSectionBackground();
+    updateSectionBackground();
   }
 
   private void updateSectionBackground() {
     boolean library = currentSection == SECTION_LIBRARY;
     boolean expansions = currentSection == SECTION_SETS;
-    boolean artworkBackground = library || expansions;
+    CardInfo pinnedBackground = pinnedBackgroundCard();
+    boolean artworkBackground = pinnedBackground != null || library || expansions;
     artBackgroundRequest++;
     imgBgCard.setVisibility(artworkBackground ? View.VISIBLE : View.GONE);
     mRecyclerView.setBackgroundColor(artworkBackground ? Color.TRANSPARENT : MagicPalette.backgroundColor(this));
+    settingsPlaceholder.setBackgroundColor(
+        artworkBackground ? Color.TRANSPARENT : MagicPalette.backgroundColor(this));
     lytRecycler.setBackgroundColor(Color.TRANSPARENT);
     if (collectionControls != null) {
       collectionControls.setGlassIntensity(artworkBackground ? .94f :
@@ -1422,8 +1427,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           ? RenderEffect.createBlurEffect(9f, 9f, Shader.TileMode.CLAMP)
           : null);
     }
-    if (library) showRandomLibraryBackground();
+    if (pinnedBackground != null) displayArtworkBackground(pinnedBackground.getImgPath());
+    else if (library) showRandomLibraryBackground();
     else if (expansions) showRandomExpansionBackground();
+    else imgBgCard.setImageDrawable(null);
+  }
+
+  private CardInfo pinnedBackgroundCard() {
+    if (mBiblio == null || mBiblio.cards == null) return null;
+    return LaunchBackgroundPolicy.pinned(
+        mBiblio.cards,
+        LibraryCatalog.pinnedBackgroundId(this, LibraryCatalog.active(this).getId()),
+        PremiumAccess.isEnabled(this));
   }
 
   private int getColorCompat(int colorResource) {
@@ -1491,7 +1506,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void displayArtworkBackground(String imageUrl) {
     imgBgCard.animate().cancel();
-    CardImageCache.displayKeepingCurrent(this, imageUrl, imgBgCard);
+    imgBgCard.setArtworkOnly(LaunchArtworkUrl.isAvailable(imageUrl));
+    CardImageCache.displayKeepingCurrent(this, LaunchArtworkUrl.resolve(imageUrl), imgBgCard);
     imgBgCard.animate().alpha(0.78f).setDuration(320L).start();
   }
 
@@ -2157,7 +2173,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   //
   // *******************************************************************//
 
-  ImageView imgBgCard;
+  CardArtBackgroundView imgBgCard;
 
   //region tontimenu
 
@@ -2553,6 +2569,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       Toast.makeText(this, R.string.launch_background_pinned, Toast.LENGTH_SHORT).show();
     }
     updatePremiumSettingsUi();
+    updateSectionBackground();
   }
 
   private void showGroupPicker(final CardInfo card, final boolean deck) {
@@ -3906,6 +3923,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void showOcr() {
     hideNamePredictions();
     txtSearch.setText("");
+    artBackgroundRequest++;
+    imgBgCard.setVisibility(View.GONE);
     lytRecycler.setVisibility(View.GONE);
     settingsPlaceholder.setVisibility(View.GONE);
     if (bottomNavigation != null) bottomNavigation.setVisibility(View.GONE);

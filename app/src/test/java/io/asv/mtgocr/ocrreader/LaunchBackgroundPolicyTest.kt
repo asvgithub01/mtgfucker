@@ -36,6 +36,17 @@ class LaunchBackgroundPolicyTest {
     }
 
     @Test
+    fun pinnedBackgroundCanBeReusedAcrossLibrarySections() {
+        val pinned = card("pinned", "https://img/pinned")
+
+        assertEquals(
+            pinned,
+            LaunchBackgroundPolicy.pinned(listOf(pinned), pinned.collectionItemId, true)
+        )
+        assertNull(LaunchBackgroundPolicy.pinned(listOf(pinned), pinned.collectionItemId, false))
+    }
+
+    @Test
     fun randomBackgroundPrefersCardsWithArtworkCrop() {
         val imported = card("imported", "https://example.com/card.jpg")
         val scryfall = card(

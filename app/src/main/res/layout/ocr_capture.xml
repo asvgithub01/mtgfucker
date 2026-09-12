@@ -24,10 +24,10 @@
             android:id="@+id/collectionControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="8dp"
             android:orientation="vertical"
             android:padding="10dp">
 
@@ -48,14 +48,16 @@
                 android:id="@+id/txtCollectionSearch"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:background="#D9FFFFFF"
                 android:hint="@string/search_collection_hint"
                 android:imeOptions="actionDone"
                 android:inputType="text"
                 android:padding="8dp"
+                android:background="@drawable/bg_rounded_editbot"
+                android:layout_marginTop="4dp"
                 android:singleLine="true"
                 android:textColor="#111111"
                 android:textColorHint="#777777" />
+
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -73,7 +75,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/sort_cards"
-                    android:textColor="?attr/appGlassTextColor"
+                        android:textColor="?attr/appGlassTextColor"
+                        android:layout_marginBottom="4dp"
                         android:textSize="12sp" />
 
                     <Spinner
@@ -97,6 +100,7 @@
                         android:layout_height="wrap_content"
                         android:text="@string/filter_cards"
                         android:textColor="?attr/appGlassTextColor"
+                        android:layout_marginBottom="4dp"
                         android:textSize="12sp" />
 
                     <Spinner
@@ -478,29 +482,59 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/txtSearch"
+        <LinearLayout
+            android:id="@+id/scanManualEntry"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:layout_marginStart="28dp"
+            android:layout_marginStart="20dp"
             android:layout_marginTop="14dp"
-            android:layout_marginEnd="28dp"
-            android:background="#FFFFFF"
-            android:hint="@string/card_name_hint"
-            android:imeOptions="actionDone"
-            android:inputType="textCapWords"
-            android:padding="12dp"
-            android:singleLine="true"
-            android:textColor="#111111"
-            android:textColorHint="#777777" />
+            android:layout_marginEnd="20dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/txtSearch"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="#FFFFFF"
+                android:hint="@string/card_name_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textCapWords"
+                android:padding="12dp"
+                android:singleLine="true"
+                android:textColor="#111111"
+                android:textColorHint="#777777" />
+
+            <ImageButton
+                android:id="@+id/btnSpeakCardName"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_scan_debug_status"
+                android:contentDescription="@string/speak_card_name"
+                android:padding="11dp"
+                android:src="@drawable/ic_mic" />
+
+            <ImageButton
+                android:id="@+id/btnAddTypedCard"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_scan_debug_status"
+                android:contentDescription="@string/add_typed_card"
+                android:padding="11dp"
+                android:src="@drawable/ic_add"
+                app:tint="#FFFFFF" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnScanSession"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="44dp"
-            android:layout_below="@id/txtSearch"
+            android:layout_below="@id/scanManualEntry"
             android:layout_alignParentEnd="true"
             android:layout_marginTop="6dp"
             android:layout_marginEnd="20dp"
@@ -514,7 +548,7 @@
             android:id="@+id/txtScanSessionTotal"
             android:layout_width="wrap_content"
             android:layout_height="44dp"
-            android:layout_below="@id/txtSearch"
+            android:layout_below="@id/scanManualEntry"
             android:layout_toStartOf="@id/btnScanSession"
             android:layout_marginTop="6dp"
             android:layout_marginEnd="8dp"
@@ -577,8 +611,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/txtScanDebugStatus"
-            android:layout_alignStart="@id/txtSearch"
-            android:layout_alignEnd="@id/txtSearch"
+            android:layout_alignStart="@id/scanManualEntry"
+            android:layout_alignEnd="@id/scanManualEntry"
             android:layout_marginTop="4dp"
             android:background="#FFFFFF"
             android:divider="#DDDDDD"

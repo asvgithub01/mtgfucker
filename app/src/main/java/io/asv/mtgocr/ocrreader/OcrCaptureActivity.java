@@ -21,6 +21,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -43,6 +44,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.speech.RecognizerIntent;
 import androidx.annotation.NonNull;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -142,6 +144,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   // Permission request codes need to be < 256
   private static final int RC_HANDLE_CAMERA_PERM = 2;
   private static final int RC_PICK_CARD_PHOTO = 3;
+  private static final int RC_SPEAK_CARD_NAME = 4;
   private static final String SCANNER_PREFERENCES = "scanner_preferences";
   private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
@@ -189,6 +192,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private ProgressBar scanIndexPreparationProgress;
   private TextView scanIndexPreparationText;
   private Button scanSessionButton;
+  private ImageButton speakCardNameButton;
+  private ImageButton addTypedCardButton;
   private TextView scanSessionTotalText;
   FloatingActionButton fabOcr, fabOcrMlKit;
   EditText txtSearch;
@@ -332,6 +337,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanIndexPreparationProgress = (ProgressBar) findViewById(R.id.scanIndexPreparationProgress);
     scanIndexPreparationText = (TextView) findViewById(R.id.scanIndexPreparationText);
     scanSessionButton = (Button) findViewById(R.id.btnScanSession);
+    speakCardNameButton = (ImageButton) findViewById(R.id.btnSpeakCardName);
+    addTypedCardButton = (ImageButton) findViewById(R.id.btnAddTypedCard);
     scanSessionTotalText = (TextView) findViewById(R.id.txtScanSessionTotal);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     fabOcrMlKit = (FloatingActionButton) findViewById(R.id.fabOcrMlKit);
@@ -401,6 +408,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           }
         });
     scanSessionButton.setOnClickListener(view -> showScanSession());
+    speakCardNameButton.setOnClickListener(view -> startCardNameVoiceInput());
+    addTypedCardButton.setOnClickListener(
+        view -> submitScannedCard(txtSearch.getText().toString()));
     scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
     fabOcr.setOnClickListener(this);
     fabOcrMlKit.setOnClickListener(this);
@@ -485,6 +495,20 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return true;
     });
     cardRepository.preparePriceIndex(ready -> kotlin.Unit.INSTANCE);
+  }
+
+  private void startCardNameVoiceInput() {
+    Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
+    intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speak_card_name_prompt));
+    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+    try {
+      startActivityForResult(intent, RC_SPEAK_CARD_NAME);
+    } catch (ActivityNotFoundException error) {
+      Toast.makeText(this, R.string.speech_recognition_unavailable, Toast.LENGTH_SHORT).show();
+    }
   }
 
   /** Builds the large multilingual name index only when the scanner is actually requested. */
@@ -1954,7 +1978,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
-    if (requestCode == RC_PICK_CARD_PHOTO && resultCode == Activity.RESULT_OK &&
+    if (requestCode == RC_SPEAK_CARD_NAME && resultCode == Activity.RESULT_OK && data != null) {
+      ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+      if (results != null && !results.isEmpty()) {
+        String spokenName = results.get(0) == null ? "" : results.get(0).trim();
+        if (!spokenName.isEmpty()) {
+          txtSearch.setText(spokenName);
+          txtSearch.setSelection(txtSearch.length());
+        }
+      }
+    } else if (requestCode == RC_PICK_CARD_PHOTO && resultCode == Activity.RESULT_OK &&
         data != null && data.getData() != null) {
       importAndAnalyzePhoto(data.getData());
     }

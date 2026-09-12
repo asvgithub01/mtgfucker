@@ -97,6 +97,10 @@
     <string name="personal_collection_label">Colección personal</string>
     <string name="grid_set_overlay">Colección: %1$s</string>
     <string name="card_name_hint">Nombre de la carta</string>
+    <string name="speak_card_name">Decir nombre de carta</string>
+    <string name="add_typed_card">Añadir la carta indicada</string>
+    <string name="speak_card_name_prompt">Di el nombre de la carta</string>
+    <string name="speech_recognition_unavailable">El reconocimiento de voz no está disponible.</string>
     <string name="nav_library">Biblio</string>
     <string name="nav_sets">Expansiones</string>
     <string name="nav_groups">Mazos</string>

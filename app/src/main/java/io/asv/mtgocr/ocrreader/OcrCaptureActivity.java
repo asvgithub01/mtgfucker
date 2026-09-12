@@ -175,6 +175,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CheckBox autoIdentifyCheck;
   private CheckBox quickScanCheck;
   private CheckBox askEditionAfterScanCheck;
+  private CheckBox scannerAutoFocusCheck;
+  private CheckBox scannerFlashCheck;
+  private CheckBox premiumModeCheck;
+  private Button createLibraryButton;
+  private Button randomLaunchBackgroundButton;
+  private TextView libraryCountText;
   private EditText lockedSetInput;
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
@@ -406,8 +412,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     mGraphicOverlay = (GraphicOverlay<OcrGraphic>) findViewById(R.id.graphicOverlay);
 
     // read parameters from the intent used to launch the activity.
-    boolean autoFocus = getIntent().getBooleanExtra(App.INTENT_AUTO_FOCUS, false);
-    boolean useFlash = getIntent().getBooleanExtra(App.INTENT_USE_FLASH, false);
+    boolean autoFocus = ScannerSettings.autoFocus(this);
+    boolean useFlash = ScannerSettings.flash(this);
     mPersistorMode = getIntent().getStringExtra(App.INTENT_PERSISTOR_MODE);
     loadPersistModeDataCardInfo();
 
@@ -1229,6 +1235,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     settingsPlaceholder = findViewById(R.id.settingsPlaceholder);
     setUpPaletteSettings();
     setUpPriceSourceSettings();
+    setUpPremiumSettings();
+    setUpScannerHardwareSettings();
     createGroupButton = findViewById(R.id.btnCreateGroup);
     createGroupButton.setOnClickListener(view -> promptForDeckCreation(null));
     if (!"0".equals(mPersistorMode)) {
@@ -1275,6 +1283,103 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           : MagicPalette.GREEN;
       if (MagicPalette.select(this, palette)) recreate();
     });
+  }
+
+  private void setUpPremiumSettings() {
+    premiumModeCheck = findViewById(R.id.checkPremiumMode);
+    createLibraryButton = findViewById(R.id.btnCreateLibrary);
+    randomLaunchBackgroundButton = findViewById(R.id.btnRandomLaunchBackground);
+    libraryCountText = findViewById(R.id.txtLibraryCount);
+    premiumModeCheck.setChecked(PremiumAccess.isEnabled(this));
+    premiumModeCheck.setOnCheckedChangeListener((button, checked) -> {
+      boolean wasSecondaryLibrary = mBiblio != null &&
+          !LibraryCatalog.DEFAULT_FILE.equals(mBiblio.nameFile);
+      PremiumAccess.setEnabled(this, checked);
+      updatePremiumSettingsUi();
+      if (!checked && wasSecondaryLibrary) {
+        Toast.makeText(this, R.string.premium_disabled_return_default, Toast.LENGTH_LONG).show();
+        finish();
+      }
+    });
+    createLibraryButton.setOnClickListener(view -> promptForLibraryCreation());
+    randomLaunchBackgroundButton.setOnClickListener(view -> {
+      if (!PremiumAccess.isEnabled(this)) {
+        Toast.makeText(this, R.string.premium_required, Toast.LENGTH_SHORT).show();
+        return;
+      }
+      LibraryCatalog.clearPinnedBackground(this);
+      updatePremiumSettingsUi();
+      Toast.makeText(this, R.string.launch_background_random, Toast.LENGTH_SHORT).show();
+    });
+    updatePremiumSettingsUi();
+  }
+
+  private void updatePremiumSettingsUi() {
+    if (premiumModeCheck == null) return;
+    boolean premium = PremiumAccess.isEnabled(this);
+    createLibraryButton.setEnabled(premium);
+    boolean hasPinnedBackground = LibraryCatalog.pinnedBackgroundId(
+        this, LibraryCatalog.active(this).getId()).length() > 0;
+    randomLaunchBackgroundButton.setEnabled(premium && hasPinnedBackground);
+    int count = premium ? LibraryCatalog.libraries(this).size() : 1;
+    libraryCountText.setText(getResources().getQuantityString(
+        R.plurals.library_count, count, count));
+  }
+
+  private void promptForLibraryCreation() {
+    if (!PremiumAccess.isEnabled(this)) {
+      Toast.makeText(this, R.string.premium_required, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    EditText input = new EditText(this);
+    input.setSingleLine(true);
+    input.setHint(R.string.library_name);
+    int padding = (int) (20f * getResources().getDisplayMetrics().density);
+    android.widget.FrameLayout container = new android.widget.FrameLayout(this);
+    container.setPadding(padding, 0, padding, 0);
+    container.addView(input, new android.widget.FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle(R.string.create_library)
+        .setView(container)
+        .setNegativeButton(android.R.string.cancel, null)
+        .setPositiveButton(R.string.create_library, null)
+        .create();
+    dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        .setOnClickListener(view -> {
+          try {
+            LibraryInfo library = LibraryCatalog.create(this, input.getText().toString());
+            updatePremiumSettingsUi();
+            Toast.makeText(this, getString(R.string.library_created, library.getName()),
+                Toast.LENGTH_LONG).show();
+            dialog.dismiss();
+          } catch (IllegalArgumentException | IllegalStateException error) {
+            input.setError(error.getMessage());
+          }
+        }));
+    dialog.show();
+  }
+
+  private void setUpScannerHardwareSettings() {
+    scannerAutoFocusCheck = findViewById(R.id.checkScannerAutoFocus);
+    scannerFlashCheck = findViewById(R.id.checkScannerFlash);
+    scannerAutoFocusCheck.setChecked(ScannerSettings.autoFocus(this));
+    scannerFlashCheck.setChecked(ScannerSettings.flash(this));
+    scannerAutoFocusCheck.setOnCheckedChangeListener((button, checked) -> {
+      ScannerSettings.setAutoFocus(this, checked);
+      recreateCameraSourceFromSettings();
+    });
+    scannerFlashCheck.setOnCheckedChangeListener((button, checked) -> {
+      ScannerSettings.setFlash(this, checked);
+      recreateCameraSourceFromSettings();
+    });
+  }
+
+  private void recreateCameraSourceFromSettings() {
+    if (mPreview == null || mCameraSource == null) return;
+    mPreview.release();
+    mCameraSource = null;
+    createCameraSource(ScannerSettings.autoFocus(this), ScannerSettings.flash(this));
   }
 
   private void showSelectedSection() {
@@ -1577,10 +1682,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void loadPersistModeDataCardInfo() {
     if (mPersistorMode.equals("0"))//biblio
     {
-      mBiblio = DataUtils.readSerializable(this, "myBiblio.Json");
+      LibraryInfo activeLibrary = LibraryCatalog.active(this);
+      mBiblio = DataUtils.readSerializable(this, activeLibrary.getFileName());
       if (mBiblio == null) {
-        //todo show dialog for create name of mybiblio
-        mBiblio = new Biblio("myBiblio.Json", "Mis Cartukis");
+        mBiblio = new Biblio(activeLibrary.getFileName(), activeLibrary.getName());
         DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
       } else {
         boolean migratedCollectionIds = false;
@@ -1866,8 +1971,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
       Log.d(TAG, "Camera permission granted - initialize the camera source");
       // We have permission, so create the camerasource
-      boolean autoFocus = getIntent().getBooleanExtra(App.INTENT_AUTO_FOCUS, false);
-      boolean useFlash = getIntent().getBooleanExtra(App.INTENT_USE_FLASH, false);
+      boolean autoFocus = ScannerSettings.autoFocus(this);
+      boolean useFlash = ScannerSettings.flash(this);
       createCameraSource(autoFocus, useFlash);
       return;
     }
@@ -2410,18 +2515,44 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   public void showOrganizerDialog(final CardInfo card) {
-    final String[] options = {
-        getString(R.string.add_to_deck),
-        getString(R.string.remove_assignment)
-    };
+    final List<String> optionList = new ArrayList<>();
+    optionList.add(getString(R.string.add_to_deck));
+    optionList.add(getString(R.string.remove_assignment));
+    boolean premium = PremiumAccess.isEnabled(this);
+    boolean pinned = premium && card.getCollectionItemId().equals(
+        LibraryCatalog.pinnedBackgroundId(this, LibraryCatalog.active(this).getId()));
+    if (premium) {
+      optionList.add(getString(pinned
+          ? R.string.unpin_launch_background : R.string.pin_launch_background));
+    }
+    final String[] options = optionList.toArray(new String[0]);
     new AlertDialog.Builder(this)
         .setTitle(R.string.organize_card)
         .setItems(options, (dialog, which) -> {
           if (which == 0) showGroupPicker(card, true);
           if (which == 1) showRemoveAssignmentDialog(card);
+          if (which == 2) updatePinnedLaunchBackground(card, pinned);
         })
         .setNegativeButton(android.R.string.cancel, null)
         .show();
+  }
+
+  private void updatePinnedLaunchBackground(CardInfo card, boolean currentlyPinned) {
+    if (!PremiumAccess.isEnabled(this)) {
+      Toast.makeText(this, R.string.premium_required, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    if (currentlyPinned) {
+      LibraryCatalog.clearPinnedBackground(this);
+      Toast.makeText(this, R.string.launch_background_random, Toast.LENGTH_SHORT).show();
+    } else if (safe(card.getImgPath()).trim().length() == 0) {
+      Toast.makeText(this, R.string.card_has_no_background_image, Toast.LENGTH_SHORT).show();
+      return;
+    } else {
+      LibraryCatalog.pinBackground(this, card.getCollectionItemId());
+      Toast.makeText(this, R.string.launch_background_pinned, Toast.LENGTH_SHORT).show();
+    }
+    updatePremiumSettingsUi();
   }
 
   private void showGroupPicker(final CardInfo card, final boolean deck) {
@@ -3804,8 +3935,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       if (mPreview != null) mPreview.release();
       mCameraSource = null;
       useMlKitJapaneseOcr = mlKitJapanese;
-      boolean autoFocus = getIntent().getBooleanExtra(App.INTENT_AUTO_FOCUS, false);
-      boolean useFlash = getIntent().getBooleanExtra(App.INTENT_USE_FLASH, false);
+      boolean autoFocus = ScannerSettings.autoFocus(this);
+      boolean useFlash = ScannerSettings.flash(this);
       createCameraSource(autoFocus, useFlash);
     }
     showOcr();

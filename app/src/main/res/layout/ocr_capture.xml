@@ -240,6 +240,69 @@
         android:fillViewport="true"
         android:visibility="gone">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="14dp">
+            <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="18dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/premium_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/premium_description"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="14sp" />
+                <CheckBox
+                    android:id="@+id/checkPremiumMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/premium_local_flag"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCreateLibrary"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/create_library"
+                    android:textColor="?attr/colorSecondary"
+                    app:icon="@drawable/ic_add"
+                    app:iconTint="?attr/colorSecondary"
+                    app:strokeColor="?attr/colorSecondary" />
+                <TextView
+                    android:id="@+id/txtLibraryCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="14sp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRandomLaunchBackground"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/use_random_launch_background"
+                    android:textColor="?attr/colorSecondary"
+                    app:strokeColor="?attr/colorSecondary" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:text="@string/pin_launch_background_help"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="13sp" />
+            </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
             <io.asv.mtgocr.ocrreader.ArcaneGlassLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
                     <ImageView android:layout_width="44dp" android:layout_height="44dp" android:contentDescription="@string/settings" android:padding="6dp" android:src="@drawable/ic_settings" app:tint="?attr/colorSecondary" />
@@ -270,6 +333,30 @@
                     android:textColor="#FFFFFF"
                     android:textSize="22sp"
                     android:textStyle="bold" />
+                <CheckBox
+                    android:id="@+id/checkScannerAutoFocus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/auto_focus"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+                <CheckBox
+                    android:id="@+id/checkScannerFlash"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/use_flash"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="@string/scanner_camera_settings_description"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="14sp" />
                 <CheckBox
                     android:id="@+id/checkAskEditionAfterScan"
                     android:layout_width="match_parent"

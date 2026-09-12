@@ -24,6 +24,10 @@ public class Biblio implements Serializable {
         this.cards = new ArrayList<CardInfo>();
     }
 
+    public String getName() {
+        return name;
+    }
+
     public void addCard(String name, String price, String description, String imgPath, String quantity) {
         this.cards.add(new CardInfo(name, price, description, imgPath, quantity));
     }

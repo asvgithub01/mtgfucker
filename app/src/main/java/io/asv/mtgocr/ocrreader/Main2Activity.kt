@@ -90,7 +90,7 @@ class Main2Activity : AppCompatActivity() {
         conditionPrice = findViewById(R.id.txtConditionPrice)
         title.typeface = Typeface.createFromAsset(assets, "title_font.ttf")
         title.text = cardName
-        val ownedCard = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+        val ownedCard = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this))?.cards
             ?.firstOrNull { it.collectionItemId == collectionItemId }
         ownedCard?.let { owned ->
                 ownedCondition = owned.condition
@@ -240,7 +240,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun refreshOwnedConditionPrice() {
-        val card = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+        val card = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this))?.cards
             ?.firstOrNull { it.collectionItemId == collectionItemId }
         val value = card?.let { PriceCurrency.format(this, it) }?.takeIf { it.isNotBlank() }
             ?: getString(R.string.no_price)
@@ -297,7 +297,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun currentCopyCounts(): Map<String, Int> {
-        val collection = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json") ?: return emptyMap()
+        val collection = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this)) ?: return emptyMap()
         return collection.cards.groupBy { editionKey(it.printingUuid.orEmpty(), it.finish.orEmpty()) }
             .mapValues { (_, cards) -> cards.sumOf { it.quantityCount } }
     }
@@ -371,7 +371,7 @@ class Main2Activity : AppCompatActivity() {
         }
     }
 
-    private fun ownedCard() = DataUtils.readSerializable<Biblio>(this, "myBiblio.Json")?.cards
+    private fun ownedCard() = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this))?.cards
         ?.firstOrNull { it.collectionItemId == collectionItemId }
 
     private fun applyLanguageVariant(option: CardEditionOption, variant: CardImageVariant) {

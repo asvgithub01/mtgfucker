@@ -2,16 +2,18 @@ package io.asv.mtgocr.ocrreader.data
 
 import android.content.Context
 import io.asv.mtgocr.ocrreader.DataUtils
+import io.asv.mtgocr.ocrreader.LibraryCatalog
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.DeckCatalog
 import io.asv.mtgocr.ocrreader.model.DeckDefinition
 
 object DeckCatalogStore {
-    private const val FILE_NAME = "myDeckCatalog.Json"
-
     @JvmStatic
     fun load(context: Context, collection: Biblio?): DeckCatalog {
-        val catalog = DataUtils.readSerializable<DeckCatalog>(context, FILE_NAME) ?: DeckCatalog()
+        val fileName = LibraryCatalog.deckCatalogFile(context)
+        val catalog = DataUtils.readSerializable<DeckCatalog>(context, fileName) ?: DeckCatalog().also {
+            it.nameFile = fileName
+        }
         var changed = false
         val known = catalog.decks.associateBy { it.name.lowercase() }.toMutableMap()
         // Treat old "group" assignments as decks once during the one-way UI rename. The marker is
@@ -53,6 +55,8 @@ object DeckCatalogStore {
 
     @JvmStatic
     fun save(context: Context, catalog: DeckCatalog) {
-        DataUtils.saveSerializable(context, catalog, FILE_NAME)
+        val fileName = LibraryCatalog.deckCatalogFile(context)
+        catalog.nameFile = fileName
+        DataUtils.saveSerializable(context, catalog, fileName)
     }
 }

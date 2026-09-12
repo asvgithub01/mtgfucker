@@ -2,6 +2,7 @@ package io.asv.mtgocr.ocrreader.data
 
 import android.content.Context
 import io.asv.mtgocr.ocrreader.DataUtils
+import io.asv.mtgocr.ocrreader.LibraryCatalog
 import io.asv.mtgocr.ocrreader.OcrCaptureActivity
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardInfo
@@ -9,17 +10,18 @@ import io.asv.mtgocr.ocrreader.model.CardCondition
 import java.util.Locale
 
 object LegacyCollectionStore {
-    private const val FILE_NAME = "myBiblio.Json"
+    private fun fileName(context: Context) = LibraryCatalog.activeFile(context)
 
     /** Returns the persisted cards so catalog screens use the collection file as source of truth. */
     fun cards(context: Context): List<CardInfo> =
-        DataUtils.readSerializable<Biblio>(context, FILE_NAME)?.cards?.toList()
-            ?: OcrCaptureActivity.mBiblio?.cards?.toList()
+        DataUtils.readSerializable<Biblio>(context, fileName(context))?.cards?.toList()
+            ?: activeInMemory(context)?.cards?.toList()
             ?: emptyList()
 
     fun add(context: Context, options: List<SetCardOption>): List<CardInfo> {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: Biblio(FILE_NAME, "Mis Cartukis")
+        val activeLibrary = LibraryCatalog.active(context)
+        val collection = DataUtils.readSerializable<Biblio>(context, activeLibrary.fileName)
+            ?: Biblio(activeLibrary.fileName, activeLibrary.name)
         val baseTime = System.currentTimeMillis()
         val added = options.mapIndexed { index, option ->
             val priceText = option.price?.let { "%.2f %s".format(Locale.US, it, option.currency.orEmpty()) }.orEmpty()
@@ -51,8 +53,9 @@ object LegacyCollectionStore {
 
     /** Adds one physical copy, folding it into the matching name/printing/finish row. */
     fun addCopy(context: Context, option: CardEditionOption): CardInfo {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: Biblio(FILE_NAME, "Mis Cartukis")
+        val activeLibrary = LibraryCatalog.active(context)
+        val collection = DataUtils.readSerializable<Biblio>(context, activeLibrary.fileName)
+            ?: Biblio(activeLibrary.fileName, activeLibrary.name)
         val result = addCopyToCollection(collection, option)
         val expectedQuantity = result.quantityCount
         DataUtils.saveSerializable(context, collection, collection.nameFile)
@@ -114,8 +117,8 @@ object LegacyCollectionStore {
         option: CardEditionOption,
         preferredCollectionItemId: String? = null
     ): CopyRemovalResult? {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: OcrCaptureActivity.mBiblio
+        val collection = DataUtils.readSerializable<Biblio>(context, fileName(context))
+            ?: activeInMemory(context)
             ?: return null
         val card = collection.cards.firstOrNull {
             it.collectionItemId == preferredCollectionItemId && samePrinting(it, option)
@@ -132,8 +135,8 @@ object LegacyCollectionStore {
         collectionItemId: String,
         option: CardEditionOption
     ): Boolean {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: OcrCaptureActivity.mBiblio
+        val collection = DataUtils.readSerializable<Biblio>(context, fileName(context))
+            ?: activeInMemory(context)
             ?: return false
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return false
         card.printingUuid = option.printingUuid
@@ -160,8 +163,8 @@ object LegacyCollectionStore {
     }
 
     fun updateCondition(context: Context, collectionItemId: String, condition: String): CardInfo? {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: OcrCaptureActivity.mBiblio
+        val collection = DataUtils.readSerializable<Biblio>(context, fileName(context))
+            ?: activeInMemory(context)
             ?: return null
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
         card.condition = condition
@@ -176,8 +179,8 @@ object LegacyCollectionStore {
         languageCode: String,
         imageUrl: String
     ): CardInfo? {
-        val collection = DataUtils.readSerializable<Biblio>(context, FILE_NAME)
-            ?: OcrCaptureActivity.mBiblio
+        val collection = DataUtils.readSerializable<Biblio>(context, fileName(context))
+            ?: activeInMemory(context)
             ?: return null
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
         card.languageCode = CardLanguage.toCode(languageCode)
@@ -186,4 +189,7 @@ object LegacyCollectionStore {
         OcrCaptureActivity.mBiblio = collection
         return card
     }
+
+    private fun activeInMemory(context: Context): Biblio? =
+        OcrCaptureActivity.mBiblio?.takeIf { it.nameFile == fileName(context) }
 }

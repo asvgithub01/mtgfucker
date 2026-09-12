@@ -43,7 +43,7 @@ class GroupBuilderActivity : AppCompatActivity() {
         deckName = intent.getStringExtra(EXTRA_DECK_NAME)
             .orEmpty().ifBlank { intent.getStringExtra(EXTRA_GROUP_NAME).orEmpty() }.trim()
         formatId = intent.getStringExtra(EXTRA_FORMAT_ID).orEmpty().ifBlank { "free" }
-        collection = DataUtils.readSerializable(this, "myBiblio.Json") ?: run { finish(); return }
+        collection = DataUtils.readSerializable(this, LibraryCatalog.activeFile(this)) ?: run { finish(); return }
         if (deckName.isBlank()) { finish(); return }
         sortMode = intent.getIntExtra(EXTRA_SORT, 0)
         query = intent.getStringExtra(EXTRA_QUERY).orEmpty()

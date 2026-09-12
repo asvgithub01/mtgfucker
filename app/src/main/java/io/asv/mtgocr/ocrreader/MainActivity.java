@@ -1,141 +1,116 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.asv.mtgocr.ocrreader;
 
-import android.content.Intent;
-import android.os.Bundle;
 import android.app.Activity;
-import android.util.Log;
-import android.view.View;
-import android.widget.CompoundButton;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
+import com.bumptech.glide.Glide;
+import io.asv.mtgocr.ocrreader.model.Biblio;
+import io.asv.mtgocr.ocrreader.model.CardInfo;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 
-import com.google.android.gms.common.api.CommonStatusCodes;
-
-/**
- * Main activity demonstrating how to pass extra parameters to an activity that
- * recognizes text.
- */
+/** Launcher that selects the active independent Biblio before opening the collection. */
 public class MainActivity extends Activity implements View.OnClickListener {
+  private Spinner libraryPicker;
+  private ImageView launchBackground;
+  private List<LibraryInfo> libraries = new ArrayList<>();
+  private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
+  private int backgroundRequest;
+  private boolean updatingPicker;
 
-    // Use a compound button so either checkbox or switch widgets work.
-    private CompoundButton autoFocus;
-    private CompoundButton useFlash;
-    private static final int RC_OCR_CAPTURE = 9003;
-    private static final String TAG = "MainActivity";
+  @Override protected void onCreate(Bundle savedInstanceState) {
+    MagicPalette.applyTheme(this);
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.activity_main);
+    ((TextView) findViewById(R.id.txtLaunchTitle)).setTypeface(
+        Typeface.createFromAsset(getAssets(), "title_font.ttf"));
+    launchBackground = findViewById(R.id.imgLaunchBackground);
+    libraryPicker = findViewById(R.id.spinnerLaunchLibrary);
+    libraryPicker.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+      @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        if (updatingPicker || position < 0 || position >= libraries.size()) return;
+        LibraryCatalog.select(MainActivity.this, libraries.get(position).getId());
+        refreshLaunchBackground();
+      }
+      @Override public void onNothingSelected(AdapterView<?> parent) { }
+    });
+    findViewById(R.id.btnBiblio).setOnClickListener(this);
+  }
 
-    //Button btnBiblio,btnNewDeck,btnEditDecks;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        MagicPalette.applyTheme(this);
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        ((TextView) findViewById(R.id.txtLaunchTitle)).setTypeface(
-                Typeface.createFromAsset(getAssets(), "title_font.ttf"));
+  @Override protected void onResume() {
+    super.onResume();
+    refreshLibraries();
+  }
 
-        autoFocus = (CompoundButton) findViewById(R.id.auto_focus);
-        useFlash = (CompoundButton) findViewById(R.id.use_flash);
-
-        findViewById(R.id.btnBiblio).setOnClickListener(this);
-        findViewById(R.id.btnNewDeck).setOnClickListener(this);
-        findViewById(R.id.btnEditDecks).setOnClickListener(this);
-
-
+  private void refreshLibraries() {
+    libraries = LibraryCatalog.availableLibraries(this);
+    ArrayAdapter<LibraryInfo> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, libraries);
+    adapter.setDropDownViewResource(R.layout.spinner_item);
+    updatingPicker = true;
+    libraryPicker.setAdapter(adapter);
+    String activeId = LibraryCatalog.active(this).getId();
+    int selected = 0;
+    for (int index = 0; index < libraries.size(); index++) {
+      if (activeId.equals(libraries.get(index).getId())) selected = index;
     }
+    libraryPicker.setSelection(selected, false);
+    libraryPicker.setVisibility(libraries.size() > 1 ? View.VISIBLE : View.GONE);
+    findViewById(R.id.txtLaunchLibraryLabel).setVisibility(
+        libraries.size() > 1 ? View.VISIBLE : View.GONE);
+    updatingPicker = false;
+    refreshLaunchBackground();
+  }
 
-    /**
-     * Called when a view has been clicked.
-     *
-     * @param v The view that was clicked.
-     */
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.btnBiblio) {
-            // launch Ocr capture activity.
-            Intent intent = new Intent(this, OcrCaptureActivity.class);
-            intent.putExtra(App.INTENT_AUTO_FOCUS, autoFocus.isChecked());
-            intent.putExtra(App.INTENT_USE_FLASH, useFlash.isChecked());
-            intent.putExtra(App.INTENT_PERSISTOR_MODE, "0");
-
-            startActivityForResult(intent, RC_OCR_CAPTURE);
-        }
-
-        if (v.getId() == R.id.btnNewDeck) {
-            // launch Ocr capture activity.
-            Intent intent = new Intent(this, OcrCaptureActivity.class);
-            intent.putExtra(App.INTENT_AUTO_FOCUS, autoFocus.isChecked());
-            intent.putExtra(App.INTENT_USE_FLASH, useFlash.isChecked());
-            intent.putExtra(App.INTENT_PERSISTOR_MODE, "1");
-
-            startActivityForResult(intent, RC_OCR_CAPTURE);
-        }
-        if (v.getId() == R.id.btnEditDecks) {
-            // launch Ocr capture activity.
-            Intent intent = new Intent(this, OcrCaptureActivity.class);
-            intent.putExtra(App.INTENT_AUTO_FOCUS, autoFocus.isChecked());
-            intent.putExtra(App.INTENT_USE_FLASH, useFlash.isChecked());
-            intent.putExtra(App.INTENT_PERSISTOR_MODE, "2");
-
-            startActivityForResult(intent, RC_OCR_CAPTURE);
-        }
-    }
-
-    /**
-     * Called when an activity you launched exits, giving you the requestCode
-     * you started it with, the resultCode it returned, and any additional
-     * DataUtils from it.  The <var>resultCode</var> will be
-     * {@link #RESULT_CANCELED} if the activity explicitly returned that,
-     * didn't return any result, or crashed during its operation.
-     * <p/>
-     * <p>You will receive this call immediately before onResume() when your
-     * activity is re-starting.
-     * <p/>
-     *
-     * @param requestCode The integer request code originally supplied to
-     * startActivityForResult(), allowing you to identify who this
-     * result came from.
-     * @param resultCode  The integer result code returned by the child activity
-     * through its setResult().
-     * @param DataUtils        An Intent, which can return result DataUtils to the caller
-     * (various DataUtils can be attached to Intent "extras").
-     * @see #startActivityForResult
-     * @see #createPendingResult
-     * @see #setResult(int)
-     */
-    String text;
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == RC_OCR_CAPTURE) {
-            if (resultCode == CommonStatusCodes.SUCCESS) {
-                if (data != null) {
-                    Log.d(TAG, "Text read: " + text);
-                } else {
-                    Log.d(TAG, "No Text captured, intent DataUtils is null");
-                }
-            } else {
-                Log.e(TAG, String.format(getString(R.string.ocr_error),
-                        CommonStatusCodes.getStatusCodeString(resultCode)));
-            }
+  private void refreshLaunchBackground() {
+    final int request = ++backgroundRequest;
+    final LibraryInfo library = LibraryCatalog.active(this);
+    final boolean premium = PremiumAccess.isEnabled(this);
+    final String pinnedId = LibraryCatalog.pinnedBackgroundId(this, library.getId());
+    backgroundExecutor.execute(() -> {
+      Biblio collection = DataUtils.readSerializable(this, library.getFileName());
+      List<CardInfo> cards = collection == null || collection.cards == null
+          ? new ArrayList<>() : collection.cards;
+      CardInfo selected = LaunchBackgroundPolicy.choose(
+          cards, pinnedId, premium, size -> ThreadLocalRandom.current().nextInt(size));
+      runOnUiThread(() -> {
+        if (request != backgroundRequest || isFinishing() || isDestroyed()) return;
+        if (selected == null) {
+          CardImageCache.display(this, null, launchBackground);
+          launchBackground.setImageResource(R.drawable.mtgback);
         } else {
-            super.onActivityResult(requestCode, resultCode, data);
+          CardImageCache.displayKeepingCurrent(this, selected.getImgPath(), launchBackground);
         }
+      });
+    });
+  }
+
+  @Override public void onClick(View view) {
+    if (view.getId() != R.id.btnBiblio) return;
+    int selected = libraryPicker.getSelectedItemPosition();
+    if (selected >= 0 && selected < libraries.size()) {
+      LibraryCatalog.select(this, libraries.get(selected).getId());
     }
+    Intent intent = new Intent(this, OcrCaptureActivity.class);
+    intent.putExtra(App.INTENT_AUTO_FOCUS, ScannerSettings.autoFocus(this));
+    intent.putExtra(App.INTENT_USE_FLASH, ScannerSettings.flash(this));
+    intent.putExtra(App.INTENT_PERSISTOR_MODE, "0");
+    startActivity(intent);
+  }
 
-
+  @Override protected void onDestroy() {
+    backgroundRequest++;
+    backgroundExecutor.shutdownNow();
+    if (launchBackground != null) Glide.clear(launchBackground);
+    super.onDestroy();
+  }
 }

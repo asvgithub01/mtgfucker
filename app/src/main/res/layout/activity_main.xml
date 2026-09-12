@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/mtgback">
+    android:layout_width="match_parent" android:layout_height="match_parent" android:background="#08130E">
+    <ImageView android:id="@+id/imgLaunchBackground" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@string/launch_background" android:scaleType="centerCrop" android:src="@drawable/mtgback" />
     <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#62000000" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_horizontal" android:orientation="vertical" android:padding="24dp">
         <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
@@ -8,11 +9,9 @@
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Escanea, organiza y valora tu colección" android:textColor="#E8DFCF" android:textSize="16sp" />
         <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1.4" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_launch_panel" android:orientation="vertical" android:padding="18dp">
+            <TextView android:id="@+id/txtLaunchLibraryLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="5dp" android:text="@string/choose_library" android:textColor="?attr/colorOnSurface" android:textStyle="bold" android:visibility="gone" />
+            <Spinner android:id="@+id/spinnerLaunchLibrary" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginBottom="10dp" android:background="@drawable/spinner_background" android:contentDescription="@string/choose_library" android:paddingStart="12dp" android:paddingEnd="12dp" android:visibility="gone" />
             <Button android:id="@+id/btnBiblio" android:layout_width="match_parent" android:layout_height="56dp" android:backgroundTint="?attr/colorPrimary" android:text="@string/mode_biblio" android:textAllCaps="false" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold" />
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical" android:orientation="horizontal">
-                <CheckBox android:id="@+id/auto_focus" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:buttonTint="?attr/colorPrimary" android:checked="true" android:text="@string/auto_focus" android:textColor="?attr/colorOnSurface" />
-                <CheckBox android:id="@+id/use_flash" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:buttonTint="?attr/colorPrimary" android:checked="false" android:text="@string/use_flash" android:textColor="?attr/colorOnSurface" />
-            </LinearLayout>
             <Button android:id="@+id/btnNewDeck" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/mode_new_Deck" android:visibility="gone" />
             <Button android:id="@+id/btnEditDecks" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/mode_edit_Decks" android:visibility="gone" />
         </LinearLayout>

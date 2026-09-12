@@ -33,7 +33,8 @@ class CardArtworkIdentifier(
     fun identify(
         jpeg: ByteArray,
         options: List<CardEditionOption>,
-        lockedSetCodes: Set<String>
+        lockedSetCodes: Set<String>,
+        preferFoil: Boolean
     ): CardIdentificationResult {
         val cameraBitmap = decodeSampled(jpeg) ?: return CardIdentificationResult(emptyList(), false, 0)
         val cameraFingerprint = try {
@@ -47,7 +48,10 @@ class CardArtworkIdentifier(
             .filter { locked.isEmpty() || it.setCode.uppercase(Locale.US) in locked }
             .groupBy { it.printingUuid }
             .values
-            .mapNotNull(ScanPrintingPolicy::preferred)
+            .mapNotNull { finishes ->
+                ScanPrintingPolicy.preferred(finishes, preferFoil)
+                    ?.takeIf { !preferFoil || it.isFoil }
+            }
             .take(MAX_CANDIDATE_IMAGES)
             .toList()
 

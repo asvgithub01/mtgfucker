@@ -441,6 +441,7 @@ class CardRepository private constructor(context: Context) {
         cardName: String,
         jpeg: ByteArray,
         lockedSetCodes: Set<String> = emptySet(),
+        preferFoil: Boolean = false,
         callback: (CardIdentificationResult, Throwable?) -> Unit
     ): Future<*> = imageExecutor.submit {
         try {
@@ -453,7 +454,7 @@ class CardRepository private constructor(context: Context) {
                 dao.pricesFor(printings.map { it.uuid }),
                 resolution?.displayName ?: printings.first().name
             )
-            val result = artworkIdentifier.identify(jpeg, options, lockedSetCodes)
+            val result = artworkIdentifier.identify(jpeg, options, lockedSetCodes, preferFoil)
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(result, null) }
         } catch (error: Throwable) {
             if (!Thread.currentThread().isInterrupted) {
@@ -466,6 +467,7 @@ class CardRepository private constructor(context: Context) {
     fun quickScanCard(
         cardName: String,
         lockedSetCodes: Set<String> = emptySet(),
+        preferFoil: Boolean = false,
         callback: (CardEditionOption?, Throwable?) -> Unit
     ): Future<*> = quickScanExecutor.submit {
         try {
@@ -476,7 +478,7 @@ class CardRepository private constructor(context: Context) {
             val locked = ScanSetLockPolicy.expand(lockedSetCodes)
             // With no set lock, quick mode must acknowledge the scan immediately. The caller can
             // persist the OCR name now and let the normal metadata request resolve it in background.
-            if (cached.isEmpty() && locked.isEmpty()) {
+            if (cached.isEmpty() && locked.isEmpty() && !preferFoil) {
                 if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(null, null) }
                 return@submit
             }
@@ -493,7 +495,10 @@ class CardRepository private constructor(context: Context) {
                 prices,
                 resolution?.displayName ?: eligible.first().name
             )
-            val representative = ScanPrintingPolicy.preferred(options)
+            val representative = ScanPrintingPolicy.preferred(options, preferFoil)
+            if (preferFoil && representative?.isFoil != true) {
+                error("No hay una impresión foil disponible para '$cardName'")
+            }
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(representative, null) }
         } catch (error: Throwable) {
             Log.w(TAG, "Falló el lookup local rápido de '$cardName'", error)

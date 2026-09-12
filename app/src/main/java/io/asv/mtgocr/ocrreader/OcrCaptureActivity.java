@@ -148,6 +148,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
   private static final String PREF_QUICK_SCAN = "quick_scan";
   private static final String PREF_LOCKED_SET = "locked_set";
+  private static final String PREF_SCAN_FOIL = "scan_foil";
   private static final String PREF_ASK_EDITION_AFTER_SCAN = "ask_edition_after_scan";
   private static final String PREF_ONLY_OWNED_SETS = "only_owned_sets";
   private static final String STATE_SECTION = "selected_section";
@@ -175,6 +176,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CheckBox closeAfterScanCheck;
   private CheckBox autoIdentifyCheck;
   private CheckBox quickScanCheck;
+  private CheckBox scanFoilCheck;
   private CheckBox askEditionAfterScanCheck;
   private CheckBox scannerAutoFocusCheck;
   private CheckBox scannerFlashCheck;
@@ -327,6 +329,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
     autoIdentifyCheck = (CheckBox) findViewById(R.id.checkAutoIdentify);
     quickScanCheck = (CheckBox) findViewById(R.id.checkQuickScan);
+    scanFoilCheck = (CheckBox) findViewById(R.id.checkScanFoil);
     askEditionAfterScanCheck = (CheckBox) findViewById(R.id.checkAskEditionAfterScan);
     lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
@@ -359,6 +362,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         .getBoolean(PREF_AUTO_IDENTIFY, true));
     quickScanCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getBoolean(PREF_QUICK_SCAN, true));
+    scanFoilCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
+        .getBoolean(PREF_SCAN_FOIL, false));
     askEditionAfterScanCheck.setChecked(
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
             .getBoolean(PREF_ASK_EDITION_AFTER_SCAN, false));
@@ -374,6 +379,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     quickScanCheck.setOnCheckedChangeListener((button, checked) ->
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_QUICK_SCAN, checked).apply());
+    scanFoilCheck.setOnCheckedChangeListener((button, checked) ->
+        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
+            .putBoolean(PREF_SCAN_FOIL, checked).apply());
     askEditionAfterScanCheck.setOnCheckedChangeListener((button, checked) ->
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putBoolean(PREF_ASK_EDITION_AFTER_SCAN, checked).apply());
@@ -744,22 +752,28 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void captureArtworkForIdentification(LocalCardNameMatch match) {
     if (mCameraSource == null || scanInProgress || !isScannerReaderActive()) return;
+    final boolean preferFoil = scanFoilCheck != null && scanFoilCheck.isChecked();
     beginScannerWork(quickScanCheck.isChecked()
         ? getString(R.string.scan_debug_card_info)
         : getString(R.string.scan_debug_artwork));
     if (quickScanCheck.isChecked()) {
       cardScanGuide.setMessage(getString(R.string.scan_reading_name, match.getDisplayName()));
-      cardRepository.quickScanCard(match.getCanonicalName(), lockedSetCodes(), (option, error) -> {
+      cardRepository.quickScanCard(
+          match.getCanonicalName(), lockedSetCodes(), preferFoil, (option, error) -> {
         finishScannerWorkGate();
         if (!isScannerReaderActive()) {
         } else if (error != null) {
-          if (lockedSetCodes().isEmpty()) {
+          if (preferFoil) {
+            cardScanGuide.setMessage(getString(R.string.scan_no_foil_match));
+          } else if (lockedSetCodes().isEmpty()) {
             submitScannedCard(match.getDisplayName(), match.getLanguage());
           } else {
             cardScanGuide.setMessage(getString(R.string.scan_no_set_match));
           }
-        } else if (option == null) {
+        } else if (option == null && !preferFoil) {
           submitScannedCard(match.getDisplayName(), match.getLanguage());
+        } else if (option == null) {
+          cardScanGuide.setMessage(getString(R.string.scan_no_foil_match));
         } else {
           addIdentifiedPrinting(option, match.getLanguage());
         }
@@ -770,8 +784,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide.setMessage(getString(R.string.scan_comparing_art, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
-          match.getCanonicalName(), jpeg, lockedSetCodes(), (result, error) -> {
-            handleArtworkIdentification(match, result, error);
+          match.getCanonicalName(), jpeg, lockedSetCodes(), preferFoil, (result, error) -> {
+            handleArtworkIdentification(match, result, error, preferFoil);
             return kotlin.Unit.INSTANCE;
           }));
     } catch (RuntimeException error) {
@@ -825,7 +839,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void handleArtworkIdentification(LocalCardNameMatch nameMatch,
-      CardIdentificationResult result, Throwable error) {
+      CardIdentificationResult result, Throwable error, boolean preferFoil) {
     if (!isScannerReaderActive()) {
       finishScannerWorkGate();
       return;
@@ -834,7 +848,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (error != null || candidates.isEmpty()) {
       Log.w(TAG, "No se pudo resolver la impresión por ilustración", error);
       finishScannerWorkGate();
-      cardScanGuide.setMessage(getString(lockedSetCodes().isEmpty()
+      cardScanGuide.setMessage(getString(preferFoil
+          ? R.string.scan_no_foil_match : lockedSetCodes().isEmpty()
           ? R.string.scan_identification_failed : R.string.scan_no_set_match));
       suppressPredictionWatcher = true;
       txtSearch.setText(nameMatch.getDisplayName());
@@ -845,7 +860,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (!askEditionAfterScanCheck.isChecked()) {
       List<CardEditionOption> options = new ArrayList<>();
       for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
-      CardEditionOption preferred = ScanPrintingPolicy.preferred(options);
+      CardEditionOption preferred = ScanPrintingPolicy.preferred(options, preferFoil);
       if (preferred != null) addIdentifiedPrinting(preferred, nameMatch.getLanguage());
       else {
         finishScannerWorkGate();
@@ -2938,15 +2953,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     Set<String> selectedSetCodes = lockedSetCodes();
-    if (!selectedSetCodes.isEmpty()) {
+    final boolean preferFoil = scanFoilCheck != null && scanFoilCheck.isChecked();
+    if (!selectedSetCodes.isEmpty() || preferFoil) {
       // Manual entry must honour the same set lock as camera recognition. Going through the
       // identified-printing path keeps image, price and printing UUID tied to that exact edition.
       beginScannerWork(getString(R.string.scan_debug_card_info));
       cardScanGuide.setMessage(getString(R.string.scan_reading_name, normalizedName));
-      cardRepository.quickScanCard(normalizedName, selectedSetCodes, (option, error) -> {
+      cardRepository.quickScanCard(
+          normalizedName, selectedSetCodes, preferFoil, (option, error) -> {
         if (error != null || option == null) {
           finishScannerWorkGate();
-          cardScanGuide.setMessage(getString(R.string.scan_no_set_match));
+          cardScanGuide.setMessage(getString(preferFoil
+              ? R.string.scan_no_foil_match : R.string.scan_no_set_match));
         } else {
           addIdentifiedPrinting(option, detectedLanguage, quickAddFeedback);
         }

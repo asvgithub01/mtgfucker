@@ -19,6 +19,16 @@ class ScanPrintingPolicyTest {
         assertNull(ScanPrintingPolicy.preferred(emptyList()))
     }
 
+    @Test fun prefersFoilWhenRequested() {
+        val options = listOf(option("regular-a", false), option("foil-a", true))
+        assertEquals("foil-a", ScanPrintingPolicy.preferred(options, true)?.printingUuid)
+    }
+
+    @Test fun fallsBackToRegularWhenNoFoilExists() {
+        val options = listOf(option("regular-a", false), option("regular-b", false))
+        assertEquals("regular-a", ScanPrintingPolicy.preferred(options, true)?.printingUuid)
+    }
+
     private fun option(uuid: String, foil: Boolean) = CardEditionOption(
         printingUuid = uuid,
         cardName = "Card",

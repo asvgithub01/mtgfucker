@@ -628,18 +628,35 @@
             android:gravity="center_horizontal"
             android:orientation="vertical">
 
-            <EditText
-                android:id="@+id/txtLockedSet"
-                android:layout_width="220dp"
-                android:layout_height="42dp"
-                android:background="#EFFFFFFF"
-                android:hint="@string/lock_set_hint"
-                android:inputType="textCapCharacters"
-                android:maxLines="1"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:textColor="#111111"
-                android:textColorHint="#666666" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/txtLockedSet"
+                    android:layout_width="220dp"
+                    android:layout_height="42dp"
+                    android:background="#EFFFFFFF"
+                    android:hint="@string/lock_set_hint"
+                    android:inputType="textCapCharacters"
+                    android:maxLines="1"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textColor="#111111"
+                    android:textColorHint="#666666" />
+
+                <CheckBox
+                    android:id="@+id/checkScanFoil"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/foil"
+                    android:textColor="#F4F0E8"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"

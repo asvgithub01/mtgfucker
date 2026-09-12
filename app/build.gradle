@@ -61,10 +61,10 @@ dependencies {
     implementation 'androidx.compose.foundation:foundation'
     implementation 'androidx.compose.material3:material3'
 
-    // Keep the original scanner available while the multilingual scanner is rolled out.
+    // The existing camera bridge still uses the Vision Detector/Frame abstractions.
     implementation 'com.google.android.gms:play-services-vision:20.1.3'
-    // Bundled so the new Japanese/Latin scanner works immediately and offline. The Japanese
-    // recognizer also understands Latin text; more script modules can be added independently.
+    // Both scripts are bundled so the maintained scanner can choose one immediately and offline.
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-japanese:16.0.1'
 
     implementation 'com.koushikdutta.ion:ion:2.2.1'

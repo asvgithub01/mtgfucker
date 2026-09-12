@@ -38,6 +38,27 @@ data class LocalizedCardName(
 
 /** Scryfall is deliberately responsible only for printing discovery and card imagery. */
 class ScryfallImageDataProvider(private val client: OkHttpClient) {
+    /** Cheap first-page probe used to choose the scanner OCR script for a locked set. */
+    fun setHasLanguage(setCode: String, languageCode: String): Boolean {
+        val url = "https://api.scryfall.com/cards/search".toHttpUrl().newBuilder()
+            .addQueryParameter(
+                "q",
+                "set:${setCode.lowercase()} lang:${languageCode.lowercase()} game:paper"
+            )
+            .addQueryParameter("unique", "prints")
+            .addQueryParameter("include_multilingual", "true")
+            .build()
+        val request = Request.Builder().url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Accept", "application/json;q=0.9,*/*;q=0.8")
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (response.code == 404) return false
+            if (!response.isSuccessful) error("Scryfall idiomas devolvió HTTP ${response.code}")
+            return JSONObject(response.body?.string().orEmpty()).getJSONArray("data").length() > 0
+        }
+    }
+
     fun getPrintingImages(cardName: String): List<ScryfallPrintingHint> {
         val results = mutableListOf<ScryfallPrintingHint>()
         var nextUrl: String? = "https://api.scryfall.com/cards/search".toHttpUrl().newBuilder()

@@ -13,21 +13,27 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 
 import java.nio.ByteBuffer;
 
 /**
- * Lets the new ML Kit Japanese recognizer run inside the existing CameraSource.
+ * Lets either bundled ML Kit script recognizer run inside the existing CameraSource.
  *
  * The bundled Japanese model recognizes both Japanese and Latin text. Detection is deliberately
  * awaited on CameraSource's worker thread: the legacy camera can then keep dropping stale frames,
  * while the NV21 callback buffer remains owned by this detector until ML Kit has finished with it.
  */
-final class MlKitJapaneseTextDetector extends Detector<MlKitTextLine> {
-  private static final String TAG = "MlKitJapaneseOcr";
-  private final TextRecognizer recognizer = TextRecognition.getClient(
-      new JapaneseTextRecognizerOptions.Builder().build());
+final class MlKitTextDetector extends Detector<MlKitTextLine> {
+  private static final String TAG = "MlKitOcr";
+  private final TextRecognizer recognizer;
   private volatile boolean released;
+
+  MlKitTextDetector(boolean japanese) {
+    recognizer = japanese
+        ? TextRecognition.getClient(new JapaneseTextRecognizerOptions.Builder().build())
+        : TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+  }
 
   @Override public SparseArray<MlKitTextLine> detect(Frame frame) {
     SparseArray<MlKitTextLine> detected = new SparseArray<>();

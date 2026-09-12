@@ -24,7 +24,6 @@ import android.content.Context;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -87,7 +86,6 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.vision.text.TextBlock;
-import com.google.android.gms.vision.text.TextRecognizer;
 import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.CardRepository;
 import io.asv.mtgocr.ocrreader.data.ScanPrintingPolicy;
@@ -304,6 +302,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   // The maintained scanner is ML Kit Japanese/Latin. Starting with it also avoids destroying the
   // legacy detector and cold-creating ML Kit at the exact moment the user opens the scanner.
   private boolean useMlKitJapaneseOcr = true;
+  private int setLanguageCheckGeneration;
   private boolean nameIndexPreparing;
   private boolean nameIndexReady;
   private Runnable pendingNameIndexReadyHide;
@@ -365,6 +364,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
             .getBoolean(PREF_ASK_EDITION_AFTER_SCAN, false));
     lockedSetInput.setText(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getString(PREF_LOCKED_SET, ""));
+    Boolean cachedJapaneseSupport =
+        cardRepository.cachedLockedSetsSupportLanguage(lockedSetCodes(), "ja");
+    if (cachedJapaneseSupport != null) useMlKitJapaneseOcr = cachedJapaneseSupport;
     cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
     autoIdentifyCheck.setOnCheckedChangeListener((button, checked) ->
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
@@ -380,6 +382,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
             .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
         cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
+        updateOcrEngineForLockedSets();
       }
     });
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
@@ -785,6 +788,40 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       if (!token.trim().isEmpty()) result.add(token.trim().toUpperCase(Locale.US));
     }
     return result;
+  }
+
+  /** Uses the lighter Latin recognizer when the locked edition has no Japanese printings. */
+  private void updateOcrEngineForLockedSets() {
+    final int requestGeneration = ++setLanguageCheckGeneration;
+    Set<String> selectedSetCodes = lockedSetCodes();
+    if (selectedSetCodes.isEmpty()) {
+      applyOcrEngine(true);
+      return;
+    }
+    Boolean cachedSupport =
+        cardRepository.cachedLockedSetsSupportLanguage(selectedSetCodes, "ja");
+    if (cachedSupport != null) {
+      applyOcrEngine(cachedSupport);
+      return;
+    }
+    cardRepository.lockedSetsSupportLanguage(selectedSetCodes, "ja", supportsJapanese -> {
+      if (requestGeneration != setLanguageCheckGeneration || isFinishing() || isDestroyed()) {
+        return kotlin.Unit.INSTANCE;
+      }
+      applyOcrEngine(supportsJapanese);
+      return kotlin.Unit.INSTANCE;
+    });
+  }
+
+  private void applyOcrEngine(boolean japanese) {
+    if (useMlKitJapaneseOcr == japanese && mCameraSource != null) return;
+    if (mPreview != null) mPreview.release();
+    mCameraSource = null;
+    useMlKitJapaneseOcr = japanese;
+    Log.i(TAG, "OCR engine selected for locked sets: " +
+        (japanese ? "Japanese/Latin ML Kit" : "Latin ML Kit"));
+    createCameraSource(ScannerSettings.autoFocus(this), ScannerSettings.flash(this));
+    if (isScannerReaderActive()) startCameraSource();
   }
 
   private void handleArtworkIdentification(LocalCardNameMatch nameMatch,
@@ -1831,46 +1868,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    * the constant.
    */
   @SuppressLint("InlinedApi") private void createCameraSource(boolean autoFocus, boolean useFlash) {
-    Context context = getApplicationContext();
-
     // A text recognizer is created to find text.  An associated processor instance
     // is set to receive the text recognition results and display graphics for each text block
     // on screen.
-    com.google.android.gms.vision.Detector<?> textRecognizer;
-    if (useMlKitJapaneseOcr) {
-      MlKitJapaneseTextDetector mlKitRecognizer = new MlKitJapaneseTextDetector();
-      mlKitRecognizer.setProcessor(new MlKitOcrDetectorProcessor(mGraphicOverlay,
-          candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
-      textRecognizer = mlKitRecognizer;
-    } else {
-      TextRecognizer mobileVisionRecognizer = new TextRecognizer.Builder(context).build();
-      mobileVisionRecognizer.setProcessor(new OcrDetectorProcessor(mGraphicOverlay,
-          candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
-      textRecognizer = mobileVisionRecognizer;
-    }
-
-    if (!useMlKitJapaneseOcr && !textRecognizer.isOperational()) {
-      // Note: The first time that an app using a Vision API is installed on a
-      // device, GMS will download a native libraries to the device in order to do detection.
-      // Usually this completes before the app is run for the first time.  But if that
-      // download has not yet completed, then the above call will not detect any text,
-      // barcodes, or faces.
-      //
-      // isOperational() can be used to check if the required native libraries are currently
-      // available.  The detectors will automatically become operational once the library
-      // downloads complete on device.
-      Log.w(TAG, "Detector dependencies are not yet available.");
-
-      // Check for low storage.  If there is low storage, the native library will not be
-      // downloaded, so detection will not become operational.
-      IntentFilter lowstorageFilter = new IntentFilter(Intent.ACTION_DEVICE_STORAGE_LOW);
-      boolean hasLowStorage = registerReceiver(null, lowstorageFilter) != null;
-
-      if (hasLowStorage) {
-        Toast.makeText(this, R.string.low_storage_error, Toast.LENGTH_LONG).show();
-        Log.w(TAG, getString(R.string.low_storage_error));
-      }
-    }
+    MlKitTextDetector textRecognizer = new MlKitTextDetector(useMlKitJapaneseOcr);
+    textRecognizer.setProcessor(new MlKitOcrDetectorProcessor(mGraphicOverlay,
+        candidates -> runOnUiThread(() -> handleAutomaticOcr(candidates))));
 
     // Creates and starts the camera.  Note that this uses a higher resolution in comparison
     // to other detection examples to enable the text recognizer to detect small pieces of text.
@@ -4000,10 +4003,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         : "";
     prepareSessionForActiveGroup();
     cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
-    if (useMlKitJapaneseOcr != mlKitJapanese || mCameraSource == null) {
+    // The visible scanner is maintained as one flow. Its concrete OCR script is selected below
+    // from the locked edition instead of exposing the old engine as a second button.
+    Boolean cachedJapaneseSupport = cardRepository.cachedLockedSetsSupportLanguage(
+        lockedSetCodes(), "ja");
+    boolean initiallyJapanese = mlKitJapanese && (cachedJapaneseSupport != null
+        ? cachedJapaneseSupport : useMlKitJapaneseOcr);
+    if (useMlKitJapaneseOcr != initiallyJapanese || mCameraSource == null) {
       if (mPreview != null) mPreview.release();
       mCameraSource = null;
-      useMlKitJapaneseOcr = mlKitJapanese;
+      useMlKitJapaneseOcr = initiallyJapanese;
       boolean autoFocus = ScannerSettings.autoFocus(this);
       boolean useFlash = ScannerSettings.flash(this);
       createCameraSource(autoFocus, useFlash);
@@ -4011,6 +4020,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     showOcr();
     prepareNameIndexForScanner();
     startCameraSource();
+    if (mlKitJapanese) updateOcrEngineForLockedSets();
   }
 
   /** A scanner opened from a group treats that complete group as its visible session baseline. */

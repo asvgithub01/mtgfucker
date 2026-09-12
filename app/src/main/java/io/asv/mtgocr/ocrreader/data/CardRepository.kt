@@ -125,6 +125,7 @@ class CardRepository private constructor(context: Context) {
     private val nameExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newFixedThreadPool(2)
     private val setAliasExecutor = Executors.newSingleThreadExecutor()
+    private val setLanguageExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val setAliasesInFlight: MutableSet<String> =
         Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
@@ -185,6 +186,87 @@ class CardRepository private constructor(context: Context) {
                 }
             }
         }
+    }
+
+    /**
+     * Resolves whether at least one locked set has physical cards in a language. Network failures
+     * deliberately return true so an offline probe never disables a script that may be needed.
+     */
+    fun lockedSetsSupportLanguage(
+        lockedSetCodes: Set<String>,
+        languageCode: String,
+        callback: (Boolean) -> Unit
+    ) {
+        val setCodes = ScanSetLockPolicy.expand(lockedSetCodes)
+        if (setCodes.isEmpty()) {
+            mainHandler.post { callback(true) }
+            return
+        }
+        val normalizedLanguage = languageCode.trim().lowercase(Locale.US)
+        setLanguageExecutor.execute {
+            val preferences = appContext.getSharedPreferences(
+                SET_LANGUAGE_SUPPORT_PREFERENCES,
+                Context.MODE_PRIVATE
+            )
+            val now = System.currentTimeMillis()
+            var supported = false
+            var lookupFailed = false
+            for (setCode in setCodes) {
+                val key = "${setCode.uppercase(Locale.US)}_$normalizedLanguage"
+                val checkedAt = preferences.getLong("${key}_checked_at", 0L)
+                val isFresh = now - checkedAt < SET_LANGUAGE_SUPPORT_MAX_AGE_MILLIS
+                if (isFresh && preferences.contains("${key}_supported")) {
+                    if (preferences.getBoolean("${key}_supported", false)) {
+                        supported = true
+                        break
+                    }
+                    continue
+                }
+                try {
+                    val hasLanguage = imageProvider.setHasLanguage(setCode, normalizedLanguage)
+                    preferences.edit()
+                        .putBoolean("${key}_supported", hasLanguage)
+                        .putLong("${key}_checked_at", now)
+                        .apply()
+                    if (hasLanguage) {
+                        supported = true
+                        break
+                    }
+                } catch (error: Throwable) {
+                    lookupFailed = true
+                    Log.w(TAG, "No se pudo comprobar el idioma $normalizedLanguage de $setCode", error)
+                }
+            }
+            val result = supported || lookupFailed
+            mainHandler.post { callback(result) }
+        }
+    }
+
+    /** Returns null when one or more locked sets still need a network availability probe. */
+    fun cachedLockedSetsSupportLanguage(
+        lockedSetCodes: Set<String>,
+        languageCode: String
+    ): Boolean? {
+        val setCodes = ScanSetLockPolicy.expand(lockedSetCodes)
+        if (setCodes.isEmpty()) return true
+        val normalizedLanguage = languageCode.trim().lowercase(Locale.US)
+        val preferences = appContext.getSharedPreferences(
+            SET_LANGUAGE_SUPPORT_PREFERENCES,
+            Context.MODE_PRIVATE
+        )
+        val now = System.currentTimeMillis()
+        var hasUnknownSet = false
+        for (setCode in setCodes) {
+            val key = "${setCode.uppercase(Locale.US)}_$normalizedLanguage"
+            val checkedAt = preferences.getLong("${key}_checked_at", 0L)
+            val isFresh = now - checkedAt < SET_LANGUAGE_SUPPORT_MAX_AGE_MILLIS
+            if (!isFresh || !preferences.contains("${key}_supported")) {
+                hasUnknownSet = true
+            } else if (preferences.getBoolean("${key}_supported", false)) {
+                return true
+            }
+        }
+        return if (hasUnknownSet) null else false
     }
 
     private fun bundledSetOcrAliases(setCode: String, languageCode: String): List<LocalizedCardName> {
@@ -663,7 +745,9 @@ class CardRepository private constructor(context: Context) {
     companion object {
         private const val TAG = "CardRepository"
         private const val SET_ALIAS_PREFERENCES = "set_ocr_aliases"
+        private const val SET_LANGUAGE_SUPPORT_PREFERENCES = "set_language_support"
         private val SET_ALIAS_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(7)
+        private val SET_LANGUAGE_SUPPORT_MAX_AGE_MILLIS = TimeUnit.DAYS.toMillis(30)
         private val SUPPORTED_ALIAS_LANGUAGES = setOf("es", "fr", "de", "it", "pt", "ja", "ko", "ru")
         @Volatile private var instance: CardRepository? = null
         @JvmStatic fun get(context: Context): CardRepository = instance ?: synchronized(this) {

@@ -2962,9 +2962,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       cardRepository.quickScanCard(
           normalizedName, selectedSetCodes, preferFoil, (option, error) -> {
         if (error != null || option == null) {
-          finishScannerWorkGate();
-          cardScanGuide.setMessage(getString(preferFoil
-              ? R.string.scan_no_foil_match : R.string.scan_no_set_match));
+          if (!selectedSetCodes.isEmpty()) {
+            showSearchAnyEditionSnackbar(
+                normalizedName, detectedLanguage, quickAddFeedback, preferFoil);
+          } else {
+            finishScannerWorkGate();
+            cardScanGuide.setMessage(getString(R.string.scan_card_not_found));
+            Snackbar.make(findViewById(R.id.ocrCaptureRoot), R.string.scan_card_not_found,
+                Snackbar.LENGTH_SHORT).show();
+          }
         } else {
           addIdentifiedPrinting(option, detectedLanguage, quickAddFeedback);
         }
@@ -2979,6 +2985,37 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     } else if (!quickAddFeedback) {
       prepareScannerForNextCard();
     }
+  }
+
+  private void showSearchAnyEditionSnackbar(String cardName, String detectedLanguage,
+      boolean quickAddFeedback, boolean preferFoil) {
+    finishScannerWorkGate();
+    cardScanGuide.setMessage(getString(R.string.scan_card_not_found_in_selected_set));
+    Snackbar.make(findViewById(R.id.ocrCaptureRoot),
+            R.string.scan_card_not_found_in_selected_set, Snackbar.LENGTH_LONG)
+        .setAction(R.string.search_any_edition, view -> searchCardInAnyEdition(
+            cardName, detectedLanguage, quickAddFeedback, preferFoil))
+        .setActionTextColor(MagicPalette.secondaryColor(this))
+        .show();
+  }
+
+  private void searchCardInAnyEdition(String cardName, String detectedLanguage,
+      boolean quickAddFeedback, boolean preferFoil) {
+    beginScannerWork(getString(R.string.scan_debug_card_info));
+    cardScanGuide.setMessage(getString(R.string.scan_reading_name, cardName));
+    cardRepository.loadCard(cardName, false, false, (options, error) -> {
+      CardEditionOption option = error == null && options != null
+          ? ScanPrintingPolicy.preferred(options, preferFoil) : null;
+      if (option == null || (preferFoil && !option.isFoil())) {
+        finishScannerWorkGate();
+        cardScanGuide.setMessage(getString(R.string.scan_card_not_found));
+        Snackbar.make(findViewById(R.id.ocrCaptureRoot), R.string.scan_card_not_found,
+            Snackbar.LENGTH_SHORT).show();
+      } else {
+        addIdentifiedPrinting(option, detectedLanguage, quickAddFeedback);
+      }
+      return kotlin.Unit.INSTANCE;
+    });
   }
 
   private void acknowledgeQuickAdd() {

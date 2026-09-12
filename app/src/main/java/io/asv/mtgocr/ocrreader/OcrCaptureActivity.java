@@ -413,7 +413,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanSessionButton.setOnClickListener(view -> showScanSession());
     speakCardNameButton.setOnClickListener(view -> startCardNameVoiceInput());
     addTypedCardButton.setOnClickListener(
-        view -> submitScannedCard(txtSearch.getText().toString()));
+        view -> submitScannedCard(txtSearch.getText().toString(), "", true));
     scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
     fabOcr.setOnClickListener(this);
     fabOcrMlKit.setOnClickListener(this);
@@ -887,13 +887,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void addIdentifiedPrinting(CardEditionOption option, String detectedLanguage) {
+    addIdentifiedPrinting(option, detectedLanguage, false);
+  }
+
+  private void addIdentifiedPrinting(CardEditionOption option, String detectedLanguage,
+      boolean quickAddFeedback) {
     // Do this before touching the collection: its serialization/UI must not stall the camera gate.
     finishScannerWorkGate();
     persistIdentifiedPrinting(option, detectedLanguage);
+    if (quickAddFeedback) acknowledgeQuickAdd();
     if (closeAfterScanCheck.isChecked()) {
       showRecycler();
-    } else {
+    } else if (!quickAddFeedback) {
       prepareScannerForNextCard();
+    }
+    if (!closeAfterScanCheck.isChecked()) {
       cardScanGuide.setMessage(getString(R.string.scan_tap_repeat));
     }
   }
@@ -2864,7 +2872,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void submitScannedCard(String scannedName) {
-    submitScannedCard(scannedName, "");
+    submitScannedCard(scannedName, "", false);
   }
 
   private void setUpPriceSourceSettings() {
@@ -2918,6 +2926,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void submitScannedCard(String scannedName, String detectedLanguage) {
+    submitScannedCard(scannedName, detectedLanguage, false);
+  }
+
+  private void submitScannedCard(String scannedName, String detectedLanguage,
+      boolean quickAddFeedback) {
     String normalizedName = scannedName == null ? "" : scannedName.trim();
     if (normalizedName.length() == 0) {
       Snackbar.make(findViewById(R.id.ocrCaptureRoot), R.string.empty_scan_name,
@@ -2935,18 +2948,24 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           finishScannerWorkGate();
           cardScanGuide.setMessage(getString(R.string.scan_no_set_match));
         } else {
-          addIdentifiedPrinting(option, detectedLanguage);
+          addIdentifiedPrinting(option, detectedLanguage, quickAddFeedback);
         }
         return kotlin.Unit.INSTANCE;
       });
       return;
     }
     doSearch(normalizedName, detectedLanguage);
+    if (quickAddFeedback) acknowledgeQuickAdd();
     if (closeAfterScanCheck.isChecked()) {
       showRecycler();
-    } else {
+    } else if (!quickAddFeedback) {
       prepareScannerForNextCard();
     }
+  }
+
+  private void acknowledgeQuickAdd() {
+    playOcrRecognizedFeedback();
+    prepareScannerForNextCard();
   }
 
   /** Keeps the camera open and ready while the repository completes metadata in the background. */

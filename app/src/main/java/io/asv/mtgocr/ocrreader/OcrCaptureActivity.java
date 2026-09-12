@@ -2921,6 +2921,23 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           Snackbar.LENGTH_SHORT).show();
       return;
     }
+    Set<String> selectedSetCodes = lockedSetCodes();
+    if (!selectedSetCodes.isEmpty()) {
+      // Manual entry must honour the same set lock as camera recognition. Going through the
+      // identified-printing path keeps image, price and printing UUID tied to that exact edition.
+      beginScannerWork(getString(R.string.scan_debug_card_info));
+      cardScanGuide.setMessage(getString(R.string.scan_reading_name, normalizedName));
+      cardRepository.quickScanCard(normalizedName, selectedSetCodes, (option, error) -> {
+        if (error != null || option == null) {
+          finishScannerWorkGate();
+          cardScanGuide.setMessage(getString(R.string.scan_no_set_match));
+        } else {
+          addIdentifiedPrinting(option, detectedLanguage);
+        }
+        return kotlin.Unit.INSTANCE;
+      });
+      return;
+    }
     doSearch(normalizedName, detectedLanguage);
     if (closeAfterScanCheck.isChecked()) {
       showRecycler();

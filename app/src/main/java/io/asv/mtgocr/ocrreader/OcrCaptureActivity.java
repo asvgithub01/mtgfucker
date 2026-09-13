@@ -361,7 +361,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     autoIdentifyCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getBoolean(PREF_AUTO_IDENTIFY, true));
     quickScanCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
-        .getBoolean(PREF_QUICK_SCAN, true));
+        .getBoolean(PREF_QUICK_SCAN, false));
     scanFoilCheck.setChecked(getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE)
         .getBoolean(PREF_SCAN_FOIL, false));
     askEditionAfterScanCheck.setChecked(
@@ -781,7 +781,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       });
       return;
     }
-    cardScanGuide.setMessage(getString(R.string.scan_comparing_art, match.getDisplayName()));
+    cardScanGuide.setMessage(getString(R.string.scan_comparing_visual, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
           match.getCanonicalName(), jpeg, lockedSetCodes(), preferFoil, (result, error) -> {
@@ -846,7 +846,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     List<CardIdentificationCandidate> candidates = result.getCandidates();
     if (error != null || candidates.isEmpty()) {
-      Log.w(TAG, "No se pudo resolver la impresión por ilustración", error);
+      Log.w(TAG, "No se pudo resolver la impresión por sus rasgos visuales", error);
       finishScannerWorkGate();
       cardScanGuide.setMessage(getString(preferFoil
           ? R.string.scan_no_foil_match : lockedSetCodes().isEmpty()
@@ -857,6 +857,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       suppressPredictionWatcher = false;
       return;
     }
+    CardIdentificationCandidate bestVisualMatch = candidates.get(0);
+    Log.i(TAG, "SCAN_EDITION detectedBorder=" + result.getDetectedBorder() +
+        " bestSet=" + bestVisualMatch.getOption().getSetCode() +
+        " combined=" + bestVisualMatch.getDistance() +
+        " artwork=" + bestVisualMatch.getArtworkDistance() +
+        " setSymbol=" + bestVisualMatch.getSetSymbolDistance() +
+        " referenceBorder=" + bestVisualMatch.getReferenceBorder() +
+        " borderMatches=" + bestVisualMatch.getBorderMatches());
     if (!askEditionAfterScanCheck.isChecked()) {
       List<CardEditionOption> options = new ArrayList<>();
       for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
@@ -877,15 +885,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       CardIdentificationCandidate candidate = candidates.get(index);
       CardEditionOption option = candidate.getOption();
       labels[index] = getString(
-          R.string.scan_candidate_label,
+          R.string.scan_candidate_label_visual,
           option.getSetName(),
           option.getSetCode(),
           option.getCollectorNumber(),
-          Math.max(0, Math.round((1d - candidate.getDistance()) * 100d))
+          Math.max(0, Math.round((1d - candidate.getDistance()) * 100d)),
+          Math.max(0, Math.round((1d - candidate.getSetSymbolDistance()) * 100d)),
+          borderColorLabel(candidate.getReferenceBorder()),
+          borderMatchLabel(candidate.getBorderMatches())
       );
     }
     new AlertDialog.Builder(this)
-        .setTitle(R.string.scan_choose_printing)
+        .setTitle(getString(
+            R.string.scan_choose_printing_visual, borderColorLabel(result.getDetectedBorder())))
         .setItems(labels, (dialog, which) ->
             addIdentifiedPrinting(candidates.get(which).getOption(), nameMatch.getLanguage()))
         .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
@@ -899,6 +911,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           cardScanGuide.setMessage(getString(R.string.scan_align_card));
         })
         .show();
+  }
+
+  private String borderColorLabel(CardBorderColor color) {
+    if (color == null) return getString(R.string.card_border_unknown);
+    switch (color) {
+      case BLACK: return getString(R.string.card_border_black);
+      case WHITE: return getString(R.string.card_border_white);
+      case GOLD: return getString(R.string.card_border_gold);
+      default: return getString(R.string.card_border_unknown);
+    }
+  }
+
+  private String borderMatchLabel(Boolean matches) {
+    if (matches == null) return getString(R.string.card_border_not_compared);
+    return getString(matches ? R.string.card_border_matches : R.string.card_border_differs);
   }
 
   private void addIdentifiedPrinting(CardEditionOption option, String detectedLanguage) {

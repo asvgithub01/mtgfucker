@@ -217,23 +217,30 @@
         <item>Orden de colección (n.º)</item>
     </string-array>
     <string name="auto_identify">Autoidentificar</string>
-    <string name="quick_scan">Modo rápido</string>
+    <string name="quick_scan">Modo rápido (sin detectar edición)</string>
     <string name="lock_set_hint">Edición (código opcional)</string>
     <string name="scan_align_card">Alinea una carta dentro del marco</string>
     <string name="scan_reading_name">Nombre detectado: %1$s</string>
-    <string name="scan_comparing_art">Comparando la ilustración de %1$s…</string>
-    <string name="scan_identification_failed">No se pudo comparar la ilustración; puedes confirmar el nombre</string>
+    <string name="scan_comparing_visual">Leyendo ilustración, borde e icono de %1$s…</string>
+    <string name="scan_identification_failed">No se pudieron comparar la ilustración, el borde y el icono; puedes confirmar el nombre</string>
     <string name="scan_no_set_match">No hay coincidencias para la edición bloqueada</string>
     <string name="scan_no_foil_match">No hay una impresión foil disponible</string>
     <string name="scan_card_not_found_in_selected_set">Carta no encontrada en la edición seleccionada</string>
     <string name="search_any_edition">Buscar</string>
     <string name="scan_card_not_found">Carta no encontrada</string>
-    <string name="scan_choose_printing">Elige la impresión correcta</string>
-    <string name="scan_candidate_label">%1$s (%2$s) · #%3$s · coincidencia %4$d%%</string>
+    <string name="scan_choose_printing_visual">Elige la impresión · borde detectado: %1$s</string>
+    <string name="scan_candidate_label_visual">%1$s (%2$s) · #%3$s · %4$d%% · icono %5$d%% · borde %6$s %7$s</string>
+    <string name="card_border_black">negro</string>
+    <string name="card_border_white">blanco</string>
+    <string name="card_border_gold">dorado</string>
+    <string name="card_border_unknown">no identificado</string>
+    <string name="card_border_matches">✓</string>
+    <string name="card_border_differs">≠</string>
+    <string name="card_border_not_compared">·</string>
     <string name="scan_tap_repeat">Toca la cámara para volver a escanear la misma carta</string>
     <string name="scan_debug_name_lookup">matching del nombre</string>
     <string name="scan_debug_card_info">búsqueda de edición/precio</string>
-    <string name="scan_debug_artwork">comparación de ilustración</string>
+    <string name="scan_debug_artwork">análisis de ilustración, borde e icono</string>
     <string name="scan_debug_unknown_work">trabajo interno</string>
     <string name="scan_debug_blocked">DEBUG OCR · %1$d frames en espera · %2$s (%3$d ms)</string>
     <string name="scan_debug_recovered">DEBUG OCR · cola recuperada (%1$d frames) · %2$s (%3$d ms)</string>

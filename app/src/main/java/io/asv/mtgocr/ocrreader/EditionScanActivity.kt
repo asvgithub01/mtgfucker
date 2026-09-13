@@ -12,7 +12,10 @@ import android.hardware.Camera
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.SparseArray
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -230,23 +233,12 @@ class EditionScanActivity : AppCompatActivity() {
             elapsed,
             (result.glareRatio * 100).toInt().coerceIn(0, 100)
         )
-        val labels = result.candidates.map { candidate ->
-            getString(
-                R.string.edition_scan_candidate,
-                candidate.option.setName,
-                candidate.option.setCode.uppercase(Locale.US),
-                similarity(candidate.distance),
-                similarity(candidate.artworkDistance),
-                similarity(candidate.setSymbolDistance),
-                borderMatchLabel(candidate.borderMatches)
-            )
-        }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(
                 if (result.confident) R.string.edition_scan_confirmed
                 else R.string.edition_scan_probable
             )
-            .setItems(labels) { _, which ->
+            .setAdapter(CandidateAdapter(result.candidates, result.detectedBorder)) { _, which ->
                 showCandidateExplanation(result.candidates[which], result)
             }
             .setNegativeButton(R.string.edition_scan_adjust_crop) { _, _ -> resumeCropAdjustment() }
@@ -337,6 +329,44 @@ class EditionScanActivity : AppCompatActivity() {
         true -> getString(R.string.edition_scan_border_matches)
         false -> getString(R.string.edition_scan_border_differs)
         null -> getString(R.string.edition_scan_border_unresolved)
+    }
+
+    /** Keeps the official collection symbol visible next to every proposed edition. */
+    private inner class CandidateAdapter(
+        private val candidates: List<CardIdentificationCandidate>,
+        private val detectedBorder: CardBorderColor
+    ) : BaseAdapter() {
+        override fun getCount(): Int = candidates.size
+
+        override fun getItem(position: Int): CardIdentificationCandidate = candidates[position]
+
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val view = convertView ?: LayoutInflater.from(parent.context)
+                .inflate(R.layout.edition_scan_candidate_item, parent, false)
+            val candidate = getItem(position)
+            val symbol = view.findViewById<ImageView>(R.id.editionCandidateSetSymbol)
+            view.findViewById<TextView>(R.id.editionCandidateTitle).text = getString(
+                R.string.edition_scan_candidate_title,
+                candidate.option.setName,
+                candidate.option.setCode.uppercase(Locale.US)
+            )
+            view.findViewById<TextView>(R.id.editionCandidateScores).text = getString(
+                R.string.edition_scan_candidate_scores,
+                similarity(candidate.distance),
+                similarity(candidate.artworkDistance),
+                similarity(candidate.setSymbolDistance)
+            )
+            view.findViewById<TextView>(R.id.editionCandidateBorder).text = getString(
+                R.string.edition_scan_candidate_borders,
+                borderLabel(detectedBorder),
+                borderLabel(candidate.referenceBorder),
+                borderMatchLabel(candidate.borderMatches)
+            )
+            SetSymbolLoader.display(view.context, candidate.option.setCode, symbol)
+            return view
+        }
     }
 
     private fun borderLabel(color: CardBorderColor): String = when (color) {

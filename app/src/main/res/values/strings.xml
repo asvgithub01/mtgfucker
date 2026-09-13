@@ -263,6 +263,9 @@
     <string name="edition_scan_no_match_title">Aún no hay una coincidencia clara</string>
     <string name="edition_scan_no_match_with_evidence">No se pudo comparar ninguna edición.\nContorno %1$d%% · borde %2$s %3$d%% · %4$d zonas leídas</string>
     <string name="edition_scan_candidate">%1$s (%2$s) · total %3$d%%\nArte %4$d%% · símbolo %5$d%% · %6$s</string>
+    <string name="edition_scan_candidate_title">%1$s (%2$s)</string>
+    <string name="edition_scan_candidate_scores">Coincidencia %1$d%% · arte %2$d%% · símbolo %3$d%%</string>
+    <string name="edition_scan_candidate_borders">Borde detectado: %1$s · edición: %2$s · %3$s</string>
     <string name="edition_scan_choose">Edición más probable</string>
     <string name="edition_scan_confirmed">Coincidencia visual clara</string>
     <string name="edition_scan_probable">Ediciones más probables</string>

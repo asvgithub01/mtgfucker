@@ -105,6 +105,21 @@ object CardFrameAnalyzer {
 
         // A very weak edge profile is safer when it falls back to the stable on-screen guide.
         val bounds = if (boundaryConfidence >= .24) detected else expected
+        return analyzeBounds(bitmap, bounds, boundaryConfidence)
+    }
+
+    /** A manually corrected photo is already a perspective-normalised, tightly cropped card. */
+    fun analyzeTightCard(bitmap: Bitmap): CardFrameAnalysis = analyzeBounds(
+        bitmap,
+        Rect(0, 0, bitmap.width, bitmap.height),
+        1.0
+    )
+
+    private fun analyzeBounds(
+        bitmap: Bitmap,
+        bounds: Rect,
+        boundaryConfidence: Double
+    ): CardFrameAnalysis {
         val zones = sampleBorderZones(bitmap, bounds)
         val classified = classifyBorderZones(zones)
         return CardFrameAnalysis(

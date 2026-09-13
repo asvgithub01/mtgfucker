@@ -72,11 +72,13 @@ class CardArtworkIdentifier(
         jpeg: ByteArray,
         options: List<CardEditionOption>,
         lockedSetCodes: Set<String>,
-        preferFoil: Boolean
+        preferFoil: Boolean,
+        alreadyCropped: Boolean = false
     ): CardIdentificationResult {
         val cameraBitmap = decodeSampled(jpeg, ensurePortrait = true)
             ?: return CardIdentificationResult(emptyList(), false, 0)
-        val frameAnalysis = CardFrameAnalyzer.analyze(cameraBitmap)
+        val frameAnalysis = if (alreadyCropped) CardFrameAnalyzer.analyzeTightCard(cameraBitmap)
+            else CardFrameAnalyzer.analyze(cameraBitmap)
         val cameraFingerprint = CardEditionVisualFingerprint.fromCamera(cameraBitmap, frameAnalysis.bounds)
             .copy(
                 borderColor = frameAnalysis.borderColor,

@@ -11,9 +11,17 @@
         android:layout_height="match_parent" />
 
     <io.asv.mtgocr.ocrreader.EditionSymbolGuideView
+        android:id="@+id/editionScanLiveGuide"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:importantForAccessibility="no" />
+
+    <io.asv.mtgocr.ocrreader.CardCropAdjustView
+        android:id="@+id/editionCropCorrection"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/edition_scan_crop_correction"
+        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -33,6 +41,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/editionScanInstruction"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
@@ -98,7 +107,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="@string/edition_scan_analyze_card"
+                android:text="@string/edition_scan_take_photo"
                 app:backgroundTint="?attr/colorSecondary" />
         </LinearLayout>
     </LinearLayout>

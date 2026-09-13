@@ -218,6 +218,9 @@
     </string-array>
     <string name="auto_identify">Autoidentificar</string>
     <string name="quick_scan">Modo rápido (sin detectar edición)</string>
+    <string name="scan_mode_slow">Lento con edición</string>
+    <string name="scan_mode_fast">Rápido</string>
+    <string name="scan_mode_switch_description">Cambiar entre modo lento con edición y modo rápido</string>
     <string name="lock_set_hint">Edición (código opcional)</string>
     <string name="scan_align_card">Alinea una carta dentro del marco</string>
     <string name="scan_reading_name">Nombre detectado: %1$s</string>
@@ -244,11 +247,20 @@
     <string name="scan_edition_debug_symbol_crop">Recorte del símbolo de colección leído</string>
     <string name="edition_scan_title">Lector de edición</string>
     <string name="edition_scan_align_line">Alinea la línea del tipo de carta con la franja y coloca el símbolo en el recuadro central.</string>
-    <string name="edition_scan_align_card">Encaja la carta completa dentro del marco. Los puntos indican dónde se comprobará el borde.</string>
+    <string name="edition_scan_align_card">Haz una foto con la carta completa. No hace falta encajarla perfectamente: podrás corregirla después.</string>
     <string name="edition_scan_read_symbol">Leer símbolo</string>
     <string name="edition_scan_analyze_card">Analizar carta</string>
+    <string name="edition_scan_take_photo">Hacer foto</string>
+    <string name="edition_scan_retake_photo">Repetir foto</string>
+    <string name="edition_scan_analyze_crop">Analizar recorte</string>
+    <string name="edition_scan_freezing_photo">Preparando la foto para corregirla…</string>
+    <string name="edition_scan_adjust_corners">Mueve las cuatro esquinas hasta hacer coincidir el marco con la carta. Arrastra dentro para moverlo completo.</string>
+    <string name="edition_scan_invalid_crop">El recorte no es válido. Separa las esquinas y vuelve a intentarlo.</string>
+    <string name="edition_scan_adjust_crop">Ajustar recorte</string>
+    <string name="edition_scan_crop_correction">Corrección manual del contorno de la carta</string>
     <string name="edition_scan_comparing">Detectando el contorno y comparando las pruebas visuales…</string>
     <string name="edition_scan_no_match">No se reconoció la edición. Ajusta la carta y vuelve a intentarlo.</string>
+    <string name="edition_scan_no_match_title">Aún no hay una coincidencia clara</string>
     <string name="edition_scan_no_match_with_evidence">No se pudo comparar ninguna edición.\nContorno %1$d%% · borde %2$s %3$d%% · %4$d zonas leídas</string>
     <string name="edition_scan_candidate">%1$s (%2$s) · total %3$d%%\nArte %4$d%% · símbolo %5$d%% · %6$s</string>
     <string name="edition_scan_choose">Edición más probable</string>

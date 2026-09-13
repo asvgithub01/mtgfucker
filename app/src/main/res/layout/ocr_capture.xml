@@ -674,13 +674,38 @@
                     android:textColor="#F4F0E8"
                     android:textSize="13sp" />
 
-                <CheckBox
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/scan_mode_slow"
+                    android:textColor="#F4F0E8"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/checkQuickScan"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:buttonTint="?attr/colorSecondary"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="8dp"
                     android:checked="false"
-                    android:text="@string/quick_scan"
+                    android:contentDescription="@string/scan_mode_switch_description"
+                    app:thumbTint="?attr/colorSecondary"
+                    app:trackTint="?attr/colorPrimaryVariant" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/scan_mode_fast"
                     android:textColor="#F4F0E8"
                     android:textSize="13sp" />
             </LinearLayout>

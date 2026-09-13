@@ -6,6 +6,8 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.hardware.Camera
 import android.os.Bundle
 import android.os.SystemClock
@@ -25,12 +27,18 @@ import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSource
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview
 import java.io.IOException
+import java.io.ByteArrayOutputStream
 import java.util.Locale
+import java.util.concurrent.Executors
 
 /** Focused second step: OCR supplies the name; this screen gathers visual edition evidence. */
 class EditionScanActivity : AppCompatActivity() {
     private lateinit var preview: CameraSourcePreview
+    private lateinit var liveGuide: View
+    private lateinit var correction: CardCropAdjustView
     private lateinit var capture: Button
+    private lateinit var cancel: Button
+    private lateinit var instruction: TextView
     private lateinit var debug: View
     private lateinit var crop: ImageView
     private lateinit var status: TextView
@@ -41,6 +49,9 @@ class EditionScanActivity : AppCompatActivity() {
     private var cameraSource: CameraSource? = null
     private var debugBitmap: Bitmap? = null
     private var comparisonStartedAt = 0L
+    private var correctionMode = false
+    private var analysisInFlight = false
+    private val photoExecutor = Executors.newSingleThreadExecutor()
 
     private val cardName by lazy { intent.getStringExtra(EXTRA_CARD_NAME).orEmpty() }
     private val displayName by lazy {
@@ -57,14 +68,22 @@ class EditionScanActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_edition_scan)
         preview = findViewById(R.id.editionCameraPreview)
+        liveGuide = findViewById(R.id.editionScanLiveGuide)
+        correction = findViewById(R.id.editionCropCorrection)
         capture = findViewById(R.id.editionScanCapture)
+        cancel = findViewById(R.id.editionScanCancel)
+        instruction = findViewById(R.id.editionScanInstruction)
         debug = findViewById(R.id.editionScanDebug)
         crop = findViewById(R.id.editionScanCrop)
         status = findViewById(R.id.editionScanStatus)
         findViewById<TextView>(R.id.editionScanCardName).text =
             getString(R.string.edition_scan_title) + " · " + displayName
-        findViewById<Button>(R.id.editionScanCancel).setOnClickListener { finish() }
-        capture.setOnClickListener { captureCard() }
+        cancel.setOnClickListener {
+            if (correctionMode) returnToCamera() else finish()
+        }
+        capture.setOnClickListener {
+            if (correctionMode) analyzeCorrectedPhoto() else takePhotoForCorrection()
+        }
     }
 
     private fun ensureCamera() {
@@ -98,36 +117,101 @@ class EditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun captureCard() {
+    private fun takePhotoForCorrection() {
         val source = cameraSource ?: return
         capture.isEnabled = false
-        debug.visibility = View.VISIBLE
-        status.setText(R.string.edition_scan_comparing)
+        instruction.setText(R.string.edition_scan_freezing_photo)
+        debug.visibility = View.GONE
         replaceDebugBitmap(null)
-        comparisonStartedAt = SystemClock.elapsedRealtime()
         try {
             source.takePicture(null) { jpeg ->
-                repository.identifyCardArtwork(
-                    cardName,
-                    language,
-                    jpeg,
-                    lockedSets,
-                    preferFoil
-                ) { result, error ->
-                    capture.isEnabled = true
-                    if (error != null || result.candidates.isEmpty()) {
-                        replaceDebugBitmap(result.analysisPreview ?: result.setSymbolCrop)
-                        recycleUnusedResultBitmaps(result)
-                        showFailure(result)
-                    } else {
-                        showResult(result)
+                photoExecutor.execute {
+                    val bitmap = decodePhoto(jpeg)
+                    val suggested = bitmap?.let { CardFrameAnalyzer.analyze(it).bounds }
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) {
+                            bitmap?.recycle()
+                            return@runOnUiThread
+                        }
+                        if (bitmap == null || suggested == null) {
+                            capture.isEnabled = true
+                            instruction.setText(R.string.edition_scan_align_card)
+                            showFailure()
+                        } else {
+                            preview.stop()
+                            correction.setPhoto(bitmap, suggested)
+                            correction.visibility = View.VISIBLE
+                            liveGuide.visibility = View.GONE
+                            correctionMode = true
+                            cancel.setText(R.string.edition_scan_retake_photo)
+                            capture.setText(R.string.edition_scan_analyze_crop)
+                            capture.isEnabled = true
+                            instruction.setText(R.string.edition_scan_adjust_corners)
+                        }
                     }
                 }
             }
         } catch (_: RuntimeException) {
             capture.isEnabled = true
+            instruction.setText(R.string.edition_scan_align_card)
             showFailure()
         }
+    }
+
+    private fun analyzeCorrectedPhoto() {
+        if (analysisInFlight) return
+        val corrected = correction.extractCardBitmap()
+        if (corrected == null) {
+            instruction.setText(R.string.edition_scan_invalid_crop)
+            return
+        }
+        analysisInFlight = true
+        capture.isEnabled = false
+        debug.visibility = View.VISIBLE
+        status.setText(R.string.edition_scan_comparing)
+        instruction.setText(R.string.edition_scan_comparing)
+        replaceDebugBitmap(null)
+        comparisonStartedAt = SystemClock.elapsedRealtime()
+        photoExecutor.execute {
+            val jpeg = ByteArrayOutputStream().use { output ->
+                corrected.compress(Bitmap.CompressFormat.JPEG, 94, output)
+                output.toByteArray()
+            }
+            corrected.recycle()
+            repository.identifyCardArtwork(
+                cardName = cardName,
+                languageCode = language,
+                jpeg = jpeg,
+                lockedSetCodes = lockedSets,
+                preferFoil = preferFoil,
+                alreadyCropped = true
+            ) { result, error ->
+                analysisInFlight = false
+                capture.isEnabled = true
+                instruction.setText(R.string.edition_scan_adjust_corners)
+                if (error != null || result.candidates.isEmpty()) {
+                    replaceDebugBitmap(result.analysisPreview ?: result.setSymbolCrop)
+                    recycleUnusedResultBitmaps(result)
+                    showFailure(result)
+                } else {
+                    showResult(result)
+                }
+            }
+        }
+    }
+
+    private fun returnToCamera() {
+        if (analysisInFlight) return
+        correction.clearPhoto()
+        correction.visibility = View.GONE
+        liveGuide.visibility = View.VISIBLE
+        correctionMode = false
+        debug.visibility = View.GONE
+        replaceDebugBitmap(null)
+        cancel.setText(android.R.string.cancel)
+        capture.setText(R.string.edition_scan_take_photo)
+        instruction.setText(R.string.edition_scan_align_card)
+        startCamera()
     }
 
     private fun showResult(result: CardIdentificationResult) {
@@ -165,7 +249,7 @@ class EditionScanActivity : AppCompatActivity() {
             .setItems(labels) { _, which ->
                 showCandidateExplanation(result.candidates[which], result)
             }
-            .setNegativeButton(R.string.edition_scan_retry, null)
+            .setNegativeButton(R.string.edition_scan_adjust_crop) { _, _ -> resumeCropAdjustment() }
             .show()
     }
 
@@ -224,6 +308,20 @@ class EditionScanActivity : AppCompatActivity() {
                 result.borderSampleCount
             )
         }
+        if (correctionMode && !isFinishing) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.edition_scan_no_match_title)
+                .setMessage(status.text)
+                .setPositiveButton(R.string.edition_scan_adjust_crop) { _, _ -> resumeCropAdjustment() }
+                .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+                .show()
+        }
+    }
+
+    private fun resumeCropAdjustment() {
+        debug.visibility = View.GONE
+        replaceDebugBitmap(null)
+        instruction.setText(R.string.edition_scan_adjust_corners)
     }
 
     private fun recycleUnusedResultBitmaps(result: CardIdentificationResult) {
@@ -274,7 +372,7 @@ class EditionScanActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        ensureCamera()
+        if (!correctionMode) ensureCamera()
     }
 
     override fun onPause() {
@@ -284,6 +382,8 @@ class EditionScanActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         replaceDebugBitmap(null)
+        correction.clearPhoto()
+        photoExecutor.shutdownNow()
         preview.release()
         cameraSource = null
         detector.release()
@@ -311,5 +411,26 @@ class EditionScanActivity : AppCompatActivity() {
         const val EXTRA_LOCKED_SETS = "edition.locked_sets"
         const val EXTRA_SET_CODE = "edition.set_code"
         private const val RC_CAMERA = 901
+    }
+
+    private fun decodePhoto(bytes: ByteArray): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / sample > 1_600 || bounds.outHeight / sample > 1_600) sample *= 2
+        val decoded = BitmapFactory.decodeByteArray(
+            bytes,
+            0,
+            bytes.size,
+            BitmapFactory.Options().apply {
+                inSampleSize = sample
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            }
+        ) ?: return null
+        if (decoded.height >= decoded.width) return decoded
+        val matrix = Matrix().apply { postRotate(90f) }
+        return Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true).also {
+            if (it !== decoded) decoded.recycle()
+        }
     }
 }

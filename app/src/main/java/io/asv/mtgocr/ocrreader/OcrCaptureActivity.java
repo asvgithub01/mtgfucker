@@ -48,6 +48,7 @@ import androidx.annotation.NonNull;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
@@ -174,7 +175,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   Button btnOk, btnCancel;
   private CheckBox closeAfterScanCheck;
   private CheckBox autoIdentifyCheck;
-  private CheckBox quickScanCheck;
+  private SwitchMaterial quickScanCheck;
   private CheckBox scanFoilCheck;
   private CheckBox askEditionAfterScanCheck;
   private CheckBox scannerAutoFocusCheck;
@@ -329,7 +330,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     btnCancel = (Button) findViewById(R.id.btnCancel);
     closeAfterScanCheck = (CheckBox) findViewById(R.id.checkCloseAfterScan);
     autoIdentifyCheck = (CheckBox) findViewById(R.id.checkAutoIdentify);
-    quickScanCheck = (CheckBox) findViewById(R.id.checkQuickScan);
+    quickScanCheck = (SwitchMaterial) findViewById(R.id.checkQuickScan);
     scanFoilCheck = (CheckBox) findViewById(R.id.checkScanFoil);
     askEditionAfterScanCheck = (CheckBox) findViewById(R.id.checkAskEditionAfterScan);
     lockedSetInput = (EditText) findViewById(R.id.txtLockedSet);

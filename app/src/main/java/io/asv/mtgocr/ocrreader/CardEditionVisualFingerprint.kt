@@ -85,9 +85,10 @@ data class CardEditionVisualFingerprint(
                 redTotal += red
                 greenTotal += green
                 blueTotal += blue
-                if (luma <= 78) black++
-                if (luma >= 165 && high - low <= 72) white++
-                if (red >= 60 && red - green in 4..92 && green - blue >= 5 && high - low >= 18) gold++
+                if (luma <= 88) black++
+                if (luma >= 145 && high - low <= 78) white++
+                if (luma in 82..205 && red - green in 5..82 &&
+                    green - blue >= 5 && high - low >= 24) gold++
             }
             val size = samples.size.toDouble()
             val blackRatio = black / size
@@ -100,12 +101,13 @@ data class CardEditionVisualFingerprint(
                 averageGreen > averageBlue + 7 && averageRed - averageBlue > 28
 
             return when {
-                goldRatio >= .28 || (goldRatio >= .18 && averageLooksGold) ->
-                    CardBorderColor.GOLD to ((goldRatio - .18) / .82).coerceIn(.35, 1.0)
-                blackRatio >= .42 && blackRatio >= whiteRatio && blackRatio >= goldRatio ->
-                    CardBorderColor.BLACK to ((blackRatio - .42) / .58).coerceIn(.35, 1.0)
-                whiteRatio >= .38 && whiteRatio > goldRatio * 1.15 ->
-                    CardBorderColor.WHITE to ((whiteRatio - .38) / .62).coerceIn(.35, 1.0)
+                whiteRatio >= .30 && whiteRatio >= blackRatio &&
+                    (whiteRatio > goldRatio * 1.05 || averageBlue >= 145) ->
+                    CardBorderColor.WHITE to ((whiteRatio - .30) / .70).coerceIn(.35, 1.0)
+                blackRatio >= .32 && blackRatio >= whiteRatio && blackRatio >= goldRatio ->
+                    CardBorderColor.BLACK to ((blackRatio - .32) / .68).coerceIn(.35, 1.0)
+                goldRatio >= .30 || (goldRatio >= .22 && averageLooksGold && blackRatio < .30) ->
+                    CardBorderColor.GOLD to ((goldRatio - .22) / .78).coerceIn(.35, 1.0)
                 else -> CardBorderColor.UNKNOWN to maxOf(blackRatio, whiteRatio, goldRatio)
             }
         }
@@ -124,7 +126,7 @@ data class CardEditionVisualFingerprint(
         }
 
         private fun setSymbolRect(bitmap: Bitmap, card: Rect): Rect =
-            relativeRect(bitmap, card, .70f, .515f, .945f, .635f)
+            relativeRect(bitmap, card, .81f, .515f, .96f, .61f)
 
         private fun relativeRect(
             bitmap: Bitmap,
@@ -142,36 +144,29 @@ data class CardEditionVisualFingerprint(
         }
 
         private fun borderSamples(bitmap: Bitmap, card: Rect, camera: Boolean): IntArray {
-            // Stay inside the printed edge. A slightly wider inset for camera photos avoids
-            // sampling the dark preview around a card that is not aligned to the exact pixel.
-            val inner = if (camera) .070f else .055f
-            val outer = if (camera) .025f else .014f
+            // Sample only the actual printed border. The previous inner sample reached the brown
+            // card frame, which made black-bordered old cards look gold under warm lighting.
+            val insetFractions = if (camera) floatArrayOf(.026f, .038f, .050f)
+                else floatArrayOf(.012f, .022f, .032f)
             val points = ArrayList<Int>(512)
             val horizontalStep = max(1, card.width() / 80)
             val verticalStep = max(1, card.height() / 100)
-            val topOuter = card.top + (card.height() * outer).toInt()
-            val topInner = card.top + (card.height() * inner).toInt()
-            val bottomOuter = card.bottom - (card.height() * outer).toInt() - 1
-            val bottomInner = card.bottom - (card.height() * inner).toInt() - 1
-            val leftOuter = card.left + (card.width() * outer).toInt()
-            val leftInner = card.left + (card.width() * inner).toInt()
-            val rightOuter = card.right - (card.width() * outer).toInt() - 1
-            val rightInner = card.right - (card.width() * inner).toInt() - 1
+            val offsets = insetFractions.map { max(1, (card.width() * it).toInt()) }
 
             var x = card.left + card.width() / 8
             while (x < card.right - card.width() / 8) {
-                addPixel(points, bitmap, x, topOuter)
-                addPixel(points, bitmap, x, topInner)
-                addPixel(points, bitmap, x, bottomOuter)
-                addPixel(points, bitmap, x, bottomInner)
+                for (offset in offsets) {
+                    addPixel(points, bitmap, x, card.top + offset)
+                    addPixel(points, bitmap, x, card.bottom - offset - 1)
+                }
                 x += horizontalStep
             }
             var y = card.top + card.height() / 8
             while (y < card.bottom - card.height() / 8) {
-                addPixel(points, bitmap, leftOuter, y)
-                addPixel(points, bitmap, leftInner, y)
-                addPixel(points, bitmap, rightOuter, y)
-                addPixel(points, bitmap, rightInner, y)
+                for (offset in offsets) {
+                    addPixel(points, bitmap, card.left + offset, y)
+                    addPixel(points, bitmap, card.right - offset - 1, y)
+                }
                 y += verticalStep
             }
             return points.toIntArray()
@@ -202,8 +197,8 @@ data class CardEditionVisualFingerprint(
         private fun luma(color: Int): Int =
             ((color shr 16 and 0xff) * 299 + (color shr 8 and 0xff) * 587 + (color and 0xff) * 114) / 1000
 
-        private const val ARTWORK_WEIGHT = .62
-        private const val SYMBOL_WEIGHT = .30
-        private const val BORDER_WEIGHT = .08
+        private const val ARTWORK_WEIGHT = .45
+        private const val SYMBOL_WEIGHT = .40
+        private const val BORDER_WEIGHT = .15
     }
 }

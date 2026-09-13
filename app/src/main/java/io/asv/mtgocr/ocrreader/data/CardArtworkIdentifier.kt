@@ -11,6 +11,8 @@ import okhttp3.Request
 import java.io.File
 import java.security.MessageDigest
 import java.util.Locale
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
 
 data class CardIdentificationCandidate(
     val option: CardEditionOption,
@@ -27,7 +29,9 @@ data class CardIdentificationResult(
     val comparedImages: Int,
     val detectedBorder: CardBorderColor = CardBorderColor.UNKNOWN,
     val detectedBorderConfidence: Double = 0.0,
-    val setSymbolCrop: Bitmap? = null
+    val setSymbolCrop: Bitmap? = null,
+    val detectedLanguage: String = "",
+    val languageFilteredOut: Int = 0
 )
 
 /**
@@ -40,6 +44,7 @@ class CardArtworkIdentifier(
     private val client: OkHttpClient
 ) {
     private val fingerprintDirectory = File(context.cacheDir, "card-edition-fingerprints").apply { mkdirs() }
+    private val fingerprintExecutor = Executors.newFixedThreadPool(FINGERPRINT_WORKERS)
 
     fun identify(
         jpeg: ByteArray,
@@ -64,33 +69,45 @@ class CardArtworkIdentifier(
             .take(MAX_CANDIDATE_IMAGES)
             .toList()
 
-        val matches = mutableListOf<CardIdentificationCandidate>()
-        for (option in unique) {
-            if (Thread.currentThread().isInterrupted) break
-            val fingerprint = fingerprint(option.imageUrl!!) ?: continue
-            val artworkDistance = CardImageFingerprint.normalizedDistance(
-                cameraFingerprint.artworkHash, fingerprint.artworkHash)
-            val symbolDistance = CardImageFingerprint.normalizedDistance(
-                cameraFingerprint.setSymbolHash, fingerprint.setSymbolHash)
-            val borderMatches = if (
-                cameraFingerprint.borderColor == CardBorderColor.UNKNOWN ||
-                fingerprint.borderColor == CardBorderColor.UNKNOWN
-            ) null else cameraFingerprint.borderColor == fingerprint.borderColor
-            matches += CardIdentificationCandidate(
-                option,
-                CardEditionVisualFingerprint.combinedDistance(
+        val jobs = unique.map { option ->
+            fingerprintExecutor.submit<CardIdentificationCandidate?> {
+                val fingerprint = fingerprint(option.imageUrl!!) ?: return@submit null
+                val artworkDistance = CardImageFingerprint.normalizedDistance(
+                    cameraFingerprint.artworkHash, fingerprint.artworkHash)
+                val symbolDistance = CardImageFingerprint.normalizedDistance(
+                    cameraFingerprint.setSymbolHash, fingerprint.setSymbolHash)
+                val borderMatches = if (
+                    cameraFingerprint.borderColor == CardBorderColor.UNKNOWN ||
+                    fingerprint.borderColor == CardBorderColor.UNKNOWN
+                ) null else cameraFingerprint.borderColor == fingerprint.borderColor
+                CardIdentificationCandidate(
+                    option,
+                    CardEditionVisualFingerprint.combinedDistance(
+                        artworkDistance,
+                        symbolDistance,
+                        cameraFingerprint.borderColor,
+                        fingerprint.borderColor,
+                        cameraFingerprint.borderConfidence,
+                        fingerprint.borderConfidence
+                    ),
                     artworkDistance,
                     symbolDistance,
-                    cameraFingerprint.borderColor,
                     fingerprint.borderColor,
-                    cameraFingerprint.borderConfidence,
-                    fingerprint.borderConfidence
-                ),
-                artworkDistance,
-                symbolDistance,
-                fingerprint.borderColor,
-                borderMatches
-            )
+                    borderMatches
+                )
+            }
+        }
+        val matches = mutableListOf<CardIdentificationCandidate>()
+        for (job in jobs) {
+            try {
+                job.get()?.let(matches::add)
+            } catch (interrupted: InterruptedException) {
+                jobs.forEach { it.cancel(true) }
+                Thread.currentThread().interrupt()
+                break
+            } catch (_: ExecutionException) {
+                // One missing/broken reference image must not abort the complete edition scan.
+            }
         }
         val ranked = matches.sortedBy { it.distance }
         val best = ranked.firstOrNull()
@@ -108,14 +125,15 @@ class CardArtworkIdentifier(
     }
 
     private fun fingerprint(url: String): CardEditionVisualFingerprint? {
-        val cache = File(fingerprintDirectory, sha256(url) + ".txt")
+        val sourceUrl = compactImageUrl(url)
+        val cache = File(fingerprintDirectory, sha256(sourceUrl) + ".txt")
         if (cache.isFile) {
             runCatching {
                 return decodeFingerprint(cache.readText())
             }
         }
         val request = Request.Builder()
-            .url(url)
+            .url(sourceUrl)
             .header("User-Agent", ScryfallImageDataProvider.USER_AGENT)
             .build()
         val bytes = client.newCall(request).execute().use { response ->
@@ -166,9 +184,14 @@ class CardArtworkIdentifier(
         .digest(value.toByteArray())
         .joinToString("") { "%02x".format(it) }
 
+    private fun compactImageUrl(url: String): String = url
+        .replace("/large/", "/small/")
+        .replace("/normal/", "/small/")
+
     companion object {
         private const val MAX_CANDIDATE_IMAGES = 48
-        private const val CACHE_VERSION = "v2"
+        private const val FINGERPRINT_WORKERS = 4
+        private const val CACHE_VERSION = "v3"
         private const val MAX_CONFIDENT_DISTANCE = .40
         private const val MIN_WINNING_MARGIN = .025
     }

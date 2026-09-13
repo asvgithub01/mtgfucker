@@ -7,9 +7,10 @@ import org.junit.Test
 class CardEditionVisualFingerprintTest {
     @Test fun classifiesBlackWhiteAndGoldBorders() {
         assertEquals(CardBorderColor.BLACK, classify(0xFF171717.toInt()))
+        assertEquals(CardBorderColor.BLACK, classify(0xFF4F432D.toInt()))
         assertEquals(CardBorderColor.WHITE, classify(0xFFE8E5D8.toInt()))
+        assertEquals(CardBorderColor.WHITE, classify(0xFFD8CDB8.toInt()))
         assertEquals(CardBorderColor.GOLD, classify(0xFFC69A42.toInt()))
-        assertEquals(CardBorderColor.GOLD, classify(0xFF4F432D.toInt()))
     }
 
     @Test fun matchingSetSymbolAndBorderBreakAnArtworkTie() {

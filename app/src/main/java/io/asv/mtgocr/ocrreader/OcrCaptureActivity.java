@@ -795,7 +795,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide.setMessage(getString(R.string.scan_comparing_visual, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
-          match.getCanonicalName(), jpeg, lockedSetCodes(), preferFoil, (result, error) -> {
+          match.getCanonicalName(), match.getLanguage(), jpeg, lockedSetCodes(), preferFoil,
+          (result, error) -> {
             handleArtworkIdentification(match, result, error, preferFoil);
             return kotlin.Unit.INSTANCE;
           }));
@@ -974,11 +975,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       scanEditionDebugText.setText(getString(
           R.string.scan_edition_debug_result,
           result.getComparedImages(),
+          Math.max(0, SystemClock.elapsedRealtime() - scanWorkStartedAt),
+          TextUtils.isEmpty(result.getDetectedLanguage()) ? "—" : result.getDetectedLanguage(),
+          result.getLanguageFilteredOut(),
           best.getOption().getSetCode(),
           similarityPercent(best.getSetSymbolDistance()),
           similarityPercent(best.getArtworkDistance()),
           borderColorLabel(result.getDetectedBorder()),
           Math.max(0, Math.round(result.getDetectedBorderConfidence() * 100d))));
+    } else if (scanEditionDebugText != null && result.getLanguageFilteredOut() > 0) {
+      scanEditionDebugText.setText(getString(
+          R.string.scan_edition_debug_failed_language,
+          TextUtils.isEmpty(result.getDetectedLanguage()) ? "—" : result.getDetectedLanguage(),
+          result.getLanguageFilteredOut()));
     } else if (scanEditionDebugText != null) {
       scanEditionDebugText.setText(R.string.scan_edition_debug_failed);
     }

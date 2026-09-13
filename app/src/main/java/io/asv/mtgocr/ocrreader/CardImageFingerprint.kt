@@ -12,10 +12,10 @@ object CardImageFingerprint {
     const val BIT_COUNT = HASH_WIDTH * HASH_HEIGHT
 
     /** Camera photos contain the card centered inside the on-screen guide. */
-    fun fromCamera(bitmap: Bitmap): LongArray {
-        val card = centeredCardRect(bitmap.width, bitmap.height, 0.72f)
-        return fromCard(bitmap, card)
-    }
+    fun fromCamera(
+        bitmap: Bitmap,
+        card: Rect = centeredCardRect(bitmap.width, bitmap.height, 0.72f)
+    ): LongArray = fromCard(bitmap, card)
 
     /** Catalog images are already tightly cropped to the complete card. */
     fun fromReference(bitmap: Bitmap): LongArray =

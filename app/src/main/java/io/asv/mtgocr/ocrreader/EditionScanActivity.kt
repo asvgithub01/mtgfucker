@@ -195,7 +195,7 @@ class EditionScanActivity : AppCompatActivity() {
                 if (error != null || result.candidates.isEmpty()) {
                     replaceDebugBitmap(result.analysisPreview ?: result.setSymbolCrop)
                     recycleUnusedResultBitmaps(result)
-                    showFailure(result)
+                    showFailure(result, error)
                 } else {
                     showResult(result)
                 }
@@ -287,17 +287,28 @@ class EditionScanActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showFailure(result: CardIdentificationResult? = null) {
+    private fun showFailure(
+        result: CardIdentificationResult? = null,
+        error: Throwable? = null
+    ) {
         debug.visibility = View.VISIBLE
         status.text = if (result == null || result.borderSampleCount == 0) {
-            getString(R.string.edition_scan_no_match)
+            if (error == null) getString(R.string.edition_scan_no_match)
+            else getString(
+                R.string.edition_scan_error_detail,
+                error.message ?: error.javaClass.simpleName
+            )
         } else {
             getString(
                 R.string.edition_scan_no_match_with_evidence,
                 (result.boundaryConfidence * 100).toInt().coerceIn(0, 100),
                 borderLabel(result.detectedBorder),
                 (result.detectedBorderConfidence * 100).toInt().coerceIn(0, 100),
-                result.borderSampleCount
+                result.borderSampleCount,
+                result.eligibleEditions,
+                result.referenceImages,
+                result.comparedImages,
+                result.referenceFailures
             )
         }
         if (correctionMode && !isFinishing) {

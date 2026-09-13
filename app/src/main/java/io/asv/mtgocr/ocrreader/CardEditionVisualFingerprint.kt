@@ -115,7 +115,7 @@ data class CardEditionVisualFingerprint(
             val border = borderSamples(bitmap, card, camera)
             val classifiedBorder = classifyBorder(border)
             return CardEditionVisualFingerprint(
-                artworkHash = if (camera) CardImageFingerprint.fromCamera(bitmap)
+                artworkHash = if (camera) CardImageFingerprint.fromCamera(bitmap, card)
                     else CardImageFingerprint.fromReference(bitmap),
                 setSymbolHash = differenceHash(bitmap, symbol),
                 borderColor = classifiedBorder.first,

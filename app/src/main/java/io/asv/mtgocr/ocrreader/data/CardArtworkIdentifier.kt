@@ -40,7 +40,10 @@ data class CardIdentificationResult(
     val borderCounts: Map<CardBorderColor, Int> = emptyMap(),
     val borderZones: List<CardBorderZone> = emptyList(),
     val glareRatio: Double = 0.0,
-    val sharpness: Double = 0.0
+    val sharpness: Double = 0.0,
+    val eligibleEditions: Int = 0,
+    val referenceImages: Int = 0,
+    val referenceFailures: Int = 0
 )
 
 data class SetSymbolIdentificationCandidate(
@@ -161,7 +164,10 @@ class CardArtworkIdentifier(
             borderCounts = frameAnalysis.borderCounts,
             borderZones = frameAnalysis.borderZones,
             glareRatio = frameAnalysis.glareRatio,
-            sharpness = frameAnalysis.sharpness
+            sharpness = frameAnalysis.sharpness,
+            eligibleEditions = options.size,
+            referenceImages = unique.size,
+            referenceFailures = (unique.size - matches.size).coerceAtLeast(0)
         )
     }
 

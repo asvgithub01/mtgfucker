@@ -2,6 +2,15 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 
+// Keep local/unit-test builds usable before a Firebase project is attached. Once the
+// downloaded file is placed in app/google-services.json, the normal Firebase resource
+// generation (including default_web_client_id) is enabled automatically.
+if (file('google-services.json').exists()) {
+    apply plugin: 'com.google.gms.google-services'
+} else {
+    logger.warn('Firebase cloud sync disabled: app/google-services.json is missing')
+}
+
 android {
     namespace 'io.asv.mtgocr.ocrreader'
     compileSdkVersion 34
@@ -12,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId "io.asv.mtgocr.ocrreader"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 33
         versionCode 2
         versionName "2.0"
@@ -76,7 +85,17 @@ dependencies {
     implementation 'androidx.room:room-runtime:2.5.2'
     implementation 'androidx.room:room-ktx:2.5.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3'
     kapt 'androidx.room:room-compiler:2.5.2'
+
+    // This Firebase line remains compatible with the app's Kotlin 1.9/AGP 8.2 toolchain.
+    // Newer Auth artifacts publish Kotlin 2.x metadata and require a wider toolchain migration.
+    implementation platform('com.google.firebase:firebase-bom:32.8.1')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
 
     testImplementation 'junit:junit:4.13.2'
 }

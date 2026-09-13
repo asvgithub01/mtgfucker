@@ -19,5 +19,6 @@ object PremiumAccess {
             .putBoolean(KEY_ENABLED, enabled)
             .apply()
         if (!enabled) LibraryCatalog.select(context, LibraryCatalog.DEFAULT_ID)
+        CloudLibrarySync.onPremiumChanged(context.applicationContext, enabled)
     }
 }

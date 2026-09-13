@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 
 import io.asv.mtgocr.ocrreader.model.CardInfo;
+import io.asv.mtgocr.ocrreader.model.Biblio;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -67,6 +68,9 @@ public class DataUtils {
             if (!temporary.renameTo(target)) {
                 if (backup.exists()) backup.renameTo(target);
                 throw new IOException("No se pudo publicar " + fileName);
+            }
+            if (objectToSave instanceof Biblio) {
+                CloudLibrarySync.onLocalCollectionSaved(context, (Biblio) objectToSave);
             }
             // Deliberately retain the previous known-good generation. A schema or serialization
             // regression must not be able to replace the user's only copy of the collection.

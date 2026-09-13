@@ -291,6 +291,22 @@
                     android:textColor="?attr/appGlassTextColor"
                     android:textSize="14sp" />
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCloudAccount"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/cloud_open_account"
+                    android:textColor="?attr/colorSecondary"
+                    app:strokeColor="?attr/colorSecondary" />
+                <TextView
+                    android:id="@+id/txtCloudSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:textColor="?attr/appGlassTextColor"
+                    android:textSize="13sp" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRandomLaunchBackground"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"

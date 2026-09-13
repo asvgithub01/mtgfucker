@@ -57,6 +57,9 @@ class SplashActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
+        if (PremiumAccess.isEnabled(this)) {
+            CloudLibrarySync.onPremiumChanged(applicationContext, true)
+        }
         // Use the splash/launcher time to warm prices before the user reaches the scanner.
         io.asv.mtgocr.ocrreader.data.CardRepository.get(this).preparePriceIndex()
         val palettePrimary = MagicPalette.primaryColor(this)

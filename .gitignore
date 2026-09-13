@@ -6,5 +6,7 @@
 /build
 /app/build
 /liquid-glass/build
+/app/google-services.json
+/.firebaserc
 /captures
 leemelocuelo

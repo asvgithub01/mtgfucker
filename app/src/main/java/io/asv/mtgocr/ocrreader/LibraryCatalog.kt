@@ -44,6 +44,10 @@ object LibraryCatalog {
     fun activeFile(context: Context): String = active(context).fileName
 
     @JvmStatic
+    fun libraryForFile(context: Context, fileName: String?): LibraryInfo? =
+        libraries(context).firstOrNull { it.fileName == fileName }
+
+    @JvmStatic
     @Synchronized
     fun select(context: Context, libraryId: String): LibraryInfo {
         val selected = availableLibraries(context).firstOrNull { it.id == libraryId }
@@ -67,6 +71,21 @@ object LibraryCatalog {
         records += encode(library)
         preferences(context).edit().putStringSet(KEY_LIBRARIES, records).apply()
         DataUtils.saveSerializable(context, Biblio(library.fileName, library.name), library.fileName)
+        return library
+    }
+
+    /** Recreates cloud library metadata after app data was cleared, using only validated ids. */
+    @JvmStatic
+    @Synchronized
+    fun restoreDefinition(context: Context, cloudId: String, cloudName: String): LibraryInfo {
+        if (cloudId == DEFAULT_ID) return defaultLibrary()
+        require(cloudId.matches(Regex("[a-zA-Z0-9-]+"))) { "Identificador de biblioteca no válido" }
+        libraries(context).firstOrNull { it.id == cloudId }?.let { return it }
+        val name = cleanName(cloudName).ifBlank { "Biblio recuperada" }
+        val library = LibraryInfo(cloudId, name, "biblio_$cloudId.Json")
+        val records = preferences(context).getStringSet(KEY_LIBRARIES, emptySet()).orEmpty().toMutableSet()
+        records += encode(library)
+        preferences(context).edit().putStringSet(KEY_LIBRARIES, records).apply()
         return library
     }
 

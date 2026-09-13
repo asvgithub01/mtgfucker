@@ -182,8 +182,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CheckBox scannerFlashCheck;
   private CheckBox premiumModeCheck;
   private Button createLibraryButton;
+  private Button cloudAccountButton;
   private Button randomLaunchBackgroundButton;
   private TextView libraryCountText;
+  private TextView cloudSummaryText;
   private EditText lockedSetInput;
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
@@ -1372,8 +1374,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void setUpPremiumSettings() {
     premiumModeCheck = findViewById(R.id.checkPremiumMode);
     createLibraryButton = findViewById(R.id.btnCreateLibrary);
+    cloudAccountButton = findViewById(R.id.btnCloudAccount);
     randomLaunchBackgroundButton = findViewById(R.id.btnRandomLaunchBackground);
     libraryCountText = findViewById(R.id.txtLibraryCount);
+    cloudSummaryText = findViewById(R.id.txtCloudSummary);
     premiumModeCheck.setChecked(PremiumAccess.isEnabled(this));
     premiumModeCheck.setOnCheckedChangeListener((button, checked) -> {
       boolean wasSecondaryLibrary = mBiblio != null &&
@@ -1387,6 +1391,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       }
     });
     createLibraryButton.setOnClickListener(view -> promptForLibraryCreation());
+    cloudAccountButton.setOnClickListener(view ->
+        startActivity(new Intent(this, CloudAccountActivity.class)));
     randomLaunchBackgroundButton.setOnClickListener(view -> {
       if (!PremiumAccess.isEnabled(this)) {
         Toast.makeText(this, R.string.premium_required, Toast.LENGTH_SHORT).show();
@@ -1410,6 +1416,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     int count = premium ? LibraryCatalog.libraries(this).size() : 1;
     libraryCountText.setText(getResources().getQuantityString(
         R.plurals.library_count, count, count));
+    if (!CloudLibrarySync.isConfigured(this)) {
+      cloudSummaryText.setText(R.string.cloud_not_configured_short);
+    } else if (CloudLibrarySync.currentUser(this) == null) {
+      cloudSummaryText.setText(R.string.cloud_signed_out);
+    } else if (!premium) {
+      cloudSummaryText.setText(R.string.cloud_paused_last_copy_kept);
+    } else {
+      long lastSync = CloudLibrarySync.lastSyncMillis(this);
+      cloudSummaryText.setText(lastSync > 0
+          ? getString(R.string.cloud_last_sync,
+              java.text.DateFormat.getDateTimeInstance(
+                  java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                  .format(new java.util.Date(lastSync)))
+          : getString(R.string.cloud_never_synced));
+    }
   }
 
   private void promptForLibraryCreation() {
@@ -1916,6 +1937,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onResume() {
     super.onResume();
+    if (premiumModeCheck != null) updatePremiumSettingsUi();
     boolean returningFromCardDetail = cardDetailOpen;
     boolean returningToScanSession = reopenScanSessionAfterDetail;
     if (firstResume) {

@@ -1,6 +1,7 @@
 package io.asv.mtgocr.ocrreader.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import io.asv.mtgocr.ocrreader.CardBorderColor
 import io.asv.mtgocr.ocrreader.CardEditionVisualFingerprint
@@ -24,7 +25,9 @@ data class CardIdentificationResult(
     val candidates: List<CardIdentificationCandidate>,
     val confident: Boolean,
     val comparedImages: Int,
-    val detectedBorder: CardBorderColor = CardBorderColor.UNKNOWN
+    val detectedBorder: CardBorderColor = CardBorderColor.UNKNOWN,
+    val detectedBorderConfidence: Double = 0.0,
+    val setSymbolCrop: Bitmap? = null
 )
 
 /**
@@ -45,11 +48,9 @@ class CardArtworkIdentifier(
         preferFoil: Boolean
     ): CardIdentificationResult {
         val cameraBitmap = decodeSampled(jpeg) ?: return CardIdentificationResult(emptyList(), false, 0)
-        val cameraFingerprint = try {
-            CardEditionVisualFingerprint.fromCamera(cameraBitmap)
-        } finally {
-            cameraBitmap.recycle()
-        }
+        val cameraFingerprint = CardEditionVisualFingerprint.fromCamera(cameraBitmap)
+        val setSymbolCrop = CardEditionVisualFingerprint.setSymbolCropFromCamera(cameraBitmap)
+        cameraBitmap.recycle()
         val locked = ScanSetLockPolicy.expand(lockedSetCodes)
         val unique = options.asSequence()
             .filter { it.imageUrl?.isNotBlank() == true }
@@ -97,7 +98,13 @@ class CardArtworkIdentifier(
         val confident = best != null && best.distance <= MAX_CONFIDENT_DISTANCE &&
             (runnerUp == null || runnerUp.distance - best.distance >= MIN_WINNING_MARGIN)
         return CardIdentificationResult(
-            ranked.take(6), confident, matches.size, cameraFingerprint.borderColor)
+            ranked.take(6),
+            confident,
+            matches.size,
+            cameraFingerprint.borderColor,
+            cameraFingerprint.borderConfidence,
+            setSymbolCrop
+        )
     }
 
     private fun fingerprint(url: String): CardEditionVisualFingerprint? {

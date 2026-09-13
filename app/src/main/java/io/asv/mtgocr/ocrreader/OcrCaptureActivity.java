@@ -26,6 +26,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.RenderEffect;
@@ -188,6 +189,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
   private TextView scanOcrCharacters;
+  private View scanEditionDebug;
+  private ImageView scanSetSymbolDebug;
+  private TextView scanEditionDebugText;
+  private Bitmap scanEditionDebugBitmap;
   private View scanIndexPreparation;
   private ProgressBar scanIndexPreparationProgress;
   private TextView scanIndexPreparationText;
@@ -335,6 +340,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     scanDebugStatus = (TextView) findViewById(R.id.txtScanDebugStatus);
     scanOcrCharacters = (TextView) findViewById(R.id.txtScanOcrCharacters);
+    scanEditionDebug = findViewById(R.id.scanEditionDebug);
+    scanSetSymbolDebug = (ImageView) findViewById(R.id.imgScanSetSymbolDebug);
+    scanEditionDebugText = (TextView) findViewById(R.id.txtScanEditionDebug);
     scanIndexPreparation = findViewById(R.id.scanIndexPreparation);
     scanIndexPreparationProgress = (ProgressBar) findViewById(R.id.scanIndexPreparationProgress);
     scanIndexPreparationText = (TextView) findViewById(R.id.scanIndexPreparationText);
@@ -748,6 +756,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (pendingScanDebugHide != null) autoOcrHandler.removeCallbacks(pendingScanDebugHide);
     pendingScanDebugHide = null;
     if (scanDebugStatus != null) scanDebugStatus.setVisibility(View.GONE);
+    hideEditionDebug();
   }
 
   private void captureArtworkForIdentification(LocalCardNameMatch match) {
@@ -757,6 +766,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         ? getString(R.string.scan_debug_card_info)
         : getString(R.string.scan_debug_artwork));
     if (quickScanCheck.isChecked()) {
+      showEditionDebugQuickMode();
       cardScanGuide.setMessage(getString(R.string.scan_reading_name, match.getDisplayName()));
       cardRepository.quickScanCard(
           match.getCanonicalName(), lockedSetCodes(), preferFoil, (option, error) -> {
@@ -781,6 +791,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       });
       return;
     }
+    showEditionDebugReading(match.getDisplayName());
     cardScanGuide.setMessage(getString(R.string.scan_comparing_visual, match.getDisplayName()));
     try {
       mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
@@ -845,6 +856,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       return;
     }
     List<CardIdentificationCandidate> candidates = result.getCandidates();
+    showEditionDebugResult(result);
     if (error != null || candidates.isEmpty()) {
       Log.w(TAG, "No se pudo resolver la impresión por sus rasgos visuales", error);
       finishScannerWorkGate();
@@ -865,6 +877,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         " setSymbol=" + bestVisualMatch.getSetSymbolDistance() +
         " referenceBorder=" + bestVisualMatch.getReferenceBorder() +
         " borderMatches=" + bestVisualMatch.getBorderMatches());
+    for (CardIdentificationCandidate candidate : candidates) {
+      Log.i(TAG, "SCAN_EDITION_CANDIDATE set=" + candidate.getOption().getSetCode() +
+          " collector=" + candidate.getOption().getCollectorNumber() +
+          " combined=" + candidate.getDistance() +
+          " artwork=" + candidate.getArtworkDistance() +
+          " setSymbol=" + candidate.getSetSymbolDistance() +
+          " border=" + candidate.getReferenceBorder() +
+          " borderMatches=" + candidate.getBorderMatches());
+    }
     if (!askEditionAfterScanCheck.isChecked()) {
       List<CardEditionOption> options = new ArrayList<>();
       for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
@@ -926,6 +947,60 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private String borderMatchLabel(Boolean matches) {
     if (matches == null) return getString(R.string.card_border_not_compared);
     return getString(matches ? R.string.card_border_matches : R.string.card_border_differs);
+  }
+
+  private void showEditionDebugReading(String cardName) {
+    replaceEditionDebugBitmap(null);
+    if (scanEditionDebugText != null) {
+      scanEditionDebugText.setText(getString(R.string.scan_edition_debug_reading, cardName));
+    }
+    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
+  }
+
+  private void showEditionDebugQuickMode() {
+    replaceEditionDebugBitmap(null);
+    if (scanEditionDebugText != null) {
+      scanEditionDebugText.setText(R.string.scan_edition_debug_quick);
+    }
+    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
+  }
+
+  private void showEditionDebugResult(CardIdentificationResult result) {
+    if (result == null) return;
+    replaceEditionDebugBitmap(result.getSetSymbolCrop());
+    List<CardIdentificationCandidate> candidates = result.getCandidates();
+    if (scanEditionDebugText != null && !candidates.isEmpty()) {
+      CardIdentificationCandidate best = candidates.get(0);
+      scanEditionDebugText.setText(getString(
+          R.string.scan_edition_debug_result,
+          result.getComparedImages(),
+          best.getOption().getSetCode(),
+          similarityPercent(best.getSetSymbolDistance()),
+          similarityPercent(best.getArtworkDistance()),
+          borderColorLabel(result.getDetectedBorder()),
+          Math.max(0, Math.round(result.getDetectedBorderConfidence() * 100d))));
+    } else if (scanEditionDebugText != null) {
+      scanEditionDebugText.setText(R.string.scan_edition_debug_failed);
+    }
+    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
+  }
+
+  private int similarityPercent(double distance) {
+    return (int) Math.max(0, Math.min(100, Math.round((1d - distance) * 100d)));
+  }
+
+  private void replaceEditionDebugBitmap(Bitmap bitmap) {
+    if (scanSetSymbolDebug != null) scanSetSymbolDebug.setImageBitmap(bitmap);
+    if (scanEditionDebugBitmap != null && scanEditionDebugBitmap != bitmap &&
+        !scanEditionDebugBitmap.isRecycled()) {
+      scanEditionDebugBitmap.recycle();
+    }
+    scanEditionDebugBitmap = bitmap;
+  }
+
+  private void hideEditionDebug() {
+    replaceEditionDebugBitmap(null);
+    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.GONE);
   }
 
   private void addIdentifiedPrinting(CardEditionOption option, String detectedLanguage) {
@@ -2017,6 +2092,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     activeScanThumbnail = null;
     activeScanMessage = null;
     activeScanPrice = null;
+    replaceEditionDebugBitmap(null);
     if (scanToneGenerator != null) {
       scanToneGenerator.release();
       scanToneGenerator = null;

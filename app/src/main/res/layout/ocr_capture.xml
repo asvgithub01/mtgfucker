@@ -606,11 +606,47 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
+        <LinearLayout
+            android:id="@+id/scanEditionDebug"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/txtScanDebugStatus"
+            android:layout_alignStart="@id/scanManualEntry"
+            android:layout_alignEnd="@id/scanManualEntry"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_scan_debug_status"
+            android:elevation="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/imgScanSetSymbolDebug"
+                android:layout_width="96dp"
+                android:layout_height="58dp"
+                android:background="#33000000"
+                android:contentDescription="@string/scan_edition_debug_symbol_crop"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/txtScanEditionDebug"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="9dp"
+                android:layout_weight="1"
+                android:maxLines="5"
+                android:textColor="#D6FF7F"
+                android:textIsSelectable="true"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <ListView
             android:id="@+id/cardNameSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/txtScanDebugStatus"
+            android:layout_below="@id/scanEditionDebug"
             android:layout_alignStart="@id/scanManualEntry"
             android:layout_alignEnd="@id/scanManualEntry"
             android:layout_marginTop="4dp"

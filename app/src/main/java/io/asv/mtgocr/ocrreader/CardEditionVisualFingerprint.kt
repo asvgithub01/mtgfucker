@@ -27,6 +27,13 @@ data class CardEditionVisualFingerprint(
         fun fromCamera(bitmap: Bitmap): CardEditionVisualFingerprint =
             fromCard(bitmap, CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f), true)
 
+        /** Exact camera crop used for the set-symbol comparison, exposed for visible diagnostics. */
+        fun setSymbolCropFromCamera(bitmap: Bitmap): Bitmap {
+            val card = CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f)
+            val symbol = setSymbolRect(bitmap, card)
+            return Bitmap.createBitmap(bitmap, symbol.left, symbol.top, symbol.width(), symbol.height())
+        }
+
         /** Scryfall images are already tightly cropped to the complete card. */
         fun fromReference(bitmap: Bitmap): CardEditionVisualFingerprint =
             fromCard(bitmap, Rect(0, 0, bitmap.width, bitmap.height), false)
@@ -104,7 +111,7 @@ data class CardEditionVisualFingerprint(
         }
 
         private fun fromCard(bitmap: Bitmap, card: Rect, camera: Boolean): CardEditionVisualFingerprint {
-            val symbol = relativeRect(bitmap, card, .70f, .515f, .945f, .635f)
+            val symbol = setSymbolRect(bitmap, card)
             val border = borderSamples(bitmap, card, camera)
             val classifiedBorder = classifyBorder(border)
             return CardEditionVisualFingerprint(
@@ -115,6 +122,9 @@ data class CardEditionVisualFingerprint(
                 borderConfidence = classifiedBorder.second
             )
         }
+
+        private fun setSymbolRect(bitmap: Bitmap, card: Rect): Rect =
+            relativeRect(bitmap, card, .70f, .515f, .945f, .635f)
 
         private fun relativeRect(
             bitmap: Bitmap,

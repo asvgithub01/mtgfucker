@@ -26,7 +26,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.RenderEffect;
@@ -91,8 +90,6 @@ import io.asv.mtgocr.ocrreader.data.DataProviderBase;
 import io.asv.mtgocr.ocrreader.data.CardRepository;
 import io.asv.mtgocr.ocrreader.data.ScanPrintingPolicy;
 import io.asv.mtgocr.ocrreader.data.CardEditionOption;
-import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate;
-import io.asv.mtgocr.ocrreader.data.CardIdentificationResult;
 import io.asv.mtgocr.ocrreader.data.CardImageVariant;
 import io.asv.mtgocr.ocrreader.data.CardLanguage;
 import io.asv.mtgocr.ocrreader.data.LocalCardNameMatch;
@@ -144,6 +141,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final int RC_HANDLE_CAMERA_PERM = 2;
   private static final int RC_PICK_CARD_PHOTO = 3;
   private static final int RC_SPEAK_CARD_NAME = 4;
+  private static final int RC_SCAN_EDITION = 5;
   private static final String SCANNER_PREFERENCES = "scanner_preferences";
   private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
@@ -189,10 +187,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
   private TextView scanOcrCharacters;
-  private View scanEditionDebug;
-  private ImageView scanSetSymbolDebug;
-  private TextView scanEditionDebugText;
-  private Bitmap scanEditionDebugBitmap;
   private View scanIndexPreparation;
   private ProgressBar scanIndexPreparationProgress;
   private TextView scanIndexPreparationText;
@@ -314,6 +308,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private boolean nameIndexReady;
   private Runnable pendingNameIndexReadyHide;
   private boolean firstResume = true;
+  private LocalCardNameMatch pendingEditionNameMatch;
+  private boolean pendingEditionPreferFoil;
 
   /**
    * Initializes the UI and creates the detector pipeline.
@@ -340,9 +336,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide = (CardScanGuideView) findViewById(R.id.cardScanGuide);
     scanDebugStatus = (TextView) findViewById(R.id.txtScanDebugStatus);
     scanOcrCharacters = (TextView) findViewById(R.id.txtScanOcrCharacters);
-    scanEditionDebug = findViewById(R.id.scanEditionDebug);
-    scanSetSymbolDebug = (ImageView) findViewById(R.id.imgScanSetSymbolDebug);
-    scanEditionDebugText = (TextView) findViewById(R.id.txtScanEditionDebug);
     scanIndexPreparation = findViewById(R.id.scanIndexPreparation);
     scanIndexPreparationProgress = (ProgressBar) findViewById(R.id.scanIndexPreparationProgress);
     scanIndexPreparationText = (TextView) findViewById(R.id.scanIndexPreparationText);
@@ -756,7 +749,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (pendingScanDebugHide != null) autoOcrHandler.removeCallbacks(pendingScanDebugHide);
     pendingScanDebugHide = null;
     if (scanDebugStatus != null) scanDebugStatus.setVisibility(View.GONE);
-    hideEditionDebug();
   }
 
   private void captureArtworkForIdentification(LocalCardNameMatch match) {
@@ -766,7 +758,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         ? getString(R.string.scan_debug_card_info)
         : getString(R.string.scan_debug_artwork));
     if (quickScanCheck.isChecked()) {
-      showEditionDebugQuickMode();
       cardScanGuide.setMessage(getString(R.string.scan_reading_name, match.getDisplayName()));
       cardRepository.quickScanCard(
           match.getCanonicalName(), lockedSetCodes(), preferFoil, (option, error) -> {
@@ -791,20 +782,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       });
       return;
     }
-    showEditionDebugReading(match.getDisplayName());
-    cardScanGuide.setMessage(getString(R.string.scan_comparing_visual, match.getDisplayName()));
-    try {
-      mCameraSource.takePicture(null, jpeg -> cardRepository.identifyCardArtwork(
-          match.getCanonicalName(), match.getLanguage(), jpeg, lockedSetCodes(), preferFoil,
-          (result, error) -> {
-            handleArtworkIdentification(match, result, error, preferFoil);
-            return kotlin.Unit.INSTANCE;
-          }));
-    } catch (RuntimeException error) {
-      Log.w(TAG, "No se pudo capturar la carta", error);
-      finishScannerWorkGate();
-      cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
-    }
+    pendingEditionNameMatch = match;
+    pendingEditionPreferFoil = preferFoil;
+    Intent editionIntent = new Intent(this, EditionScanActivity.class)
+        .putExtra(EditionScanActivity.EXTRA_CARD_NAME, match.getCanonicalName())
+        .putExtra(EditionScanActivity.EXTRA_DISPLAY_NAME, match.getDisplayName())
+        .putExtra(EditionScanActivity.EXTRA_LANGUAGE, match.getLanguage())
+        .putExtra(EditionScanActivity.EXTRA_PREFER_FOIL, preferFoil)
+        .putStringArrayListExtra(
+            EditionScanActivity.EXTRA_LOCKED_SETS, new ArrayList<>(lockedSetCodes()));
+    startActivityForResult(editionIntent, RC_SCAN_EDITION);
   }
 
   private Set<String> lockedSetCodes() {
@@ -848,168 +835,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         (japanese ? "Japanese/Latin ML Kit" : "Latin ML Kit"));
     createCameraSource(ScannerSettings.autoFocus(this), ScannerSettings.flash(this));
     if (isScannerReaderActive()) startCameraSource();
-  }
-
-  private void handleArtworkIdentification(LocalCardNameMatch nameMatch,
-      CardIdentificationResult result, Throwable error, boolean preferFoil) {
-    if (!isScannerReaderActive()) {
-      finishScannerWorkGate();
-      return;
-    }
-    List<CardIdentificationCandidate> candidates = result.getCandidates();
-    showEditionDebugResult(result);
-    if (error != null || candidates.isEmpty()) {
-      Log.w(TAG, "No se pudo resolver la impresión por sus rasgos visuales", error);
-      finishScannerWorkGate();
-      cardScanGuide.setMessage(getString(preferFoil
-          ? R.string.scan_no_foil_match : lockedSetCodes().isEmpty()
-          ? R.string.scan_identification_failed : R.string.scan_no_set_match));
-      suppressPredictionWatcher = true;
-      txtSearch.setText(nameMatch.getDisplayName());
-      txtSearch.setSelection(txtSearch.length());
-      suppressPredictionWatcher = false;
-      return;
-    }
-    CardIdentificationCandidate bestVisualMatch = candidates.get(0);
-    Log.i(TAG, "SCAN_EDITION detectedBorder=" + result.getDetectedBorder() +
-        " bestSet=" + bestVisualMatch.getOption().getSetCode() +
-        " combined=" + bestVisualMatch.getDistance() +
-        " artwork=" + bestVisualMatch.getArtworkDistance() +
-        " setSymbol=" + bestVisualMatch.getSetSymbolDistance() +
-        " referenceBorder=" + bestVisualMatch.getReferenceBorder() +
-        " borderMatches=" + bestVisualMatch.getBorderMatches());
-    for (CardIdentificationCandidate candidate : candidates) {
-      Log.i(TAG, "SCAN_EDITION_CANDIDATE set=" + candidate.getOption().getSetCode() +
-          " collector=" + candidate.getOption().getCollectorNumber() +
-          " combined=" + candidate.getDistance() +
-          " artwork=" + candidate.getArtworkDistance() +
-          " setSymbol=" + candidate.getSetSymbolDistance() +
-          " border=" + candidate.getReferenceBorder() +
-          " borderMatches=" + candidate.getBorderMatches());
-    }
-    if (!askEditionAfterScanCheck.isChecked()) {
-      List<CardEditionOption> options = new ArrayList<>();
-      for (CardIdentificationCandidate candidate : candidates) options.add(candidate.getOption());
-      CardEditionOption preferred = ScanPrintingPolicy.preferred(options, preferFoil);
-      if (preferred != null) addIdentifiedPrinting(preferred, nameMatch.getLanguage());
-      else {
-        finishScannerWorkGate();
-        cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
-      }
-      return;
-    }
-    if (candidates.size() == 1) {
-      addIdentifiedPrinting(candidates.get(0).getOption(), nameMatch.getLanguage());
-      return;
-    }
-    String[] labels = new String[candidates.size()];
-    for (int index = 0; index < candidates.size(); index++) {
-      CardIdentificationCandidate candidate = candidates.get(index);
-      CardEditionOption option = candidate.getOption();
-      labels[index] = getString(
-          R.string.scan_candidate_label_visual,
-          option.getSetName(),
-          option.getSetCode(),
-          option.getCollectorNumber(),
-          Math.max(0, Math.round((1d - candidate.getDistance()) * 100d)),
-          Math.max(0, Math.round((1d - candidate.getSetSymbolDistance()) * 100d)),
-          borderColorLabel(candidate.getReferenceBorder()),
-          borderMatchLabel(candidate.getBorderMatches())
-      );
-    }
-    new AlertDialog.Builder(this)
-        .setTitle(getString(
-            R.string.scan_choose_printing_visual, borderColorLabel(result.getDetectedBorder())))
-        .setItems(labels, (dialog, which) ->
-            addIdentifiedPrinting(candidates.get(which).getOption(), nameMatch.getLanguage()))
-        .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-          finishScannerWorkGate();
-          scanStability.allowRepeat();
-          cardScanGuide.setMessage(getString(R.string.scan_align_card));
-        })
-        .setOnCancelListener(dialog -> {
-          finishScannerWorkGate();
-          scanStability.allowRepeat();
-          cardScanGuide.setMessage(getString(R.string.scan_align_card));
-        })
-        .show();
-  }
-
-  private String borderColorLabel(CardBorderColor color) {
-    if (color == null) return getString(R.string.card_border_unknown);
-    switch (color) {
-      case BLACK: return getString(R.string.card_border_black);
-      case WHITE: return getString(R.string.card_border_white);
-      case GOLD: return getString(R.string.card_border_gold);
-      default: return getString(R.string.card_border_unknown);
-    }
-  }
-
-  private String borderMatchLabel(Boolean matches) {
-    if (matches == null) return getString(R.string.card_border_not_compared);
-    return getString(matches ? R.string.card_border_matches : R.string.card_border_differs);
-  }
-
-  private void showEditionDebugReading(String cardName) {
-    replaceEditionDebugBitmap(null);
-    if (scanEditionDebugText != null) {
-      scanEditionDebugText.setText(getString(R.string.scan_edition_debug_reading, cardName));
-    }
-    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
-  }
-
-  private void showEditionDebugQuickMode() {
-    replaceEditionDebugBitmap(null);
-    if (scanEditionDebugText != null) {
-      scanEditionDebugText.setText(R.string.scan_edition_debug_quick);
-    }
-    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
-  }
-
-  private void showEditionDebugResult(CardIdentificationResult result) {
-    if (result == null) return;
-    replaceEditionDebugBitmap(result.getSetSymbolCrop());
-    List<CardIdentificationCandidate> candidates = result.getCandidates();
-    if (scanEditionDebugText != null && !candidates.isEmpty()) {
-      CardIdentificationCandidate best = candidates.get(0);
-      scanEditionDebugText.setText(getString(
-          R.string.scan_edition_debug_result,
-          result.getComparedImages(),
-          Math.max(0, SystemClock.elapsedRealtime() - scanWorkStartedAt),
-          TextUtils.isEmpty(result.getDetectedLanguage()) ? "—" : result.getDetectedLanguage(),
-          result.getLanguageFilteredOut(),
-          best.getOption().getSetCode(),
-          similarityPercent(best.getSetSymbolDistance()),
-          similarityPercent(best.getArtworkDistance()),
-          borderColorLabel(result.getDetectedBorder()),
-          Math.max(0, Math.round(result.getDetectedBorderConfidence() * 100d))));
-    } else if (scanEditionDebugText != null && result.getLanguageFilteredOut() > 0) {
-      scanEditionDebugText.setText(getString(
-          R.string.scan_edition_debug_failed_language,
-          TextUtils.isEmpty(result.getDetectedLanguage()) ? "—" : result.getDetectedLanguage(),
-          result.getLanguageFilteredOut()));
-    } else if (scanEditionDebugText != null) {
-      scanEditionDebugText.setText(R.string.scan_edition_debug_failed);
-    }
-    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.VISIBLE);
-  }
-
-  private int similarityPercent(double distance) {
-    return (int) Math.max(0, Math.min(100, Math.round((1d - distance) * 100d)));
-  }
-
-  private void replaceEditionDebugBitmap(Bitmap bitmap) {
-    if (scanSetSymbolDebug != null) scanSetSymbolDebug.setImageBitmap(bitmap);
-    if (scanEditionDebugBitmap != null && scanEditionDebugBitmap != bitmap &&
-        !scanEditionDebugBitmap.isRecycled()) {
-      scanEditionDebugBitmap.recycle();
-    }
-    scanEditionDebugBitmap = bitmap;
-  }
-
-  private void hideEditionDebug() {
-    replaceEditionDebugBitmap(null);
-    if (scanEditionDebug != null) scanEditionDebug.setVisibility(View.GONE);
   }
 
   private void addIdentifiedPrinting(CardEditionOption option, String detectedLanguage) {
@@ -2101,7 +1926,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     activeScanThumbnail = null;
     activeScanMessage = null;
     activeScanPrice = null;
-    replaceEditionDebugBitmap(null);
     if (scanToneGenerator != null) {
       scanToneGenerator.release();
       scanToneGenerator = null;
@@ -2116,6 +1940,33 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == RC_SCAN_EDITION) {
+      LocalCardNameMatch match = pendingEditionNameMatch;
+      boolean preferFoil = pendingEditionPreferFoil;
+      pendingEditionNameMatch = null;
+      pendingEditionPreferFoil = false;
+      String setCode = data == null ? "" :
+          data.getStringExtra(EditionScanActivity.EXTRA_SET_CODE);
+      if (resultCode == Activity.RESULT_OK && match != null && !TextUtils.isEmpty(setCode)) {
+        cardRepository.quickScanCard(
+            match.getCanonicalName(), Collections.singleton(setCode), preferFoil,
+            (option, error) -> {
+              if (error == null && option != null) {
+                addIdentifiedPrinting(option, match.getLanguage());
+              } else {
+                finishScannerWorkGate();
+                scanStability.allowRepeat();
+                cardScanGuide.setMessage(getString(R.string.scan_identification_failed));
+              }
+              return kotlin.Unit.INSTANCE;
+            });
+      } else {
+        finishScannerWorkGate();
+        scanStability.allowRepeat();
+        cardScanGuide.setMessage(getString(R.string.scan_align_card));
+      }
+      return;
+    }
     if (requestCode == RC_SPEAK_CARD_NAME && resultCode == Activity.RESULT_OK && data != null) {
       ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
       if (results != null && !results.isEmpty()) {

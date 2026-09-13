@@ -34,6 +34,24 @@ data class CardEditionVisualFingerprint(
             return Bitmap.createBitmap(bitmap, symbol.left, symbol.top, symbol.width(), symbol.height())
         }
 
+        /** The dedicated scanner asks the user to place only the printed set symbol in the centre. */
+        fun setSymbolCropFromGuide(bitmap: Bitmap): Bitmap {
+            val size = (minOf(bitmap.width, bitmap.height) * .22f).toInt().coerceAtLeast(1)
+            val left = ((bitmap.width - size) / 2).coerceAtLeast(0)
+            val top = ((bitmap.height - size) / 2).coerceAtLeast(0)
+            return Bitmap.createBitmap(bitmap, left, top, size.coerceAtMost(bitmap.width - left),
+                size.coerceAtMost(bitmap.height - top))
+        }
+
+        fun setSymbolHashFromGuide(bitmap: Bitmap): LongArray {
+            val size = (minOf(bitmap.width, bitmap.height) * .22f).toInt().coerceAtLeast(1)
+            val left = ((bitmap.width - size) / 2).coerceAtLeast(0)
+            val top = ((bitmap.height - size) / 2).coerceAtLeast(0)
+            val crop = Rect(left, top, (left + size).coerceAtMost(bitmap.width),
+                (top + size).coerceAtMost(bitmap.height))
+            return differenceHash(bitmap, crop)
+        }
+
         /** Scryfall images are already tightly cropped to the complete card. */
         fun fromReference(bitmap: Bitmap): CardEditionVisualFingerprint =
             fromCard(bitmap, Rect(0, 0, bitmap.width, bitmap.height), false)

@@ -491,6 +491,53 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    fun identifyCardSetSymbol(
+        cardName: String,
+        languageCode: String,
+        jpeg: ByteArray,
+        lockedSetCodes: Set<String> = emptySet(),
+        preferFoil: Boolean = false,
+        callback: (SetSymbolIdentificationResult, Throwable?) -> Unit
+    ): Future<*> = imageExecutor.submit {
+        try {
+            val resolution = nameResolver.cached(cardName)
+            val canonicalName = resolution?.canonicalName ?: cardName
+            val printings = catalog.editions(canonicalName)
+            if (printings.isEmpty()) error("No se encontraron impresiones de '$cardName'")
+            val allOptions = combine(
+                printings,
+                dao.pricesFor(printings.map { it.uuid }),
+                resolution?.displayName ?: printings.first().name
+            )
+            val normalizedLanguage = CardLanguage.toCode(languageCode)
+            var languageFilteredOut = 0
+            val options = if (normalizedLanguage.isBlank()) {
+                allOptions
+            } else {
+                val cacheKey = "${MtgJsonCatalogDataProvider.normalize(canonicalName)}|$normalizedLanguage"
+                val localized = localizedPrintingCache[cacheKey] ?: imageProvider
+                    .getLocalizedPrintings(canonicalName, normalizedLanguage)
+                    .also { localizedPrintingCache[cacheKey] = it }
+                LocalizedEditionPolicy.filter(allOptions, localized).also {
+                    languageFilteredOut = allOptions.size - it.size
+                }
+            }
+            val result = artworkIdentifier
+                .identifySetSymbol(jpeg, options, lockedSetCodes, preferFoil)
+                .copy(
+                    detectedLanguage = normalizedLanguage,
+                    languageFilteredOut = languageFilteredOut
+                )
+            if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(result, null) }
+        } catch (error: Throwable) {
+            if (!Thread.currentThread().isInterrupted) {
+                mainHandler.post {
+                    callback(SetSymbolIdentificationResult(emptyList(), 0), error)
+                }
+            }
+        }
+    }
+
     /** ManaBox-style quick mode: use the first locally known printing and skip image downloads. */
     fun quickScanCard(
         cardName: String,

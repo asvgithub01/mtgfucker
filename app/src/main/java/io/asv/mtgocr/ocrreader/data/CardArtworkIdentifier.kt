@@ -34,6 +34,19 @@ data class CardIdentificationResult(
     val languageFilteredOut: Int = 0
 )
 
+data class SetSymbolIdentificationCandidate(
+    val option: CardEditionOption,
+    val symbolDistance: Double
+)
+
+data class SetSymbolIdentificationResult(
+    val candidates: List<SetSymbolIdentificationCandidate>,
+    val comparedSymbols: Int,
+    val setSymbolCrop: Bitmap? = null,
+    val detectedLanguage: String = "",
+    val languageFilteredOut: Int = 0
+)
+
 /**
  * Compares artwork, set-symbol region and border colour with the Scryfall images for an
  * OCR-resolved name. OCR narrows a 100k+ catalog first, so this slower visual pass only has to
@@ -120,6 +133,55 @@ class CardArtworkIdentifier(
             matches.size,
             cameraFingerprint.borderColor,
             cameraFingerprint.borderConfidence,
+            setSymbolCrop
+        )
+    }
+
+    /** Compares only the symbol centred in the dedicated guide, once OCR already knows the card. */
+    fun identifySetSymbol(
+        jpeg: ByteArray,
+        options: List<CardEditionOption>,
+        lockedSetCodes: Set<String>,
+        preferFoil: Boolean
+    ): SetSymbolIdentificationResult {
+        val cameraBitmap = decodeSampled(jpeg)
+            ?: return SetSymbolIdentificationResult(emptyList(), 0)
+        val cameraHash = CardEditionVisualFingerprint.setSymbolHashFromGuide(cameraBitmap)
+        val setSymbolCrop = CardEditionVisualFingerprint.setSymbolCropFromGuide(cameraBitmap)
+        cameraBitmap.recycle()
+        val locked = ScanSetLockPolicy.expand(lockedSetCodes)
+        val uniqueSets = options.asSequence()
+            .filter { it.imageUrl?.isNotBlank() == true }
+            .filter { locked.isEmpty() || it.setCode.uppercase(Locale.US) in locked }
+            .groupBy { it.setCode.uppercase(Locale.US) }
+            .values
+            .mapNotNull { editions -> ScanPrintingPolicy.preferred(editions, preferFoil) }
+            .take(MAX_CANDIDATE_IMAGES)
+            .toList()
+        val jobs = uniqueSets.map { option ->
+            fingerprintExecutor.submit<SetSymbolIdentificationCandidate?> {
+                val reference = fingerprint(option.imageUrl!!) ?: return@submit null
+                SetSymbolIdentificationCandidate(
+                    option,
+                    CardImageFingerprint.normalizedDistance(cameraHash, reference.setSymbolHash)
+                )
+            }
+        }
+        val matches = mutableListOf<SetSymbolIdentificationCandidate>()
+        for (job in jobs) {
+            try {
+                job.get()?.let(matches::add)
+            } catch (interrupted: InterruptedException) {
+                jobs.forEach { it.cancel(true) }
+                Thread.currentThread().interrupt()
+                break
+            } catch (_: ExecutionException) {
+                // Continue with the remaining set symbols.
+            }
+        }
+        return SetSymbolIdentificationResult(
+            matches.sortedBy { it.symbolDistance }.take(8),
+            matches.size,
             setSymbolCrop
         )
     }

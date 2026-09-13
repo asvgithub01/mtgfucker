@@ -4,7 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import io.asv.mtgocr.ocrreader.CardBorderColor
+import io.asv.mtgocr.ocrreader.CardBorderZone
 import io.asv.mtgocr.ocrreader.CardEditionVisualFingerprint
+import io.asv.mtgocr.ocrreader.CardFrameAnalyzer
 import io.asv.mtgocr.ocrreader.CardImageFingerprint
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,7 +33,14 @@ data class CardIdentificationResult(
     val detectedBorderConfidence: Double = 0.0,
     val setSymbolCrop: Bitmap? = null,
     val detectedLanguage: String = "",
-    val languageFilteredOut: Int = 0
+    val languageFilteredOut: Int = 0,
+    val analysisPreview: Bitmap? = null,
+    val boundaryConfidence: Double = 0.0,
+    val borderSampleCount: Int = 0,
+    val borderCounts: Map<CardBorderColor, Int> = emptyMap(),
+    val borderZones: List<CardBorderZone> = emptyList(),
+    val glareRatio: Double = 0.0,
+    val sharpness: Double = 0.0
 )
 
 data class SetSymbolIdentificationCandidate(
@@ -65,9 +74,19 @@ class CardArtworkIdentifier(
         lockedSetCodes: Set<String>,
         preferFoil: Boolean
     ): CardIdentificationResult {
-        val cameraBitmap = decodeSampled(jpeg) ?: return CardIdentificationResult(emptyList(), false, 0)
-        val cameraFingerprint = CardEditionVisualFingerprint.fromCamera(cameraBitmap)
-        val setSymbolCrop = CardEditionVisualFingerprint.setSymbolCropFromCamera(cameraBitmap)
+        val cameraBitmap = decodeSampled(jpeg, ensurePortrait = true)
+            ?: return CardIdentificationResult(emptyList(), false, 0)
+        val frameAnalysis = CardFrameAnalyzer.analyze(cameraBitmap)
+        val cameraFingerprint = CardEditionVisualFingerprint.fromCamera(cameraBitmap, frameAnalysis.bounds)
+            .copy(
+                borderColor = frameAnalysis.borderColor,
+                borderConfidence = frameAnalysis.borderConfidence
+            )
+        val setSymbolCrop = CardEditionVisualFingerprint.setSymbolCropFromCamera(
+            cameraBitmap,
+            frameAnalysis.bounds
+        )
+        val analysisPreview = CardFrameAnalyzer.annotatedPreview(cameraBitmap, frameAnalysis)
         cameraBitmap.recycle()
         val locked = ScanSetLockPolicy.expand(lockedSetCodes)
         val unique = options.asSequence()
@@ -133,7 +152,14 @@ class CardArtworkIdentifier(
             matches.size,
             cameraFingerprint.borderColor,
             cameraFingerprint.borderConfidence,
-            setSymbolCrop
+            setSymbolCrop,
+            analysisPreview = analysisPreview,
+            boundaryConfidence = frameAnalysis.boundaryConfidence,
+            borderSampleCount = frameAnalysis.borderZones.size,
+            borderCounts = frameAnalysis.borderCounts,
+            borderZones = frameAnalysis.borderZones,
+            glareRatio = frameAnalysis.glareRatio,
+            sharpness = frameAnalysis.sharpness
         )
     }
 
@@ -144,7 +170,7 @@ class CardArtworkIdentifier(
         lockedSetCodes: Set<String>,
         preferFoil: Boolean
     ): SetSymbolIdentificationResult {
-        val cameraBitmap = decodeSampled(jpeg)
+        val cameraBitmap = decodeSampled(jpeg, ensurePortrait = true)
             ?: return SetSymbolIdentificationResult(emptyList(), 0)
         val cameraHash = CardEditionVisualFingerprint.setSymbolHashFromGuide(cameraBitmap)
         val setSymbolCrop = CardEditionVisualFingerprint.setSymbolCropFromGuide(cameraBitmap)
@@ -231,15 +257,20 @@ class CardArtworkIdentifier(
         )
     }
 
-    private fun decodeSampled(bytes: ByteArray): android.graphics.Bitmap? {
+    private fun decodeSampled(bytes: ByteArray, ensurePortrait: Boolean = false): android.graphics.Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         var sample = 1
         while (bounds.outWidth / sample > 1_600 || bounds.outHeight / sample > 1_600) sample *= 2
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply {
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply {
             inSampleSize = sample
             inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
         })
+        if (!ensurePortrait || decoded == null || decoded.height >= decoded.width) return decoded
+        val matrix = android.graphics.Matrix().apply { postRotate(90f) }
+        return Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true).also {
+            if (it !== decoded) decoded.recycle()
+        }
     }
 
     private fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
@@ -253,7 +284,7 @@ class CardArtworkIdentifier(
     companion object {
         private const val MAX_CANDIDATE_IMAGES = 48
         private const val FINGERPRINT_WORKERS = 4
-        private const val CACHE_VERSION = "v3"
+        private const val CACHE_VERSION = "v4"
         private const val MAX_CONFIDENT_DISTANCE = .40
         private const val MIN_WINNING_MARGIN = .025
     }

@@ -8,7 +8,7 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
 
-/** Guides the type-line through the centre while the set symbol sits in the square target. */
+/** Guides the complete card and makes the border sample positions visible before capture. */
 class EditionSymbolGuideView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
@@ -19,33 +19,48 @@ class EditionSymbolGuideView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = resources.displayMetrics.density * 3f
     }
-    private val symbolFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val sampleFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(70, 214, 255, 127)
         style = Paint.Style.FILL
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val bandWidth = width * .90f
-        val bandHeight = width * .22f
-        val left = (width - bandWidth) / 2f
-        val top = (height - bandHeight) / 2f
-        val band = RectF(left, top, left + bandWidth, top + bandHeight)
-        canvas.drawRect(0f, 0f, width.toFloat(), band.top, shade)
-        canvas.drawRect(0f, band.bottom, width.toFloat(), height.toFloat(), shade)
-        canvas.drawRect(0f, band.top, band.left, band.bottom, shade)
-        canvas.drawRect(band.right, band.top, width.toFloat(), band.bottom, shade)
+        var cardHeight = height * .72f
+        var cardWidth = cardHeight * (63f / 88f)
+        if (cardWidth > width * .90f) {
+            cardWidth = width * .90f
+            cardHeight = cardWidth * (88f / 63f)
+        }
+        val left = (width - cardWidth) / 2f
+        val top = (height - cardHeight) / 2f
+        val card = RectF(left, top, left + cardWidth, top + cardHeight)
+        canvas.drawRect(0f, 0f, width.toFloat(), card.top, shade)
+        canvas.drawRect(0f, card.bottom, width.toFloat(), height.toFloat(), shade)
+        canvas.drawRect(0f, card.top, card.left, card.bottom, shade)
+        canvas.drawRect(card.right, card.top, width.toFloat(), card.bottom, shade)
         val radius = resources.displayMetrics.density * 12f
-        canvas.drawRoundRect(band, radius, radius, line)
+        canvas.drawRoundRect(card, radius, radius, line)
 
-        val symbolSize = width * .22f
+        val symbolSize = cardWidth * .15f
         val symbol = RectF(
-            (width - symbolSize) / 2f,
-            (height - symbolSize) / 2f,
-            (width + symbolSize) / 2f,
-            (height + symbolSize) / 2f
+            card.left + cardWidth * .81f,
+            card.top + cardHeight * .515f,
+            card.left + cardWidth * .81f + symbolSize,
+            card.top + cardHeight * .515f + symbolSize * .72f
         )
-        canvas.drawRoundRect(symbol, radius / 2f, radius / 2f, symbolFill)
-        canvas.drawRoundRect(symbol, radius / 2f, radius / 2f, line)
+        canvas.drawRoundRect(symbol, radius / 3f, radius / 3f, sampleFill)
+
+        val inset = cardWidth * .027f
+        val dotRadius = resources.displayMetrics.density * 4.5f
+        val positions = floatArrayOf(.16f, .38f, .62f, .84f)
+        for (position in positions) {
+            val x = card.left + cardWidth * position
+            val y = card.top + cardHeight * position
+            canvas.drawCircle(x, card.top + inset, dotRadius, sampleFill)
+            canvas.drawCircle(x, card.bottom - inset, dotRadius, sampleFill)
+            canvas.drawCircle(card.left + inset, y, dotRadius, sampleFill)
+            canvas.drawCircle(card.right - inset, y, dotRadius, sampleFill)
+        }
     }
 }

@@ -36,7 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="@string/edition_scan_align_line"
+            android:text="@string/edition_scan_align_card"
             android:textColor="#D6FF7F"
             android:textSize="14sp" />
     </LinearLayout>
@@ -54,24 +54,23 @@
             android:id="@+id/editionScanDebug"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
             android:visibility="gone">
 
             <ImageView
                 android:id="@+id/editionScanCrop"
-                android:layout_width="76dp"
-                android:layout_height="76dp"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
                 android:background="#33000000"
-                android:contentDescription="@string/scan_edition_debug_symbol_crop"
+                android:contentDescription="@string/edition_scan_evidence_preview"
                 android:scaleType="fitCenter" />
 
             <TextView
                 android:id="@+id/editionScanStatus"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
+                android:layout_marginTop="8dp"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -99,7 +98,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="@string/edition_scan_read_symbol"
+                android:text="@string/edition_scan_analyze_card"
                 app:backgroundTint="?attr/colorSecondary" />
         </LinearLayout>
     </LinearLayout>

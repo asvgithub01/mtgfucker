@@ -9,6 +9,8 @@ enum class CardBorderColor {
     BLACK,
     WHITE,
     GOLD,
+    SILVER,
+    MIXED,
     UNKNOWN
 }
 
@@ -24,12 +26,15 @@ data class CardEditionVisualFingerprint(
         private const val SYMBOL_HASH_HEIGHT = 16
 
         /** Camera photos contain a card centred inside the scanner guide. */
-        fun fromCamera(bitmap: Bitmap): CardEditionVisualFingerprint =
-            fromCard(bitmap, CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f), true)
+        fun fromCamera(bitmap: Bitmap, card: Rect = CardImageFingerprint.centeredCardRect(
+            bitmap.width, bitmap.height, .72f
+        )): CardEditionVisualFingerprint = fromCard(bitmap, card, true)
 
         /** Exact camera crop used for the set-symbol comparison, exposed for visible diagnostics. */
-        fun setSymbolCropFromCamera(bitmap: Bitmap): Bitmap {
-            val card = CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f)
+        fun setSymbolCropFromCamera(
+            bitmap: Bitmap,
+            card: Rect = CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f)
+        ): Bitmap {
             val symbol = setSymbolRect(bitmap, card)
             return Bitmap.createBitmap(bitmap, symbol.left, symbol.top, symbol.width(), symbol.height())
         }
@@ -87,47 +92,22 @@ data class CardEditionVisualFingerprint(
         /** Kept separate from Bitmap access so the colour decision remains JVM-testable. */
         internal fun classifyBorder(samples: IntArray): Pair<CardBorderColor, Double> {
             if (samples.isEmpty()) return CardBorderColor.UNKNOWN to 0.0
-            var black = 0
-            var white = 0
-            var gold = 0
-            var redTotal = 0L
-            var greenTotal = 0L
-            var blueTotal = 0L
-            for (pixel in samples) {
+            val zones = samples.mapIndexed { index, pixel ->
                 val red = pixel shr 16 and 0xff
                 val green = pixel shr 8 and 0xff
                 val blue = pixel and 0xff
-                val high = maxOf(red, green, blue)
-                val low = minOf(red, green, blue)
-                val luma = (red * 299 + green * 587 + blue * 114) / 1000
-                redTotal += red
-                greenTotal += green
-                blueTotal += blue
-                if (luma <= 88) black++
-                if (luma >= 145 && high - low <= 78) white++
-                if (luma in 82..205 && red - green in 5..82 &&
-                    green - blue >= 5 && high - low >= 24) gold++
+                CardBorderZone(
+                    CardBorderSide.TOP,
+                    index / samples.size.toFloat(),
+                    index,
+                    0,
+                    red,
+                    green,
+                    blue,
+                    CardFrameAnalyzer.classifyRgb(red, green, blue)
+                )
             }
-            val size = samples.size.toDouble()
-            val blackRatio = black / size
-            val whiteRatio = white / size
-            val goldRatio = gold / size
-            val averageRed = redTotal / size
-            val averageGreen = greenTotal / size
-            val averageBlue = blueTotal / size
-            val averageLooksGold = averageRed > averageGreen + 8 &&
-                averageGreen > averageBlue + 7 && averageRed - averageBlue > 28
-
-            return when {
-                whiteRatio >= .30 && whiteRatio >= blackRatio &&
-                    (whiteRatio > goldRatio * 1.05 || averageBlue >= 145) ->
-                    CardBorderColor.WHITE to ((whiteRatio - .30) / .70).coerceIn(.35, 1.0)
-                blackRatio >= .32 && blackRatio >= whiteRatio && blackRatio >= goldRatio ->
-                    CardBorderColor.BLACK to ((blackRatio - .32) / .68).coerceIn(.35, 1.0)
-                goldRatio >= .30 || (goldRatio >= .22 && averageLooksGold && blackRatio < .30) ->
-                    CardBorderColor.GOLD to ((goldRatio - .22) / .78).coerceIn(.35, 1.0)
-                else -> CardBorderColor.UNKNOWN to maxOf(blackRatio, whiteRatio, goldRatio)
-            }
+            return CardFrameAnalyzer.classifyBorderZones(zones)
         }
 
         private fun fromCard(bitmap: Bitmap, card: Rect, camera: Boolean): CardEditionVisualFingerprint {

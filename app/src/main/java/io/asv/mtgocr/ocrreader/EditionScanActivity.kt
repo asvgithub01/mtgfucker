@@ -19,14 +19,15 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.vision.Detector
 import com.google.android.gms.vision.Frame
+import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate
+import io.asv.mtgocr.ocrreader.data.CardIdentificationResult
 import io.asv.mtgocr.ocrreader.data.CardRepository
-import io.asv.mtgocr.ocrreader.data.SetSymbolIdentificationResult
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSource
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview
 import java.io.IOException
 import java.util.Locale
 
-/** Focused second step: OCR supplies the name; this screen only reads the edition symbol. */
+/** Focused second step: OCR supplies the name; this screen gathers visual edition evidence. */
 class EditionScanActivity : AppCompatActivity() {
     private lateinit var preview: CameraSourcePreview
     private lateinit var capture: Button
@@ -63,7 +64,7 @@ class EditionScanActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.editionScanCardName).text =
             getString(R.string.edition_scan_title) + " · " + displayName
         findViewById<Button>(R.id.editionScanCancel).setOnClickListener { finish() }
-        capture.setOnClickListener { captureSymbol() }
+        capture.setOnClickListener { captureCard() }
     }
 
     private fun ensureCamera() {
@@ -97,7 +98,7 @@ class EditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun captureSymbol() {
+    private fun captureCard() {
         val source = cameraSource ?: return
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
@@ -106,7 +107,7 @@ class EditionScanActivity : AppCompatActivity() {
         comparisonStartedAt = SystemClock.elapsedRealtime()
         try {
             source.takePicture(null) { jpeg ->
-                repository.identifyCardSetSymbol(
+                repository.identifyCardArtwork(
                     cardName,
                     language,
                     jpeg,
@@ -115,8 +116,9 @@ class EditionScanActivity : AppCompatActivity() {
                 ) { result, error ->
                     capture.isEnabled = true
                     if (error != null || result.candidates.isEmpty()) {
-                        result.setSymbolCrop?.let(::replaceDebugBitmap)
-                        showFailure()
+                        replaceDebugBitmap(result.analysisPreview ?: result.setSymbolCrop)
+                        recycleUnusedResultBitmaps(result)
+                        showFailure(result)
                     } else {
                         showResult(result)
                     }
@@ -128,41 +130,140 @@ class EditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun showResult(result: SetSymbolIdentificationResult) {
-        replaceDebugBitmap(result.setSymbolCrop)
+    private fun showResult(result: CardIdentificationResult) {
+        replaceDebugBitmap(result.analysisPreview ?: result.setSymbolCrop)
+        recycleUnusedResultBitmaps(result)
         val elapsed = (SystemClock.elapsedRealtime() - comparisonStartedAt).coerceAtLeast(0L)
         status.text = getString(
             R.string.edition_scan_result,
+            (result.boundaryConfidence * 100).toInt().coerceIn(0, 100),
+            borderLabel(result.detectedBorder),
+            (result.detectedBorderConfidence * 100).toInt().coerceIn(0, 100),
+            result.borderSampleCount,
             result.detectedLanguage.ifBlank { "—" },
             result.languageFilteredOut,
-            result.comparedSymbols,
-            elapsed
+            result.comparedImages,
+            elapsed,
+            (result.glareRatio * 100).toInt().coerceIn(0, 100)
         )
         val labels = result.candidates.map { candidate ->
             getString(
                 R.string.edition_scan_candidate,
                 candidate.option.setName,
                 candidate.option.setCode.uppercase(Locale.US),
-                ((1.0 - candidate.symbolDistance) * 100.0).toInt().coerceIn(0, 100)
+                similarity(candidate.distance),
+                similarity(candidate.artworkDistance),
+                similarity(candidate.setSymbolDistance),
+                borderMatchLabel(candidate.borderMatches)
             )
         }.toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle(R.string.edition_scan_choose)
+            .setTitle(
+                if (result.confident) R.string.edition_scan_confirmed
+                else R.string.edition_scan_probable
+            )
             .setItems(labels) { _, which ->
-                val selected = result.candidates[which].option
-                setResult(
-                    Activity.RESULT_OK,
-                    Intent().putExtra(EXTRA_SET_CODE, selected.setCode)
-                )
-                finish()
+                showCandidateExplanation(result.candidates[which], result)
             }
-            .setNegativeButton(R.string.edition_scan_read_symbol, null)
+            .setNegativeButton(R.string.edition_scan_retry, null)
             .show()
     }
 
-    private fun showFailure() {
+    private fun showCandidateExplanation(
+        candidate: CardIdentificationCandidate,
+        result: CardIdentificationResult
+    ) {
+        val borderEvidence = when (candidate.borderMatches) {
+            true -> getString(
+                R.string.edition_scan_evidence_border_match,
+                borderLabel(result.detectedBorder)
+            )
+            false -> getString(
+                R.string.edition_scan_evidence_border_mismatch,
+                borderLabel(result.detectedBorder),
+                borderLabel(candidate.referenceBorder)
+            )
+            null -> getString(R.string.edition_scan_evidence_border_unknown)
+        }
+        val message = getString(
+            R.string.edition_scan_explanation,
+            similarity(candidate.distance),
+            similarity(candidate.artworkDistance),
+            similarity(candidate.setSymbolDistance),
+            borderEvidence,
+            (result.boundaryConfidence * 100).toInt().coerceIn(0, 100),
+            result.borderSampleCount,
+            (result.glareRatio * 100).toInt().coerceIn(0, 100),
+            (result.sharpness * 100).toInt().coerceIn(0, 100),
+            borderRgbSummary(result)
+        )
+        AlertDialog.Builder(this)
+            .setTitle("${candidate.option.setName} (${candidate.option.setCode.uppercase(Locale.US)})")
+            .setMessage(message)
+            .setPositiveButton(R.string.edition_scan_use_edition) { _, _ ->
+                setResult(
+                    Activity.RESULT_OK,
+                    Intent().putExtra(EXTRA_SET_CODE, candidate.option.setCode)
+                )
+                finish()
+            }
+            .setNegativeButton(R.string.edition_scan_back) { _, _ -> showResult(result) }
+            .show()
+    }
+
+    private fun showFailure(result: CardIdentificationResult? = null) {
         debug.visibility = View.VISIBLE
-        status.setText(R.string.edition_scan_no_match)
+        status.text = if (result == null || result.borderSampleCount == 0) {
+            getString(R.string.edition_scan_no_match)
+        } else {
+            getString(
+                R.string.edition_scan_no_match_with_evidence,
+                (result.boundaryConfidence * 100).toInt().coerceIn(0, 100),
+                borderLabel(result.detectedBorder),
+                (result.detectedBorderConfidence * 100).toInt().coerceIn(0, 100),
+                result.borderSampleCount
+            )
+        }
+    }
+
+    private fun recycleUnusedResultBitmaps(result: CardIdentificationResult) {
+        val displayed = result.analysisPreview ?: result.setSymbolCrop
+        result.analysisPreview?.takeIf { it !== displayed && !it.isRecycled }?.recycle()
+        result.setSymbolCrop?.takeIf { it !== displayed && !it.isRecycled }?.recycle()
+    }
+
+    private fun similarity(distance: Double): Int =
+        ((1.0 - distance) * 100.0).toInt().coerceIn(0, 100)
+
+    private fun borderMatchLabel(matches: Boolean?): String = when (matches) {
+        true -> getString(R.string.edition_scan_border_matches)
+        false -> getString(R.string.edition_scan_border_differs)
+        null -> getString(R.string.edition_scan_border_unresolved)
+    }
+
+    private fun borderLabel(color: CardBorderColor): String = when (color) {
+        CardBorderColor.BLACK -> getString(R.string.edition_scan_border_black)
+        CardBorderColor.WHITE -> getString(R.string.edition_scan_border_white)
+        CardBorderColor.GOLD -> getString(R.string.edition_scan_border_gold)
+        CardBorderColor.SILVER -> getString(R.string.edition_scan_border_silver)
+        CardBorderColor.MIXED -> getString(R.string.edition_scan_border_mixed)
+        CardBorderColor.UNKNOWN -> getString(R.string.edition_scan_border_unknown)
+    }
+
+    private fun borderRgbSummary(result: CardIdentificationResult): String =
+        CardBorderSide.entries.joinToString("\n") { side ->
+            val zones = result.borderZones.filter { it.side == side }
+            val red = zones.map { it.red }.average().takeIf { !it.isNaN() }?.toInt() ?: 0
+            val green = zones.map { it.green }.average().takeIf { !it.isNaN() }?.toInt() ?: 0
+            val blue = zones.map { it.blue }.average().takeIf { !it.isNaN() }?.toInt() ?: 0
+            "${borderSideLabel(side)}: $red, $green, $blue"
+        }
+
+    private fun borderSideLabel(side: CardBorderSide): String = when (side) {
+        CardBorderSide.TOP -> getString(R.string.edition_scan_side_top)
+        CardBorderSide.RIGHT -> getString(R.string.edition_scan_side_right)
+        CardBorderSide.BOTTOM -> getString(R.string.edition_scan_side_bottom)
+        CardBorderSide.LEFT -> getString(R.string.edition_scan_side_left)
     }
 
     private fun replaceDebugBitmap(bitmap: Bitmap?) {

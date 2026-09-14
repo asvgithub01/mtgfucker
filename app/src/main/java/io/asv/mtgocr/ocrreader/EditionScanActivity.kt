@@ -449,11 +449,17 @@ class EditionScanActivity : AppCompatActivity() {
                     similarity(candidate.setSymbolDistance)
                 )
             )
-            view.findViewById<TextView>(R.id.editionCandidateBorder).text = getString(
-                R.string.edition_scan_candidate_borders,
-                borderLabel(detectedBorder),
-                borderLabel(candidate.referenceBorder),
-                borderMatchLabel(candidate.borderMatches)
+            val detectedBorderLabel = borderLabel(detectedBorder)
+            val referenceBorderLabel = borderLabel(candidate.referenceBorder)
+            view.findViewById<TextView>(R.id.editionCandidateBorder).text = boldBorderColors(
+                value = getString(
+                    R.string.edition_scan_candidate_borders,
+                    detectedBorderLabel,
+                    referenceBorderLabel,
+                    borderMatchLabel(candidate.borderMatches)
+                ),
+                detectedBorder = detectedBorderLabel,
+                referenceBorder = referenceBorderLabel
             )
             SetSymbolLoader.display(view.context, candidate.option.setCode, symbol)
             return view
@@ -486,6 +492,36 @@ class EditionScanActivity : AppCompatActivity() {
                 StyleSpan(Typeface.BOLD),
                 firstValueCharacter,
                 value.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        return styled
+    }
+
+    private fun boldBorderColors(
+        value: String,
+        detectedBorder: String,
+        referenceBorder: String
+    ): CharSequence {
+        val styled = SpannableString(value)
+        val detectedStart = value.indexOf(detectedBorder)
+        if (detectedStart >= 0) {
+            styled.setSpan(
+                StyleSpan(Typeface.BOLD),
+                detectedStart,
+                detectedStart + detectedBorder.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        val referenceStart = value.indexOf(
+            referenceBorder,
+            (detectedStart + detectedBorder.length).coerceAtLeast(0)
+        )
+        if (referenceStart >= 0) {
+            styled.setSpan(
+                StyleSpan(Typeface.BOLD),
+                referenceStart,
+                referenceStart + referenceBorder.length,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }

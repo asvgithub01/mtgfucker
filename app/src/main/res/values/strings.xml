@@ -282,9 +282,9 @@
     <string name="edition_scan_back">Volver</string>
     <string name="edition_scan_use_edition">Usar esta edición</string>
     <string name="edition_scan_evidence_preview">Contorno y muestras de borde detectados</string>
-    <string name="edition_scan_border_matches">borde coincide</string>
-    <string name="edition_scan_border_differs">borde distinto</string>
-    <string name="edition_scan_border_unresolved">borde sin resolver</string>
+    <string name="edition_scan_border_matches">✅</string>
+    <string name="edition_scan_border_differs">❌</string>
+    <string name="edition_scan_border_unresolved">❔</string>
     <string name="edition_scan_evidence_border_match">El borde detectado (%1$s) coincide con la referencia.</string>
     <string name="edition_scan_evidence_border_mismatch">El borde detectado es %1$s, pero la referencia parece %2$s.</string>
     <string name="edition_scan_evidence_border_unknown">El borde no aporta una prueba concluyente.</string>

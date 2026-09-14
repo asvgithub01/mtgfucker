@@ -47,7 +47,10 @@ object CloudLibrarySync {
     private const val KEY_LAST_BACKUP = "last_backup_"
     private const val KEY_HASH = "hash_"
     private const val KEY_SNAPSHOT = "snapshot_"
-    private const val UPLOAD_DELAY_MS = 1_500L
+    private const val KEY_AUTO_SYNC = "auto_sync_enabled"
+    // Every local change is kept, but nearby edits share one cloud snapshot to avoid needless
+    // Firestore operations while the user is scanning or changing quantities quickly.
+    private const val UPLOAD_DELAY_MS = 8_000L
     private const val MAX_BATCH_OPERATIONS = 400
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -69,13 +72,30 @@ object CloudLibrarySync {
     }
 
     @JvmStatic
+    fun isAutoSyncEnabled(context: Context): Boolean =
+        preferences(context).getBoolean(KEY_AUTO_SYNC, true)
+
+    @JvmStatic
+    fun setAutoSyncEnabled(context: Context, enabled: Boolean) {
+        preferences(context).edit().putBoolean(KEY_AUTO_SYNC, enabled).apply()
+        if (!enabled) {
+            pendingUploads.values.forEach { it.cancel() }
+            pendingUploads.clear()
+            return
+        }
+        if (PremiumAccess.isEnabled(context) && currentUser(context) != null) {
+            scope.launch { runCatching { reconcile(context.applicationContext) }.onFailure(::logFailure) }
+        }
+    }
+
+    @JvmStatic
     fun onPremiumChanged(context: Context, enabled: Boolean) {
         if (!enabled) {
             pendingUploads.values.forEach { it.cancel() }
             pendingUploads.clear()
             return
         }
-        if (currentUser(context) != null) {
+        if (isAutoSyncEnabled(context) && currentUser(context) != null) {
             scope.launch { runCatching { reconcile(context.applicationContext) }.onFailure(::logFailure) }
         }
     }
@@ -83,7 +103,10 @@ object CloudLibrarySync {
     /** Called only after the atomic local file replacement succeeded. */
     @JvmStatic
     fun onLocalCollectionSaved(context: Context, collection: Biblio) {
-        if (suppressUpload.get() > 0 || !PremiumAccess.isEnabled(context)) return
+        if (suppressUpload.get() > 0 ||
+            !PremiumAccess.isEnabled(context) ||
+            !isAutoSyncEnabled(context)
+        ) return
         val user = currentUser(context) ?: return
         val library = LibraryCatalog.libraryForFile(context, collection.nameFile) ?: return
         val key = "${user.uid}:${library.id}"
@@ -95,7 +118,10 @@ object CloudLibrarySync {
                 syncMutex.withLock {
                     val current = DataUtils.readSerializable<Biblio>(context, library.fileName)
                     if (current != null && sameContents(current, snapshot)) {
-                        upload(context.applicationContext, user, library, snapshot)
+                        val hash = CloudSnapshotCodec.sha256(CloudSnapshotCodec.encode(snapshot))
+                        if (hash != state(context, user.uid, library.id, KEY_HASH)) {
+                            upload(context.applicationContext, user, library, snapshot)
+                        }
                     }
                 }
             }

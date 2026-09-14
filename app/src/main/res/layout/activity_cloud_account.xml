@@ -83,6 +83,24 @@
                 android:textSize="21sp"
                 android:textStyle="bold" />
 
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchCloudAutoSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:minHeight="48dp"
+                android:text="@string/cloud_auto_save"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/cloud_auto_save_explanation"
+                android:textColor="?attr/appGlassTextColor"
+                android:textSize="13sp" />
+
             <TextView
                 android:id="@+id/txtCloudSyncStatus"
                 android:layout_width="match_parent"

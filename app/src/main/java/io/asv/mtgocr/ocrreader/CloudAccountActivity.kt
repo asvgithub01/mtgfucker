@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -31,6 +32,7 @@ class CloudAccountActivity : AppCompatActivity() {
     private lateinit var signOut: Button
     private lateinit var syncNow: Button
     private lateinit var restore: Button
+    private lateinit var autoSave: SwitchCompat
     private lateinit var progress: ProgressBar
     private lateinit var credentialManager: CredentialManager
     private var busy = false
@@ -46,12 +48,19 @@ class CloudAccountActivity : AppCompatActivity() {
         signOut = findViewById(R.id.btnGoogleSignOut)
         syncNow = findViewById(R.id.btnCloudSyncNow)
         restore = findViewById(R.id.btnCloudRestore)
+        autoSave = findViewById(R.id.switchCloudAutoSave)
         progress = findViewById(R.id.cloudProgress)
         findViewById<View>(R.id.btnCloudBack).setOnClickListener { finish() }
         signIn.setOnClickListener { beginGoogleSignIn() }
         signOut.setOnClickListener { signOut() }
         syncNow.setOnClickListener { synchronize() }
         restore.setOnClickListener { confirmRestore() }
+        autoSave.isChecked = CloudLibrarySync.isAutoSyncEnabled(this)
+        autoSave.setOnCheckedChangeListener { _, enabled ->
+            CloudLibrarySync.setAutoSyncEnabled(this, enabled)
+            toast(getString(if (enabled) R.string.cloud_auto_save_enabled else R.string.cloud_auto_save_disabled))
+            render()
+        }
         render()
     }
 
@@ -172,6 +181,7 @@ class CloudAccountActivity : AppCompatActivity() {
         signOut.isEnabled = !busy && user != null
         syncNow.isEnabled = allowed
         restore.isEnabled = allowed
+        autoSave.isEnabled = !busy && premium
         if (!busy) {
             val lastSync = CloudLibrarySync.lastSyncMillis(this)
             syncStatus.text = when {
@@ -190,6 +200,7 @@ class CloudAccountActivity : AppCompatActivity() {
         signOut.isEnabled = !value
         syncNow.isEnabled = !value
         restore.isEnabled = !value
+        autoSave.isEnabled = !value
     }
 
     private fun ensureFirebaseReady(): Boolean = runCatching {

@@ -30,6 +30,10 @@
     <string name="cloud_signed_out">No has iniciado sesión con Google.</string>
     <string name="cloud_signed_out_local_kept">Sesión cerrada. La colección local sigue en este dispositivo.</string>
     <string name="cloud_sync_now">Sincronizar ahora</string>
+    <string name="cloud_auto_save">Guardar cada cambio automáticamente</string>
+    <string name="cloud_auto_save_explanation">Cada cambio local se sube a la nube. Los cambios realizados durante unos segundos se agrupan en una sola copia para reducir el coste.</string>
+    <string name="cloud_auto_save_enabled">Autoguardado en la nube activado.</string>
+    <string name="cloud_auto_save_disabled">Autoguardado en la nube desactivado. Puedes seguir usando «Sincronizar ahora».</string>
     <string name="cloud_restore_action">Descargar última copia</string>
     <string name="cloud_restore_title">¿Reemplazar las bibliotecas locales?</string>
     <string name="cloud_restore_warning">Se descargarán las últimas copias guardadas en la nube para esta cuenta. El contenido local de esas bibliotecas será reemplazado.</string>

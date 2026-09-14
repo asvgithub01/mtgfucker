@@ -14,8 +14,8 @@ android {
         applicationId "io.asv.mtgocr.ocrreader"
         minSdkVersion 21
         targetSdkVersion 33
-        versionCode 5
-        versionName "2.3"
+        versionCode 6
+        versionName "2.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

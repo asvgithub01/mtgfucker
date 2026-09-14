@@ -32,6 +32,8 @@ class CardCropAdjustView @JvmOverloads constructor(
     private var lastImageY = 0f
     private var lastTouchX = 0f
     private var lastTouchY = 0f
+    private var grabOffsetX = 0f
+    private var grabOffsetY = 0f
 
     private val photoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val shadePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -62,6 +64,11 @@ class CardCropAdjustView @JvmOverloads constructor(
     }
     private val magnifierCrosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.rgb(214, 255, 127)
+        style = Paint.Style.STROKE
+        strokeWidth = resources.displayMetrics.density * 1.5f
+    }
+    private val handleCenterPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.BLACK
         style = Paint.Style.STROKE
         strokeWidth = resources.displayMetrics.density * 1.5f
     }
@@ -152,6 +159,15 @@ class CardCropAdjustView @JvmOverloads constructor(
             val viewPoint = toView(corner.x, corner.y)
             canvas.drawCircle(viewPoint.x, viewPoint.y, radius, handlePaint)
             canvas.drawCircle(viewPoint.x, viewPoint.y, radius, linePaint)
+            val marker = resources.displayMetrics.density * 5f
+            canvas.drawLine(
+                viewPoint.x - marker, viewPoint.y - marker,
+                viewPoint.x + marker, viewPoint.y + marker, handleCenterPaint
+            )
+            canvas.drawLine(
+                viewPoint.x - marker, viewPoint.y + marker,
+                viewPoint.x + marker, viewPoint.y - marker, handleCenterPaint
+            )
         }
         if (activeHandle in corners.indices) drawMagnifier(canvas, bitmap, corners[activeHandle])
     }
@@ -166,6 +182,13 @@ class CardCropAdjustView @JvmOverloads constructor(
                 activeHandle = nearestHandle(event.x, event.y)
                 if (activeHandle == NONE && pointInQuad(point.x, point.y)) activeHandle = MOVE
                 if (activeHandle == NONE) return false
+                if (activeHandle in corners.indices) {
+                    grabOffsetX = corners[activeHandle].x - point.x
+                    grabOffsetY = corners[activeHandle].y - point.y
+                } else {
+                    grabOffsetX = 0f
+                    grabOffsetY = 0f
+                }
                 lastImageX = point.x
                 lastImageY = point.y
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -179,7 +202,12 @@ class CardCropAdjustView @JvmOverloads constructor(
                 if (activeHandle == MOVE) {
                     moveQuad(dx, dy, bitmap)
                 } else if (activeHandle in corners.indices) {
-                    moveCorner(activeHandle, point.x, point.y, bitmap)
+                    moveCorner(
+                        activeHandle,
+                        point.x + grabOffsetX,
+                        point.y + grabOffsetY,
+                        bitmap
+                    )
                 }
                 lastImageX = point.x
                 lastImageY = point.y
@@ -269,17 +297,41 @@ class CardCropAdjustView @JvmOverloads constructor(
         canvas.save()
         canvas.clipPath(clip)
         canvas.drawColor(Color.BLACK)
-        val pointInView = toView(imagePoint.x, imagePoint.y)
-        canvas.translate(centerX, centerY)
-        canvas.scale(MAGNIFIER_ZOOM, MAGNIFIER_ZOOM)
-        canvas.translate(-pointInView.x, -pointInView.y)
-        canvas.drawBitmap(bitmap, null, imageRect, photoPaint)
+        val magnifiedScale = imageScale * MAGNIFIER_ZOOM
+        val transform = Matrix().apply {
+            setPolyToPoly(
+                floatArrayOf(
+                    imagePoint.x, imagePoint.y,
+                    imagePoint.x + 1f, imagePoint.y,
+                    imagePoint.x, imagePoint.y + 1f
+                ),
+                0,
+                floatArrayOf(
+                    centerX, centerY,
+                    centerX + magnifiedScale, centerY,
+                    centerX, centerY + magnifiedScale
+                ),
+                0,
+                3
+            )
+        }
+        canvas.drawBitmap(bitmap, transform, photoPaint)
         canvas.restore()
         canvas.drawCircle(centerX, centerY, radius, magnifierFramePaint)
         val arm = 13f * density
         canvas.drawLine(centerX - arm, centerY, centerX + arm, centerY, magnifierCrosshairPaint)
         canvas.drawLine(centerX, centerY - arm, centerX, centerY + arm, magnifierCrosshairPaint)
-        canvas.drawCircle(centerX, centerY, 3.5f * density, handlePaint)
+        val diagonal = 5f * density
+        canvas.drawLine(
+            centerX - diagonal, centerY - diagonal,
+            centerX + diagonal, centerY + diagonal,
+            magnifierCrosshairPaint
+        )
+        canvas.drawLine(
+            centerX - diagonal, centerY + diagonal,
+            centerX + diagonal, centerY - diagonal,
+            magnifierCrosshairPaint
+        )
     }
 
     private fun bilinear(horizontal: Float, vertical: Float): PointF {

@@ -3,7 +3,6 @@ package io.asv.mtgocr.ocrreader
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.PointF
-import android.graphics.Rect
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -14,7 +13,7 @@ data class DetectedCardQuad(
     val confidence: Double
 )
 
-/** Fits the four visible card edges around the scanner guide and intersects their lines. */
+/** Finds four coherent card-edge lines near the scanner guide and intersects their corners. */
 object CardQuadrilateralDetector {
     fun detect(bitmap: Bitmap): DetectedCardQuad? {
         val longestSide = max(bitmap.width, bitmap.height)
@@ -38,11 +37,28 @@ object CardQuadrilateralDetector {
     }
 
     private fun detectWorking(bitmap: Bitmap): DetectedCardQuad? {
-        val seed = CardFrameAnalyzer.analyze(bitmap).bounds
-        val left = fitVerticalSide(bitmap, seed, seed.left)
-        val right = fitVerticalSide(bitmap, seed, seed.right)
-        val top = fitHorizontalSide(bitmap, seed, seed.top)
-        val bottom = fitHorizontalSide(bitmap, seed, seed.bottom)
+        // Searching complete coherent lines prevents isolated text or artwork edges from pulling
+        // different samples to unrelated positions, which happened in the first detector.
+        val expected = CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f)
+        val centerX = expected.exactCenterX()
+        val centerY = expected.exactCenterY()
+        val verticalRadius = max(10, (expected.width() * .22f).toInt())
+        val horizontalRadius = max(10, (expected.height() * .16f).toInt())
+        val offset = max(2, min(bitmap.width, bitmap.height) / 280)
+
+        val left = searchVerticalLine(
+            bitmap, expected.left, centerY, expected.top, expected.bottom, verticalRadius, offset
+        )
+        val right = searchVerticalLine(
+            bitmap, expected.right, centerY, expected.top, expected.bottom, verticalRadius, offset
+        )
+        val top = searchHorizontalLine(
+            bitmap, expected.top, centerX, expected.left, expected.right, horizontalRadius, offset
+        )
+        val bottom = searchHorizontalLine(
+            bitmap, expected.bottom, centerX, expected.left, expected.right, horizontalRadius, offset
+        )
+
         val corners = arrayOf(
             intersection(left, top) ?: return null,
             intersection(right, top) ?: return null,
@@ -51,149 +67,169 @@ object CardQuadrilateralDetector {
         )
         val width = bitmap.width.toFloat()
         val height = bitmap.height.toFloat()
-        corners.forEach {
-            it.x = it.x.coerceIn(0f, width)
-            it.y = it.y.coerceIn(0f, height)
-        }
+        if (corners.any { it.x !in 0f..width || it.y !in 0f..height }) return null
         if (!CardCropAdjustView.validQuad(corners, width, height)) return null
+        if (!plausibleCardShape(corners)) return null
+
         val confidence = listOf(left, right, top, bottom).map { it.confidence }.average()
         if (confidence < MIN_CONFIDENCE) return null
         return DetectedCardQuad(corners, confidence)
     }
 
-    /** Fits x = slope * y + intercept. */
-    private fun fitVerticalSide(bitmap: Bitmap, seed: Rect, expectedX: Int): FittedLine {
-        val radius = max(8, (seed.width() * .16f).toInt())
-        val offset = max(2, min(bitmap.width, bitmap.height) / 300)
-        val samples = ArrayList<EdgeSample>(VERTICAL_SAMPLES)
-        for (index in 0 until VERTICAL_SAMPLES) {
-            val fraction = .08f + .84f * index / (VERTICAL_SAMPLES - 1f)
-            val y = (seed.top + seed.height() * fraction).toInt()
-                .coerceIn(offset, bitmap.height - offset - 1)
-            samples += strongestVerticalAt(bitmap, expectedX, y, radius, offset)
-        }
-        return robustFit(samples, radius.toFloat())
-    }
-
-    /** Fits y = slope * x + intercept. */
-    private fun fitHorizontalSide(bitmap: Bitmap, seed: Rect, expectedY: Int): FittedLine {
-        val radius = max(8, (seed.height() * .12f).toInt())
-        val offset = max(2, min(bitmap.width, bitmap.height) / 300)
-        val samples = ArrayList<EdgeSample>(HORIZONTAL_SAMPLES)
-        for (index in 0 until HORIZONTAL_SAMPLES) {
-            val fraction = .08f + .84f * index / (HORIZONTAL_SAMPLES - 1f)
-            val x = (seed.left + seed.width() * fraction).toInt()
-                .coerceIn(offset, bitmap.width - offset - 1)
-            val edge = strongestHorizontalAt(bitmap, expectedY, x, radius, offset)
-            samples += EdgeSample(x.toFloat(), edge.position, edge.strength)
-        }
-        return robustFit(samples, radius.toFloat())
-    }
-
-    private fun strongestVerticalAt(
+    /** x = position + slope * (y - axisCenter). */
+    private fun searchVerticalLine(
         bitmap: Bitmap,
-        expectedX: Int,
-        y: Int,
+        expectedPosition: Int,
+        axisCenter: Float,
+        rangeStart: Int,
+        rangeEnd: Int,
         radius: Int,
         offset: Int
-    ): EdgeSample {
-        val start = (expectedX - radius).coerceIn(offset, bitmap.width - offset - 1)
-        val end = (expectedX + radius).coerceIn(start, bitmap.width - offset - 1)
-        var bestPosition = expectedX.coerceIn(start, end)
-        var bestStrength = 0.0
-        for (x in start..end) {
-            var raw = 0.0
-            var count = 0
-            for (sampleY in (y - 2).coerceAtLeast(0)..(y + 2).coerceAtMost(bitmap.height - 1)) {
-                raw += colorDistance(
-                    bitmap.getPixel(x - offset, sampleY),
-                    bitmap.getPixel(x + offset, sampleY)
+    ): EdgeLine {
+        var best = EdgeLine(expectedPosition.toFloat(), 0f, axisCenter, 0.0)
+        val positionStep = max(1, bitmap.width / 520)
+        var position = expectedPosition - radius
+        while (position <= expectedPosition + radius) {
+            var slope = -MAX_SLOPE
+            while (slope <= MAX_SLOPE + .001f) {
+                val strength = verticalLineStrength(
+                    bitmap, position.toFloat(), slope, axisCenter, rangeStart, rangeEnd, offset
                 )
-                count++
+                val proximity = 1.0 - POSITION_PENALTY *
+                    abs(position - expectedPosition) / radius.coerceAtLeast(1).toDouble()
+                val score = strength * proximity
+                if (score > best.confidence) {
+                    best = EdgeLine(position.toFloat(), slope, axisCenter, score)
+                }
+                slope += SLOPE_STEP
             }
-            val proximity = 1.0 - .28 * abs(x - expectedX) / radius.coerceAtLeast(1).toDouble()
-            val strength = raw / count.coerceAtLeast(1) * proximity
-            if (strength > bestStrength) {
-                bestStrength = strength
-                bestPosition = x
-            }
+            position += positionStep
         }
-        return EdgeSample(y.toFloat(), bestPosition.toFloat(), bestStrength)
+        return best.copy(confidence = (best.confidence / EDGE_NORMALIZER).coerceIn(0.0, 1.0))
     }
 
-    private fun strongestHorizontalAt(
+    /** y = position + slope * (x - axisCenter). */
+    private fun searchHorizontalLine(
         bitmap: Bitmap,
-        expectedY: Int,
-        x: Int,
+        expectedPosition: Int,
+        axisCenter: Float,
+        rangeStart: Int,
+        rangeEnd: Int,
         radius: Int,
         offset: Int
-    ): EdgeAtPosition {
-        val start = (expectedY - radius).coerceIn(offset, bitmap.height - offset - 1)
-        val end = (expectedY + radius).coerceIn(start, bitmap.height - offset - 1)
-        var bestPosition = expectedY.coerceIn(start, end).toFloat()
-        var bestStrength = 0.0
-        for (y in start..end) {
-            var raw = 0.0
-            var count = 0
-            for (sampleX in (x - 2).coerceAtLeast(0)..(x + 2).coerceAtMost(bitmap.width - 1)) {
-                raw += colorDistance(
-                    bitmap.getPixel(sampleX, y - offset),
-                    bitmap.getPixel(sampleX, y + offset)
+    ): EdgeLine {
+        var best = EdgeLine(expectedPosition.toFloat(), 0f, axisCenter, 0.0)
+        val positionStep = max(1, bitmap.height / 700)
+        var position = expectedPosition - radius
+        while (position <= expectedPosition + radius) {
+            var slope = -MAX_SLOPE
+            while (slope <= MAX_SLOPE + .001f) {
+                val strength = horizontalLineStrength(
+                    bitmap, position.toFloat(), slope, axisCenter, rangeStart, rangeEnd, offset
                 )
+                val proximity = 1.0 - POSITION_PENALTY *
+                    abs(position - expectedPosition) / radius.coerceAtLeast(1).toDouble()
+                val score = strength * proximity
+                if (score > best.confidence) {
+                    best = EdgeLine(position.toFloat(), slope, axisCenter, score)
+                }
+                slope += SLOPE_STEP
+            }
+            position += positionStep
+        }
+        return best.copy(confidence = (best.confidence / EDGE_NORMALIZER).coerceIn(0.0, 1.0))
+    }
+
+    private fun verticalLineStrength(
+        bitmap: Bitmap,
+        position: Float,
+        slope: Float,
+        centerY: Float,
+        top: Int,
+        bottom: Int,
+        offset: Int
+    ): Double {
+        val start = top + ((bottom - top) * .07f).toInt()
+        val end = bottom - ((bottom - top) * .07f).toInt()
+        val step = max(2, (end - start) / LINE_SAMPLES)
+        var total = 0.0
+        var count = 0
+        var y = start
+        while (y <= end) {
+            val x = (position + slope * (y - centerY)).toInt()
+            if (x - offset - 1 >= 0 && x + offset + 1 < bitmap.width && y in 0 until bitmap.height) {
+                var strongest = 0.0
+                for (shift in -1..1) strongest = max(
+                    strongest,
+                    colorDistance(
+                        bitmap.getPixel(x - offset + shift, y),
+                        bitmap.getPixel(x + offset + shift, y)
+                    )
+                )
+                total += strongest
                 count++
             }
-            val proximity = 1.0 - .28 * abs(y - expectedY) / radius.coerceAtLeast(1).toDouble()
-            val strength = raw / count.coerceAtLeast(1) * proximity
-            if (strength > bestStrength) {
-                bestStrength = strength
-                bestPosition = y.toFloat()
+            y += step
+        }
+        return if (count == 0) 0.0 else total / count
+    }
+
+    private fun horizontalLineStrength(
+        bitmap: Bitmap,
+        position: Float,
+        slope: Float,
+        centerX: Float,
+        left: Int,
+        right: Int,
+        offset: Int
+    ): Double {
+        val start = left + ((right - left) * .07f).toInt()
+        val end = right - ((right - left) * .07f).toInt()
+        val step = max(2, (end - start) / LINE_SAMPLES)
+        var total = 0.0
+        var count = 0
+        var x = start
+        while (x <= end) {
+            val y = (position + slope * (x - centerX)).toInt()
+            if (y - offset - 1 >= 0 && y + offset + 1 < bitmap.height && x in 0 until bitmap.width) {
+                var strongest = 0.0
+                for (shift in -1..1) strongest = max(
+                    strongest,
+                    colorDistance(
+                        bitmap.getPixel(x, y - offset + shift),
+                        bitmap.getPixel(x, y + offset + shift)
+                    )
+                )
+                total += strongest
+                count++
             }
+            x += step
         }
-        return EdgeAtPosition(bestPosition, bestStrength)
+        return if (count == 0) 0.0 else total / count
     }
 
-    private fun robustFit(input: List<EdgeSample>, searchRadius: Float): FittedLine {
-        var fitted = weightedFit(input)
-        val maximumResidual = max(3f, searchRadius * .24f)
-        val consistent = input.filter {
-            abs(it.dependent - (fitted.slope * it.independent + fitted.intercept)) <= maximumResidual
-        }
-        if (consistent.size >= input.size / 2) fitted = weightedFit(consistent)
-        val used = if (consistent.size >= input.size / 2) consistent else input
-        val residual = used.map {
-            abs(it.dependent - (fitted.slope * it.independent + fitted.intercept))
-        }.average()
-        val contrast = (used.map { it.strength }.average() / 105.0).coerceIn(0.0, 1.0)
-        val consistency = (1.0 - residual / searchRadius.coerceAtLeast(1f)).coerceIn(0.0, 1.0)
-        return fitted.copy(confidence = contrast * .68 + consistency * .32)
-    }
-
-    private fun weightedFit(samples: List<EdgeSample>): FittedLine {
-        val weights = samples.map { it.strength.coerceAtLeast(1.0) }
-        val totalWeight = weights.sum().coerceAtLeast(1.0)
-        val meanIndependent = samples.indices.sumOf {
-            samples[it].independent.toDouble() * weights[it]
-        } / totalWeight
-        val meanDependent = samples.indices.sumOf {
-            samples[it].dependent.toDouble() * weights[it]
-        } / totalWeight
-        var numerator = 0.0
-        var denominator = 0.0
-        for (index in samples.indices) {
-            val dx = samples[index].independent - meanIndependent
-            numerator += weights[index] * dx * (samples[index].dependent - meanDependent)
-            denominator += weights[index] * dx * dx
-        }
-        val slope = if (denominator <= .0001) 0f else (numerator / denominator).toFloat()
-        return FittedLine(slope, (meanDependent - slope * meanIndependent).toFloat(), 0.0)
-    }
-
-    private fun intersection(vertical: FittedLine, horizontal: FittedLine): PointF? {
+    private fun intersection(vertical: EdgeLine, horizontal: EdgeLine): PointF? {
+        val verticalIntercept = vertical.position - vertical.slope * vertical.axisCenter
+        val horizontalIntercept = horizontal.position - horizontal.slope * horizontal.axisCenter
         val denominator = 1f - vertical.slope * horizontal.slope
-        if (abs(denominator) < .02f) return null
-        val x = (vertical.slope * horizontal.intercept + vertical.intercept) / denominator
-        return PointF(x, horizontal.slope * x + horizontal.intercept)
+        if (abs(denominator) < .04f) return null
+        val x = (vertical.slope * horizontalIntercept + verticalIntercept) / denominator
+        return PointF(x, horizontal.slope * x + horizontalIntercept)
     }
+
+    private fun plausibleCardShape(points: Array<PointF>): Boolean {
+        val top = distance(points[0], points[1])
+        val bottom = distance(points[3], points[2])
+        val left = distance(points[0], points[3])
+        val right = distance(points[1], points[2])
+        val ratio = (top + bottom) / (left + right).coerceAtLeast(1f)
+        return ratio in .50f..1.0f
+    }
+
+    private fun distance(first: PointF, second: PointF): Float = sqrt(
+        (first.x - second.x) * (first.x - second.x) +
+            (first.y - second.y) * (first.y - second.y)
+    )
 
     private fun colorDistance(left: Int, right: Int): Double {
         val red = Color.red(left) - Color.red(right)
@@ -202,22 +238,18 @@ object CardQuadrilateralDetector {
         return sqrt((red * red + green * green + blue * blue).toDouble())
     }
 
-    private data class EdgeSample(
-        val independent: Float,
-        val dependent: Float,
-        val strength: Double
-    )
-
-    private data class EdgeAtPosition(val position: Float, val strength: Double)
-
-    private data class FittedLine(
+    private data class EdgeLine(
+        val position: Float,
         val slope: Float,
-        val intercept: Float,
+        val axisCenter: Float,
         val confidence: Double
     )
 
-    private const val MAX_ANALYSIS_SIDE = 720f
-    private const val VERTICAL_SAMPLES = 27
-    private const val HORIZONTAL_SAMPLES = 21
-    private const val MIN_CONFIDENCE = .30
+    private const val MAX_ANALYSIS_SIDE = 640f
+    private const val MAX_SLOPE = .32f
+    private const val SLOPE_STEP = .02f
+    private const val POSITION_PENALTY = .34
+    private const val LINE_SAMPLES = 64
+    private const val EDGE_NORMALIZER = 92.0
+    private const val MIN_CONFIDENCE = .33
 }

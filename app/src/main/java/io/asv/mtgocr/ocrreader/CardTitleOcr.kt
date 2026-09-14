@@ -6,6 +6,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.LinkedHashSet
 import kotlin.math.max
 import kotlin.math.min
@@ -16,21 +17,33 @@ data class CardTitleOcrResult(
     val attemptedVariants: Int
 )
 
-/** Reads the printed card name from two high-resolution header crops. */
+/** Reads the printed card name first, using contrast variants suited to pale or reflective frames. */
 class CardTitleOcr {
-    private val recognizer = TextRecognition.getClient(
+    private val latinRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val japaneseRecognizer = TextRecognition.getClient(
         JapaneseTextRecognizerOptions.Builder().build()
     )
 
     fun recognize(card: Bitmap, callback: (CardTitleOcrResult?, Throwable?) -> Unit) {
-        val titleCrop = crop(card, .025f, .015f, .90f, .145f)
-        val headerCrop = crop(card, .015f, .01f, .985f, .22f)
+        val titleCrop = crop(card, .025f, .012f, .91f, .145f)
+        val headerCrop = crop(card, .012f, .005f, .985f, .175f)
         val title = enlarge(titleCrop)
         val header = enlarge(headerCrop)
         titleCrop.recycle()
         headerCrop.recycle()
-        val variants = listOf(title, autoContrast(title), header, autoContrast(header))
-        val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it, 0)) }
+        val variants = listOf(
+            title,
+            autoContrast(title),
+            adaptiveThreshold(title),
+            header,
+            autoContrast(header),
+            adaptiveThreshold(header)
+        )
+        val latinTasks = variants.map { latinRecognizer.process(InputImage.fromBitmap(it, 0)) }
+        val japaneseTasks = listOf(title, variants[1], header, variants[4]).map {
+            japaneseRecognizer.process(InputImage.fromBitmap(it, 0))
+        }
+        val tasks = latinTasks + japaneseTasks
         Tasks.whenAllComplete(tasks).addOnCompleteListener {
             val lines = LinkedHashSet<String>()
             var successful = 0
@@ -56,12 +69,15 @@ class CardTitleOcr {
                         ?: IllegalStateException("No se pudo leer el nombre")
                 )
             } else {
-                callback(CardTitleOcrResult(lines.toList(), successful, variants.size), null)
+                callback(CardTitleOcrResult(lines.toList(), successful, tasks.size), null)
             }
         }
     }
 
-    fun close() = recognizer.close()
+    fun close() {
+        latinRecognizer.close()
+        japaneseRecognizer.close()
+    }
 
     private fun crop(
         card: Bitmap,
@@ -109,11 +125,49 @@ class CardTitleOcr {
         }
     }
 
+    /** Local mean threshold keeps dark title glyphs visible when glare flattens global contrast. */
+    private fun adaptiveThreshold(source: Bitmap): Bitmap {
+        val width = source.width
+        val height = source.height
+        val pixels = IntArray(width * height)
+        source.getPixels(pixels, 0, width, 0, 0, width, height)
+        val integral = LongArray((width + 1) * (height + 1))
+        for (y in 0 until height) {
+            var rowSum = 0L
+            for (x in 0 until width) {
+                rowSum += luma(pixels[y * width + x])
+                integral[(y + 1) * (width + 1) + x + 1] =
+                    integral[y * (width + 1) + x + 1] + rowSum
+            }
+        }
+        val radius = max(8, min(width, height) / 18)
+        for (y in 0 until height) {
+            val top = max(0, y - radius)
+            val bottom = min(height, y + radius + 1)
+            for (x in 0 until width) {
+                val left = max(0, x - radius)
+                val right = min(width, x + radius + 1)
+                val area = (right - left) * (bottom - top)
+                val sum = integral[bottom * (width + 1) + right] -
+                    integral[top * (width + 1) + right] -
+                    integral[bottom * (width + 1) + left] +
+                    integral[top * (width + 1) + left]
+                val threshold = sum / area - LOCAL_THRESHOLD_OFFSET
+                val value = if (luma(pixels[y * width + x]) < threshold) 0 else 255
+                pixels[y * width + x] = Color.rgb(value, value, value)
+            }
+        }
+        return Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).apply {
+            setPixels(pixels, 0, width, 0, 0, width, height)
+        }
+    }
+
     private fun luma(color: Int): Int =
         ((color shr 16 and 0xff) * 299 + (color shr 8 and 0xff) * 587 +
             (color and 0xff) * 114) / 1000
 
     private companion object {
         const val MAX_WIDTH = 1_800f
+        const val LOCAL_THRESHOLD_OFFSET = 7
     }
 }

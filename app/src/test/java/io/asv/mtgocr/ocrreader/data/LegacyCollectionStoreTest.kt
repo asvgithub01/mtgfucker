@@ -72,6 +72,47 @@ class LegacyCollectionStoreTest {
         assertEquals("near_mint", nearMint.condition)
     }
 
+    @Test
+    fun addCopy_keepsDifferentPhysicalLanguagesAsSeparateRows() {
+        val collection = Biblio("myBiblio.Json", "Test")
+        collection.addCard(CardInfo("Mox Opal", "", "", "", "1").apply {
+            printingUuid = "printing-1"
+            finish = "nonfoil"
+            languageCode = "en"
+        })
+
+        val italian = LegacyCollectionStore.addCopyToCollection(
+            collection,
+            option(finish = "nonfoil"),
+            languageCode = "it"
+        )
+
+        assertEquals(2, collection.cards.size)
+        assertEquals("it", italian.languageCode)
+        assertEquals(1, italian.quantityCount)
+    }
+
+    @Test
+    fun addCopy_incrementsTheSamePrintingAndPhysicalLanguage() {
+        val collection = Biblio("myBiblio.Json", "Test")
+        val italian = CardInfo("Mox Opal", "", "", "", "1").apply {
+            printingUuid = "printing-1"
+            finish = "nonfoil"
+            languageCode = "it"
+        }
+        collection.addCard(italian)
+
+        val result = LegacyCollectionStore.addCopyToCollection(
+            collection,
+            option(finish = "nonfoil"),
+            languageCode = "it"
+        )
+
+        assertSame(italian, result)
+        assertEquals(2, result.quantityCount)
+        assertEquals(1, collection.cards.size)
+    }
+
     private fun option(finish: String) = CardEditionOption(
         printingUuid = "printing-1",
         cardName = "Mox Opal",

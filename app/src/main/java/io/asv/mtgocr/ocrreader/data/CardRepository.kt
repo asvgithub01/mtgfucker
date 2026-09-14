@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import io.asv.mtgocr.ocrreader.model.Biblio
+import io.asv.mtgocr.ocrreader.PrintingMetadataParser
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import java.util.Collections
@@ -709,6 +710,46 @@ class CardRepository private constructor(context: Context) {
                         printing.mcmSetName
                     )
                 }
+                mainHandler.post { callback(cards, null) }
+            } catch (error: Throwable) {
+                mainHandler.post { callback(emptyList(), error) }
+            }
+        }
+    }
+
+    /** Lightweight lookup used by the isolated lower-printing-line OCR experiment. */
+    fun resolvePrintingMetadata(
+        setCode: String,
+        collectorNumber: String,
+        callback: (List<SetCardOption>, Throwable?) -> Unit
+    ) {
+        executor.execute {
+            try {
+                val cards = catalog.setCards(setCode)
+                    .filter {
+                        PrintingMetadataParser.collectorKeysMatch(
+                            it.collectorNumber,
+                            collectorNumber
+                        )
+                    }
+                    .map { printing ->
+                        val finishes = printing.finishes.split(',').filter(String::isNotBlank)
+                        val finish = if ("nonfoil" in finishes) "nonfoil"
+                            else finishes.firstOrNull() ?: "nonfoil"
+                        SetCardOption(
+                            printing.uuid,
+                            printing.name,
+                            printing.setCode,
+                            printing.setName,
+                            printing.collectorNumber,
+                            finish,
+                            printing.imageUrl,
+                            printing.typeLine,
+                            printing.rulesText,
+                            null,
+                            null
+                        )
+                    }
                 mainHandler.post { callback(cards, null) }
             } catch (error: Throwable) {
                 mainHandler.post { callback(emptyList(), error) }

@@ -439,4 +439,27 @@
     <string name="cardmarket_export_saved">CSV guardado. Impórtalo en «Insertar cartas por edición» y revisa todo antes de publicar.</string>
     <string name="cardmarket_export_failed">No se pudo guardar el CSV.</string>
     <string name="cardmarket_export_no_file_app">No hay una aplicación disponible para guardar el CSV.</string>
+    <string name="open_experimental_scanner">Abrir escáner experimental</string>
+    <string name="experimental_scan_title">Escáner experimental · impresión</string>
+    <string name="experimental_scan_align_card">Alinea la carta completa y toma una foto.</string>
+    <string name="experimental_scan_read_printing">Leer impresión</string>
+    <string name="experimental_scan_reading_bottom">Leyendo número, colección e idioma…</string>
+    <string name="experimental_scan_resolving_printing">Buscando la impresión detectada…</string>
+    <string name="experimental_scan_bottom_preview">Franja inferior enviada al OCR</string>
+    <string name="experimental_scan_camera_error">No se pudo abrir o capturar con la cámara.</string>
+    <string name="experimental_scan_card_not_found">No se encontró un contorno de carta válido.</string>
+    <string name="experimental_scan_ocr_error">No se pudo leer la franja inferior.</string>
+    <string name="experimental_scan_parsed">Colección: %1$s · Número: %2$s · Idioma: %3$s</string>
+    <string name="experimental_scan_variants">Variantes OCR procesadas: %1$d/3</string>
+    <string name="experimental_scan_match">%1$s\n%2$s (%3$s) · #%4$s</string>
+    <string name="experimental_scan_multiple_matches">Se encontraron %1$d coincidencias locales.</string>
+    <string name="experimental_scan_lookup_error">No se pudo consultar la colección: %1$s</string>
+    <string name="experimental_scan_no_local_match">No se encontró una impresión exacta con esos datos.</string>
+    <string name="experimental_scan_raw_text">Texto OCR sin procesar:</string>
+    <string name="experimental_scan_no_text">(sin texto)</string>
+    <string name="experimental_scan_identified">Impresión identificada. Puedes repetir la lectura o tomar otra foto.</string>
+    <string name="experimental_scan_adjust_and_retry">Revisa las esquinas y repite la lectura.</string>
+    <string name="experimental_scan_result_identified">Impresión identificada</string>
+    <string name="experimental_scan_result_title">Resultado experimental</string>
+    <string name="experimental_scan_read_again">Volver a leer</string>
 </resources>

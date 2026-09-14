@@ -569,10 +569,12 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         guess: PrintingMetadataGuess,
         detected: CardTextLanguageResult?,
         titleLanguage: String = ""
-    ): String = guess.languageCode.orEmpty()
-        .ifBlank { titleLanguage.takeIf { it.isNotBlank() && it != "en" }.orEmpty() }
-        .ifBlank { detected?.languageCode.orEmpty() }
-        .ifBlank { titleLanguage }
+    ): String = CardLanguageEvidenceResolver.resolve(
+        footerLanguage = guess.languageCode,
+        detectedRulesLanguage = detected?.languageCode,
+        detectedRulesConfidence = detected?.confidence ?: 0f,
+        matchedTitleLanguage = titleLanguage
+    )
 
     private fun loadMetadataEditionCandidates(
         canonicalName: String,
@@ -910,7 +912,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
     ) {
         val resolvedName = detectedName
             ?: matches.map(SetCardOption::cardName).distinct().singleOrNull()
-        val effectiveLanguage = guess.languageCode ?: language?.languageCode.orEmpty()
+        val effectiveLanguage = effectiveLanguage(guess, language)
         val parsed = resultSummary(
             resolvedName, ocr, title, language, effectiveLanguage,
             null, visual?.frame, guess, includeRaw = true

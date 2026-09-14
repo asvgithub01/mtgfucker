@@ -428,6 +428,8 @@
     <string name="experimental_scan_title">Escáner experimental · impresión</string>
     <string name="experimental_scan_align_card">Alinea la carta completa. La foto se hará automáticamente.</string>
     <string name="experimental_scan_finding_edges">Buscando los cuatro bordes…</string>
+    <string name="experimental_scan_live_reading_name">Leyendo el nombre y comprobándolo en la base local…</string>
+    <string name="experimental_scan_live_name_found_find_edges">Nombre reconocido: %1$s. Ahora buscando los cuatro bordes…</string>
     <string name="experimental_scan_card_detected">Carta detectada. Centra todos los bordes…</string>
     <string name="experimental_scan_hold_steady">Carta detectada. Mantenla quieta…</string>
     <string name="experimental_scan_auto_capture">Capturando automáticamente…</string>

@@ -74,6 +74,11 @@ private data class RankedEdition(
     val evidence: List<String>
 )
 
+private enum class LiveScanPhase {
+    NAME,
+    EDGES
+}
+
 /** CameraX/OpenCV laboratory kept separate from the maintained scanner. */
 class ExperimentalCardScanActivity : AppCompatActivity() {
     private lateinit var preview: PreviewView
@@ -89,6 +94,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcr = PrintingLineOcr()
     private val cardTitleOcr = CardTitleOcr()
+    private val liveCardNameOcr = LiveCardNameOcr()
     private val cardLanguageDetector = CardTextLanguageDetector()
     private val openCvDetector = OpenCvCardDetector()
     private val stability = AutoCaptureStability()
@@ -96,6 +102,8 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
     private val photoExecutor = Executors.newSingleThreadExecutor()
     private val metadataExecutor = Executors.newSingleThreadExecutor()
     private val captureGate = AtomicBoolean(false)
+    private val liveNameOcrGate = AtomicBoolean(false)
+    private val liveNameLookupGate = AtomicBoolean(false)
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageAnalysis: ImageAnalysis? = null
     private var imageCapture: ImageCapture? = null
@@ -106,6 +114,8 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
     private var openCvReady = false
     private var missedFrames = 0
     private var lastAnalyzedAt = 0L
+    @Volatile private var liveScanPhase = LiveScanPhase.NAME
+    private var recognizedNameMatch: LocalCardNameMatch? = null
     @Volatile private var lastDetected: OpenCvDetectedQuad? = null
     @Volatile private var knownSetCodes: Set<String> = emptySet()
 
@@ -122,6 +132,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         debug = findViewById(R.id.experimentalScanDebug)
         crop = findViewById(R.id.experimentalScanCrop)
         status = findViewById(R.id.experimentalScanStatus)
+        capture.isEnabled = false
 
         openCvReady = OpenCVLoader.initLocal()
         if (!openCvReady) {
@@ -134,7 +145,9 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         capture.setOnClickListener {
             if (correctionMode) {
                 analyzeCorrectedPhoto()
-            } else if (captureGate.compareAndSet(false, true)) {
+            } else if (liveScanPhase == LiveScanPhase.EDGES &&
+                captureGate.compareAndSet(false, true)
+            ) {
                 capturePhoto(lastDetected, automatic = false)
             }
         }
@@ -203,12 +216,23 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                 FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
             ).setAutoCancelDuration(2, TimeUnit.SECONDS).build()
         )
-        instruction.setText(R.string.experimental_scan_finding_edges)
+        capture.isEnabled = liveScanPhase == LiveScanPhase.EDGES
+        instruction.setText(
+            if (liveScanPhase == LiveScanPhase.NAME) R.string.experimental_scan_live_reading_name
+            else R.string.experimental_scan_finding_edges
+        )
     }
 
     private fun analyzeLiveFrame(image: ImageProxy) {
+        if (captureGate.get() || correctionMode) {
+            image.close()
+            return
+        }
+        if (liveScanPhase == LiveScanPhase.NAME) {
+            analyzeLiveName(image)
+            return
+        }
         try {
-            if (captureGate.get() || correctionMode) return
             val now = SystemClock.elapsedRealtime()
             if (now - lastAnalyzedAt < ANALYSIS_INTERVAL_MS) return
             lastAnalyzedAt = now
@@ -248,6 +272,52 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         } catch (_: Throwable) {
             missedFrames++
         } finally {
+            image.close()
+        }
+    }
+
+    private fun analyzeLiveName(image: ImageProxy) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastAnalyzedAt < NAME_ANALYSIS_INTERVAL_MS ||
+            !liveNameOcrGate.compareAndSet(false, true)
+        ) {
+            image.close()
+            return
+        }
+        lastAnalyzedAt = now
+        try {
+            liveCardNameOcr.recognize(image) { candidates, _ ->
+                image.close()
+                liveNameOcrGate.set(false)
+                if (candidates.isEmpty() || correctionMode ||
+                    liveScanPhase != LiveScanPhase.NAME || isFinishing || isDestroyed ||
+                    !liveNameLookupGate.compareAndSet(false, true)
+                ) {
+                    return@recognize
+                }
+                repository.matchLocalOcrText(candidates) { match ->
+                    liveNameLookupGate.set(false)
+                    if (match == null || correctionMode || liveScanPhase != LiveScanPhase.NAME ||
+                        isFinishing || isDestroyed
+                    ) {
+                        return@matchLocalOcrText
+                    }
+                    recognizedNameMatch = match
+                    liveScanPhase = LiveScanPhase.EDGES
+                    stability.reset()
+                    missedFrames = 0
+                    lastDetected = null
+                    lastAnalyzedAt = 0L
+                    liveGuide.showDetection(null, 0f)
+                    capture.isEnabled = true
+                    instruction.text = getString(
+                        R.string.experimental_scan_live_name_found_find_edges,
+                        match.displayName
+                    )
+                }
+            }
+        } catch (_: Throwable) {
+            liveNameOcrGate.set(false)
             image.close()
         }
     }
@@ -324,8 +394,11 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         runOnUiThread {
             captureGate.set(false)
             stability.reset()
-            capture.isEnabled = true
-            instruction.setText(R.string.experimental_scan_finding_edges)
+            capture.isEnabled = liveScanPhase == LiveScanPhase.EDGES
+            instruction.setText(
+                if (liveScanPhase == LiveScanPhase.NAME) R.string.experimental_scan_live_reading_name
+                else R.string.experimental_scan_finding_edges
+            )
             showError(message)
         }
     }
@@ -342,7 +415,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         status.setText(R.string.experimental_scan_reading_name_first)
         instruction.setText(R.string.experimental_scan_reading_name_first)
         replaceDebugBitmap(null)
-        val pending = PendingCardOcr()
+        val pending = PendingCardOcr().apply { nameMatch = recognizedNameMatch }
         fun completeIfReady(): Boolean = synchronized(pending) {
             pending.remaining--
             pending.remaining == 0
@@ -352,7 +425,9 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                 pending.title = result
                 if (error != null && pending.error == null) pending.error = error
             }
-            if (result == null || result.lines.isEmpty()) {
+            if (result == null || result.lines.isEmpty() ||
+                synchronized(pending) { pending.nameMatch != null }
+            ) {
                 if (completeIfReady()) finishCombinedOcr(corrected, pending)
             } else {
                 repository.matchLocalOcrText(result.lines) { match ->
@@ -1114,13 +1189,15 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         debug.visibility = View.GONE
         replaceDebugBitmap(null)
         stability.reset()
+        liveScanPhase = LiveScanPhase.NAME
+        recognizedNameMatch = null
         missedFrames = 0
         lastDetected = null
         captureGate.set(false)
         cancel.setText(android.R.string.cancel)
         capture.setText(R.string.experimental_scan_manual_capture)
-        capture.isEnabled = true
-        instruction.setText(R.string.experimental_scan_finding_edges)
+        capture.isEnabled = false
+        instruction.setText(R.string.experimental_scan_live_reading_name)
         ensureCamera()
     }
 
@@ -1147,6 +1224,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         correction.clearPhoto()
         printingLineOcr.close()
         cardTitleOcr.close()
+        liveCardNameOcr.close()
         cardLanguageDetector.close()
         analysisExecutor.shutdownNow()
         photoExecutor.shutdownNow()
@@ -1206,6 +1284,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
     private companion object {
         const val RC_CAMERA = 902
         const val ANALYSIS_INTERVAL_MS = 90L
+        const val NAME_ANALYSIS_INTERVAL_MS = 240L
         const val MISSES_BEFORE_RESET = 3
         const val MAX_PHOTO_SIDE = 2_400
         const val MAX_SET_CANDIDATES = 4

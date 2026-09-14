@@ -131,6 +131,15 @@ calibración por dispositivo y validación contra cartas graduadas por humanos.
 
 ## Spike propuesto
 
+### Estado del spike
+
+La fase 1 ya dispone de un punto de entrada aislado: `ExperimentalCardScanActivity`. El nuevo botón
+flotante del catálogo abre esta pantalla sin sustituir el escáner actual. La pantalla reutiliza por
+ahora la cámara, captura y corrección de esquinas existentes; recorta la franja inferior, ejecuta ML
+Kit sobre tres variantes y muestra tanto los tokens interpretados como el texto OCR sin procesar.
+Este aislamiento permitirá sustituir después la adquisición por CameraX y comparar el detector con
+OpenCV sin alterar el flujo estable.
+
 ### Fase 0 — Línea base
 
 - Preparar un conjunto etiquetado con fotos reales, no imágenes de Scryfall.

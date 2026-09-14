@@ -255,6 +255,7 @@
     <string name="edition_scan_analyze_crop">Analizar recorte</string>
     <string name="edition_scan_freezing_photo">Preparando la foto para corregirla…</string>
     <string name="edition_scan_adjust_corners">Mueve las cuatro esquinas hasta hacer coincidir el marco con la carta. Arrastra dentro para moverlo completo.</string>
+    <string name="edition_scan_adjust_corners_auto">Bordes alineados automáticamente. Revisa las esquinas; al moverlas aparecerá una lupa.</string>
     <string name="edition_scan_invalid_crop">El recorte no es válido. Separa las esquinas y vuelve a intentarlo.</string>
     <string name="edition_scan_adjust_crop">Ajustar recorte</string>
     <string name="edition_scan_crop_correction">Corrección manual del contorno de la carta</string>

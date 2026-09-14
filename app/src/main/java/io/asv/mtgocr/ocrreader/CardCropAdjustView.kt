@@ -30,6 +30,8 @@ class CardCropAdjustView @JvmOverloads constructor(
     private var activeHandle = NONE
     private var lastImageX = 0f
     private var lastImageY = 0f
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
 
     private val photoPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val shadePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -53,18 +55,47 @@ class CardCropAdjustView @JvmOverloads constructor(
         color = Color.argb(90, 214, 255, 127)
         style = Paint.Style.FILL
     }
+    private val magnifierFramePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeWidth = resources.displayMetrics.density * 3f
+    }
+    private val magnifierCrosshairPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(214, 255, 127)
+        style = Paint.Style.STROKE
+        strokeWidth = resources.displayMetrics.density * 1.5f
+    }
 
     fun setPhoto(bitmap: Bitmap, suggestedBounds: Rect) {
+        setPhoto(
+            bitmap,
+            arrayOf(
+                PointF(suggestedBounds.left.toFloat(), suggestedBounds.top.toFloat()),
+                PointF(suggestedBounds.right.toFloat(), suggestedBounds.top.toFloat()),
+                PointF(suggestedBounds.right.toFloat(), suggestedBounds.bottom.toFloat()),
+                PointF(suggestedBounds.left.toFloat(), suggestedBounds.bottom.toFloat())
+            )
+        )
+    }
+
+    fun setPhoto(bitmap: Bitmap, suggestedCorners: Array<PointF>) {
         clearPhoto()
         photo = bitmap
-        val left = suggestedBounds.left.toFloat().coerceIn(0f, bitmap.width - 2f)
-        val top = suggestedBounds.top.toFloat().coerceIn(0f, bitmap.height - 2f)
-        val right = suggestedBounds.right.toFloat().coerceIn(left + 2f, bitmap.width.toFloat())
-        val bottom = suggestedBounds.bottom.toFloat().coerceIn(top + 2f, bitmap.height.toFloat())
-        corners[0].set(left, top)
-        corners[1].set(right, top)
-        corners[2].set(right, bottom)
-        corners[3].set(left, bottom)
+        if (suggestedCorners.size == corners.size) {
+            corners.indices.forEach { index ->
+                corners[index].set(
+                    suggestedCorners[index].x.coerceIn(0f, bitmap.width.toFloat()),
+                    suggestedCorners[index].y.coerceIn(0f, bitmap.height.toFloat())
+                )
+            }
+        }
+        if (!validQuad(corners, bitmap.width.toFloat(), bitmap.height.toFloat())) {
+            val fallback = CardImageFingerprint.centeredCardRect(bitmap.width, bitmap.height, .72f)
+            corners[0].set(fallback.left.toFloat(), fallback.top.toFloat())
+            corners[1].set(fallback.right.toFloat(), fallback.top.toFloat())
+            corners[2].set(fallback.right.toFloat(), fallback.bottom.toFloat())
+            corners[3].set(fallback.left.toFloat(), fallback.bottom.toFloat())
+        }
         invalidate()
     }
 
@@ -122,6 +153,7 @@ class CardCropAdjustView @JvmOverloads constructor(
             canvas.drawCircle(viewPoint.x, viewPoint.y, radius, handlePaint)
             canvas.drawCircle(viewPoint.x, viewPoint.y, radius, linePaint)
         }
+        if (activeHandle in corners.indices) drawMagnifier(canvas, bitmap, corners[activeHandle])
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -129,6 +161,8 @@ class CardCropAdjustView @JvmOverloads constructor(
         val point = toImage(event.x, event.y)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
                 activeHandle = nearestHandle(event.x, event.y)
                 if (activeHandle == NONE && pointInQuad(point.x, point.y)) activeHandle = MOVE
                 if (activeHandle == NONE) return false
@@ -138,6 +172,8 @@ class CardCropAdjustView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_MOVE -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
                 val dx = point.x - lastImageX
                 val dy = point.y - lastImageY
                 if (activeHandle == MOVE) {
@@ -220,6 +256,32 @@ class CardCropAdjustView @JvmOverloads constructor(
         canvas.drawCircle(point.x, point.y, radius, samplePaint)
     }
 
+    private fun drawMagnifier(canvas: Canvas, bitmap: Bitmap, imagePoint: PointF) {
+        val density = resources.displayMetrics.density
+        val radius = 58f * density
+        val margin = 10f * density
+        val verticalOffset = 126f * density
+        val centerX = lastTouchX.coerceIn(radius + margin, width - radius - margin)
+        val preferredY = lastTouchY - verticalOffset
+        val centerY = if (preferredY >= radius + margin) preferredY
+            else (lastTouchY + verticalOffset).coerceAtMost(height - radius - margin)
+        val clip = Path().apply { addCircle(centerX, centerY, radius, Path.Direction.CW) }
+        canvas.save()
+        canvas.clipPath(clip)
+        canvas.drawColor(Color.BLACK)
+        val pointInView = toView(imagePoint.x, imagePoint.y)
+        canvas.translate(centerX, centerY)
+        canvas.scale(MAGNIFIER_ZOOM, MAGNIFIER_ZOOM)
+        canvas.translate(-pointInView.x, -pointInView.y)
+        canvas.drawBitmap(bitmap, null, imageRect, photoPaint)
+        canvas.restore()
+        canvas.drawCircle(centerX, centerY, radius, magnifierFramePaint)
+        val arm = 13f * density
+        canvas.drawLine(centerX - arm, centerY, centerX + arm, centerY, magnifierCrosshairPaint)
+        canvas.drawLine(centerX, centerY - arm, centerX, centerY + arm, magnifierCrosshairPaint)
+        canvas.drawCircle(centerX, centerY, 3.5f * density, handlePaint)
+    }
+
     private fun bilinear(horizontal: Float, vertical: Float): PointF {
         val topX = lerp(corners[0].x, corners[1].x, horizontal)
         val topY = lerp(corners[0].y, corners[1].y, horizontal)
@@ -292,6 +354,7 @@ class CardCropAdjustView @JvmOverloads constructor(
     companion object {
         private const val NONE = -1
         private const val MOVE = 4
+        private const val MAGNIFIER_ZOOM = 3.25f
 
         internal fun validQuad(points: Array<PointF>, width: Float, height: Float): Boolean {
             if (points.size != 4) return false

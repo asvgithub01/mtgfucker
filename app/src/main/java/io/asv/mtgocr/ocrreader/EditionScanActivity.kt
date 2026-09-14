@@ -130,26 +130,33 @@ class EditionScanActivity : AppCompatActivity() {
             source.takePicture(null) { jpeg ->
                 photoExecutor.execute {
                     val bitmap = decodePhoto(jpeg)
-                    val suggested = bitmap?.let { CardFrameAnalyzer.analyze(it).bounds }
+                    val detected = bitmap?.let { CardQuadrilateralDetector.detect(it) }
+                    val fallback = if (detected == null) {
+                        bitmap?.let { CardFrameAnalyzer.analyze(it).bounds }
+                    } else null
                     runOnUiThread {
                         if (isFinishing || isDestroyed) {
                             bitmap?.recycle()
                             return@runOnUiThread
                         }
-                        if (bitmap == null || suggested == null) {
+                        if (bitmap == null || (detected == null && fallback == null)) {
                             capture.isEnabled = true
                             instruction.setText(R.string.edition_scan_align_card)
                             showFailure()
                         } else {
                             preview.stop()
-                            correction.setPhoto(bitmap, suggested)
+                            if (detected != null) correction.setPhoto(bitmap, detected.corners)
+                            else correction.setPhoto(bitmap, fallback!!)
                             correction.visibility = View.VISIBLE
                             liveGuide.visibility = View.GONE
                             correctionMode = true
                             cancel.setText(R.string.edition_scan_retake_photo)
                             capture.setText(R.string.edition_scan_analyze_crop)
                             capture.isEnabled = true
-                            instruction.setText(R.string.edition_scan_adjust_corners)
+                            instruction.setText(
+                                if (detected != null) R.string.edition_scan_adjust_corners_auto
+                                else R.string.edition_scan_adjust_corners
+                            )
                         }
                     }
                 }

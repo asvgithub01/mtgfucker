@@ -213,7 +213,7 @@ class ScryfallImageDataProvider(private val client: OkHttpClient) {
                 val data = root.getJSONArray("data")
                 for (index in 0 until data.length()) {
                     val card = data.getJSONObject(index)
-                    val image = cardImage(card, "large") ?: continue
+                    val image = cardImage(card, "normal") ?: continue
                     variants += LocalizedPrintingVariant(
                         card.getString("set").uppercase(),
                         card.getString("collector_number"),

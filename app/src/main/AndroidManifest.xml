@@ -35,6 +35,11 @@
             android:theme="@style/Theme.Mtg"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".EditionScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
+        <activity
             android:name=".Main2Activity"
             android:exported="false"
             android:screenOrientation="portrait"

@@ -77,22 +77,30 @@ data class PhotoCardNameMatch(
 )
 
 internal object LocalizedEditionPolicy {
+    fun filter(
+        options: List<CardEditionOption>,
+        variants: List<LocalizedPrintingVariant>,
+        lockedSetCodes: Set<String> = emptySet()
+    ): List<CardEditionOption> {
+        val localized = variants.associateBy {
+            it.setCode.uppercase() to it.collectorNumber.lowercase()
+        }
+        val locked = ScanSetLockPolicy.expand(lockedSetCodes)
+        return options.mapNotNull { option ->
+            if (locked.isNotEmpty() && option.setCode.uppercase() !in locked) return@mapNotNull null
+            val variant = localized[option.setCode.uppercase() to option.collectorNumber.lowercase()]
+                ?: return@mapNotNull null
+            option.copy(imageUrl = variant.imageUrl, displayName = variant.printedName)
+        }
+    }
+
     fun select(
         options: List<CardEditionOption>,
         variants: List<LocalizedPrintingVariant>,
         preferredFinish: String,
         lockedSetCodes: Set<String>
     ): CardEditionOption? {
-        val localized = variants.associateBy {
-            it.setCode.uppercase() to it.collectorNumber.lowercase()
-        }
-        val locked = ScanSetLockPolicy.expand(lockedSetCodes)
-        val eligible = options.mapNotNull { option ->
-            if (locked.isNotEmpty() && option.setCode.uppercase() !in locked) return@mapNotNull null
-            val variant = localized[option.setCode.uppercase() to option.collectorNumber.lowercase()]
-                ?: return@mapNotNull null
-            option.copy(imageUrl = variant.imageUrl, displayName = variant.printedName)
-        }
+        val eligible = filter(options, variants, lockedSetCodes)
         val sameFinish = eligible.filter { it.finish.equals(preferredFinish, ignoreCase = true) }
         return ScanPrintingPolicy.preferred(sameFinish.ifEmpty { eligible })
     }
@@ -124,6 +132,7 @@ class CardRepository private constructor(context: Context) {
     private val priceIndexExecutor = Executors.newSingleThreadExecutor()
     private val nameExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newFixedThreadPool(2)
+    private val localizedPrintingCache = ConcurrentHashMap<String, List<LocalizedPrintingVariant>>()
     private val setAliasExecutor = Executors.newSingleThreadExecutor()
     private val setLanguageExecutor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -439,9 +448,11 @@ class CardRepository private constructor(context: Context) {
 
     fun identifyCardArtwork(
         cardName: String,
+        languageCode: String,
         jpeg: ByteArray,
         lockedSetCodes: Set<String> = emptySet(),
         preferFoil: Boolean = false,
+        alreadyCropped: Boolean = false,
         callback: (CardIdentificationResult, Throwable?) -> Unit
     ): Future<*> = imageExecutor.submit {
         try {
@@ -449,16 +460,81 @@ class CardRepository private constructor(context: Context) {
             val canonicalName = resolution?.canonicalName ?: cardName
             val printings = catalog.editions(canonicalName)
             if (printings.isEmpty()) error("No se encontraron impresiones de '$cardName'")
-            val options = combine(
+            val allOptions = combine(
                 printings,
                 dao.pricesFor(printings.map { it.uuid }),
                 resolution?.displayName ?: printings.first().name
             )
-            val result = artworkIdentifier.identify(jpeg, options, lockedSetCodes, preferFoil)
+            val normalizedLanguage = CardLanguage.toCode(languageCode)
+            var languageFilteredOut = 0
+            val options = if (normalizedLanguage.isBlank()) {
+                allOptions
+            } else {
+                val cacheKey = "${MtgJsonCatalogDataProvider.normalize(canonicalName)}|$normalizedLanguage"
+                val localized = localizedPrintingCache[cacheKey] ?: imageProvider
+                    .getLocalizedPrintings(canonicalName, normalizedLanguage)
+                    .also { localizedPrintingCache[cacheKey] = it }
+                LocalizedEditionPolicy.filter(allOptions, localized).also {
+                    languageFilteredOut = allOptions.size - it.size
+                }
+            }
+            val result = artworkIdentifier
+                .identify(jpeg, options, lockedSetCodes, preferFoil, alreadyCropped)
+                .copy(
+                    detectedLanguage = normalizedLanguage,
+                    languageFilteredOut = languageFilteredOut
+                )
             if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(result, null) }
         } catch (error: Throwable) {
             if (!Thread.currentThread().isInterrupted) {
                 mainHandler.post { callback(CardIdentificationResult(emptyList(), false, 0), error) }
+            }
+        }
+    }
+
+    fun identifyCardSetSymbol(
+        cardName: String,
+        languageCode: String,
+        jpeg: ByteArray,
+        lockedSetCodes: Set<String> = emptySet(),
+        preferFoil: Boolean = false,
+        callback: (SetSymbolIdentificationResult, Throwable?) -> Unit
+    ): Future<*> = imageExecutor.submit {
+        try {
+            val resolution = nameResolver.cached(cardName)
+            val canonicalName = resolution?.canonicalName ?: cardName
+            val printings = catalog.editions(canonicalName)
+            if (printings.isEmpty()) error("No se encontraron impresiones de '$cardName'")
+            val allOptions = combine(
+                printings,
+                dao.pricesFor(printings.map { it.uuid }),
+                resolution?.displayName ?: printings.first().name
+            )
+            val normalizedLanguage = CardLanguage.toCode(languageCode)
+            var languageFilteredOut = 0
+            val options = if (normalizedLanguage.isBlank()) {
+                allOptions
+            } else {
+                val cacheKey = "${MtgJsonCatalogDataProvider.normalize(canonicalName)}|$normalizedLanguage"
+                val localized = localizedPrintingCache[cacheKey] ?: imageProvider
+                    .getLocalizedPrintings(canonicalName, normalizedLanguage)
+                    .also { localizedPrintingCache[cacheKey] = it }
+                LocalizedEditionPolicy.filter(allOptions, localized).also {
+                    languageFilteredOut = allOptions.size - it.size
+                }
+            }
+            val result = artworkIdentifier
+                .identifySetSymbol(jpeg, options, lockedSetCodes, preferFoil)
+                .copy(
+                    detectedLanguage = normalizedLanguage,
+                    languageFilteredOut = languageFilteredOut
+                )
+            if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(result, null) }
+        } catch (error: Throwable) {
+            if (!Thread.currentThread().isInterrupted) {
+                mainHandler.post {
+                    callback(SetSymbolIdentificationResult(emptyList(), 0), error)
+                }
             }
         }
     }

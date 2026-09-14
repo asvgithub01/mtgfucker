@@ -2,6 +2,7 @@ package io.asv.mtgocr.ocrreader.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocalizedEditionPolicyTest {
@@ -35,6 +36,24 @@ class LocalizedEditionPolicyTest {
         )
 
         assertNull(selected)
+    }
+
+    @Test
+    fun filterRemovesPrintingsThatDoNotExistInDetectedLanguage() {
+        val options = listOf(
+            option("4bb", "318", "English catalog name"),
+            option("3ed", "247", "English catalog name"),
+            option("4ed", "318", "English catalog name")
+        )
+        val spanish = listOf(
+            LocalizedPrintingVariant("4ED", "318", "es", "Nombre ES", "https://img/4ed-es.jpg")
+        )
+
+        val filtered = LocalizedEditionPolicy.filter(options, spanish)
+
+        assertEquals(listOf("4ed"), filtered.map { it.setCode })
+        assertEquals("https://img/4ed-es.jpg", filtered.single().imageUrl)
+        assertTrue(filtered.all { it.displayName == "Nombre ES" })
     }
 
     private fun option(set: String, collector: String, display: String) = CardEditionOption(

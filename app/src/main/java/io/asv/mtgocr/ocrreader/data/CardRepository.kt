@@ -890,6 +890,33 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** Keeps only editions that Scryfall confirms were physically printed in the requested language. */
+    fun localizedEditionOptions(
+        cardName: String,
+        languageCode: String,
+        options: List<CardEditionOption>,
+        callback: (List<CardEditionOption>, Throwable?) -> Unit
+    ) {
+        val normalizedLanguage = CardLanguage.toCode(languageCode)
+        if (normalizedLanguage.isBlank()) {
+            mainHandler.post { callback(options, null) }
+            return
+        }
+        imageExecutor.execute {
+            try {
+                val canonicalName = nameResolver.cached(cardName)?.canonicalName ?: cardName
+                val cacheKey = "${MtgJsonCatalogDataProvider.normalize(canonicalName)}|$normalizedLanguage"
+                val localized = localizedPrintingCache[cacheKey] ?: imageProvider
+                    .getLocalizedPrintings(canonicalName, normalizedLanguage)
+                    .also { localizedPrintingCache[cacheKey] = it }
+                val filtered = LocalizedEditionPolicy.filter(options, localized)
+                mainHandler.post { callback(filtered, null) }
+            } catch (error: Throwable) {
+                mainHandler.post { callback(emptyList(), error) }
+            }
+        }
+    }
+
     /** Clears presentation caches after the user changes the provider priority. */
     fun invalidatePriceSourceOrder() {
         synchronized(this) { optionCache.clear() }

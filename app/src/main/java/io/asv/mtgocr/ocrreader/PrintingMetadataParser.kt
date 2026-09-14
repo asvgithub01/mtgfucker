@@ -8,6 +8,7 @@ data class PrintingMetadataGuess(
     val collectorNumber: String?,
     val setCode: String?,
     val languageCode: String?,
+    val printingYear: Int?,
     val setCodeCandidates: List<String>
 )
 
@@ -21,6 +22,7 @@ object PrintingMetadataParser {
     )
     private val standaloneCollector = Regex("(?i)(?<![a-z0-9])([0-9]{1,4}[a-z]?)(?![a-z0-9])")
     private val tokenPattern = Regex("[A-Z0-9]{2,6}")
+    private val yearPattern = Regex("(?i)(?<![a-z0-9])([12oil][0-9oil]{3})(?![a-z0-9])")
     private val languageTokens = mapOf(
         "EN" to "en",
         "ES" to "es",
@@ -57,6 +59,9 @@ object PrintingMetadataParser {
         val tokens = tokenPattern.findAll(normalized).map { it.value }.toList()
         val languageToken = tokens.firstOrNull { it in languageTokens }
         val language = languageToken?.let(languageTokens::get)
+        val printingYear = yearPattern.findAll(normalized)
+            .mapNotNull { repairCollectorOcr(it.groupValues[1]).toIntOrNull() }
+            .firstOrNull { it in 1993..2100 }
         val known = knownSetCodes.mapTo(LinkedHashSet()) { normalizeToken(it) }
         val candidates = tokens.asSequence()
             .map(::normalizeToken)
@@ -88,6 +93,7 @@ object PrintingMetadataParser {
             collectorNumber = collector?.let(::repairCollectorOcr)?.uppercase(Locale.US),
             setCode = orderedCandidates.firstOrNull(),
             languageCode = language,
+            printingYear = printingYear,
             setCodeCandidates = orderedCandidates
         )
     }

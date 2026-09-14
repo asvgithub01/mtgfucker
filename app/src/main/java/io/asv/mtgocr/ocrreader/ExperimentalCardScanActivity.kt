@@ -5,13 +5,17 @@ import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.PointF
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Size
 import android.view.Surface
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
@@ -29,17 +33,33 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.Lifecycle
 import io.asv.mtgocr.ocrreader.data.CardDatabase
+import io.asv.mtgocr.ocrreader.data.CardEditionOption
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.SetCardOption
+import com.google.android.material.card.MaterialCardView
 import org.opencv.android.OpenCVLoader
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+
+private class PendingCardOcr {
+    var remaining = 2
+    var printing: PrintingLineOcrResult? = null
+    var title: CardTitleOcrResult? = null
+    var error: Throwable? = null
+}
+
+private data class RankedEdition(
+    val option: CardEditionOption,
+    val score: Int,
+    val evidence: List<String>
+)
 
 /** CameraX/OpenCV laboratory kept separate from the maintained scanner. */
 class ExperimentalCardScanActivity : AppCompatActivity() {
@@ -55,6 +75,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcr = PrintingLineOcr()
+    private val cardTitleOcr = CardTitleOcr()
     private val openCvDetector = OpenCvCardDetector()
     private val stability = AutoCaptureStability()
     private val analysisExecutor = Executors.newSingleThreadExecutor()
@@ -304,69 +325,253 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         analysisInFlight = true
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
-        status.setText(R.string.experimental_scan_reading_bottom)
-        instruction.setText(R.string.experimental_scan_reading_bottom)
+        status.setText(R.string.experimental_scan_reading_all)
+        instruction.setText(R.string.experimental_scan_reading_all)
         replaceDebugBitmap(null)
+        val pending = PendingCardOcr()
+        fun completeIfReady(): Boolean = synchronized(pending) {
+            pending.remaining--
+            pending.remaining == 0
+        }
         printingLineOcr.recognize(corrected) { result, error ->
-            corrected.recycle()
+            synchronized(pending) {
+                pending.printing = result
+                if (error != null && pending.error == null) pending.error = error
+            }
+            if (completeIfReady()) finishCombinedOcr(corrected, pending)
+        }
+        cardTitleOcr.recognize(corrected) { result, error ->
+            synchronized(pending) {
+                pending.title = result
+                if (error != null && pending.error == null) pending.error = error
+            }
+            if (completeIfReady()) finishCombinedOcr(corrected, pending)
+        }
+    }
+
+    private fun finishCombinedOcr(card: Bitmap, pending: PendingCardOcr) {
+        card.recycle()
+        val printing = synchronized(pending) { pending.printing }
+        val title = synchronized(pending) { pending.title }
+        val error = synchronized(pending) { pending.error }
+        runOnUiThread {
             if (isFinishing || isDestroyed) {
-                result?.preview?.recycle()
-                return@recognize
+                printing?.preview?.recycle()
+                return@runOnUiThread
             }
-            if (result == null || error != null) {
-                analysisInFlight = false
-                capture.isEnabled = true
+            if (printing == null && title == null) {
+                finishAnalysis()
                 showError(error?.message ?: getString(R.string.experimental_scan_ocr_error))
-                return@recognize
+                return@runOnUiThread
             }
-            replaceDebugBitmap(result.preview)
-            val guess = PrintingMetadataParser.parse(result.rawText, knownSetCodes)
-            val collector = guess.collectorNumber
-            val setCodes = guess.setCodeCandidates.asSequence()
-                .filter { knownSetCodes.isEmpty() || it in knownSetCodes }
-                .take(MAX_SET_CANDIDATES)
-                .toList()
-            if (setCodes.isEmpty() || collector == null) {
-                analysisInFlight = false
-                capture.isEnabled = true
-                showResult(result, guess, emptyList(), null)
-                return@recognize
-            }
-            status.setText(R.string.experimental_scan_resolving_printing)
-            repository.resolvePrintingMetadata(setCodes, collector) { cards, loadError ->
-                if (isFinishing || isDestroyed) return@resolvePrintingMetadata
-                analysisInFlight = false
-                capture.isEnabled = true
-                val matches = cards.distinctBy { Triple(it.cardName, it.setCode, it.collectorNumber) }
-                showResult(result, guess, matches, loadError)
+            printing?.preview?.let(::replaceDebugBitmap)
+            val guess = PrintingMetadataParser.parse(printing?.rawText.orEmpty(), knownSetCodes)
+            resolveIdentity(printing, title, guess)
+        }
+    }
+
+    private fun resolveIdentity(
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess
+    ) {
+        status.setText(R.string.experimental_scan_resolving_name)
+        val setCodes = guess.setCodeCandidates.asSequence()
+            .filter { knownSetCodes.isEmpty() || it in knownSetCodes }
+            .take(MAX_SET_CANDIDATES)
+            .toList()
+        val canResolvePrinting = setCodes.isNotEmpty() && guess.collectorNumber != null
+        repository.matchLocalOcrText(title?.lines.orEmpty()) { match ->
+            if (isFinishing || isDestroyed) return@matchLocalOcrText
+            if (match != null) {
+                loadEditionCandidates(
+                    match.canonicalName,
+                    match.displayName,
+                    printing,
+                    title,
+                    guess,
+                    emptyList()
+                )
+            } else if (canResolvePrinting) {
+                status.setText(R.string.experimental_scan_resolving_printing)
+                repository.resolvePrintingMetadata(setCodes, guess.collectorNumber!!) { cards, error ->
+                    if (isFinishing || isDestroyed) return@resolvePrintingMetadata
+                    val exactMatches = cards.distinctBy {
+                        Triple(it.cardName, it.setCode, it.collectorNumber)
+                    }
+                    val exactNames = exactMatches.distinctBy { it.cardName.lowercase(Locale.ROOT) }
+                    if (exactNames.size == 1) {
+                        loadEditionCandidates(
+                            exactNames.first().cardName,
+                            exactNames.first().cardName,
+                            printing,
+                            title,
+                            guess,
+                            exactMatches
+                        )
+                    } else {
+                        finishAnalysis()
+                        showUnresolvedResult(printing, title, guess, exactMatches, error)
+                    }
+                }
+            } else {
+                finishAnalysis()
+                showUnresolvedResult(printing, title, guess, emptyList(), null)
             }
         }
     }
 
-    private fun showResult(
-        ocr: PrintingLineOcrResult,
+    private fun loadEditionCandidates(
+        canonicalName: String,
+        displayName: String,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess,
+        exactMatches: List<SetCardOption>
+    ) {
+        status.text = getString(R.string.experimental_scan_loading_editions, displayName)
+        var delivered = false
+        repository.loadCard(
+            canonicalName,
+            forcePriceRefresh = false,
+            deliverEditionsBeforePrices = true
+        ) { options, error ->
+            if (isFinishing || isDestroyed || delivered) return@loadCard
+            if (options.isNotEmpty()) {
+                delivered = true
+                val ranked = rankEditions(options, guess)
+                finishAnalysis()
+                showEditionCandidates(displayName, ranked, printing, title, guess)
+            } else if (error != null) {
+                delivered = true
+                finishAnalysis()
+                showUnresolvedResult(printing, title, guess, exactMatches, error, displayName)
+            }
+        }
+    }
+
+    private fun rankEditions(
+        options: List<CardEditionOption>,
+        guess: PrintingMetadataGuess
+    ): List<RankedEdition> {
+        val setCandidates = guess.setCodeCandidates.map { it.uppercase(Locale.US) }
+        return options.groupBy(CardEditionOption::printingUuid)
+            .values
+            .map { finishes -> finishes.firstOrNull { !it.isFoil } ?: finishes.first() }
+            .map { option ->
+                val evidence = ArrayList<String>()
+                var score = 0
+                val setIndex = setCandidates.indexOf(option.setCode.uppercase(Locale.US))
+                if (setIndex >= 0) {
+                    score += 100 - setIndex.coerceAtMost(10) * 3
+                    evidence += getString(R.string.experimental_scan_evidence_set)
+                }
+                if (guess.collectorNumber != null && PrintingMetadataParser.collectorKeysMatch(
+                        option.collectorNumber,
+                        guess.collectorNumber
+                    )
+                ) {
+                    score += 85
+                    evidence += getString(R.string.experimental_scan_evidence_collector)
+                }
+                if (guess.printingYear != null && option.releaseDate.take(4).toIntOrNull() == guess.printingYear) {
+                    score += 35
+                    evidence += getString(R.string.experimental_scan_evidence_year)
+                }
+                RankedEdition(
+                    option,
+                    score,
+                    evidence.ifEmpty { listOf(getString(R.string.experimental_scan_evidence_name_only)) }
+                )
+            }
+            .sortedWith(compareByDescending<RankedEdition> { it.score }
+                .thenByDescending { it.option.releaseDate })
+            .take(MAX_EDITION_RESULTS)
+    }
+
+    private fun showEditionCandidates(
+        displayName: String,
+        candidates: List<RankedEdition>,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess
+    ) {
+        val summary = resultSummary(displayName, printing, title, guess)
+        status.text = summary
+        instruction.setText(R.string.experimental_scan_identified)
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.experimental_scan_editions_title, displayName))
+            .setAdapter(ExperimentalEditionAdapter(candidates)) { _, which ->
+                showEditionDetail(displayName, candidates[which], candidates, printing, title, guess)
+            }
+            .setNeutralButton(R.string.experimental_scan_show_ocr) { _, _ ->
+                showOcrDetails(displayName, candidates, printing, title, guess)
+            }
+            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+            .show()
+    }
+
+    private fun showEditionDetail(
+        displayName: String,
+        candidate: RankedEdition,
+        candidates: List<RankedEdition>,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess
+    ) {
+        val option = candidate.option
+        val message = getString(
+            R.string.experimental_scan_edition_detail,
+            option.setName,
+            option.setCode.uppercase(Locale.US),
+            option.collectorNumber,
+            option.releaseDate.take(4).ifBlank { "—" },
+            option.rarity.ifBlank { "—" },
+            candidate.evidence.joinToString(" · ")
+        )
+        status.text = "$displayName\n$message"
+        AlertDialog.Builder(this)
+            .setTitle(displayName)
+            .setMessage(message)
+            .setPositiveButton(R.string.experimental_scan_back_to_editions) { _, _ ->
+                showEditionCandidates(displayName, candidates, printing, title, guess)
+            }
+            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+            .show()
+    }
+
+    private fun showOcrDetails(
+        displayName: String,
+        candidates: List<RankedEdition>,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess
+    ) {
+        AlertDialog.Builder(this)
+            .setTitle(displayName)
+            .setMessage(resultSummary(displayName, printing, title, guess, includeRaw = true))
+            .setPositiveButton(R.string.experimental_scan_back_to_editions) { _, _ ->
+                showEditionCandidates(displayName, candidates, printing, title, guess)
+            }
+            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+            .show()
+    }
+
+    private fun showUnresolvedResult(
+        ocr: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
         guess: PrintingMetadataGuess,
         matches: List<SetCardOption>,
-        loadError: Throwable?
+        loadError: Throwable?,
+        detectedName: String? = null
     ) {
-        val parsed = buildString {
-            append(getString(
-                R.string.experimental_scan_parsed,
-                guess.setCode ?: "—",
-                guess.collectorNumber ?: "—",
-                guess.languageCode ?: "—"
-            ))
-            append("\n")
-            append(getString(
-                R.string.experimental_scan_variants,
-                ocr.successfulVariants,
-                ocr.attemptedVariants
-            ))
-        }
+        val resolvedName = detectedName
+            ?: matches.map(SetCardOption::cardName).distinct().singleOrNull()
+        val parsed = resultSummary(resolvedName, ocr, title, guess, includeRaw = true)
         val resolved = when {
-            matches.size == 1 -> getString(
+            resolvedName != null && matches.isNotEmpty() -> getString(
                 R.string.experimental_scan_match,
-                matches[0].cardName,
+                resolvedName,
                 matches[0].setName,
                 matches[0].setCode.uppercase(Locale.US),
                 matches[0].collectorNumber
@@ -376,13 +581,13 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                 R.string.experimental_scan_lookup_error,
                 loadError.message ?: loadError.javaClass.simpleName
             )
+            resolvedName != null -> getString(R.string.experimental_scan_name_without_editions)
             else -> getString(R.string.experimental_scan_no_local_match)
         }
-        val raw = ocr.rawText.ifBlank { getString(R.string.experimental_scan_no_text) }
-        val message = "$parsed\n\n$resolved\n\n${getString(R.string.experimental_scan_raw_text)}\n$raw"
+        val message = "$parsed\n\n$resolved"
         status.text = message
         instruction.setText(
-            if (matches.size == 1) R.string.experimental_scan_identified
+            if (resolvedName != null) R.string.experimental_scan_identified
             else R.string.experimental_scan_adjust_and_retry
         )
         AlertDialog.Builder(this)
@@ -394,6 +599,103 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
             .setPositiveButton(R.string.experimental_scan_read_again, null)
             .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
             .show()
+    }
+
+    private fun resultSummary(
+        displayName: String?,
+        ocr: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        guess: PrintingMetadataGuess,
+        includeRaw: Boolean = false
+    ): String = buildString {
+        append(getString(R.string.experimental_scan_name_result, displayName ?: "—"))
+        append("\n")
+        append(getString(
+            R.string.experimental_scan_parsed,
+            guess.setCode ?: "—",
+            guess.collectorNumber ?: "—",
+            guess.languageCode ?: "—",
+            guess.printingYear?.toString() ?: "—"
+        ))
+        if (ocr != null) {
+            append("\n")
+            append(getString(R.string.experimental_scan_variants, ocr.successfulVariants, ocr.attemptedVariants))
+        }
+        if (title != null) {
+            append("\n")
+            append(getString(
+                R.string.experimental_scan_title_variants,
+                title.successfulVariants,
+                title.attemptedVariants
+            ))
+        }
+        if (includeRaw) {
+            append("\n\n")
+            append(getString(R.string.experimental_scan_title_raw))
+            append("\n")
+            append(title?.lines?.joinToString("\n").orEmpty()
+                .ifBlank { getString(R.string.experimental_scan_no_text) })
+            append("\n\n")
+            append(getString(R.string.experimental_scan_raw_text))
+            append("\n")
+            append(ocr?.rawText.orEmpty().ifBlank { getString(R.string.experimental_scan_no_text) })
+        }
+    }
+
+    private fun finishAnalysis() {
+        analysisInFlight = false
+        capture.isEnabled = true
+    }
+
+    private inner class ExperimentalEditionAdapter(
+        private val candidates: List<RankedEdition>
+    ) : BaseAdapter() {
+        override fun getCount(): Int = candidates.size
+
+        override fun getItem(position: Int): RankedEdition = candidates[position]
+
+        override fun getItemId(position: Int): Long = position.toLong()
+
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val view = convertView ?: LayoutInflater.from(parent.context)
+                .inflate(R.layout.edition_scan_candidate_item, parent, false)
+            val candidate = getItem(position)
+            val option = candidate.option
+            val card = view.findViewById<MaterialCardView>(R.id.editionCandidateCard)
+            val bestBadge = view.findViewById<TextView>(R.id.editionCandidateBestBadge)
+            val accent = MagicPalette.secondaryColor(view.context)
+            if (position == 0 && candidate.score > 0) {
+                card.setCardBackgroundColor(ColorUtils.setAlphaComponent(accent, 42))
+                card.strokeColor = accent
+                card.strokeWidth = (2f * resources.displayMetrics.density).toInt()
+                bestBadge.setTextColor(accent)
+                bestBadge.visibility = View.VISIBLE
+            } else {
+                card.setCardBackgroundColor(Color.TRANSPARENT)
+                card.strokeWidth = 0
+                bestBadge.visibility = View.GONE
+            }
+            view.findViewById<TextView>(R.id.editionCandidateTitle).text = option.displayName
+            view.findViewById<TextView>(R.id.editionCandidateScores).text = getString(
+                R.string.experimental_scan_candidate_set,
+                option.setName,
+                option.setCode.uppercase(Locale.US)
+            )
+            view.findViewById<TextView>(R.id.editionCandidateLanguage).text = getString(
+                R.string.experimental_scan_candidate_metadata,
+                option.collectorNumber,
+                option.releaseDate.take(4).ifBlank { "—" },
+                option.rarity.ifBlank { "—" }
+            )
+            view.findViewById<TextView>(R.id.editionCandidateBorder).text =
+                candidate.evidence.joinToString(" · ")
+            SetSymbolLoader.display(
+                view.context,
+                option.setCode,
+                view.findViewById(R.id.editionCandidateSetSymbol)
+            )
+            return view
+        }
     }
 
     private fun showError(message: String) {
@@ -444,6 +746,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         replaceDebugBitmap(null)
         correction.clearPhoto()
         printingLineOcr.close()
+        cardTitleOcr.close()
         analysisExecutor.shutdownNow()
         photoExecutor.shutdownNow()
         metadataExecutor.shutdownNow()
@@ -505,5 +808,6 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         const val MISSES_BEFORE_RESET = 3
         const val MAX_PHOTO_SIDE = 2_400
         const val MAX_SET_CANDIDATES = 4
+        const val MAX_EDITION_RESULTS = 15
     }
 }

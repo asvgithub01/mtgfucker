@@ -39,6 +39,7 @@ class PrintingMetadataParserTest {
 
         assertNull(result.collectorNumber)
         assertEquals("MKM", result.setCode)
+        assertEquals(2024, result.printingYear)
     }
 
     @Test
@@ -67,5 +68,16 @@ class PrintingMetadataParserTest {
 
         assertEquals("MOM", result.setCode)
         assertEquals("123", result.collectorNumber)
+    }
+
+    @Test
+    fun repairsLetterOInsideCopyrightYear() {
+        val result = PrintingMetadataParser.parse(
+            "© 2O23 Wizards of the Coast\nLTR EN",
+            setOf("LTR")
+        )
+
+        assertEquals(2023, result.printingYear)
+        assertEquals("LTR", result.setCode)
     }
 }

@@ -14,13 +14,13 @@ data class PrintingMetadataGuess(
 /** Extracts the stable printing tokens from OCR of a rectified card's lower band. */
 object PrintingMetadataParser {
     private val collectorWithTotal = Regex(
-        "(?i)(?<![0-9])([0-9]{1,4}[a-z]?)\\s*[/|]\\s*[0-9]{1,4}[a-z]?(?![0-9])"
+        "(?i)(?<![0-9])([0-9oil]{1,4}[a-z]?)\\s*[/|]\\s*[0-9oil]{1,4}[a-z]?(?![0-9])"
     )
     private val labelledCollector = Regex(
-        "(?i)(?:#|N[O0]\\.?\\s*)([0-9]{1,4}[a-z]?)(?![0-9])"
+        "(?i)(?:#|N[O0]\\.?\\s*)([0-9oil]{1,4}[a-z]?)(?![0-9])"
     )
-    private val standaloneCollector = Regex("(?i)(?<![0-9])([0-9]{1,4}[a-z]?)(?![0-9])")
-    private val tokenPattern = Regex("[A-Z][A-Z0-9]{1,5}")
+    private val standaloneCollector = Regex("(?i)(?<![a-z0-9])([0-9]{1,4}[a-z]?)(?![a-z0-9])")
+    private val tokenPattern = Regex("[A-Z0-9]{2,6}")
     private val languageTokens = mapOf(
         "EN" to "en",
         "ES" to "es",
@@ -66,14 +66,26 @@ object PrintingMetadataParser {
             .distinct()
             .toList()
         val knownCandidates = candidates.filter { it in known }
+        val fuzzyKnownCandidates = candidates.asSequence()
+            .filter { it.length >= 3 }
+            .flatMap { candidate ->
+                known.asSequence().filter { knownCode ->
+                    knownCode.length == candidate.length && editDistance(candidate, knownCode) <= 1
+                }
+            }
+            .distinct()
+            .toList()
         val orderedCandidates = if (knownCandidates.isNotEmpty()) {
-            knownCandidates + candidates.filterNot { it in knownCandidates }
+            knownCandidates + fuzzyKnownCandidates.filterNot { it in knownCandidates } +
+                candidates.filterNot { it in knownCandidates || it in fuzzyKnownCandidates }
+        } else if (fuzzyKnownCandidates.isNotEmpty()) {
+            fuzzyKnownCandidates + candidates.filterNot { it in fuzzyKnownCandidates }
         } else {
             prioritizeNearLanguage(lines, languageToken, candidates)
         }
         return PrintingMetadataGuess(
             rawText = rawText.trim(),
-            collectorNumber = collector?.uppercase(Locale.US),
+            collectorNumber = collector?.let(::repairCollectorOcr)?.uppercase(Locale.US),
             setCode = orderedCandidates.firstOrNull(),
             languageCode = language,
             setCodeCandidates = orderedCandidates
@@ -84,7 +96,8 @@ object PrintingMetadataParser {
         normalizeCollector(first) == normalizeCollector(second)
 
     internal fun normalizeCollector(value: String): String {
-        val token = value.trim().substringBefore('/').trim().lowercase(Locale.US)
+        val token = repairCollectorOcr(value.trim().substringBefore('/').trim())
+            .lowercase(Locale.US)
         val match = Regex("^0*([0-9]+)([a-z]*)$").matchEntire(token) ?: return token
         return (match.groupValues[1].trimStart('0').ifEmpty { "0" } + match.groupValues[2])
     }
@@ -115,5 +128,31 @@ object PrintingMetadataParser {
         .filter(Char::isLetterOrDigit)
 
     private fun looksLikeYear(value: String): Boolean =
-        value.takeWhile(Char::isDigit).toIntOrNull() in 1993..2100
+        repairCollectorOcr(value).takeWhile(Char::isDigit).toIntOrNull() in 1993..2100
+
+    private fun repairCollectorOcr(value: String): String = value.map { character ->
+        when (character.uppercaseChar()) {
+            'O' -> '0'
+            'I', 'L' -> '1'
+            else -> character
+        }
+    }.joinToString("")
+
+    private fun editDistance(first: String, second: String): Int {
+        if (first == second) return 0
+        var previous = IntArray(second.length + 1) { it }
+        first.forEachIndexed { firstIndex, firstCharacter ->
+            val current = IntArray(second.length + 1)
+            current[0] = firstIndex + 1
+            second.forEachIndexed { secondIndex, secondCharacter ->
+                current[secondIndex + 1] = minOf(
+                    current[secondIndex] + 1,
+                    previous[secondIndex + 1] + 1,
+                    previous[secondIndex] + if (firstCharacter == secondCharacter) 0 else 1
+                )
+            }
+            previous = current
+        }
+        return previous[second.length]
+    }
 }

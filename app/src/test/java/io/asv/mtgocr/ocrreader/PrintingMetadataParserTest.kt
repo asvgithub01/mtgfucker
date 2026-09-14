@@ -46,4 +46,26 @@ class PrintingMetadataParserTest {
         assertTrue(PrintingMetadataParser.collectorKeysMatch("0042", "42"))
         assertTrue(PrintingMetadataParser.collectorKeysMatch("001a", "1A"))
     }
+
+    @Test
+    fun repairsCommonOcrConfusionsInCollectorNumber() {
+        val result = PrintingMetadataParser.parse(
+            "O42/28I R\nMOM EN",
+            setOf("MOM")
+        )
+
+        assertEquals("042", result.collectorNumber)
+        assertEquals("MOM", result.setCode)
+    }
+
+    @Test
+    fun recoversKnownSetCodeWithOneWrongCharacter() {
+        val result = PrintingMetadataParser.parse(
+            "123/281 R\nM0M EN",
+            setOf("MOM", "ONE")
+        )
+
+        assertEquals("MOM", result.setCode)
+        assertEquals("123", result.collectorNumber)
+    }
 }

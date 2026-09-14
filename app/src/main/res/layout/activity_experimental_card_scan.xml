@@ -5,12 +5,14 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview
+    <androidx.camera.view.PreviewView
         android:id="@+id/experimentalCameraPreview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        app:implementationMode="compatible"
+        app:scaleType="fillCenter" />
 
-    <io.asv.mtgocr.ocrreader.EditionSymbolGuideView
+    <io.asv.mtgocr.ocrreader.ExperimentalCardGuideView
         android:id="@+id/experimentalScanLiveGuide"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -110,7 +112,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:text="@string/edition_scan_take_photo"
+                android:text="@string/experimental_scan_manual_capture"
                 app:backgroundTint="?attr/colorSecondary" />
         </LinearLayout>
     </LinearLayout>

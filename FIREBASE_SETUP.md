@@ -1,15 +1,16 @@
 # Configurar Google Login y Firestore
 
-La app compila sin credenciales, pero muestra **Firebase pendiente de configurar** hasta que se
-añada el archivo real del proyecto. `google-services.json` está ignorado por Git para que cada
-entorno pueda usar su propio proyecto Firebase.
+La configuración Android del proyecto Firebase compartido está incluida en
+`app/google-services.json`, por lo que una compilación limpia desde cualquier clon queda conectada
+al mismo backend. Si se registra de nuevo la aplicación Android o cambia su cliente OAuth, hay que
+descargar otra vez el archivo desde Firebase y sustituir el incluido en el repositorio.
 
 ## 1. Crear y registrar el proyecto
 
 1. Entra en <https://console.firebase.google.com/> y crea un proyecto.
 2. Añade una aplicación **Android** con este package name exacto:
    `io.asv.mtgocr.ocrreader`.
-3. En una terminal, desde la raíz del proyecto, ejecuta:
+3. Si necesitas registrar otra clave de firma, desde la raíz del proyecto ejecuta:
 
    ```powershell
    .\gradlew signingReport
@@ -25,13 +26,14 @@ entorno pueda usar su propio proyecto Firebase.
 2. Vuelve a **Configuración del proyecto > Tus apps > Android**.
 3. Pulsa **Descargar google-services.json**. Es importante volver a descargarlo después de
    habilitar Google, para que incluya el cliente OAuth web usado por Credential Manager.
-4. Copia el archivo, sin renombrarlo, en:
+4. Sustituye el archivo del repositorio, sin renombrarlo, en:
 
    ```text
    app/google-services.json
    ```
 
-5. Vuelve a compilar. Gradle detecta el archivo y activa automáticamente el plugin de Google.
+5. Confirma que corresponde a `io.asv.mtgocr.ocrreader`, súbelo junto con el cambio y vuelve a
+   compilar. Gradle detecta el archivo y activa automáticamente el plugin de Google.
 
 ## 3. Crear Firestore y publicar reglas
 

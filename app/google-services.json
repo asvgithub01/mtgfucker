@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "835725420978",
+    "project_id": "mtgfucker",
+    "storage_bucket": "mtgfucker.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:835725420978:android:ad07f5f2636f9244361cab",
+        "android_client_info": {
+          "package_name": "io.asv.mtgocr.ocrreader"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "835725420978-gv2523prfgm15og4q8mkcf5la1v36ak8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.asv.mtgocr.ocrreader",
+            "certificate_hash": "5040fc83010fec0e8023e20d014949c790dfbe0b"
+          }
+        },
+        {
+          "client_id": "835725420978-8n730q7cpmiqcdbsgl6oa89fo02nbmoj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMFAkLkvSq62Ecn7rtXT9CH6YsEbHQeFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "835725420978-8n730q7cpmiqcdbsgl6oa89fo02nbmoj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

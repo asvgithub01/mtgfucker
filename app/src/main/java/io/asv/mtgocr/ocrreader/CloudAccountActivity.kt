@@ -1,5 +1,8 @@
 package io.asv.mtgocr.ocrreader
 
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -14,15 +17,20 @@ import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import io.asv.mtgocr.ocrreader.model.Biblio
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
 import java.util.Date
+import kotlin.random.Random
 
 /** Google account and explicit controls for the Premium Firestore backup. */
 class CloudAccountActivity : AppCompatActivity() {
@@ -34,13 +42,20 @@ class CloudAccountActivity : AppCompatActivity() {
     private lateinit var restore: Button
     private lateinit var autoSave: SwitchCompat
     private lateinit var progress: ProgressBar
+    private lateinit var background: CardArtBackgroundView
     private lateinit var credentialManager: CredentialManager
     private var busy = false
+    private var backgroundRequest = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cloud_account)
+        background = findViewById(R.id.imgCloudBackground)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            background.setRenderEffect(RenderEffect.createBlurEffect(9f, 9f, Shader.TileMode.CLAMP))
+        }
+        loadCollectionBackground()
         credentialManager = CredentialManager.create(this)
         accountStatus = findViewById(R.id.txtCloudAccountStatus)
         syncStatus = findViewById(R.id.txtCloudSyncStatus)
@@ -67,6 +82,43 @@ class CloudAccountActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         render()
+    }
+
+    override fun onDestroy() {
+        backgroundRequest++
+        Glide.clear(background)
+        super.onDestroy()
+    }
+
+    private fun loadCollectionBackground() {
+        val request = ++backgroundRequest
+        lifecycleScope.launch {
+            val selected = withContext(Dispatchers.IO) {
+                val library = LibraryCatalog.active(this@CloudAccountActivity)
+                val collection: Biblio? = DataUtils.readSerializable(
+                    this@CloudAccountActivity,
+                    library.fileName
+                )
+                LaunchBackgroundPolicy.choose(
+                    collection?.cards.orEmpty(),
+                    LibraryCatalog.pinnedBackgroundId(this@CloudAccountActivity, library.id),
+                    PremiumAccess.isEnabled(this@CloudAccountActivity)
+                ) { size -> Random.nextInt(size) }
+            }
+            if (request != backgroundRequest || isFinishing || isDestroyed) return@launch
+            if (selected == null) {
+                CardImageCache.display(this@CloudAccountActivity, null, background)
+                background.setArtworkOnly(false)
+                background.setImageResource(R.drawable.mtgback)
+            } else {
+                background.setArtworkOnly(LaunchArtworkUrl.isAvailable(selected.imgPath))
+                CardImageCache.displayKeepingCurrent(
+                    this@CloudAccountActivity,
+                    LaunchArtworkUrl.resolve(selected.imgPath),
+                    background
+                )
+            }
+        }
     }
 
     private fun beginGoogleSignIn() {

@@ -28,6 +28,7 @@ import com.google.android.gms.vision.Frame
 import com.google.android.material.card.MaterialCardView
 import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate
 import io.asv.mtgocr.ocrreader.data.CardIdentificationResult
+import io.asv.mtgocr.ocrreader.data.CardLanguage
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSource
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview
@@ -48,6 +49,7 @@ class EditionScanActivity : AppCompatActivity() {
     private lateinit var crop: ImageView
     private lateinit var status: TextView
     private val repository by lazy { CardRepository.get(this) }
+    private val cardLanguageDetector = CardTextLanguageDetector()
     private val detector = object : Detector<Int>() {
         override fun detect(frame: Frame): SparseArray<Int> = SparseArray()
     }
@@ -180,10 +182,30 @@ class EditionScanActivity : AppCompatActivity() {
         analysisInFlight = true
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
-        status.setText(R.string.edition_scan_comparing)
-        instruction.setText(R.string.edition_scan_comparing)
+        status.setText(R.string.edition_scan_detecting_language)
+        instruction.setText(R.string.edition_scan_detecting_language)
         replaceDebugBitmap(null)
         comparisonStartedAt = SystemClock.elapsedRealtime()
+        cardLanguageDetector.detect(corrected, reliableTitleLanguageHint()) { detected ->
+            if (isFinishing || isDestroyed) {
+                corrected.recycle()
+                return@detect
+            }
+            if (detected.languageCode.isBlank()) {
+                status.setText(R.string.edition_scan_language_unresolved)
+            } else {
+                status.text = getString(
+                    R.string.edition_scan_language_detected,
+                    languageLabel(detected.languageCode),
+                    (detected.confidence * 100).toInt().coerceIn(0, 100)
+                )
+            }
+            instruction.setText(R.string.edition_scan_comparing)
+            compareCorrectedPhoto(corrected, detected.languageCode)
+        }
+    }
+
+    private fun compareCorrectedPhoto(corrected: Bitmap, detectedLanguage: String) {
         photoExecutor.execute {
             val jpeg = ByteArrayOutputStream().use { output ->
                 corrected.compress(Bitmap.CompressFormat.JPEG, 94, output)
@@ -192,7 +214,7 @@ class EditionScanActivity : AppCompatActivity() {
             corrected.recycle()
             repository.identifyCardArtwork(
                 cardName = cardName,
-                languageCode = language,
+                languageCode = detectedLanguage,
                 jpeg = jpeg,
                 lockedSetCodes = lockedSets,
                 preferFoil = preferFoil,
@@ -210,6 +232,13 @@ class EditionScanActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /** A title identical to the canonical English name does not prove that the card is English. */
+    private fun reliableTitleLanguageHint(): String {
+        val normalized = CardLanguage.toCode(language)
+        return if (normalized == "en" && displayName.equals(cardName, ignoreCase = true)) ""
+        else normalized
     }
 
     private fun returnToCamera() {
@@ -412,6 +441,21 @@ class EditionScanActivity : AppCompatActivity() {
         CardBorderColor.UNKNOWN -> getString(R.string.edition_scan_border_unknown)
     }
 
+    private fun languageLabel(code: String): String = when (CardLanguage.toCode(code)) {
+        "en" -> "inglés"
+        "es" -> "español"
+        "fr" -> "francés"
+        "de" -> "alemán"
+        "it" -> "italiano"
+        "pt" -> "portugués"
+        "ja" -> "japonés"
+        "ko" -> "coreano"
+        "ru" -> "ruso"
+        "zhs" -> "chino simplificado"
+        "zht" -> "chino tradicional"
+        else -> code
+    }
+
     private fun borderRgbSummary(result: CardIdentificationResult): String =
         CardBorderSide.entries.joinToString("\n") { side ->
             val zones = result.borderZones.filter { it.side == side }
@@ -447,6 +491,7 @@ class EditionScanActivity : AppCompatActivity() {
     override fun onDestroy() {
         replaceDebugBitmap(null)
         correction.clearPhoto()
+        cardLanguageDetector.close()
         photoExecutor.shutdownNow()
         preview.release()
         cameraSource = null

@@ -260,6 +260,9 @@
     <string name="edition_scan_adjust_crop">Ajustar recorte</string>
     <string name="edition_scan_crop_correction">Corrección manual del contorno de la carta</string>
     <string name="edition_scan_comparing">Detectando el contorno y comparando las pruebas visuales…</string>
+    <string name="edition_scan_detecting_language">Leyendo el texto para verificar el idioma…</string>
+    <string name="edition_scan_language_detected">Idioma leído del texto: %1$s (%2$d%%). Comparando ediciones compatibles…</string>
+    <string name="edition_scan_language_unresolved">El texto no permite asegurar el idioma. Comparando todas las ediciones posibles…</string>
     <string name="edition_scan_no_match">No se reconoció la edición. Ajusta la carta y vuelve a intentarlo.</string>
     <string name="edition_scan_no_match_title">Aún no hay una coincidencia clara</string>
     <string name="edition_scan_no_match_with_evidence">No se pudo comparar ninguna edición.\nCandidatas por nombre/idioma: %5$d · con imagen: %6$d · comparadas: %7$d · fallos de descarga: %8$d\nContorno %1$d%% · borde %2$s %3$d%% · %4$d zonas leídas</string>

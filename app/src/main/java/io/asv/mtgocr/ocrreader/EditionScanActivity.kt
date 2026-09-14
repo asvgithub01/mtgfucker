@@ -8,9 +8,13 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.Typeface
 import android.hardware.Camera
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.StyleSpan
 import android.util.SparseArray
 import android.view.LayoutInflater
 import android.view.View
@@ -58,6 +62,7 @@ class EditionScanActivity : AppCompatActivity() {
     private var comparisonStartedAt = 0L
     private var correctionMode = false
     private var analysisInFlight = false
+    private var detectedLanguageConfidence = 0f
     private val photoExecutor = Executors.newSingleThreadExecutor()
 
     private val cardName by lazy { intent.getStringExtra(EXTRA_CARD_NAME).orEmpty() }
@@ -191,6 +196,7 @@ class EditionScanActivity : AppCompatActivity() {
                 corrected.recycle()
                 return@detect
             }
+            detectedLanguageConfidence = detected.confidence
             if (detected.languageCode.isBlank()) {
                 status.setText(R.string.edition_scan_language_unresolved)
             } else {
@@ -276,7 +282,14 @@ class EditionScanActivity : AppCompatActivity() {
                 if (result.confident) R.string.edition_scan_confirmed
                 else R.string.edition_scan_probable
             )
-            .setAdapter(CandidateAdapter(result.candidates, result.detectedBorder)) { _, which ->
+            .setAdapter(
+                CandidateAdapter(
+                    result.candidates,
+                    result.detectedBorder,
+                    result.detectedLanguage,
+                    detectedLanguageConfidence
+                )
+            ) { _, which ->
                 showCandidateExplanation(result.candidates[which], result)
             }
             .setNegativeButton(R.string.edition_scan_adjust_crop) { _, _ -> resumeCropAdjustment() }
@@ -383,7 +396,9 @@ class EditionScanActivity : AppCompatActivity() {
     /** Keeps the official collection symbol visible next to every proposed edition. */
     private inner class CandidateAdapter(
         private val candidates: List<CardIdentificationCandidate>,
-        private val detectedBorder: CardBorderColor
+        private val detectedBorder: CardBorderColor,
+        private val detectedLanguage: String,
+        private val languageConfidence: Float
     ) : BaseAdapter() {
         override fun getCount(): Int = candidates.size
 
@@ -415,11 +430,24 @@ class EditionScanActivity : AppCompatActivity() {
                 candidate.option.setName,
                 candidate.option.setCode.uppercase(Locale.US)
             )
-            view.findViewById<TextView>(R.id.editionCandidateScores).text = getString(
-                R.string.edition_scan_candidate_scores,
-                similarity(candidate.distance),
-                similarity(candidate.artworkDistance),
-                similarity(candidate.setSymbolDistance)
+            view.findViewById<TextView>(R.id.editionCandidateLanguage).text = boldValueAfterColon(
+                if (detectedLanguage.isBlank()) {
+                    getString(R.string.edition_scan_candidate_language_unknown)
+                } else {
+                    getString(
+                        R.string.edition_scan_candidate_language,
+                        languageLabel(detectedLanguage),
+                        (languageConfidence * 100).toInt().coerceIn(0, 100)
+                    )
+                }
+            )
+            view.findViewById<TextView>(R.id.editionCandidateScores).text = boldPercentages(
+                getString(
+                    R.string.edition_scan_candidate_scores,
+                    similarity(candidate.distance),
+                    similarity(candidate.artworkDistance),
+                    similarity(candidate.setSymbolDistance)
+                )
             )
             view.findViewById<TextView>(R.id.editionCandidateBorder).text = getString(
                 R.string.edition_scan_candidate_borders,
@@ -430,6 +458,43 @@ class EditionScanActivity : AppCompatActivity() {
             SetSymbolLoader.display(view.context, candidate.option.setCode, symbol)
             return view
         }
+    }
+
+    private fun boldPercentages(value: String): CharSequence {
+        val styled = SpannableString(value)
+        value.indices.filter { value[it] == '%' }.forEach { percent ->
+            var start = percent - 1
+            while (start >= 0 && value[start].isDigit()) start--
+            if (start + 1 < percent) {
+                styled.setSpan(
+                    StyleSpan(Typeface.BOLD),
+                    start + 1,
+                    percent + 1,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        return styled
+    }
+
+    private fun boldValueAfterColon(value: String): CharSequence {
+        val styled = SpannableString(value)
+        val start = (value.indexOf(':') + 1).coerceAtLeast(0)
+        val firstValueCharacter = value.indexOfFirst(start) { !it.isWhitespace() }
+        if (firstValueCharacter >= 0) {
+            styled.setSpan(
+                StyleSpan(Typeface.BOLD),
+                firstValueCharacter,
+                value.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        return styled
+    }
+
+    private inline fun String.indexOfFirst(startIndex: Int, predicate: (Char) -> Boolean): Int {
+        for (index in startIndex.coerceAtLeast(0) until length) if (predicate(this[index])) return index
+        return -1
     }
 
     private fun borderLabel(color: CardBorderColor): String = when (color) {

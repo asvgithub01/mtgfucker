@@ -22,8 +22,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import com.google.android.gms.vision.Detector
 import com.google.android.gms.vision.Frame
+import com.google.android.material.card.MaterialCardView
 import io.asv.mtgocr.ocrreader.data.CardIdentificationCandidate
 import io.asv.mtgocr.ocrreader.data.CardIdentificationResult
 import io.asv.mtgocr.ocrreader.data.CardRepository
@@ -365,6 +367,20 @@ class EditionScanActivity : AppCompatActivity() {
                 .inflate(R.layout.edition_scan_candidate_item, parent, false)
             val candidate = getItem(position)
             val symbol = view.findViewById<ImageView>(R.id.editionCandidateSetSymbol)
+            val card = view.findViewById<MaterialCardView>(R.id.editionCandidateCard)
+            val bestBadge = view.findViewById<TextView>(R.id.editionCandidateBestBadge)
+            val accent = MagicPalette.secondaryColor(view.context)
+            if (position == 0) {
+                card.setCardBackgroundColor(ColorUtils.setAlphaComponent(accent, 42))
+                card.strokeColor = accent
+                card.strokeWidth = (2f * resources.displayMetrics.density).toInt()
+                bestBadge.setTextColor(accent)
+                bestBadge.visibility = View.VISIBLE
+            } else {
+                card.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
+                card.strokeWidth = 0
+                bestBadge.visibility = View.GONE
+            }
             view.findViewById<TextView>(R.id.editionCandidateTitle).text = getString(
                 R.string.edition_scan_candidate_title,
                 candidate.option.setName,

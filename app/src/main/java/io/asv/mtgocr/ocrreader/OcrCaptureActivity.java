@@ -39,6 +39,7 @@ import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Looper;
@@ -152,6 +153,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final String PREF_ASK_EDITION_AFTER_SCAN = "ask_edition_after_scan";
   private static final String PREF_ONLY_OWNED_SETS = "only_owned_sets";
   private static final String STATE_SECTION = "selected_section";
+  private static final long DUPLICATE_CONFIRM_TIMEOUT_MS = 5_000L;
 
   private CameraSource mCameraSource;
   private CameraSourcePreview mPreview;
@@ -289,7 +291,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private String activeScanGroupName = "";
   private String sessionSourceGroupName = "";
   private ToneGenerator scanToneGenerator;
-  private final CardScanStability scanStability = new CardScanStability(1, 1_800L);
+  private final CardScanStability scanStability = new CardScanStability(1, 1_800L, 2_500L);
+  private AlertDialog duplicateScanDialog;
+  private CountDownTimer duplicateScanTimer;
   private boolean scanLookupInFlight;
   private boolean scanInProgress;
   private long lastOcrLookupAt;
@@ -615,6 +619,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     renderOcrCharacters(candidates);
     if (autoIdentifyCheck == null || !autoIdentifyCheck.isChecked() ||
         !isScannerReaderActive()) return;
+    if (duplicateScanDialog != null) return;
     if (nameIndexPreparing) return;
     if (scanLookupInFlight) {
       reportScannerGateBlocked(
@@ -644,14 +649,75 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       suppressPredictionWatcher = true;
       txtSearch.setText(displayName);
       suppressPredictionWatcher = false;
-      if (scanStability.observe(match.getCanonicalName(), SystemClock.elapsedRealtime())) {
+      CardScanStability.Decision decision = scanStability.observe(
+          match.getCanonicalName(), match.getDisplayName(), match.getLanguage(),
+          SystemClock.elapsedRealtime());
+      if (decision == CardScanStability.Decision.ACCEPT) {
         Log.i(TAG, "SCAN_OCR accepted name=" + match.getCanonicalName() +
             " language=" + match.getLanguage());
         playOcrRecognizedFeedback();
         captureArtworkForIdentification(match);
+      } else if (decision == CardScanStability.Decision.CONFIRM_REPEAT) {
+        Log.i(TAG, "SCAN_OCR repeated name=" + match.getCanonicalName() +
+            " language=" + match.getLanguage());
+        showDuplicateScanDialog(match);
       }
       return kotlin.Unit.INSTANCE;
     });
+  }
+
+  private void showDuplicateScanDialog(LocalCardNameMatch match) {
+    if (duplicateScanDialog != null || !isScannerReaderActive()) return;
+    final boolean[] addRequested = {false};
+    final AlertDialog dialog = new AlertDialog.Builder(this)
+        .setTitle(R.string.scan_duplicate_title)
+        .setMessage(getString(
+            R.string.scan_duplicate_message, match.getDisplayName(),
+            DUPLICATE_CONFIRM_TIMEOUT_MS / 1_000L))
+        .setNegativeButton(R.string.scan_duplicate_no, null)
+        .setPositiveButton(R.string.scan_duplicate_yes, (ignored, which) -> {
+          addRequested[0] = true;
+          cancelDuplicateScanTimer();
+          duplicateScanDialog = null;
+          if (!isFinishing() && !isDestroyed() && isScannerReaderActive()) {
+            playOcrRecognizedFeedback();
+            captureArtworkForIdentification(match);
+          }
+        })
+        .create();
+    duplicateScanDialog = dialog;
+    dialog.setOnDismissListener(ignored -> {
+      cancelDuplicateScanTimer();
+      if (duplicateScanDialog == dialog) duplicateScanDialog = null;
+      if (!addRequested[0]) {
+        scanStability.postponeRepeat(SystemClock.elapsedRealtime());
+        if (isScannerReaderActive()) {
+          cardScanGuide.setMessage(getString(R.string.scan_duplicate_rejected));
+        }
+      }
+    });
+    dialog.show();
+    duplicateScanTimer = new CountDownTimer(DUPLICATE_CONFIRM_TIMEOUT_MS, 1_000L) {
+      @Override public void onTick(long millisUntilFinished) {
+        if (duplicateScanDialog != dialog || !dialog.isShowing()) return;
+        long seconds = Math.max(1L, (millisUntilFinished + 999L) / 1_000L);
+        dialog.setMessage(getString(
+            R.string.scan_duplicate_message, match.getDisplayName(), seconds));
+      }
+
+      @Override public void onFinish() {
+        if (duplicateScanDialog == dialog && dialog.isShowing()) dialog.dismiss();
+      }
+    }.start();
+  }
+
+  private void cancelDuplicateScanTimer() {
+    if (duplicateScanTimer != null) duplicateScanTimer.cancel();
+    duplicateScanTimer = null;
+  }
+
+  private void dismissDuplicateScanDialog() {
+    if (duplicateScanDialog != null) duplicateScanDialog.dismiss();
   }
 
   private void renderOcrCharacters(List<String> candidates) {
@@ -865,6 +931,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     card.setLanguageCode(CardLanguage.toCode(detectedLanguage));
     applyLocalScanMetadata(card, option);
     persistInfo(card);
+    // The duplicate quiet period starts after the card is actually in the collection, not when
+    // its name was first read (the detailed edition flow can take considerably longer).
+    scanStability.postponeRepeat(SystemClock.elapsedRealtime());
     cardRepository.selectEdition(card.getCollectionItemId(), option, () -> kotlin.Unit.INSTANCE);
     enrichIdentifiedPrinting(card.getCollectionItemId(), option);
   }
@@ -1930,6 +1999,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onPause() {
     flushPendingCollectionSave();
+    dismissDuplicateScanDialog();
     super.onPause();
     if (mPreview != null) {
       mPreview.stop();
@@ -1942,8 +2012,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onDestroy() {
     sessionRefreshCoordinator.close();
-    super.onDestroy();
     autoOcrHandler.removeCallbacksAndMessages(null);
+    cancelDuplicateScanTimer();
+    if (duplicateScanDialog != null) {
+      duplicateScanDialog.setOnDismissListener(null);
+      duplicateScanDialog.dismiss();
+      duplicateScanDialog = null;
+    }
     if (activeScanSnackbar != null) activeScanSnackbar.dismiss();
     activeScanSnackbar = null;
     activeScanThumbnail = null;
@@ -1959,6 +2034,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     collectionSaveExecutor.shutdown();
     sessionPriceExecutor.shutdownNow();
     photoImportExecutor.shutdown();
+    super.onDestroy();
   }
 
   @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -2183,7 +2259,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     } else {
       Log.d(TAG, "no text detected");
       if (isScannerReaderActive() && autoIdentifyCheck.isChecked() && !scanInProgress) {
-        scanStability.allowRepeat();
+        scanStability.resetPending();
         cardScanGuide.setMessage(getString(R.string.scan_align_card));
         if (mCameraSource != null) mCameraSource.autoFocus(null);
         return true;
@@ -3951,6 +4027,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     CardInfo card = new CardInfo(searchText, "", "", "", "");
     card.setLanguageCode(CardLanguage.toCode(detectedLanguage));
     persistInfo(card);
+    scanStability.postponeRepeat(SystemClock.elapsedRealtime());
     return card;
   }
 

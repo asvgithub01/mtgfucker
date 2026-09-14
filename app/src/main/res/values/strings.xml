@@ -272,7 +272,12 @@
     <string name="card_border_matches">✓</string>
     <string name="card_border_differs">≠</string>
     <string name="card_border_not_compared">·</string>
-    <string name="scan_tap_repeat">Toca la cámara para volver a escanear la misma carta</string>
+    <string name="scan_tap_repeat">Retira la carta; si escaneas otra copia igual, te pediremos confirmación</string>
+    <string name="scan_duplicate_title">Carta repetida</string>
+    <string name="scan_duplicate_message">Se ha encontrado %1$s, que ya habíamos encontrado. ¿Añadir una nueva copia?\n\nSe cerrará sin añadir en %2$d s.</string>
+    <string name="scan_duplicate_yes">Sí, añadir</string>
+    <string name="scan_duplicate_no">No</string>
+    <string name="scan_duplicate_rejected">Copia repetida no añadida</string>
     <string name="scan_debug_name_lookup">matching del nombre</string>
     <string name="scan_debug_card_info">búsqueda de edición/precio</string>
     <string name="scan_debug_artwork">análisis de ilustración, borde e icono</string>

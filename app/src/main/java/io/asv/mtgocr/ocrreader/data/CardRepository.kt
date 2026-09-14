@@ -658,13 +658,17 @@ class CardRepository private constructor(context: Context) {
 
     /** Lightweight lookup used by the isolated lower-printing-line OCR experiment. */
     fun resolvePrintingMetadata(
-        setCode: String,
+        setCodes: List<String>,
         collectorNumber: String,
         callback: (List<SetCardOption>, Throwable?) -> Unit
     ) {
         executor.execute {
-            try {
-                val cards = catalog.setCards(setCode)
+            val matches = ArrayList<SetCardOption>()
+            var firstError: Throwable? = null
+            setCodes.asSequence().map { it.trim().uppercase(Locale.US) }.filter(String::isNotBlank)
+                .distinct().forEach { setCode ->
+                try {
+                    val cards = catalog.setCards(setCode)
                     .filter {
                         PrintingMetadataParser.collectorKeysMatch(
                             it.collectorNumber,
@@ -689,10 +693,12 @@ class CardRepository private constructor(context: Context) {
                             null
                         )
                     }
-                mainHandler.post { callback(cards, null) }
-            } catch (error: Throwable) {
-                mainHandler.post { callback(emptyList(), error) }
+                    matches += cards
+                } catch (error: Throwable) {
+                    if (firstError == null) firstError = error
+                }
             }
+            mainHandler.post { callback(matches, if (matches.isEmpty()) firstError else null) }
         }
     }
 

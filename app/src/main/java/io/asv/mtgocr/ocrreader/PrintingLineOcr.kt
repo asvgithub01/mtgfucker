@@ -14,10 +14,11 @@ data class PrintingLineOcrResult(
     val rawText: String,
     val lines: List<String>,
     val preview: Bitmap,
-    val successfulVariants: Int
+    val successfulVariants: Int,
+    val attemptedVariants: Int
 )
 
-/** Experimental OCR pass over the normalized lower band, with no OpenCV dependency yet. */
+/** Multi-crop OCR pass over the tiny printing metadata in a normalized card. */
 class PrintingLineOcr {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
@@ -25,12 +26,22 @@ class PrintingLineOcr {
         card: Bitmap,
         callback: (PrintingLineOcrResult?, Throwable?) -> Unit
     ) {
-        val crop = lowerBand(card)
-        val enlarged = enlarge(crop)
-        if (crop !== enlarged) crop.recycle()
-        val contrasted = autoContrast(enlarged)
-        val thresholded = otsuThreshold(contrasted)
-        val variants = listOf(enlarged, contrasted, thresholded)
+        val wideCrop = crop(card, .015f, .70f, .985f, .995f)
+        val focusedCrop = crop(card, .015f, .82f, .78f, .995f)
+        val wide = enlarge(wideCrop)
+        val focused = enlarge(focusedCrop)
+        wideCrop.recycle()
+        focusedCrop.recycle()
+        val wideContrast = autoContrast(wide)
+        val focusedContrast = autoContrast(focused)
+        val variants = listOf(
+            wide,
+            wideContrast,
+            otsuThreshold(wideContrast),
+            focused,
+            focusedContrast,
+            otsuThreshold(focusedContrast)
+        )
         val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it, 0)) }
         Tasks.whenAllComplete(tasks).addOnCompleteListener {
             val lines = LinkedHashSet<String>()
@@ -46,10 +57,9 @@ class PrintingLineOcr {
                         ?.forEach(lines::add)
                 }
             }
-            contrasted.recycle()
-            thresholded.recycle()
+            variants.filter { it !== wide }.forEach(Bitmap::recycle)
             if (successful == 0) {
-                enlarged.recycle()
+                wide.recycle()
                 callback(null, tasks.firstNotNullOfOrNull { it.exception }
                     ?: IllegalStateException("No se pudo ejecutar OCR"))
             } else {
@@ -57,8 +67,9 @@ class PrintingLineOcr {
                     PrintingLineOcrResult(
                         rawText = lines.joinToString("\n"),
                         lines = lines.toList(),
-                        preview = enlarged,
-                        successfulVariants = successful
+                        preview = wide,
+                        successfulVariants = successful,
+                        attemptedVariants = variants.size
                     ),
                     null
                 )
@@ -68,11 +79,17 @@ class PrintingLineOcr {
 
     fun close() = recognizer.close()
 
-    private fun lowerBand(card: Bitmap): Bitmap {
-        val left = (card.width * .015f).toInt().coerceIn(0, card.width - 1)
-        val right = (card.width * .985f).toInt().coerceIn(left + 1, card.width)
-        val top = (card.height * .74f).toInt().coerceIn(0, card.height - 1)
-        val bottom = (card.height * .995f).toInt().coerceIn(top + 1, card.height)
+    private fun crop(
+        card: Bitmap,
+        leftRatio: Float,
+        topRatio: Float,
+        rightRatio: Float,
+        bottomRatio: Float
+    ): Bitmap {
+        val left = (card.width * leftRatio).toInt().coerceIn(0, card.width - 1)
+        val right = (card.width * rightRatio).toInt().coerceIn(left + 1, card.width)
+        val top = (card.height * topRatio).toInt().coerceIn(0, card.height - 1)
+        val bottom = (card.height * bottomRatio).toInt().coerceIn(top + 1, card.height)
         return Bitmap.createBitmap(card, left, top, right - left, bottom - top)
     }
 

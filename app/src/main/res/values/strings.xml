@@ -451,6 +451,8 @@
     <string name="experimental_scan_read_printing">Leer impresión</string>
     <string name="experimental_scan_reading_bottom">Leyendo número, colección e idioma…</string>
     <string name="experimental_scan_reading_all">Leyendo nombre, número, colección y año…</string>
+    <string name="experimental_scan_reading_name_first">Leyendo primero el nombre de la carta…</string>
+    <string name="experimental_scan_name_found_analyzing_edition">Nombre detectado: %1$s. Analizando la edición…</string>
     <string name="experimental_scan_resolving_name">Buscando el nombre de la carta…</string>
     <string name="experimental_scan_resolving_printing">Buscando la impresión detectada…</string>
     <string name="experimental_scan_loading_editions">Nombre detectado: %1$s. Preparando ediciones…</string>
@@ -477,11 +479,14 @@
     <string name="experimental_scan_result_identified">Impresión identificada</string>
     <string name="experimental_scan_result_title">Resultado experimental</string>
     <string name="experimental_scan_read_again">Volver a leer</string>
-    <string name="experimental_scan_editions_title">%1$s · ediciones probables</string>
+    <string name="experimental_scan_editions_title">%1$s · toca una edición para añadirla</string>
     <string name="experimental_scan_show_ocr">Ver lectura OCR</string>
     <string name="experimental_scan_back_to_editions">Volver a ediciones</string>
     <string name="experimental_scan_candidate_set">%1$s (%2$s)</string>
     <string name="experimental_scan_candidate_metadata">N.º %1$s · %2$s · %3$s</string>
+    <string name="experimental_scan_candidate_price">NM · %1$s</string>
+    <string name="experimental_scan_saving_card">Guardando la carta en tu Biblio…</string>
+    <string name="experimental_scan_card_added">%1$s · %2$s añadida. Ahora tienes %3$d.</string>
     <string name="experimental_scan_evidence_set">colección leída</string>
     <string name="experimental_scan_evidence_collector">número leído</string>
     <string name="experimental_scan_evidence_year">año leído</string>

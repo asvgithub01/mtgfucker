@@ -65,11 +65,15 @@ object LegacyCollectionStore {
     }
 
     /** Adds one physical copy, folding it into the matching name/printing/finish row. */
-    fun addCopy(context: Context, option: CardEditionOption): CardInfo {
+    fun addCopy(
+        context: Context,
+        option: CardEditionOption,
+        languageCode: String = ""
+    ): CardInfo {
         val activeLibrary = LibraryCatalog.active(context)
         val collection = DataUtils.readSerializable<Biblio>(context, activeLibrary.fileName)
             ?: Biblio(activeLibrary.fileName, activeLibrary.name)
-        val result = addCopyToCollection(collection, option)
+        val result = addCopyToCollection(collection, option, languageCode)
         val expectedQuantity = result.quantityCount
         DataUtils.saveSerializable(context, collection, collection.nameFile)
 
@@ -86,9 +90,16 @@ object LegacyCollectionStore {
         return saved
     }
 
-    internal fun addCopyToCollection(collection: Biblio, option: CardEditionOption): CardInfo {
+    internal fun addCopyToCollection(
+        collection: Biblio,
+        option: CardEditionOption,
+        languageCode: String = ""
+    ): CardInfo {
+        val normalizedLanguage = CardLanguage.toCode(languageCode)
         val existing = collection.cards.firstOrNull { card ->
-            samePrinting(card, option) && card.condition == CardCondition.NEAR_MINT
+            samePrinting(card, option) &&
+                card.condition == CardCondition.NEAR_MINT &&
+                (normalizedLanguage.isBlank() || CardLanguage.toCode(card.languageCode) == normalizedLanguage)
         }
         val result = existing?.also { it.quantityCount = it.quantityCount + 1 } ?: CardInfo(
             option.cardName,
@@ -107,6 +118,7 @@ object LegacyCollectionStore {
             card.setName = option.setName
             card.collectorNumber = option.collectorNumber
             card.finish = option.finish
+            card.languageCode = normalizedLanguage
             option.price?.let {
                 card.priceL = it.toString()
                 card.priceM = it.toString()

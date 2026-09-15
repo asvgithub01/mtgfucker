@@ -7,6 +7,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AutoCompleteTextView
+import androidx.core.widget.doAfterTextChanged
 import android.widget.Button
 import android.widget.ArrayAdapter
 import android.widget.ImageView
@@ -38,6 +40,7 @@ import java.util.concurrent.Future
 /** Shows every MTGJSON printing and finish and stores the owned selection in Room. */
 class Main2Activity : AppCompatActivity() {
     private lateinit var repository: CardRepository
+    private lateinit var editionSearch: AutoCompleteTextView
     private lateinit var adapter: EditionAdapter
     private lateinit var cardName: String
     private lateinit var collectionItemId: String
@@ -173,6 +176,9 @@ class Main2Activity : AppCompatActivity() {
             onAddCopy = ::addCopy,
             onRemoveCopy = ::removeCopy
         )
+        editionSearch = findViewById(R.id.detailEditionSearch)
+        editionSearch.threshold = 1
+        editionSearch.doAfterTextChanged { filterEditions() }
         image.setOnClickListener {
             displayedOption?.let(::openCardImage) ?: if (legacyImageUrl.isNotBlank()) {
                 startActivity(Intent(this, CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL, legacyImageUrl))
@@ -208,7 +214,10 @@ class Main2Activity : AppCompatActivity() {
                 return@result
             }
             editionOptions = options
-            adapter.submit(options, currentCopyCounts())
+            editionSearch.setAdapter(EditionSearchAdapter(this, options.distinctBy { it.setCode }.map {
+                EditionSearchAdapter.Entry(it.setCode, it.setName)
+            }))
+            filterEditions()
             status.text = resources.getQuantityString(R.plurals.editions_found, options.size, options.size)
             val chosen = selected?.let { own ->
                 options.firstOrNull { it.printingUuid == own.printingUuid && it.finish == own.finish }
@@ -221,6 +230,11 @@ class Main2Activity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun filterEditions() {
+        val query = editionSearch.text.toString()
+        adapter.submit(editionOptions.filter { EditionSearch.matches(it.setCode, it.setName, query) }, currentCopyCounts())
     }
 
     private fun showSelectedImage(option: CardEditionOption) {

@@ -6,17 +6,28 @@ public final class OcrTitleRegion {
 
   private OcrTitleRegion() { }
 
+  public static Bounds cardForFrame(int width, int height) {
+    float cardHeight = Math.min(height * .72f, width * .92f / CARD_ASPECT_RATIO);
+    float cardWidth = cardHeight * CARD_ASPECT_RATIO;
+    return new Bounds(Math.round((width - cardWidth) / 2f), Math.round((height - cardHeight) / 2f),
+        Math.round((width + cardWidth) / 2f), Math.round((height + cardHeight) / 2f));
+  }
+
   public static Bounds forFrame(int width, int height) {
+    return region(width, height, .03f, .025f, .97f, .22f);
+  }
+
+  public static Bounds rulesForFrame(int width, int height) {
+    return region(width, height, .055f, .59f, .945f, .89f);
+  }
+
+  private static Bounds region(int width, int height, float left, float top, float right, float bottom) {
     float cardHeight = Math.min(height * .72f, width * .92f / CARD_ASPECT_RATIO);
     float cardWidth = cardHeight * CARD_ASPECT_RATIO;
     float cardLeft = (width - cardWidth) / 2f;
     float cardTop = (height - cardHeight) / 2f;
-    return new Bounds(
-        Math.round(cardLeft + cardWidth * .03f),
-        Math.round(cardTop + cardHeight * .025f),
-        Math.round(cardLeft + cardWidth * .97f),
-        Math.round(cardTop + cardHeight * .22f)
-    );
+    return new Bounds(Math.round(cardLeft + cardWidth * left), Math.round(cardTop + cardHeight * top),
+        Math.round(cardLeft + cardWidth * right), Math.round(cardTop + cardHeight * bottom));
   }
 
   public static final class Bounds {

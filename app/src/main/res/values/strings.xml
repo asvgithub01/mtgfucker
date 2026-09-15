@@ -424,4 +424,8 @@
     <string name="card_added_to_photo">Carta añadida a la foto</string>
     <string name="card_not_found_for_photo">No se encontró esa carta</string>
     <string name="choose_photo_edition">Elige la edición de %1$s</string>
+    <string name="edition_search_hint">Buscar edición: código en MAYÚSCULAS o nombre…</string>
+    <string name="delete_session_card_confirm">¿Eliminar «%1$s» y todas sus copias de la colección?</string>
+    <string name="scan_session_language">Idioma leído: %1$s</string>
+    <string name="edition_search_no_results">No hay ediciones que coincidan con la búsqueda.</string>
 </resources>

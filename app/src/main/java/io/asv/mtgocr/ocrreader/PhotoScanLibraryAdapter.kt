@@ -41,7 +41,7 @@ class PhotoScanLibraryAdapter(
         private val delete: ImageButton = view.findViewById(R.id.btnDeletePhotoScan)
 
         fun bind(entry: PhotoScanEntry, open: (PhotoScanEntry) -> Unit, remove: (PhotoScanEntry) -> Unit) {
-            Glide.with(itemView.context).load(File(entry.imagePath)).dontAnimate().centerCrop().into(image)
+            Glide.with(itemView.context).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).error(R.drawable.backmtg).dontAnimate().centerCrop().into(image)
             val convertedTotal = entry.cards.sumOf { card ->
                 PriceCurrency.convert(
                     itemView.context,

@@ -26,7 +26,28 @@ class OcrLumaEnhancerTest {
         assertTrue(frame.copyOfRange(ySize, frame.size).all { it == 77.toByte() })
     }
 
-    @Test fun masksEverythingExceptTheTitleBand() {
+    @Test fun keepsRulesForEveryCameraRotation() {
+        val width = 80
+        val height = 120
+        for (rotation in 0..3) {
+            val frame = ByteArray(width * height * 3 / 2) { 200.toByte() }
+            val uprightWidth = if (rotation % 2 == 1) height else width
+            val uprightHeight = if (rotation % 2 == 1) width else height
+            val rules = OcrTitleRegion.rulesForFrame(uprightWidth, uprightHeight)
+            val ux = (rules.left + rules.right) / 2
+            val uy = (rules.top + rules.bottom) / 2
+            val (x, y) = when(rotation) {
+                1 -> uy to height - 1 - ux
+                2 -> width - 1 - ux to height - 1 - uy
+                3 -> width - 1 - uy to ux
+                else -> ux to uy
+            }
+            OcrLumaEnhancer.enhance(frame, width, height, rotation)
+            assertTrue("rotation=$rotation", (frame[y * width + x].toInt() and 0xff) == 200)
+        }
+    }
+
+    @Test fun masksBackgroundButKeepsTitleAndRules() {
         val width = 80
         val height = 120
         val ySize = width * height
@@ -36,5 +57,8 @@ class OcrLumaEnhancerTest {
         assertTrue((frame[0].toInt() and 0xff) == 128)
         val center = ((title.top + title.bottom) / 2) * width + (title.left + title.right) / 2
         assertTrue((frame[center].toInt() and 0xff) != 128)
+        val rules = OcrTitleRegion.rulesForFrame(width, height)
+        val rulesCenter = ((rules.top + rules.bottom) / 2) * width + (rules.left + rules.right) / 2
+        assertTrue((frame[rulesCenter].toInt() and 0xff) == 200)
     }
 }

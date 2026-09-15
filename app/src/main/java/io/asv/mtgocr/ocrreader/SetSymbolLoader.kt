@@ -48,10 +48,14 @@ object SetSymbolLoader {
             target.visibility = View.VISIBLE
             return
         }
-        target.setImageDrawable(null)
-        target.visibility = View.GONE
+        target.setImageDrawable(CardLoadingDrawable())
+        target.visibility = View.VISIBLE
         synchronized(unavailable) {
-            if (code in unavailable) return
+            if (code in unavailable) {
+                target.setImageDrawable(null)
+                target.visibility = View.GONE
+                return
+            }
             waitingTargets.getOrPut(code) { mutableListOf() }.add(WeakReference(target))
             if (!loading.add(code)) return
         }
@@ -70,6 +74,7 @@ object SetSymbolLoader {
                     val waitingTarget = reference.get() ?: return@forEach
                     if (waitingTarget.tag != url) return@forEach
                     if (bitmap == null) {
+                        waitingTarget.setImageDrawable(null)
                         waitingTarget.visibility = View.GONE
                     } else {
                         waitingTarget.setImageBitmap(bitmap)

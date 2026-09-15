@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit
  * the user clears the application's data or uninstalls it.
  */
 object CardImageCache {
+    private const val METADATA_LOADING = "metadata-loading"
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
@@ -34,25 +35,19 @@ object CardImageCache {
 
     @JvmStatic
     fun display(context: Context, imageUrl: String?, target: ImageView) {
-        displayInternal(context, imageUrl, target, keepCurrentDrawable = false)
+        displayInternal(context, imageUrl, target)
     }
 
-    /**
-     * Replaces a fullscreen image without clearing the drawable that is already visible.
-     *
-     * Glide normally clears an ImageView as soon as a new request starts. That is desirable for
-     * recycled list rows, but it creates a black frame while paging through fullscreen images.
-     */
+    /** Keeps same-URL rebinds stable; a different printing always shows loading, never old art. */
     @JvmStatic
     fun displayKeepingCurrent(context: Context, imageUrl: String?, target: ImageView) {
-        displayInternal(context, imageUrl, target, keepCurrentDrawable = true)
+        displayInternal(context, imageUrl, target)
     }
 
     private fun displayInternal(
         context: Context,
         imageUrl: String?,
-        target: ImageView,
-        keepCurrentDrawable: Boolean
+        target: ImageView
     ) {
         val url = imageUrl?.trim().orEmpty()
         if (target.getTag(R.id.card_image_cache_url) == url && target.drawable != null) {
@@ -73,7 +68,7 @@ object CardImageCache {
             val request = Glide.with(context).load(cached)
                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .dontAnimate()
-            if (keepCurrentDrawable) request.placeholder(target.drawable)
+            request.placeholder(CardLoadingDrawable()).error(R.drawable.backmtg)
             request.into(target)
             return
         }
@@ -82,12 +77,20 @@ object CardImageCache {
         val request = Glide.with(context).load(url)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .dontAnimate()
-        if (keepCurrentDrawable) request.placeholder(target.drawable)
+        request.placeholder(CardLoadingDrawable()).error(R.drawable.backmtg)
         request.into(target)
 
         // The downloaded file is for subsequent/offline requests. Reloading the exact same bitmap
         // from that file as soon as it finishes used to clear and redraw the target a second time.
         download(context.applicationContext, url, null, cached)
+    }
+
+    @JvmStatic
+    fun showLoading(target: ImageView) {
+        if (target.drawable is CardLoadingDrawable && target.getTag(R.id.card_image_cache_url) == METADATA_LOADING) return
+        Glide.clear(target)
+        target.setTag(R.id.card_image_cache_url, METADATA_LOADING)
+        target.setImageDrawable(CardLoadingDrawable())
     }
 
     @JvmStatic

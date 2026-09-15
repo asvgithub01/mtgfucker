@@ -13,7 +13,7 @@ import java.util.List;
 /** Extracts title candidates from ML Kit while keeping the proven local name-matching flow. */
 final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLine> {
   interface TextCandidateListener {
-    void onTextCandidates(List<String> candidates);
+    void onTextCandidates(List<String> candidates, String rulesText);
   }
 
   private final GraphicOverlay<?> graphicOverlay;
@@ -37,14 +37,18 @@ final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLin
       height = swapped;
     }
     OcrTitleRegion.Bounds titleRegion = OcrTitleRegion.forFrame(width, height);
+    OcrTitleRegion.Bounds rulesRegion = OcrTitleRegion.rulesForFrame(width, height);
+    StringBuilder rulesText = new StringBuilder();
     for (int index = 0; index < items.size(); index++) {
       MlKitTextLine line = items.valueAt(index);
       Rect box = line.getBoundingBox();
       if (box != null && titleRegion.containsCenter(box.left, box.top, box.right, box.bottom)) {
         addCandidate(candidates, line.getText());
+      } else if (box != null && rulesRegion.containsCenter(box.left, box.top, box.right, box.bottom)) {
+        rulesText.append(line.getText()).append(' ');
       }
     }
-    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates);
+    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates, rulesText.toString());
   }
 
   private static void addCandidate(List<String> candidates, String rawText) {

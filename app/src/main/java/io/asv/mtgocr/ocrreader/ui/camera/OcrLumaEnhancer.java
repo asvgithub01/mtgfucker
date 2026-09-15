@@ -12,6 +12,7 @@ final class OcrLumaEnhancer {
         int uprightWidth = (rotation & 1) == 1 ? height : width;
         int uprightHeight = (rotation & 1) == 1 ? width : height;
         OcrTitleRegion.Bounds title = OcrTitleRegion.forFrame(uprightWidth, uprightHeight);
+        OcrTitleRegion.Bounds rules = OcrTitleRegion.rulesForFrame(uprightWidth, uprightHeight);
         long sum = 0L;
         long sumSquares = 0L;
         int samples = 0;
@@ -41,7 +42,7 @@ final class OcrLumaEnhancer {
             int y = index / width;
             nv21[index] = isInsideTitle(x, y, width, height, rotation, title)
                     ? (byte) table[nv21[index] & 0xff]
-                    : (byte) 128;
+                    : isInsideTitle(x, y, width, height, rotation, rules) ? nv21[index] : (byte) 128;
         }
     }
 

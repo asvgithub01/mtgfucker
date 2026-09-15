@@ -44,7 +44,7 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         repository = CardRepository.get(this)
         total = findViewById(R.id.txtPhotoDetailTotal)
         summary = findViewById(R.id.txtPhotoDetailSummary)
-        Glide.with(this).load(File(entry.imagePath)).dontAnimate().centerCrop()
+        Glide.with(this).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).error(R.drawable.backmtg).dontAnimate().centerCrop()
             .into(findViewById(R.id.imgPhotoDetail))
         adapter = DetectedCardAdapter(
             onOpen = ::openDetails,

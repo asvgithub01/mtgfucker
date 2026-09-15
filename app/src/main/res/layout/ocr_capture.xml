@@ -464,10 +464,10 @@
 
         <LinearLayout
             android:id="@+id/scanIndexPreparation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:layout_centerInParent="true"
-            android:background="@drawable/bg_scan_debug_status"
+            android:background="#D9000000"
             android:clickable="true"
             android:elevation="16dp"
             android:focusable="true"
@@ -581,7 +581,7 @@
             android:id="@+id/txtScanOcrCharacters"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/btnScanSession"
+            android:layout_above="@id/scanActions"
             android:layout_marginStart="20dp"
             android:layout_marginTop="6dp"
             android:layout_marginEnd="20dp"
@@ -604,7 +604,7 @@
             android:id="@+id/txtScanDebugStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/txtScanOcrCharacters"
+            android:layout_above="@id/txtScanOcrCharacters"
             android:layout_centerHorizontal="true"
             android:layout_marginStart="20dp"
             android:layout_marginTop="4dp"
@@ -626,7 +626,7 @@
             android:id="@+id/cardNameSuggestions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@id/txtScanDebugStatus"
+            android:layout_below="@id/scanManualEntry"
             android:layout_alignStart="@id/scanManualEntry"
             android:layout_alignEnd="@id/scanManualEntry"
             android:layout_marginTop="4dp"
@@ -637,26 +637,25 @@
             android:visibility="gone" />
 
         <LinearLayout
-            android:id="@+id/scanActions"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="wrap_content"
+            android:id="@+id/scanEditionControls"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <EditText
+                <MultiAutoCompleteTextView
                     android:id="@+id/txtLockedSet"
-                    android:layout_width="220dp"
-                    android:layout_height="42dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="48dp"
+                    android:dropDownHeight="240dp"
+                    android:imeOptions="actionDone"
                     android:background="#EFFFFFFF"
-                    android:hint="@string/lock_set_hint"
-                    android:inputType="textCapCharacters"
+                    android:hint="@string/edition_search_hint"
+                    android:inputType="text"
                     android:maxLines="1"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
@@ -674,23 +673,13 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal">
-
-                <CheckBox
-                    android:id="@+id/checkAutoIdentify"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:buttonTint="?attr/colorSecondary"
-                    android:checked="true"
-                    android:text="@string/auto_identify"
-                    android:textColor="#F4F0E8"
-                    android:textSize="13sp" />
-
-            </LinearLayout>
+        <LinearLayout
+            android:id="@+id/scanActions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -726,9 +715,28 @@
                     android:textSize="13sp" />
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <CheckBox
+                    android:id="@+id/checkAutoIdentify"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:checked="true"
+                    android:text="@string/auto_identify"
+                    android:textColor="#F4F0E8"
+                    android:textSize="13sp" />
+
             <CheckBox
                 android:id="@+id/checkCloseAfterScan"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:buttonTint="?attr/colorSecondary"
                 android:checked="false"
@@ -736,7 +744,9 @@
                 android:paddingEnd="8dp"
                 android:text="@string/close_scanner_after_add"
                 android:textColor="#F4F0E8"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
+
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"

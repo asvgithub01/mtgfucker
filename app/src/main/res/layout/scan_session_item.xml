@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="128dp"
+    android:layout_height="wrap_content"
+    android:minHeight="148dp"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
@@ -13,25 +14,32 @@
     android:paddingEnd="10dp"
     android:paddingBottom="6dp">
 
+    <LinearLayout
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical">
     <TextView
         android:id="@+id/scanSessionNumber"
-        android:layout_width="50dp"
-        android:layout_height="match_parent"
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
         android:gravity="center"
         android:textColor="?attr/colorSecondary"
-        android:textSize="13sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
 
     <CheckBox
         android:id="@+id/scanSessionSelected"
-        android:layout_width="36dp"
-        android:layout_height="match_parent"
+        android:layout_width="32dp"
+        android:layout_height="wrap_content"
         android:buttonTint="?attr/colorPrimary"
         android:contentDescription="@string/select_session_card" />
 
+    </LinearLayout>
+
     <io.asv.mtgocr.ocrreader.RoundedCardImageView
         android:id="@+id/scanSessionImage"
-        android:layout_width="52dp"
+        android:layout_width="46dp"
         android:layout_height="100dp"
         android:contentDescription="@string/added_card_thumbnail"
         android:scaleType="fitCenter"
@@ -40,7 +48,7 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="6dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -56,12 +64,23 @@
 
         <TextView
             android:id="@+id/scanSessionEdition"
+            android:background="?attr/selectableItemBackground"
+            android:drawableEnd="@android:drawable/arrow_down_float"
+            android:minHeight="40dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="2"
             android:textColor="#666666"
             android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/scanSessionLanguage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#333333"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -72,14 +91,15 @@
 
             <TextView
                 android:id="@+id/scanSessionCondition"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="32dp"
                 android:background="@drawable/spinner_background"
                 android:clickable="true"
                 android:ellipsize="end"
                 android:focusable="true"
                 android:gravity="center"
-                android:minWidth="86dp"
+                android:minWidth="0dp"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
                 android:singleLine="true"
@@ -89,9 +109,9 @@
 
             <CheckBox
                 android:id="@+id/scanSessionFoil"
-                android:layout_width="wrap_content"
+                android:layout_width="64dp"
                 android:layout_height="36dp"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="2dp"
                 android:buttonTint="?attr/colorPrimary"
                 android:gravity="center_vertical"
                 android:minHeight="0dp"

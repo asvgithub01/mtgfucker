@@ -27,6 +27,7 @@ final class ScanSessionAdapter extends BaseAdapter {
   interface Listener {
     void onOpen(CardInfo card);
     void onImage(CardInfo card);
+    void onEdition(CardInfo card);
     void onCondition(CardInfo card);
     void onFoil(CardInfo card, boolean foil);
     void onIncreaseQuantity(CardInfo card);
@@ -36,6 +37,7 @@ final class ScanSessionAdapter extends BaseAdapter {
     void onSelection(CardInfo card, boolean selected);
     boolean isSelected(CardInfo card);
     boolean isLoading(CardInfo card);
+    boolean isImageLoading(CardInfo card);
   }
 
   ScanSessionAdapter(Context context, List<CardInfo> cards, Listener listener) {
@@ -103,6 +105,12 @@ final class ScanSessionAdapter extends BaseAdapter {
     edition.setText(details.length() == 0
         ? context.getString(loading ? R.string.scan_metadata_loading : R.string.scan_metadata_incomplete)
         : details.toString());
+    edition.setEnabled(!loading);
+    edition.setOnClickListener(clicked -> listener.onEdition(card));
+    TextView language = view.findViewById(R.id.scanSessionLanguage);
+    String languageCode = card.getLanguageCode().trim();
+    language.setText(languageCode.isEmpty() ? "—" : languageCode.toUpperCase(java.util.Locale.ROOT));
+    language.setContentDescription(context.getString(R.string.scan_session_language, language.getText()));
     String[] conditionLabels = context.getResources().getStringArray(R.array.card_condition_labels);
     condition.setText(conditionLabels[CardCondition.indexOf(card.getCondition())]);
     condition.setOnClickListener(clicked -> listener.onCondition(card));
@@ -120,7 +128,9 @@ final class ScanSessionAdapter extends BaseAdapter {
     price.setVisibility(View.VISIBLE);
     String imageUrl = card.getImgPath() == null ? "" : card.getImgPath().trim();
     image.setFoilEffect(CardFinish.isFoil(card.getFinish()));
-    if (imageUrl.isEmpty()) {
+    if (listener.isImageLoading(card) || (loading && imageUrl.isEmpty())) {
+      CardImageCache.showLoading(image);
+    } else if (imageUrl.isEmpty()) {
       Object boundUrl = image.getTag(R.id.card_image_cache_url);
       if (!"".equals(boundUrl) || image.getDrawable() == null) {
         CardImageCache.display(context, "", image);

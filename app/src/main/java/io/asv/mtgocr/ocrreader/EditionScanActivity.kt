@@ -331,6 +331,9 @@ class EditionScanActivity : AppCompatActivity() {
                 setResult(
                     Activity.RESULT_OK,
                     Intent().putExtra(EXTRA_SET_CODE, candidate.option.setCode)
+                        .putExtra(EXTRA_PRINTING_UUID, candidate.option.printingUuid)
+                        .putExtra(EXTRA_FINISH, candidate.option.finish)
+                        .putExtra(EXTRA_LANGUAGE, result.detectedLanguage)
                 )
                 finish()
             }
@@ -616,6 +619,8 @@ class EditionScanActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_CARD_NAME = "edition.card_name"
         const val EXTRA_DISPLAY_NAME = "edition.display_name"
+        const val EXTRA_PRINTING_UUID = "edition.printingUuid"
+        const val EXTRA_FINISH = "edition.finish"
         const val EXTRA_LANGUAGE = "edition.language"
         const val EXTRA_PREFER_FOIL = "edition.prefer_foil"
         const val EXTRA_LOCKED_SETS = "edition.locked_sets"

@@ -47,38 +47,32 @@ class CardTextLanguageDetector {
         textRecognizer.process(InputImage.fromBitmap(rulesBox, 0))
             .addOnSuccessListener { recognized ->
                 rulesBox.recycle()
-                val text = recognized.text
-                    .lineSequence()
-                    .map(String::trim)
-                    .filter { line -> line.count(Char::isLetter) >= 3 }
-                    .joinToString(" ")
-                    .take(MAX_LANGUAGE_TEXT)
-                val identifier = languageIdentifier
-                if (identifier == null || text.count(Char::isLetter) < MIN_TEXT_LETTERS) {
-                    callback(CardTextLanguageResult(fallback, 0f, text))
-                    return@addOnSuccessListener
-                }
-                identifier.identifyPossibleLanguages(text)
-                    .addOnSuccessListener { candidates ->
-                        val best = candidates
-                            .asSequence()
-                            .map { CardLanguage.toCode(it.languageTag) to it.confidence }
-                            .filter { (code, _) -> code in SUPPORTED_CARD_LANGUAGES }
-                            .maxByOrNull { it.second }
-                        if (best == null || best.second < MIN_ACCEPTED_CONFIDENCE) {
-                            callback(CardTextLanguageResult(fallback, 0f, text))
-                        } else {
-                            callback(CardTextLanguageResult(best.first, best.second, text))
-                        }
-                    }
-                    .addOnFailureListener {
-                        callback(CardTextLanguageResult(fallback, 0f, text))
-                    }
+                detectText(recognized.text, fallback, callback)
             }
             .addOnFailureListener {
                 rulesBox.recycle()
                 callback(CardTextLanguageResult(fallback, 0f, ""))
             }
+    }
+
+    /** Uses rules already read from the live frame; no second OCR or camera capture is needed. */
+    fun detectText(rawText: String, fallbackLanguage: String, callback: (CardTextLanguageResult) -> Unit) {
+        val fallback = CardLanguage.toCode(fallbackLanguage)
+        val text = rawText.lineSequence().map(String::trim)
+            .filter { it.count(Char::isLetter) >= 3 }.joinToString(" ").take(MAX_LANGUAGE_TEXT)
+        val identifier = languageIdentifier
+        val shortLanguage = ScanLanguagePolicy.shortRulesLanguage(text)
+        if (identifier == null || text.count(Char::isLetter) < MIN_TEXT_LETTERS) {
+            callback(CardTextLanguageResult(shortLanguage ?: fallback, if (shortLanguage == null) 0f else 1f, text))
+            return
+        }
+        identifier.identifyPossibleLanguages(text)
+            .addOnSuccessListener { candidates ->
+                val chosen = ScanLanguagePolicy.choose(fallback,
+                    candidates.map { CardLanguage.toCode(it.languageTag) to it.confidence })
+                callback(CardTextLanguageResult(chosen.first, chosen.second, text))
+            }
+            .addOnFailureListener { callback(CardTextLanguageResult(fallback, 0f, text)) }
     }
 
     fun close() {
@@ -88,12 +82,9 @@ class CardTextLanguageDetector {
 
     companion object {
         private const val MIN_LANGUAGE_CONFIDENCE = .20f
-        private const val MIN_ACCEPTED_CONFIDENCE = .34f
         private const val MIN_TEXT_LETTERS = 18
         private const val MAX_LANGUAGE_TEXT = 400
         private const val TARGET_RULES_WIDTH = 1_000f
-        private val SUPPORTED_CARD_LANGUAGES = setOf(
-            "en", "es", "fr", "de", "it", "pt", "ja", "ko", "ru", "zhs", "zht"
-        )
+
     }
 }

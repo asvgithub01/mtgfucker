@@ -29,7 +29,8 @@ class MtgJsonRoomDataProvider(
                 return@loadCard
             }
             val representative = options.firstOrNull { !it.isFoil } ?: options.first()
-            cardInfo.name = representative.displayName
+            cardInfo.name = io.asv.mtgocr.ocrreader.ScanIdentity.displayName(
+                cardInfo.name, cardInfo.languageCode, representative.displayName)
             cardInfo.description = listOf(representative.typeLine, representative.rulesText)
                 .filter { it.isNotBlank() }.joinToString("\n")
             cardInfo.imgPath = representative.imageUrl.orEmpty()

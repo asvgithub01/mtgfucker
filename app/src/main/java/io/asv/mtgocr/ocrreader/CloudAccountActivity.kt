@@ -206,7 +206,8 @@ class CloudAccountActivity : AppCompatActivity() {
             R.string.cloud_sync_complete,
             result.uploadedLibraries,
             result.restoredLibraries,
-            formatDate(result.backupAtMillis.takeIf { it > 0L } ?: result.syncedAtMillis)
+            formatDate(result.backupAtMillis.takeIf { it > 0L } ?: result.syncedAtMillis),
+            result.enrichedCardmarketCards
         )
     }
 

@@ -1,8 +1,12 @@
 package io.asv.mtgocr.ocrreader.data
 
+import com.squareup.moshi.Moshi
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class ScryfallPrintingHint(
@@ -38,6 +42,38 @@ data class LocalizedCardName(
 
 /** Scryfall is deliberately responsible only for printing discovery and card imagery. */
 class ScryfallImageDataProvider(private val client: OkHttpClient) {
+    /**
+     * One-time migration helper for collections saved before Cardmarket identifiers were stored.
+     * Scryfall's collection endpoint resolves up to 75 exact printing ids in one request, avoiding
+     * hundreds of full MTGJSON set downloads for an existing library.
+     */
+    fun getCardmarketIdentifiers(scryfallIds: Collection<String>): Map<String, String> {
+        val identifiers = scryfallIds.map(String::trim).filter(String::isNotEmpty).distinct()
+        if (identifiers.isEmpty()) return emptyMap()
+        val result = linkedMapOf<String, String>()
+        identifiers.chunked(COLLECTION_BATCH_SIZE).forEachIndexed { index, batch ->
+            val payload = JSONObject().put(
+                "identifiers",
+                JSONArray().apply { batch.forEach { put(JSONObject().put("id", it)) } }
+            ).toString()
+            val request = Request.Builder()
+                .url("https://api.scryfall.com/cards/collection")
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "application/json;q=0.9,*/*;q=0.8")
+                .post(payload.toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    error("Scryfall identificadores devolvió HTTP ${response.code}")
+                }
+                result.putAll(parseCardmarketIdentifiers(response.body?.string().orEmpty()))
+            }
+            // Scryfall asks clients to stay below ten requests per second.
+            if (index < (identifiers.size - 1) / COLLECTION_BATCH_SIZE) Thread.sleep(120L)
+        }
+        return result
+    }
+
     /** Cheap first-page probe used to choose the scanner OCR script for a locked set. */
     fun setHasLanguage(setCode: String, languageCode: String): Boolean {
         val url = "https://api.scryfall.com/cards/search".toHttpUrl().newBuilder()
@@ -285,5 +321,23 @@ class ScryfallImageDataProvider(private val client: OkHttpClient) {
 
     companion object {
         const val USER_AGENT = "MTGOcrCollection/2.0 (Android; contact: github.com/asvgithub01/mtgfucker)"
+        private const val COLLECTION_BATCH_SIZE = 75
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+        private val MAP_ADAPTER = Moshi.Builder().build().adapter(Map::class.java)
+
+        internal fun parseCardmarketIdentifiers(json: String): Map<String, String> {
+            val root = MAP_ADAPTER.fromJson(json) ?: return emptyMap()
+            val data = root["data"] as? List<*> ?: return emptyMap()
+            return buildMap {
+                data.forEach { value ->
+                    val card = value as? Map<*, *> ?: return@forEach
+                    val scryfallId = (card["id"] as? String).orEmpty().trim()
+                    val cardmarketId = (card["cardmarket_id"] as? Number)?.toLong() ?: 0L
+                    if (scryfallId.isNotEmpty() && cardmarketId > 0L) {
+                        put(scryfallId, cardmarketId.toString())
+                    }
+                }
+            }
+        }
     }
 }

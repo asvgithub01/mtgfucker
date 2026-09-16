@@ -10,6 +10,14 @@ import io.asv.mtgocr.ocrreader.model.CardCondition
 import java.util.Locale
 
 object LegacyCollectionStore {
+    data class CardmarketPrintingMetadata(
+        val mcmId: String,
+        val mcmMetaId: String? = null,
+        val mcmSetId: Int? = null,
+        val mcmSetIdExtras: Int? = null,
+        val mcmSetName: String? = null
+    )
+
     private fun fileName(context: Context) = LibraryCatalog.activeFile(context)
 
     /** Returns the persisted cards so catalog screens use the collection file as source of truth. */
@@ -113,6 +121,40 @@ object LegacyCollectionStore {
     internal fun samePrinting(card: CardInfo, option: CardEditionOption): Boolean =
         card.printingUuid.orEmpty() == option.printingUuid &&
             normalizeFinish(card.finish) == normalizeFinish(option.finish)
+
+    /** Applies exact-printing Cardmarket metadata without changing user-owned card fields. */
+    internal fun enrichCardmarketIdentifiers(
+        collection: Biblio,
+        metadataByPrinting: Map<String, CardmarketPrintingMetadata>
+    ): Int {
+        var changed = 0
+        collection.cards.orEmpty().filterNotNull().forEach { card ->
+            val metadata = metadataByPrinting[card.printingUuid.orEmpty()] ?: return@forEach
+            var cardChanged = false
+            if (card.mcmId.isNullOrBlank() && metadata.mcmId.isNotBlank()) {
+                card.mcmId = metadata.mcmId
+                cardChanged = true
+            }
+            if (card.mcmMetaId.isNullOrBlank() && !metadata.mcmMetaId.isNullOrBlank()) {
+                card.mcmMetaId = metadata.mcmMetaId
+                cardChanged = true
+            }
+            if (card.mcmSetId == null && metadata.mcmSetId != null) {
+                card.mcmSetId = metadata.mcmSetId
+                cardChanged = true
+            }
+            if (card.mcmSetIdExtras == null && metadata.mcmSetIdExtras != null) {
+                card.mcmSetIdExtras = metadata.mcmSetIdExtras
+                cardChanged = true
+            }
+            if (card.mcmSetName.isNullOrBlank() && !metadata.mcmSetName.isNullOrBlank()) {
+                card.mcmSetName = metadata.mcmSetName
+                cardChanged = true
+            }
+            if (cardChanged) changed++
+        }
+        return changed
+    }
 
     private fun normalizeFinish(value: String?): String = when (value.orEmpty().trim().lowercase(Locale.ROOT)) {
         "", "normal", "regular", "non-foil" -> "nonfoil"

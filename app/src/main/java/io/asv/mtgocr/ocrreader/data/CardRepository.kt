@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import io.asv.mtgocr.ocrreader.model.Biblio
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import java.util.Collections
@@ -502,6 +503,51 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /**
+     * Fills Cardmarket ids in a pre-schema-5 collection using exact Scryfall printing ids already
+     * cached in Room. This method is blocking and must only be called from a background thread.
+     */
+    fun backfillCardmarketIdentifiers(collection: Biblio): Int {
+        val cards = collection.cards.orEmpty().filterNotNull()
+        val wantedUuids = cards
+            .filter { it.mcmId.isNullOrBlank() || it.mcmSetId == null }
+            .mapNotNull { it.printingUuid?.trim()?.takeIf(String::isNotEmpty) }
+            .distinct()
+        if (wantedUuids.isEmpty()) return 0
+
+        val printings = wantedUuids.chunked(SQLITE_QUERY_BATCH_SIZE)
+            .flatMap(dao::printingsByUuids)
+        if (printings.isEmpty()) return 0
+        val setsByCode = catalog.sets().associateBy { it.code.uppercase(Locale.US) }
+        val fetchedIds = imageProvider.getCardmarketIdentifiers(
+            printings.filter { it.mcmId.isNullOrBlank() }.mapNotNull { it.scryfallId }
+        )
+        val refreshedPrintings = printings.map { printing ->
+            val set = setsByCode[printing.setCode.uppercase(Locale.US)]
+            printing.copy(
+                mcmId = printing.mcmId?.takeIf(String::isNotBlank)
+                    ?: printing.scryfallId?.let(fetchedIds::get),
+                mcmSetId = printing.mcmSetId ?: set?.mcmId,
+                mcmSetIdExtras = printing.mcmSetIdExtras ?: set?.mcmIdExtras,
+                mcmSetName = printing.mcmSetName?.takeIf(String::isNotBlank) ?: set?.mcmName,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+        dao.savePrintings(refreshedPrintings)
+        val metadata = refreshedPrintings
+            .filter { !it.mcmId.isNullOrBlank() }
+            .associate { printing ->
+                printing.uuid to LegacyCollectionStore.CardmarketPrintingMetadata(
+                    mcmId = printing.mcmId.orEmpty(),
+                    mcmMetaId = printing.mcmMetaId,
+                    mcmSetId = printing.mcmSetId,
+                    mcmSetIdExtras = printing.mcmSetIdExtras,
+                    mcmSetName = printing.mcmSetName
+                )
+            }
+        return LegacyCollectionStore.enrichCardmarketIdentifiers(collection, metadata)
+    }
+
     fun identifyCardSetSymbol(
         cardName: String,
         languageCode: String,
@@ -844,6 +890,7 @@ class CardRepository private constructor(context: Context) {
     }
 
     companion object {
+        private const val SQLITE_QUERY_BATCH_SIZE = 900
         private const val TAG = "CardRepository"
         private const val SET_ALIAS_PREFERENCES = "set_ocr_aliases"
         private const val SET_LANGUAGE_SUPPORT_PREFERENCES = "set_language_support"

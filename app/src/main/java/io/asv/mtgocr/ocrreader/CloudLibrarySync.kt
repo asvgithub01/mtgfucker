@@ -10,6 +10,7 @@ import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.model.Biblio
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
 data class CloudSyncResult(
     val restoredLibraries: Int = 0,
     val uploadedLibraries: Int = 0,
+    val enrichedCardmarketCards: Int = 0,
     val syncedAtMillis: Long = 0L,
     val backupAtMillis: Long = 0L
 )
@@ -134,6 +136,7 @@ object CloudLibrarySync {
         require(PremiumAccess.isEnabled(context)) { "La sincronización está pausada porque Premium no está activo." }
         val user = requireUser(context)
         cancelPendingUploads(user.uid)
+        val enrichedCardmarketCards = enrichLocalCardmarketIdentifiers(context)
         val remoteHeads = libraries(user).get().await().documents.associateBy { it.id }
         val newestRemoteBackup = remoteHeads.values.maxOfOrNull { it.getLong("clientUpdatedAt") ?: 0L } ?: 0L
         var restored = 0
@@ -194,7 +197,13 @@ object CloudLibrarySync {
         }
         val now = recordLastSync(context, user.uid)
         if (uploaded == 0 && newestRemoteBackup > 0L) recordCloudBackup(context, user.uid, newestRemoteBackup)
-        CloudSyncResult(restored, uploaded, now, lastSyncMillis(context))
+        CloudSyncResult(
+            restoredLibraries = restored,
+            uploadedLibraries = uploaded,
+            enrichedCardmarketCards = enrichedCardmarketCards,
+            syncedAtMillis = now,
+            backupAtMillis = lastSyncMillis(context)
+        )
     }
 
     suspend fun restoreLastCloudCopy(context: Context): CloudSyncResult = syncMutex.withLock {
@@ -328,6 +337,25 @@ object CloudLibrarySync {
             "La copia de ${head.id} no superó la verificación de integridad."
         }
         return withContext(Dispatchers.Default) { CloudSnapshotCodec.decode(bytes) }
+    }
+
+    /**
+     * Old serialized libraries predate the Cardmarket fields. Enrich and persist them before the
+     * hash comparison so reconcile necessarily publishes a new browser-readable snapshot.
+     */
+    private fun enrichLocalCardmarketIdentifiers(context: Context): Int {
+        val repository = CardRepository.get(context)
+        var changed = 0
+        LibraryCatalog.libraries(context).forEach { library ->
+            val collection = DataUtils.readSerializable<Biblio>(context, library.fileName)
+                ?: return@forEach
+            val libraryChanges = repository.backfillCardmarketIdentifiers(collection)
+            if (libraryChanges > 0) {
+                saveRestored(context, library, collection)
+                changed += libraryChanges
+            }
+        }
+        return changed
     }
 
     private fun saveRestored(context: Context, library: LibraryInfo, source: Biblio) {

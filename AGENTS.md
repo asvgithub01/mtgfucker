@@ -41,7 +41,7 @@
 | Exportación de venta Cardmarket | `data/CardmarketCsvExporter.kt`, `data/PriceCurrency.kt`; botón y guardado en `OcrCaptureActivity.java`; consultar `CARDMARKET_EXPORT.md` |
 | Web y extensión Cardmarket | `web/`, `extension/`, protocolo compartido `packages/cardmarket-protocol/`; consultar `CARDMARKET_EXPORT.md` |
 | Idioma, acabado, condición y moneda | `data/CardLanguage.kt`, `CardFinish.kt`, `model/CardCondition.kt`, `data/PriceCurrency.kt` |
-| Sincronización cloud | `CloudLibrarySync.kt`, `CloudAccountActivity.kt`; consultar `FIREBASE_SETUP.md` |
+| Sincronización cloud | `CloudLibrarySync.kt`, `CloudAccountActivity.kt`; el backfill Cardmarket vive en `data/CardRepository.kt`; consultar `FIREBASE_SETUP.md` |
 
 Documentación adicional, solo cuando sea relevante: `DATA_PROVIDERS.md` para datos y
 `SCANNER_ROADMAP.md` para planes futuros. Contrastar con el código: el roadmap no implica
@@ -60,6 +60,9 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
   no actualizar solo una de las dos representaciones.
 - No bloquear la cámara con red, indexado o guardados pesados. Reutilizar ejecutores y los
   métodos de persistencia existentes; respetar el ciclo de vida de Activity y los callbacks.
+- Antes de publicar la proyección web, `CloudLibrarySync` completa una sola vez los IDs de
+  Cardmarket antiguos por UUID exacto de Scryfall y refresca los IDs de set desde MTGJSON. No
+  volver a emparejar por nombre ni omitir el guardado local que fuerza una nueva copia cloud.
 - El bloqueo de sets del scanner admite varios códigos. El autocompletado usa comas y el
   parser existente admite comas/espacios. No reducirlo accidentalmente a una sola edición.
 - La búsqueda compartida interpreta MAYÚSCULAS como código; los nombres se comparan sin

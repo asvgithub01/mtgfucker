@@ -41,14 +41,14 @@
     <string name="cloud_paused_last_copy_kept">Sincronización pausada. La última copia en la nube se conserva.</string>
     <string name="cloud_never_synced">Todavía no se ha completado ninguna sincronización.</string>
     <string name="cloud_last_sync">Última copia en la nube: %1$s</string>
-    <string name="cloud_sync_complete">Sincronización terminada: %1$d subidas, %2$d recuperadas. Copia en la nube del %3$s</string>
+    <string name="cloud_sync_complete">Sincronización terminada: %1$d subidas, %2$d recuperadas. Copia en la nube del %3$s. IDs de Cardmarket añadidos: %4$d</string>
     <string name="cloud_not_configured">Firebase aún no está configurado en esta compilación. Añade app/google-services.json.</string>
     <string name="cloud_not_configured_short">Firebase pendiente de configurar.</string>
     <string name="cloud_premium_required">Activa Premium para iniciar sesión y sincronizar.</string>
     <string name="cloud_google_opening">Abriendo Google…</string>
     <string name="cloud_google_invalid">Google no devolvió una credencial válida.</string>
     <string name="cloud_reconciling">Cuenta conectada. Recuperando la última copia…</string>
-    <string name="cloud_syncing">Sincronizando bibliotecas…</string>
+    <string name="cloud_syncing">Preparando IDs de Cardmarket y sincronizando bibliotecas…</string>
     <string name="cloud_restoring">Descargando y verificando la última copia…</string>
     <string name="cloud_sync_error">No se pudo completar la sincronización.</string>
     <string name="create_library">Crear nueva biblioteca</string>

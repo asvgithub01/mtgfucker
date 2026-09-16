@@ -19,7 +19,11 @@ class MtgJsonCatalogDataProvider(
     fun sets(forceRefresh: Boolean = false): List<MagicSetEntity> {
         val cached = dao.magicSets()
         val syncedAt = dao.magicSetCatalogSync()?.updatedAt ?: 0L
+        // Schema v4 cached the set catalog before Cardmarket metadata existed in Room. A recent
+        // sync marker must not prevent the one-time refresh that fills those newly added columns.
+        val hasCardmarketIdentifiers = cached.any { it.mcmId != null }
         if (!forceRefresh && cached.isNotEmpty() &&
+            hasCardmarketIdentifiers &&
             System.currentTimeMillis() - syncedAt < SET_CATALOG_TTL_MS
         ) return cached
 

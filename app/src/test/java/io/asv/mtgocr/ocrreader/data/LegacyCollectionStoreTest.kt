@@ -3,6 +3,7 @@ package io.asv.mtgocr.ocrreader.data
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardInfo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
@@ -70,6 +71,63 @@ class LegacyCollectionStoreTest {
         assertEquals(2, collection.cards.size)
         assertEquals("played", played.condition)
         assertEquals("near_mint", nearMint.condition)
+    }
+
+    @Test
+    fun enrichCardmarketIdentifiers_updatesOnlyTheMatchingPhysicalPrinting() {
+        val collection = Biblio("myBiblio.Json", "Test")
+        val matching = CardInfo("Mox Opal", "42 EUR", "", "image", "1").apply {
+            printingUuid = "printing-1"
+            setCode = "MM2"
+        }
+        val other = CardInfo("Lightning Bolt", "1 EUR", "", "other-image", "1").apply {
+            printingUuid = "printing-2"
+        }
+        collection.addCard(matching)
+        collection.addCard(other)
+
+        val changed = LegacyCollectionStore.enrichCardmarketIdentifiers(
+            collection,
+            mapOf(
+                "printing-1" to LegacyCollectionStore.CardmarketPrintingMetadata(
+                    mcmId = "282253",
+                    mcmSetId = 1645,
+                    mcmSetName = "Modern Masters 2015"
+                )
+            )
+        )
+
+        assertEquals(1, changed)
+        assertEquals("282253", matching.mcmId)
+        assertEquals(1645, matching.mcmSetId)
+        assertEquals("Modern Masters 2015", matching.mcmSetName)
+        assertEquals("42 EUR", matching.price)
+        assertEquals("image", matching.imgPath)
+        assertEquals("", other.mcmId)
+        assertNull(other.mcmSetId)
+    }
+
+    @Test
+    fun enrichCardmarketIdentifiers_doesNotReplaceAnExistingExactId() {
+        val collection = Biblio("myBiblio.Json", "Test")
+        val card = CardInfo("Mox Opal", "", "", "", "1").apply {
+            printingUuid = "printing-1"
+            mcmId = "already-exact"
+        }
+        collection.addCard(card)
+
+        LegacyCollectionStore.enrichCardmarketIdentifiers(
+            collection,
+            mapOf(
+                "printing-1" to LegacyCollectionStore.CardmarketPrintingMetadata(
+                    mcmId = "new-value",
+                    mcmSetId = 1645
+                )
+            )
+        )
+
+        assertEquals("already-exact", card.mcmId)
+        assertEquals(1645, card.mcmSetId)
     }
 
     private fun option(finish: String) = CardEditionOption(

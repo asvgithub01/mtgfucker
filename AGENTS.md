@@ -125,7 +125,9 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   y `shared_prefs`, APK anterior y nueva, hashes originales/restaurados y README. Los 8.495
   archivos restaurados coincidieron byte a byte antes de abrir la app; SQLite pasó
   `quick_check`. La reinstalación cambió el UID de `u0_a866` a `u0_a867`; `tar -xof -`
-  conservó correctamente el propietario nuevo.
+  conservó correctamente el propietario nuevo. Tras abrir la Biblio se verificó la
+  migración Room 4→5, las columnas `mcmId`/`mcmMetaId`, la colección visible y la sesión
+  Firebase restaurada.
 - Para backups consistentes, detener primero la app. Incluir WAL/SHM de SQLite y los archivos
   legacy, no solo `mtg_catalog.db`. No publicar backups ni credenciales en Git.
 - `run-as` permite copiar/restaurar en este debug. Al restaurar un TAR usar `tar -xof -`

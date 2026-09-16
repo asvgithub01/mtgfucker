@@ -44,18 +44,27 @@ describe("Cardmarket transfer protocol", () => {
       .toThrow(/Precio/);
   });
 
-  it("indexes natural collector numbers in full-catalog pages of 100", () => {
-    const catalog = buildCardmarketCatalogIndex(Array.from({ length: 306 }, (_, index) => ({
-      mcmId: String(5_713 + index),
+  it("matches the English-name page boundary observed in Revised BulkListing", () => {
+    const beforeFork = Array.from({ length: 99 }, (_, index) => ({
+      mcmId: String(10_000 + index), name: `A ${String(index).padStart(3, "0")}`,
       collectorNumber: String(index + 1)
-    })).reverse());
-    expect(catalog.get("5714")).toMatchObject({ page: 1, position: 2, size: 306 });
-    expect(catalog.get(String(5_713 + 100))).toMatchObject({
-      page: 2, position: 101, pageFirstCollectorNumber: "101", pageLastCollectorNumber: "200"
+    }));
+    const afterGreenWard = Array.from({ length: 204 }, (_, index) => ({
+      mcmId: String(20_000 + index), name: `Z ${String(index).padStart(3, "0")}`,
+      collectorNumber: String(index + 103)
+    }));
+    const catalog = buildCardmarketCatalogIndex([
+      ...afterGreenWard,
+      { mcmId: "5732", name: "Green Ward", collectorNumber: "20" },
+      { mcmId: "5548", name: "Frozen Shade", collectorNumber: "112" },
+      { mcmId: "5680", name: "Fork", collectorNumber: "153" },
+      ...beforeFork
+    ]);
+    expect(catalog.get("5680")).toMatchObject({
+      page: 1, position: 100, size: 306, pageLastName: "Fork"
     });
-    expect(catalog.get(String(5_713 + 305))).toMatchObject({
-      page: 4, position: 306, pageFirstCollectorNumber: "301", pageLastCollectorNumber: "306"
-    });
+    expect(catalog.get("5548")).toMatchObject({ page: 2, position: 101, pageFirstName: "Frozen Shade" });
+    expect(catalog.get("5732")).toMatchObject({ page: 2, position: 102 });
   });
 
   it("splits 150 rows using the 100-product windows of the full catalog", () => {
@@ -69,8 +78,8 @@ describe("Cardmarket transfer protocol", () => {
       catalogPage: Math.floor(index / 100) + 1,
       catalogPosition: index + 1,
       catalogSize: 150,
-      catalogFirstCollectorNumber: index < 100 ? "1" : "101",
-      catalogLastCollectorNumber: index < 100 ? "100" : "150"
+      catalogFirstName: index < 100 ? "Card 1" : "Card 101",
+      catalogLastName: index < 100 ? "Card 100" : "Card 150"
     }));
     const batches = buildTransferBatches(candidates, sample.createdAt);
     expect(batches.map(batch => batch.items.length)).toEqual([100, 50]);
@@ -90,8 +99,8 @@ describe("Cardmarket transfer protocol", () => {
       catalogPage: Math.floor((position - 1) / 100) + 1,
       catalogPosition: position,
       catalogSize: 306,
-      catalogFirstCollectorNumber: String(Math.floor((position - 1) / 100) * 100 + 1),
-      catalogLastCollectorNumber: String(Math.min(Math.ceil(position / 100) * 100, 306))
+      catalogFirstName: `First page ${Math.floor((position - 1) / 100) + 1}`,
+      catalogLastName: `Last page ${Math.floor((position - 1) / 100) + 1}`
     }));
     const batches = buildTransferBatches(candidates, sample.createdAt);
     expect(batches.map(batch => [batch.catalogPage, batch.items.map(item => item.collectorNumber)]))

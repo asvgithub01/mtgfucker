@@ -44,11 +44,11 @@ function matchTransfer(transfer: CardmarketTransfer): MatchedRow[] {
   if (transfer.catalogPage) {
     const currentPage = Math.max(1, Number(pageUrl.searchParams.get("site")) || 1);
     if (currentPage !== transfer.catalogPage) {
-      throw new Error(`Este lote corresponde a la página ${transfer.catalogPage} ordenada por collector number; ahora estás en la ${currentPage}. Ábrela desde el botón de la web.`);
+      throw new Error(`Este lote corresponde a la página ${transfer.catalogPage} ordenada por nombre inglés; ahora estás en la ${currentPage}. Ábrela desde el botón de la web.`);
     }
     const currentSort = pageUrl.searchParams.get("sortBy");
-    if (currentSort && currentSort !== "collectorsnumber_asc") {
-      throw new Error("Este lote necesita la ordenación por collector number. Ábrelo desde el botón de la web.");
+    if (currentSort && currentSort !== "name_asc") {
+      throw new Error("Este lote necesita la ordenación alfabética por nombre inglés. Ábrelo desde el botón de la web.");
     }
   }
 

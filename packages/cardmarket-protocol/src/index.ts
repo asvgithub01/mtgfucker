@@ -57,11 +57,11 @@ export interface CardmarketTransfer {
   setCode: string;
   setName: string;
   mcmSetIds: number[];
-  /** One-based page in Cardmarket when sorted by collector number. */
+  /** One-based page in Cardmarket when sorted by English product name. */
   catalogPage?: number;
   catalogSize?: number;
-  catalogFirstCollectorNumber?: string;
-  catalogLastCollectorNumber?: string;
+  catalogFirstName?: string;
+  catalogLastName?: string;
   items: CardmarketTransferItem[];
 }
 
@@ -72,12 +72,13 @@ export interface CardmarketBatchCandidate extends CardmarketTransferItem {
   catalogPage: number;
   catalogPosition: number;
   catalogSize: number;
-  catalogFirstCollectorNumber?: string;
-  catalogLastCollectorNumber?: string;
+  catalogFirstName?: string;
+  catalogLastName?: string;
 }
 
 export interface CardmarketCatalogProduct {
   mcmId: string;
+  name: string;
   collectorNumber: string;
 }
 
@@ -85,8 +86,8 @@ export interface CardmarketCatalogPlacement {
   page: number;
   position: number;
   size: number;
-  pageFirstCollectorNumber: string;
-  pageLastCollectorNumber: string;
+  pageFirstName: string;
+  pageLastName: string;
 }
 
 function assertText(value: unknown, field: string): asserts value is string {
@@ -190,8 +191,12 @@ export function buildCardmarketCatalogIndex(
   const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
   const seen = new Set<string>();
   const ordered = products
-    .filter(product => /^\d+$/.test(product.mcmId) && product.collectorNumber.trim() !== "")
-    .sort((left, right) => collator.compare(left.collectorNumber, right.collectorNumber))
+    .filter(product => /^\d+$/.test(product.mcmId) && product.name.trim() !== "")
+    .sort((left, right) =>
+      collator.compare(left.name, right.name) ||
+      collator.compare(left.collectorNumber, right.collectorNumber) ||
+      Number(left.mcmId) - Number(right.mcmId)
+    )
     .filter(product => {
       if (seen.has(product.mcmId)) return false;
       seen.add(product.mcmId);
@@ -206,8 +211,8 @@ export function buildCardmarketCatalogIndex(
       page: Math.floor(index / MAX_BATCH_ITEMS) + 1,
       position: index + 1,
       size: ordered.length,
-      pageFirstCollectorNumber: ordered[pageStart]?.collectorNumber || "",
-      pageLastCollectorNumber: ordered[pageEnd]?.collectorNumber || ""
+      pageFirstName: ordered[pageStart]?.name || "",
+      pageLastName: ordered[pageEnd]?.name || ""
     });
   });
   return placements;
@@ -268,8 +273,8 @@ export function buildTransferBatches(
         mcmSetIds: first.mcmSetIds,
         catalogPage: first.catalogPage,
         catalogSize: first.catalogSize,
-        catalogFirstCollectorNumber: first.catalogFirstCollectorNumber,
-        catalogLastCollectorNumber: first.catalogLastCollectorNumber,
+        catalogFirstName: first.catalogFirstName,
+        catalogLastName: first.catalogLastName,
         items: batch.map(({
           setCode: _setCode,
           setName: _setName,
@@ -277,8 +282,8 @@ export function buildTransferBatches(
           catalogPage: _catalogPage,
           catalogPosition: _catalogPosition,
           catalogSize: _catalogSize,
-          catalogFirstCollectorNumber: _catalogFirstCollectorNumber,
-          catalogLastCollectorNumber: _catalogLastCollectorNumber,
+          catalogFirstName: _catalogFirstName,
+          catalogLastName: _catalogLastName,
           ...item
         }) => item)
       };

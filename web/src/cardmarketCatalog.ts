@@ -6,6 +6,7 @@ import {
 export type { CardmarketCatalogPlacement } from "@mtgfucker/cardmarket-protocol";
 
 interface MtgJsonCard {
+  name?: string;
   number?: string;
   availability?: string[];
   identifiers?: { mcmId?: string };
@@ -22,6 +23,7 @@ function buildCatalogIndex(cards: MtgJsonCard[]): Map<string, CardmarketCatalogP
     .filter(card => card.identifiers?.mcmId && (!card.availability || card.availability.includes("paper")))
     .map(card => ({
       mcmId: card.identifiers!.mcmId!,
+      name: card.name || "",
       collectorNumber: card.number || ""
     })));
 }

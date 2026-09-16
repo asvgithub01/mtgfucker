@@ -25,8 +25,11 @@ import {
 import type { User } from "firebase/auth";
 import { loadCardmarketCatalog, type CardmarketCatalogPlacement } from "./cardmarketCatalog";
 
-const PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v2";
-const LEGACY_PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v1";
+const PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v3";
+const LEGACY_PLAN_STORAGE_KEYS = [
+  "mtgfucker.cardmarket.sale-plan.v1",
+  "mtgfucker.cardmarket.sale-plan.v2"
+];
 const TEST_SELECTION_SIZE = 150;
 
 interface CloudSaleCard extends CloudCard {
@@ -336,8 +339,8 @@ async function placeCandidatesInCatalog(
       catalogPage: placement.page,
       catalogPosition: placement.position,
       catalogSize: placement.size,
-      catalogFirstCollectorNumber: placement.pageFirstCollectorNumber,
-      catalogLastCollectorNumber: placement.pageLastCollectorNumber
+      catalogFirstName: placement.pageFirstName,
+      catalogLastName: placement.pageLastName
     };
   });
 }
@@ -395,12 +398,12 @@ function renderBatch(): void {
   summary.innerHTML = `
     <strong>${transfer.items.length} filas · ${copies} copias</strong>
     <span>Edición ${escapeHtml(transfer.setName)} · ID ${transfer.mcmSetIds.join(" / ")}</span>
-    ${transfer.catalogPage ? `<span>Página ${transfer.catalogPage} del catálogo · nº ${escapeHtml(transfer.catalogFirstCollectorNumber || "?")}–${escapeHtml(transfer.catalogLastCollectorNumber || "?")} · orden por collector number</span>` : ""}
+    ${transfer.catalogPage ? `<span>Página ${transfer.catalogPage} del catálogo · ${escapeHtml(transfer.catalogFirstName || "?")} – ${escapeHtml(transfer.catalogLastName || "?")} · orden alfabético inglés</span>` : ""}
     <span>Precios calculados con ×${currentPlanMultiplier.toLocaleString("es-ES")}</span>`;
   codeOutput.value = encodeTransfer(transfer);
   const cardmarketUrl = new URL("https://www.cardmarket.com/en/Magic/Stock/ListingMethods/BulkListing");
   cardmarketUrl.searchParams.set("idExpansion", String(transfer.mcmSetIds[0]));
-  cardmarketUrl.searchParams.set("sortBy", "collectorsnumber_asc");
+  cardmarketUrl.searchParams.set("sortBy", "name_asc");
   cardmarketUrl.searchParams.set("site", String(transfer.catalogPage || 1));
   openCardmarket.href = cardmarketUrl.toString();
   previousBatch.disabled = currentBatchIndex === 0;
@@ -542,5 +545,5 @@ copyButton.addEventListener("click", async () => {
   window.setTimeout(() => { copyButton.textContent = "Copiar código"; }, 1600);
 });
 
-localStorage.removeItem(LEGACY_PLAN_STORAGE_KEY);
+LEGACY_PLAN_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
 restorePlan();

@@ -30,13 +30,13 @@ La alternativa recomendada vive en `web/` y `extension/`:
 3. Elige el multiplicador global de precio. `×1` conserva el precio de la app y `×10`/`×100`
    permiten hacer pruebas con precios deliberadamente altos. La web muestra ambos importes.
 4. Pulsa **Preparar lotes seleccionados**. La web consulta el catálogo público de MTGJSON,
-   ordena la edición completa por número de coleccionista y agrupa solo las cartas que aparecen
+   ordena la edición completa por nombre inglés y agrupa solo las cartas que aparecen
    juntas en cada página de 100 productos de Cardmarket. Las variantes del mismo `mcmId` nunca
    comparten lote.
 5. En `chrome://extensions`, activa el modo desarrollador y carga `extension/dist` como extensión
    descomprimida.
 6. Para cada lote, usa **Abrir esta edición en Cardmarket**. El enlace incluye la página exacta
-   y fuerza la ordenación `collectorsnumber_asc`; después pulsa **Importar lote MTGFucker**.
+   y fuerza la ordenación `name_asc`; después pulsa **Importar lote MTGFucker**.
    Pega el código, comprueba la coincidencia exacta y rellena.
 7. Revisa el formulario. La extensión nunca pulsa el botón final de publicación.
 

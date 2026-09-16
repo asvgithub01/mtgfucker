@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildTransferBatches,
+  buildCardmarketCatalogIndex,
   decodeTransfer,
   encodeTransfer,
   priceWithMultiplier,
@@ -43,17 +44,58 @@ describe("Cardmarket transfer protocol", () => {
       .toThrow(/Precio/);
   });
 
-  it("splits 150 rows from one expansion into 100 and 50", () => {
+  it("indexes natural collector numbers in full-catalog pages of 100", () => {
+    const catalog = buildCardmarketCatalogIndex(Array.from({ length: 306 }, (_, index) => ({
+      mcmId: String(5_713 + index),
+      collectorNumber: String(index + 1)
+    })).reverse());
+    expect(catalog.get("5714")).toMatchObject({ page: 1, position: 2, size: 306 });
+    expect(catalog.get(String(5_713 + 100))).toMatchObject({
+      page: 2, position: 101, pageFirstCollectorNumber: "101", pageLastCollectorNumber: "200"
+    });
+    expect(catalog.get(String(5_713 + 305))).toMatchObject({
+      page: 4, position: 306, pageFirstCollectorNumber: "301", pageLastCollectorNumber: "306"
+    });
+  });
+
+  it("splits 150 rows using the 100-product windows of the full catalog", () => {
     const candidates: CardmarketBatchCandidate[] = Array.from({ length: 150 }, (_, index) => ({
       ...sample.items[0],
       mcmId: String(20_000 + index),
       name: `Card ${index + 1}`,
       setCode: "LRW",
       setName: "Lorwyn",
-      mcmSetIds: [84]
+      mcmSetIds: [84],
+      catalogPage: Math.floor(index / 100) + 1,
+      catalogPosition: index + 1,
+      catalogSize: 150,
+      catalogFirstCollectorNumber: index < 100 ? "1" : "101",
+      catalogLastCollectorNumber: index < 100 ? "100" : "150"
     }));
     const batches = buildTransferBatches(candidates, sample.createdAt);
     expect(batches.map(batch => batch.items.length)).toEqual([100, 50]);
+    expect(batches.map(batch => batch.catalogPage)).toEqual([1, 2]);
+  });
+
+  it("does not mix sparse owned cards from different full-catalog pages", () => {
+    const positions = [2, 80, 101, 199, 201, 306];
+    const candidates: CardmarketBatchCandidate[] = positions.map(position => ({
+      ...sample.items[0],
+      mcmId: String(20_000 + position),
+      name: `Card ${position}`,
+      collectorNumber: String(position),
+      setCode: "3ED",
+      setName: "Revised Edition",
+      mcmSetIds: [6],
+      catalogPage: Math.floor((position - 1) / 100) + 1,
+      catalogPosition: position,
+      catalogSize: 306,
+      catalogFirstCollectorNumber: String(Math.floor((position - 1) / 100) * 100 + 1),
+      catalogLastCollectorNumber: String(Math.min(Math.ceil(position / 100) * 100, 306))
+    }));
+    const batches = buildTransferBatches(candidates, sample.createdAt);
+    expect(batches.map(batch => [batch.catalogPage, batch.items.map(item => item.collectorNumber)]))
+      .toEqual([[1, ["2", "80"]], [2, ["101", "199"]], [3, ["201"]], [4, ["306"]]]);
   });
 
   it("keeps mixed expansions on their exact Cardmarket pages", () => {
@@ -64,7 +106,10 @@ describe("Cardmarket transfer protocol", () => {
         name: `Card ${setIndex}-${index}`,
         setCode: setId === 84 ? "LRW" : "ALL",
         setName: setId === 84 ? "Lorwyn" : "Alliances",
-        mcmSetIds: [setId]
+        mcmSetIds: [setId],
+        catalogPage: 1,
+        catalogPosition: index + 1,
+        catalogSize: 75
       }))
     );
     const batches = buildTransferBatches(candidates, sample.createdAt);
@@ -73,7 +118,8 @@ describe("Cardmarket transfer protocol", () => {
 
   it("puts repeated products into separate submissions", () => {
     const candidate: CardmarketBatchCandidate = {
-      ...sample.items[0], setCode: "LRW", setName: "Lorwyn", mcmSetIds: [84]
+      ...sample.items[0], setCode: "LRW", setName: "Lorwyn", mcmSetIds: [84],
+      catalogPage: 1, catalogPosition: 1, catalogSize: 1
     };
     const batches = buildTransferBatches([
       candidate,

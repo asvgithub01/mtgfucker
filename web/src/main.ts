@@ -23,8 +23,10 @@ import {
   type CloudLibrary
 } from "./firebase";
 import type { User } from "firebase/auth";
+import { loadCardmarketCatalog, type CardmarketCatalogPlacement } from "./cardmarketCatalog";
 
-const PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v1";
+const PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v2";
+const LEGACY_PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v1";
 const TEST_SELECTION_SIZE = 150;
 
 interface CloudSaleCard extends CloudCard {
@@ -304,11 +306,40 @@ function cardToCandidates(card: CloudSaleCard): CardmarketBatchCandidate[] {
       comment: bulkComment.value.trim(),
       setCode: card.setCode,
       setName: card.mcmSetName || card.setName,
-      mcmSetIds: card.mcmSetIds
+      mcmSetIds: card.mcmSetIds,
+      catalogPage: 0,
+      catalogPosition: 0,
+      catalogSize: 0
     });
     remaining -= quantity;
   }
   return candidates;
+}
+
+async function placeCandidatesInCatalog(
+  candidates: CardmarketBatchCandidate[]
+): Promise<CardmarketBatchCandidate[]> {
+  const catalogs = new Map<string, Map<string, CardmarketCatalogPlacement>>();
+  const setCodes = [...new Set(candidates.map(candidate => candidate.setCode.trim().toUpperCase()))];
+  await Promise.all(setCodes.map(async setCode => {
+    catalogs.set(setCode, await loadCardmarketCatalog(setCode));
+  }));
+
+  return candidates.map(candidate => {
+    const setCode = candidate.setCode.trim().toUpperCase();
+    const placement = catalogs.get(setCode)?.get(candidate.mcmId);
+    if (!placement) {
+      throw new Error(`${candidate.name} (Product ID ${candidate.mcmId}) no aparece en el catálogo completo ${setCode}.`);
+    }
+    return {
+      ...candidate,
+      catalogPage: placement.page,
+      catalogPosition: placement.position,
+      catalogSize: placement.size,
+      catalogFirstCollectorNumber: placement.pageFirstCollectorNumber,
+      catalogLastCollectorNumber: placement.pageLastCollectorNumber
+    };
+  });
 }
 
 function persistPlan(): void {
@@ -364,9 +395,14 @@ function renderBatch(): void {
   summary.innerHTML = `
     <strong>${transfer.items.length} filas · ${copies} copias</strong>
     <span>Edición ${escapeHtml(transfer.setName)} · ID ${transfer.mcmSetIds.join(" / ")}</span>
+    ${transfer.catalogPage ? `<span>Página ${transfer.catalogPage} del catálogo · nº ${escapeHtml(transfer.catalogFirstCollectorNumber || "?")}–${escapeHtml(transfer.catalogLastCollectorNumber || "?")} · orden por collector number</span>` : ""}
     <span>Precios calculados con ×${currentPlanMultiplier.toLocaleString("es-ES")}</span>`;
   codeOutput.value = encodeTransfer(transfer);
-  openCardmarket.href = `https://www.cardmarket.com/en/Magic/Stock/ListingMethods/BulkListing?idExpansion=${transfer.mcmSetIds[0]}`;
+  const cardmarketUrl = new URL("https://www.cardmarket.com/en/Magic/Stock/ListingMethods/BulkListing");
+  cardmarketUrl.searchParams.set("idExpansion", String(transfer.mcmSetIds[0]));
+  cardmarketUrl.searchParams.set("sortBy", "collectorsnumber_asc");
+  cardmarketUrl.searchParams.set("site", String(transfer.catalogPage || 1));
+  openCardmarket.href = cardmarketUrl.toString();
   previousBatch.disabled = currentBatchIndex === 0;
   nextBatch.disabled = currentBatchIndex === transfers.length - 1;
   emptyOutput.hidden = true;
@@ -464,11 +500,13 @@ clearSelection.addEventListener("click", () => {
   renderCards();
 });
 
-createPlan.addEventListener("click", () => {
+createPlan.addEventListener("click", async () => {
   try {
+    createPlan.disabled = true;
+    createPlan.textContent = "Calculando páginas exactas…";
     const selected = saleCards.filter(card => selectedKeys.has(card.key));
     if (selected.length === 0) throw new Error("Selecciona al menos una carta.");
-    const candidates = selected.flatMap(cardToCandidates);
+    const candidates = await placeCandidatesInCatalog(selected.flatMap(cardToCandidates));
     transfers = buildTransferBatches(candidates);
     currentBatchIndex = 0;
     currentPlanMultiplier = multiplier();
@@ -478,6 +516,9 @@ createPlan.addEventListener("click", () => {
   } catch (error) {
     saveStatus.textContent = error instanceof Error ? error.message : "No se pudo crear el plan.";
     readyOutput.hidden = false;
+  } finally {
+    createPlan.textContent = "Preparar lotes seleccionados";
+    updateSelectionSummary();
   }
 });
 
@@ -501,4 +542,5 @@ copyButton.addEventListener("click", async () => {
   window.setTimeout(() => { copyButton.textContent = "Copiar código"; }, 1600);
 });
 
+localStorage.removeItem(LEGACY_PLAN_STORAGE_KEY);
 restorePlan();

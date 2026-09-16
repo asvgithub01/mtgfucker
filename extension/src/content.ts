@@ -36,9 +36,20 @@ function setChecked(field: HTMLInputElement, checked: boolean): void {
 }
 
 function matchTransfer(transfer: CardmarketTransfer): MatchedRow[] {
-  const pageExpansion = Number(new URL(location.href).searchParams.get("idExpansion"));
+  const pageUrl = new URL(location.href);
+  const pageExpansion = Number(pageUrl.searchParams.get("idExpansion"));
   if (transfer.mcmSetIds.length > 0 && !transfer.mcmSetIds.includes(pageExpansion)) {
     throw new Error(`Abre en Cardmarket la edición ${transfer.setName} (ID ${transfer.mcmSetIds.join(" o ")}).`);
+  }
+  if (transfer.catalogPage) {
+    const currentPage = Math.max(1, Number(pageUrl.searchParams.get("site")) || 1);
+    if (currentPage !== transfer.catalogPage) {
+      throw new Error(`Este lote corresponde a la página ${transfer.catalogPage} ordenada por collector number; ahora estás en la ${currentPage}. Ábrela desde el botón de la web.`);
+    }
+    const currentSort = pageUrl.searchParams.get("sortBy");
+    if (currentSort && currentSort !== "collectorsnumber_asc") {
+      throw new Error("Este lote necesita la ordenación por collector number. Ábrelo desde el botón de la web.");
+    }
   }
 
   const rowsByProduct = new Map<string, HTMLTableRowElement>();
@@ -52,7 +63,10 @@ function matchTransfer(transfer: CardmarketTransfer): MatchedRow[] {
 
   return transfer.items.map(item => {
     const row = rowsByProduct.get(item.mcmId);
-    if (!row) throw new Error(`${item.name} (Product ID ${item.mcmId}) no aparece en esta página.`);
+    if (!row) {
+      const number = item.collectorNumber ? ` · nº ${item.collectorNumber}` : "";
+      throw new Error(`${item.name} (Product ID ${item.mcmId}${number}) no aparece en esta página del catálogo. No se ha rellenado nada.`);
+    }
     // Validate the complete adapter before writing any field, so failures remain all-or-nothing.
     findField(row, 'select[name^="idLanguage["]', "el idioma");
     findField(row, 'select[name^="idCondition["]', "el estado");

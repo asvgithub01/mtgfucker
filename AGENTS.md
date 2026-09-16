@@ -63,6 +63,9 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
 - Antes de publicar la proyección web, `CloudLibrarySync` completa una sola vez los IDs de
   Cardmarket antiguos por UUID exacto de Scryfall y refresca los IDs de set desde MTGJSON. No
   volver a emparejar por nombre ni omitir el guardado local que fuerza una nueva copia cloud.
+- Los lotes web de Cardmarket se separan por edición y por la página que ocupa cada producto en
+  el catálogo completo de MTGJSON ordenado por collector number (100 productos por página). No
+  volver a partir cada 100 cartas seleccionadas: productos válidos pueden quedar fuera del DOM.
 - El bloqueo de sets del scanner admite varios códigos. El autocompletado usa comas y el
   parser existente admite comas/espacios. No reducirlo accidentalmente a una sola edición.
 - La búsqueda compartida interpreta MAYÚSCULAS como código; los nombres se comparan sin

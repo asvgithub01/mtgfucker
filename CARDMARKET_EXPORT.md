@@ -29,19 +29,23 @@ La alternativa recomendada vive en `web/` y `extension/`:
    cartas de una o varias Biblios. Hay una selección rápida de 150 filas para probar el flujo.
 3. Elige el multiplicador global de precio. `×1` conserva el precio de la app y `×10`/`×100`
    permiten hacer pruebas con precios deliberadamente altos. La web muestra ambos importes.
-4. Pulsa **Preparar lotes seleccionados**. La selección mixta se agrupa por edición y se divide
-   en formularios de hasta 100 productos. Las variantes del mismo `mcmId` nunca comparten lote.
+4. Pulsa **Preparar lotes seleccionados**. La web consulta el catálogo público de MTGJSON,
+   ordena la edición completa por número de coleccionista y agrupa solo las cartas que aparecen
+   juntas en cada página de 100 productos de Cardmarket. Las variantes del mismo `mcmId` nunca
+   comparten lote.
 5. En `chrome://extensions`, activa el modo desarrollador y carga `extension/dist` como extensión
    descomprimida.
-6. Para cada lote, usa **Abrir esta edición en Cardmarket**, aplica el filtro necesario y pulsa
-   **Importar lote MTGFucker**. Pega el código, comprueba la coincidencia exacta y rellena.
+6. Para cada lote, usa **Abrir esta edición en Cardmarket**. El enlace incluye la página exacta
+   y fuerza la ordenación `collectorsnumber_asc`; después pulsa **Importar lote MTGFucker**.
+   Pega el código, comprueba la coincidencia exacta y rellena.
 7. Revisa el formulario. La extensión nunca pulsa el botón final de publicación.
 
-Cardmarket muestra una sola expansión en cada formulario BulkListing. Por eso «mixto» significa
-que el usuario puede seleccionar juntas cartas de cualquier expansión, pero la web crea una cola
-de formularios exactos por expansión. Un conjunto de 150 filas puede producir más de dos
-formularios si contiene muchas expansiones. La cola y su posición se conservan localmente para
-poder continuar tras recargar la web.
+Cardmarket muestra una sola expansión y una ventana del catálogo en cada formulario BulkListing.
+Por eso «mixto» significa que el usuario puede seleccionar juntas cartas de cualquier expansión,
+pero la web crea una cola de formularios exactos por expansión y por página del catálogo completo.
+Un conjunto de 150 filas puede producir más de dos formularios aunque ninguna página contenga más
+de 100 cartas seleccionadas. La cola y su posición se conservan localmente para poder continuar
+tras recargar la web.
 
 La coincidencia usa el campo oculto `idProduct[]` de Cardmarket contra el `mcmId` de MTGJSON. Si
 falta el producto, la edición no coincide o cambia la estructura de la página, se cancela el lote

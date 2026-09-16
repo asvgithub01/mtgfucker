@@ -57,6 +57,11 @@ export interface CardmarketTransfer {
   setCode: string;
   setName: string;
   mcmSetIds: number[];
+  /** One-based page in Cardmarket when sorted by collector number. */
+  catalogPage?: number;
+  catalogSize?: number;
+  catalogFirstCollectorNumber?: string;
+  catalogLastCollectorNumber?: string;
   items: CardmarketTransferItem[];
 }
 
@@ -64,6 +69,24 @@ export interface CardmarketBatchCandidate extends CardmarketTransferItem {
   setCode: string;
   setName: string;
   mcmSetIds: number[];
+  catalogPage: number;
+  catalogPosition: number;
+  catalogSize: number;
+  catalogFirstCollectorNumber?: string;
+  catalogLastCollectorNumber?: string;
+}
+
+export interface CardmarketCatalogProduct {
+  mcmId: string;
+  collectorNumber: string;
+}
+
+export interface CardmarketCatalogPlacement {
+  page: number;
+  position: number;
+  size: number;
+  pageFirstCollectorNumber: string;
+  pageLastCollectorNumber: string;
 }
 
 function assertText(value: unknown, field: string): asserts value is string {
@@ -83,6 +106,10 @@ export function validateTransfer(value: unknown): CardmarketTransfer {
   if (!Array.isArray(transfer.mcmSetIds) ||
       transfer.mcmSetIds.some(id => !Number.isInteger(id) || id <= 0)) {
     throw new Error("Los identificadores de edición de Cardmarket no son válidos.");
+  }
+  if (transfer.catalogPage !== undefined &&
+      (!Number.isInteger(transfer.catalogPage) || transfer.catalogPage < 1)) {
+    throw new Error("La página del catálogo de Cardmarket no es válida.");
   }
   if (!Array.isArray(transfer.items) || transfer.items.length === 0 ||
       transfer.items.length > MAX_BATCH_ITEMS) {
@@ -157,29 +184,66 @@ export function priceWithMultiplier(basePriceEur: number, multiplier: number): n
   return Math.max(1, Math.round(basePriceEur * multiplier * 100));
 }
 
+export function buildCardmarketCatalogIndex(
+  products: CardmarketCatalogProduct[]
+): Map<string, CardmarketCatalogPlacement> {
+  const collator = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+  const seen = new Set<string>();
+  const ordered = products
+    .filter(product => /^\d+$/.test(product.mcmId) && product.collectorNumber.trim() !== "")
+    .sort((left, right) => collator.compare(left.collectorNumber, right.collectorNumber))
+    .filter(product => {
+      if (seen.has(product.mcmId)) return false;
+      seen.add(product.mcmId);
+      return true;
+    });
+
+  const placements = new Map<string, CardmarketCatalogPlacement>();
+  ordered.forEach((product, index) => {
+    const pageStart = Math.floor(index / MAX_BATCH_ITEMS) * MAX_BATCH_ITEMS;
+    const pageEnd = Math.min(pageStart + MAX_BATCH_ITEMS, ordered.length) - 1;
+    placements.set(product.mcmId, {
+      page: Math.floor(index / MAX_BATCH_ITEMS) + 1,
+      position: index + 1,
+      size: ordered.length,
+      pageFirstCollectorNumber: ordered[pageStart]?.collectorNumber || "",
+      pageLastCollectorNumber: ordered[pageEnd]?.collectorNumber || ""
+    });
+  });
+  return placements;
+}
+
 /**
  * Turns a mixed selection into the exact pages Cardmarket can accept.
- * BulkListing exposes one expansion at a time, so every transfer contains
- * at most 100 distinct product rows from the same expansion.
+ * BulkListing exposes one expansion and one 100-product catalog window at a
+ * time. The page is therefore calculated from the complete expansion catalog,
+ * never by counting only the cards selected by the user.
  */
 export function buildTransferBatches(
   candidates: CardmarketBatchCandidate[],
   createdAt = new Date().toISOString()
 ): CardmarketTransfer[] {
-  const groups = new Map<number, CardmarketBatchCandidate[]>();
+  const groups = new Map<string, CardmarketBatchCandidate[]>();
   for (const candidate of candidates) {
     assertText(candidate.setCode, "el código de edición");
     assertText(candidate.setName, "el nombre de edición");
     const setIds = [...new Set(candidate.mcmSetIds.filter(id => Number.isInteger(id) && id > 0))];
     if (setIds.length === 0) throw new Error(`Falta el ID de edición de Cardmarket para ${candidate.name}.`);
+    if (!Number.isInteger(candidate.catalogPage) || candidate.catalogPage < 1 ||
+        !Number.isInteger(candidate.catalogPosition) || candidate.catalogPosition < 1 ||
+        !Number.isInteger(candidate.catalogSize) || candidate.catalogSize < candidate.catalogPosition) {
+      throw new Error(`No se pudo situar ${candidate.name} en el catálogo completo de Cardmarket.`);
+    }
     const normalized = { ...candidate, mcmSetIds: setIds };
-    const group = groups.get(setIds[0]) || [];
+    const groupKey = `${setIds[0]}:${candidate.catalogPage}`;
+    const group = groups.get(groupKey) || [];
     group.push(normalized);
-    groups.set(setIds[0], group);
+    groups.set(groupKey, group);
   }
 
   const transfers: CardmarketTransfer[] = [];
   for (const group of groups.values()) {
+    group.sort((left, right) => left.catalogPosition - right.catalogPosition);
     const batches: CardmarketBatchCandidate[][] = [];
     for (const candidate of group) {
       let batch = batches.find(current =>
@@ -202,7 +266,21 @@ export function buildTransferBatches(
         setCode: first.setCode.trim().toUpperCase(),
         setName: first.setName.trim(),
         mcmSetIds: first.mcmSetIds,
-        items: batch.map(({ setCode: _setCode, setName: _setName, mcmSetIds: _mcmSetIds, ...item }) => item)
+        catalogPage: first.catalogPage,
+        catalogSize: first.catalogSize,
+        catalogFirstCollectorNumber: first.catalogFirstCollectorNumber,
+        catalogLastCollectorNumber: first.catalogLastCollectorNumber,
+        items: batch.map(({
+          setCode: _setCode,
+          setName: _setName,
+          mcmSetIds: _mcmSetIds,
+          catalogPage: _catalogPage,
+          catalogPosition: _catalogPosition,
+          catalogSize: _catalogSize,
+          catalogFirstCollectorNumber: _catalogFirstCollectorNumber,
+          catalogLastCollectorNumber: _catalogLastCollectorNumber,
+          ...item
+        }) => item)
       };
       transfers.push(validateTransfer(transfer));
     }

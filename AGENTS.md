@@ -120,10 +120,12 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   clave local; comprobar siempre el resultado.
 - **No desinstalar ni borrar datos por una incompatibilidad futura sin nueva autorización.**
   La autorización anterior fue para esa reinstalación, no un permiso permanente.
-- Backup de recuperación (fuera del repositorio):
-  `~/.codex/backups/mtgfucker/sony-20260914-191155/`. Incluye TAR de `databases`, `files`
-  y `shared_prefs`, APK anterior, hashes originales/restaurados y README. Los 8.210 archivos
-  restaurados coincidieron byte a byte antes de abrir la app; SQLite pasó `quick_check`.
+- Backup de recuperación más reciente (fuera del repositorio):
+  `~/.codex/backups/mtgfucker/sony-20260916-115903/`. Incluye TAR de `databases`, `files`
+  y `shared_prefs`, APK anterior y nueva, hashes originales/restaurados y README. Los 8.495
+  archivos restaurados coincidieron byte a byte antes de abrir la app; SQLite pasó
+  `quick_check`. La reinstalación cambió el UID de `u0_a866` a `u0_a867`; `tar -xof -`
+  conservó correctamente el propietario nuevo.
 - Para backups consistentes, detener primero la app. Incluir WAL/SHM de SQLite y los archivos
   legacy, no solo `mtg_catalog.db`. No publicar backups ni credenciales en Git.
 - `run-as` permite copiar/restaurar en este debug. Al restaurar un TAR usar `tar -xof -`

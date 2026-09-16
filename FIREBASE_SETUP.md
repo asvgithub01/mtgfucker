@@ -77,8 +77,10 @@ un registro de aplicación específico para navegador:
 
 1. En **Configuración del proyecto > Tus apps**, pulsa el icono **Web (`</>`)**.
 2. Pon como nombre `MTGFucker Web`. No hace falta activar Hosting en ese asistente.
-3. Copia el bloque `firebaseConfig` que muestra Firebase.
-4. Copia `web/.env.example` como `web/.env.local` y pega allí los seis valores.
+3. Copia el bloque `firebaseConfig` que muestra Firebase. El snippet público usado por este
+   proyecto se conserva en `web/config.txt` para que el despliegue pueda reproducirse.
+4. Para ejecutar Vite, copia `web/.env.example` como `web/.env.local` y transforma allí los
+   valores del snippet en variables `VITE_FIREBASE_*`. `.env.local` sigue sin versionarse.
 5. En **Authentication > Settings > Authorized domains**, añade el dominio donde se publique la
    web. `localhost` sirve durante el desarrollo local.
 

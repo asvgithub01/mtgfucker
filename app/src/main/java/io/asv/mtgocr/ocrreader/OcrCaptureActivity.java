@@ -96,6 +96,10 @@ import io.asv.mtgocr.ocrreader.data.CardImageVariant;
 import io.asv.mtgocr.ocrreader.data.CardLanguage;
 import io.asv.mtgocr.ocrreader.data.LocalCardNameMatch;
 import io.asv.mtgocr.ocrreader.data.CardNameSuggestion;
+import io.asv.mtgocr.ocrreader.data.CardmarketCsvExporter;
+import io.asv.mtgocr.ocrreader.data.CardmarketExportBatch;
+import io.asv.mtgocr.ocrreader.data.CardmarketExportPlan;
+import io.asv.mtgocr.ocrreader.data.CardmarketExportRow;
 import io.asv.mtgocr.ocrreader.data.DeckCatalogStore;
 import io.asv.mtgocr.ocrreader.data.IDataProvider;
 import io.asv.mtgocr.ocrreader.data.MtgJsonRoomDataProvider;
@@ -114,6 +118,8 @@ import io.asv.mtgocr.ocrreader.ui.camera.CameraSource;
 import io.asv.mtgocr.ocrreader.ui.camera.CameraSourcePreview;
 import io.asv.mtgocr.ocrreader.ui.camera.GraphicOverlay;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -144,6 +150,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final int RC_PICK_CARD_PHOTO = 3;
   private static final int RC_SPEAK_CARD_NAME = 4;
   private static final int RC_SCAN_EDITION = 5;
+  private static final int RC_SAVE_CARDMARKET_CSV = 6;
   private static final String SCANNER_PREFERENCES = "scanner_preferences";
   private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
@@ -206,6 +213,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private Spinner sortSpinner, filterSpinner;
   private TextView filterLabel;
   private ArcaneGlassLayout collectionControls;
+  private View cardmarketExportButton;
   private ArcaneGlassLayout setCatalogControls;
   private ArcaneGlassLayout photoControls;
   private TextView totalText;
@@ -227,6 +235,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int currentSortMode = 0;
   private String currentFilterKey = "all";
   private String currentTextFilter = "";
+  private String pendingCardmarketCsv;
   private boolean updatingFilterSpinner = false;
   private int artBackgroundRequest = 0;
   private final Random artBackgroundRandom = new Random();
@@ -1079,6 +1088,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void setUpCollectionControls() {
     collectionControls = findViewById(R.id.collectionControls);
+    cardmarketExportButton = findViewById(R.id.btnExportCardmarket);
     totalText = (TextView) findViewById(R.id.txtTotal);
     if (!"0".equals(mPersistorMode)) {
       collectionControls.setVisibility(View.GONE);
@@ -1090,6 +1100,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     filterLabel = (TextView) findViewById(R.id.txtCollectionFilterLabel);
     collectionSearch = (EditText) findViewById(R.id.txtCollectionSearch);
     viewModeButton = (ImageButton) findViewById(R.id.btnCollectionViewMode);
+    cardmarketExportButton.setOnClickListener(view -> showCardmarketExportDialog());
     updateViewModeButton();
     viewModeButton.setOnClickListener(view -> {
       gridMode = !gridMode;
@@ -1569,6 +1580,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcrMlKit.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
+    }
+    if (cardmarketExportButton != null) {
+      cardmarketExportButton.setVisibility(!settings && currentSection == SECTION_LIBRARY
+          ? View.VISIBLE : View.GONE);
     }
     if (!settings) {
       if (catalog || photos) mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -2101,6 +2116,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == RC_SAVE_CARDMARKET_CSV) {
+      String csv = pendingCardmarketCsv;
+      pendingCardmarketCsv = null;
+      if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null && csv != null) {
+        try (OutputStream stream = getContentResolver().openOutputStream(data.getData())) {
+          if (stream == null) throw new IOException("No output stream for Cardmarket CSV");
+          stream.write(csv.getBytes(StandardCharsets.UTF_8));
+          Toast.makeText(this, R.string.cardmarket_export_saved, Toast.LENGTH_LONG).show();
+        } catch (IOException error) {
+          Log.e(TAG, "Could not save Cardmarket CSV", error);
+          Toast.makeText(this, R.string.cardmarket_export_failed, Toast.LENGTH_LONG).show();
+        }
+      }
+      return;
+    }
     if (requestCode == RC_SCAN_EDITION) {
       LocalCardNameMatch match = pendingEditionNameMatch;
       boolean preferFoil = pendingEditionPreferFoil;
@@ -2409,6 +2439,92 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     {
       mAdapter = new MyAdapter(mBiblio.cards, this, false);
       mRecyclerView.setAdapter(mAdapter);
+    }
+  }
+
+  private void showCardmarketExportDialog() {
+    if (mBiblio == null || mBiblio.cards == null) return;
+    List<CardInfo> visibleCards = new ArrayList<>();
+    for (CardInfo card : mBiblio.cards) {
+      if (matchesCurrentFilter(card)) visibleCards.add(card);
+    }
+    sortCards(visibleCards);
+    visibleCards = clusterSameNamedCards(visibleCards);
+
+    Map<String, Double> pricesEur = new LinkedHashMap<>();
+    for (CardInfo card : visibleCards) {
+      Double price = PriceCurrency.amountIn(this, card, PriceCurrency.EUR);
+      if (price != null) pricesEur.put(card.getCollectionItemId(), price);
+    }
+    CardmarketExportPlan plan = CardmarketCsvExporter.prepare(visibleCards, pricesEur);
+    if (plan.getBatches().isEmpty()) {
+      Toast.makeText(this, R.string.cardmarket_export_empty, Toast.LENGTH_LONG).show();
+      return;
+    }
+
+    List<String> labels = new ArrayList<>();
+    labels.add(plan.getSkippedCount() > 0
+        ? getString(R.string.cardmarket_export_info_skipped, plan.getSkippedCount())
+        : getString(R.string.cardmarket_export_info));
+    CardmarketExportRow first = plan.getBatches().get(0).getRows().get(0);
+    CardmarketExportRow testRow = CardmarketCsvExporter.singleCopy(first);
+    labels.add(getString(R.string.cardmarket_export_test, testRow.getName(), testRow.getSetCode()));
+    for (CardmarketExportBatch batch : plan.getBatches()) {
+      labels.add(getString(
+          R.string.cardmarket_export_batch,
+          batch.getSetCode(),
+          batch.getNumber(),
+          batch.getTotal(),
+          batch.getRows().size(),
+          batch.getCopyCount()
+      ));
+    }
+    ArrayAdapter<String> choices = new ArrayAdapter<String>(
+        this, android.R.layout.simple_list_item_1, labels) {
+      @Override public boolean isEnabled(int position) {
+        return position != 0;
+      }
+    };
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.cardmarket_export_title)
+        .setAdapter(choices, (dialog, which) -> {
+          int selected = which - 1;
+          if (selected < 0) return;
+          if (selected == 0) {
+            saveCardmarketCsv(
+                CardmarketCsvExporter.toCsv(Collections.singletonList(testRow)),
+                "mkm_prueba_" + testRow.getSetCode() + ".csv"
+            );
+          } else {
+            CardmarketExportBatch batch = plan.getBatches().get(selected - 1);
+            String range = String.format(
+                Locale.ROOT,
+                "%03d-%03d",
+                (batch.getNumber() - 1) * CardmarketCsvExporter.MAX_ROWS_PER_BATCH + 1,
+                (batch.getNumber() - 1) * CardmarketCsvExporter.MAX_ROWS_PER_BATCH
+                    + batch.getRows().size()
+            );
+            saveCardmarketCsv(
+                CardmarketCsvExporter.toCsv(batch.getRows()),
+                "mkm_" + batch.getSetCode() + "_" + range + ".csv"
+            );
+          }
+        })
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
+  }
+
+  private void saveCardmarketCsv(String csv, String suggestedName) {
+    pendingCardmarketCsv = csv;
+    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT)
+        .addCategory(Intent.CATEGORY_OPENABLE)
+        .setType("text/csv")
+        .putExtra(Intent.EXTRA_TITLE, suggestedName.replaceAll("[^A-Za-z0-9._-]", "_"));
+    try {
+      startActivityForResult(intent, RC_SAVE_CARDMARKET_CSV);
+    } catch (ActivityNotFoundException error) {
+      pendingCardmarketCsv = null;
+      Toast.makeText(this, R.string.cardmarket_export_no_file_app, Toast.LENGTH_LONG).show();
     }
   }
 

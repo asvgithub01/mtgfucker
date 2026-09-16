@@ -122,6 +122,19 @@
                     android:padding="8dp"
                     android:src="@android:drawable/ic_menu_gallery" />
             </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnExportCardmarket"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/cardmarket_export"
+                android:textColor="?attr/colorSecondary"
+                android:visibility="gone"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconTint="?attr/colorSecondary"
+                app:strokeColor="?attr/colorSecondary" />
         </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
 
         <io.asv.mtgocr.ocrreader.ArcaneGlassLayout

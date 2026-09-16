@@ -38,6 +38,7 @@
 | Escaneo específico de edición/fotos | `EditionScanActivity.kt`, `PhotoScanDetailActivity.kt`, `PhotoScanStore.kt` |
 | Catálogo, precios e imágenes | `data/CardRepository.kt`, proveedores `data/MtgJson*` y `data/Scryfall*`, `data/CardDatabase.kt` |
 | Colección persistida | `model/CardInfo.java`, `model/Biblio.java`, `DataUtils.java`, `LibraryCatalog.kt`, `data/LegacyCollectionStore.kt` |
+| Exportación de venta Cardmarket | `data/CardmarketCsvExporter.kt`, `data/PriceCurrency.kt`; botón y guardado en `OcrCaptureActivity.java`; consultar `CARDMARKET_EXPORT.md` |
 | Idioma, acabado, condición y moneda | `data/CardLanguage.kt`, `CardFinish.kt`, `model/CardCondition.kt`, `data/PriceCurrency.kt` |
 | Sincronización cloud | `CloudLibrarySync.kt`, `CloudAccountActivity.kt`; consultar `FIREBASE_SETUP.md` |
 

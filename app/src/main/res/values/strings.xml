@@ -428,4 +428,15 @@
     <string name="delete_session_card_confirm">¿Eliminar «%1$s» y todas sus copias de la colección?</string>
     <string name="scan_session_language">Idioma leído: %1$s</string>
     <string name="edition_search_no_results">No hay ediciones que coincidan con la búsqueda.</string>
+    <string name="cardmarket_export">Exportar para vender en MKM</string>
+    <string name="cardmarket_export_title">Cardmarket · elegir lote</string>
+    <string name="cardmarket_export_info">ⓘ Precios estimados en EUR. Nada se publica automáticamente.</string>
+    <string name="cardmarket_export_info_skipped">ⓘ Precios estimados en EUR. Se omitirán %1$d filas incompletas. Nada se publica automáticamente.</string>
+    <string name="cardmarket_export_test">PRUEBA · 1 copia · %1$s (%2$s)</string>
+    <string name="cardmarket_export_batch">%1$s · lote %2$d/%3$d · %4$d filas (%5$d copias)</string>
+    <string name="cardmarket_export_empty">No hay cartas visibles con edición, idioma y precio válidos para Cardmarket.</string>
+    <string name="cardmarket_export_choose_location">Guardar CSV de Cardmarket</string>
+    <string name="cardmarket_export_saved">CSV guardado. Impórtalo en «Insertar cartas por edición» y revisa todo antes de publicar.</string>
+    <string name="cardmarket_export_failed">No se pudo guardar el CSV.</string>
+    <string name="cardmarket_export_no_file_app">No hay una aplicación disponible para guardar el CSV.</string>
 </resources>

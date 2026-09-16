@@ -60,6 +60,12 @@ export interface CardmarketTransfer {
   items: CardmarketTransferItem[];
 }
 
+export interface CardmarketBatchCandidate extends CardmarketTransferItem {
+  setCode: string;
+  setName: string;
+  mcmSetIds: number[];
+}
+
 function assertText(value: unknown, field: string): asserts value is string {
   if (typeof value !== "string" || value.trim() === "") {
     throw new Error(`Falta ${field}.`);
@@ -143,4 +149,63 @@ export function decodeTransfer(code: string): CardmarketTransfer {
 
 export function newBatchId(): string {
   return crypto.randomUUID();
+}
+
+export function priceWithMultiplier(basePriceEur: number, multiplier: number): number {
+  if (!Number.isFinite(basePriceEur) || basePriceEur <= 0) throw new Error("El precio base no es válido.");
+  if (!Number.isFinite(multiplier) || multiplier <= 0) throw new Error("El multiplicador no es válido.");
+  return Math.max(1, Math.round(basePriceEur * multiplier * 100));
+}
+
+/**
+ * Turns a mixed selection into the exact pages Cardmarket can accept.
+ * BulkListing exposes one expansion at a time, so every transfer contains
+ * at most 100 distinct product rows from the same expansion.
+ */
+export function buildTransferBatches(
+  candidates: CardmarketBatchCandidate[],
+  createdAt = new Date().toISOString()
+): CardmarketTransfer[] {
+  const groups = new Map<number, CardmarketBatchCandidate[]>();
+  for (const candidate of candidates) {
+    assertText(candidate.setCode, "el código de edición");
+    assertText(candidate.setName, "el nombre de edición");
+    const setIds = [...new Set(candidate.mcmSetIds.filter(id => Number.isInteger(id) && id > 0))];
+    if (setIds.length === 0) throw new Error(`Falta el ID de edición de Cardmarket para ${candidate.name}.`);
+    const normalized = { ...candidate, mcmSetIds: setIds };
+    const group = groups.get(setIds[0]) || [];
+    group.push(normalized);
+    groups.set(setIds[0], group);
+  }
+
+  const transfers: CardmarketTransfer[] = [];
+  for (const group of groups.values()) {
+    const batches: CardmarketBatchCandidate[][] = [];
+    for (const candidate of group) {
+      let batch = batches.find(current =>
+        current.length < MAX_BATCH_ITEMS &&
+        current.every(existing => existing.mcmId !== candidate.mcmId)
+      );
+      if (!batch) {
+        batch = [];
+        batches.push(batch);
+      }
+      batch.push(candidate);
+    }
+
+    for (const batch of batches) {
+      const first = batch[0];
+      const transfer: CardmarketTransfer = {
+        version: 1,
+        batchId: newBatchId(),
+        createdAt,
+        setCode: first.setCode.trim().toUpperCase(),
+        setName: first.setName.trim(),
+        mcmSetIds: first.mcmSetIds,
+        items: batch.map(({ setCode: _setCode, setName: _setName, mcmSetIds: _mcmSetIds, ...item }) => item)
+      };
+      transfers.push(validateTransfer(transfer));
+    }
+  }
+  return transfers;
 }

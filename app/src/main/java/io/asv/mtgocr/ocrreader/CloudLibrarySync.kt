@@ -136,7 +136,9 @@ object CloudLibrarySync {
         require(PremiumAccess.isEnabled(context)) { "La sincronización está pausada porque Premium no está activo." }
         val user = requireUser(context)
         cancelPendingUploads(user.uid)
-        val enrichedCardmarketCards = enrichLocalCardmarketIdentifiers(context)
+        val enrichedCardmarketCards = withContext(Dispatchers.IO) {
+            enrichLocalCardmarketIdentifiers(context)
+        }
         val remoteHeads = libraries(user).get().await().documents.associateBy { it.id }
         val newestRemoteBackup = remoteHeads.values.maxOfOrNull { it.getLong("clientUpdatedAt") ?: 0L } ?: 0L
         var restored = 0

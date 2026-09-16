@@ -40,7 +40,12 @@ data class PhotoScanCard(
     var rulesText: String,
     var price: Double?,
     var currency: String,
-    var languageCode: String = ""
+    var languageCode: String = "",
+    var mcmId: String? = null,
+    var mcmMetaId: String? = null,
+    var mcmSetId: Int? = null,
+    var mcmSetIdExtras: Int? = null,
+    var mcmSetName: String? = null
 ) : Serializable {
     fun toEditionOption(): CardEditionOption = CardEditionOption(
         printingUuid = printingUuid,
@@ -59,7 +64,12 @@ data class PhotoScanCard(
         price = price,
         currency = currency,
         priceProvider = null,
-        priceDate = null
+        priceDate = null,
+        mcmId = mcmId,
+        mcmMetaId = mcmMetaId,
+        mcmSetId = mcmSetId,
+        mcmSetIdExtras = mcmSetIdExtras,
+        mcmSetName = mcmSetName
     )
 
     companion object {

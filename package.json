@@ -1,0 +1,16 @@
+{
+  "name": "mtgfucker-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "web",
+    "extension"
+  ],
+  "scripts": {
+    "build:web": "npm --workspace @mtgfucker/web run build",
+    "build:extension": "npm --workspace @mtgfucker/cardmarket-extension run build",
+    "build:browser": "npm run build:web && npm run build:extension",
+    "test:browser": "npm --workspace @mtgfucker/cardmarket-protocol test",
+    "dev:web": "npm --workspace @mtgfucker/web run dev"
+  }
+}

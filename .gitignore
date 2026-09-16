@@ -9,3 +9,7 @@
 /.firebaserc
 /captures
 leemelocuelo
+node_modules/
+web/dist/
+extension/dist/
+web/.env.local

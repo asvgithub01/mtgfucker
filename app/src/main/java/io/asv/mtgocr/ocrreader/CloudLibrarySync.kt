@@ -235,6 +235,9 @@ object CloudLibrarySync {
         val bytes = withContext(Dispatchers.Default) { CloudSnapshotCodec.encode(collection) }
         val hash = CloudSnapshotCodec.sha256(bytes)
         val chunks = CloudSnapshotCodec.chunks(bytes)
+        val webBytes = withContext(Dispatchers.Default) { CloudWebSnapshotCodec.encode(collection) }
+        val webHash = CloudSnapshotCodec.sha256(webBytes)
+        val webChunks = CloudSnapshotCodec.chunks(webBytes)
         val clientUpdatedAt = System.currentTimeMillis()
         val snapshotId = "$clientUpdatedAt-${UUID.randomUUID()}"
         val head = libraries(user).document(library.id)
@@ -251,12 +254,24 @@ object CloudLibrarySync {
             writes.forEach { (reference, data) -> batch.set(reference, data) }
             batch.commit().await()
         }
+        webChunks.mapIndexed { index, chunk ->
+            snapshot.collection("webChunks").document(index.toString().padStart(5, '0')) to
+                mapOf("data" to Base64.encodeToString(chunk, Base64.NO_WRAP), "index" to index)
+        }.chunked(MAX_BATCH_OPERATIONS).forEach { writes ->
+            val batch = database().batch()
+            writes.forEach { (reference, data) -> batch.set(reference, data) }
+            batch.commit().await()
+        }
         snapshot.set(
             mapOf(
                 "schemaVersion" to CloudSnapshotCodec.SCHEMA_VERSION,
                 "chunkCount" to chunks.size,
                 "byteCount" to bytes.size,
                 "sha256" to hash,
+                "webSchemaVersion" to CloudWebSnapshotCodec.SCHEMA_VERSION,
+                "webChunkCount" to webChunks.size,
+                "webByteCount" to webBytes.size,
+                "webSha256" to webHash,
                 "clientUpdatedAt" to clientUpdatedAt,
                 "createdAt" to FieldValue.serverTimestamp()
             )
@@ -330,6 +345,12 @@ object CloudLibrarySync {
     private suspend fun deleteSnapshot(head: DocumentReference, snapshotId: String) {
         val snapshot = head.collection("snapshots").document(snapshotId)
         snapshot.collection("chunks").get().await().documents
+            .chunked(MAX_BATCH_OPERATIONS).forEach { group ->
+                val batch = database().batch()
+                group.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+            }
+        snapshot.collection("webChunks").get().await().documents
             .chunked(MAX_BATCH_OPERATIONS).forEach { group ->
                 val batch = database().batch()
                 group.forEach { batch.delete(it.reference) }

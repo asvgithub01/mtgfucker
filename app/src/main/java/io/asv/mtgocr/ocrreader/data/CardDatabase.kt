@@ -23,6 +23,11 @@ data class CardPrintingEntity(
     val releaseDate: String,
     val rarity: String,
     val scryfallId: String?,
+    val mcmId: String?,
+    val mcmMetaId: String?,
+    val mcmSetId: Int?,
+    val mcmSetIdExtras: Int?,
+    val mcmSetName: String?,
     val finishes: String,
     val typeLine: String,
     val rulesText: String,
@@ -85,7 +90,10 @@ data class MagicSetEntity(
     val releaseDate: String,
     val type: String,
     val cardCount: Int,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val mcmId: Int? = null,
+    val mcmIdExtras: Int? = null,
+    val mcmName: String? = null
 )
 
 @Dao
@@ -193,7 +201,7 @@ interface CardDao {
         CardNameAliasEntity::class,
         MagicSetEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class CardDatabase : RoomDatabase() {
@@ -207,7 +215,8 @@ abstract class CardDatabase : RoomDatabase() {
                 context.applicationContext,
                 CardDatabase::class.java,
                 "mtg_catalog.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .build().also { instance = it }
         }
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -255,6 +264,19 @@ abstract class CardDatabase : RoomDatabase() {
                         PRIMARY KEY(`printingUuid`, `finish`, `provider`)
                     )""".trimIndent()
                 )
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `mcmId` TEXT")
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `mcmMetaId` TEXT")
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `mcmSetId` INTEGER")
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `mcmSetIdExtras` INTEGER")
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `mcmSetName` TEXT")
+                database.execSQL("ALTER TABLE `magic_sets` ADD COLUMN `mcmId` INTEGER")
+                database.execSQL("ALTER TABLE `magic_sets` ADD COLUMN `mcmIdExtras` INTEGER")
+                database.execSQL("ALTER TABLE `magic_sets` ADD COLUMN `mcmName` TEXT")
             }
         }
     }

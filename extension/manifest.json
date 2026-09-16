@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "MTGFucker · Cardmarket Companion",
+  "version": "0.1.0",
+  "description": "Rellena lotes revisados de MTGFucker en Cardmarket. Nunca publica automáticamente.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.cardmarket.com/*/Magic/Stock/ListingMethods/BulkListing*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

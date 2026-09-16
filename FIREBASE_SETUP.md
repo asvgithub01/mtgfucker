@@ -69,3 +69,22 @@ escribir las bibliotecas de otra.
 > Para producción, el flag local debe sustituirse por un entitlement validado por el backend
 > (por ejemplo Play Billing + custom claim). La implementación actual respeta el sistema Premium
 > ya existente en el proyecto y está pensada para poder probar todo el flujo sin una tienda.
+
+## 5. Registrar la aplicación Web
+
+La web usa el mismo proyecto y la misma identidad de Google que Android, pero Firebase necesita
+un registro de aplicación específico para navegador:
+
+1. En **Configuración del proyecto > Tus apps**, pulsa el icono **Web (`</>`)**.
+2. Pon como nombre `MTGFucker Web`. No hace falta activar Hosting en ese asistente.
+3. Copia el bloque `firebaseConfig` que muestra Firebase.
+4. Copia `web/.env.example` como `web/.env.local` y pega allí los seis valores.
+5. En **Authentication > Settings > Authorized domains**, añade el dominio donde se publique la
+   web. `localhost` sirve durante el desarrollo local.
+
+El `apiKey` web no es una contraseña: Firebase lo entrega al navegador. La protección real la
+ponen Authentication y `firestore.rules`. No reutilices el `appId` Android; debe ser el `appId`
+del registro Web.
+
+Para esta primera prueba, la extensión no necesita otro cliente OAuth ni acceso a la cuenta de
+Google: la web genera un código que contiene únicamente la fila de venta revisada.

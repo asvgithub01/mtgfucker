@@ -1008,6 +1008,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void applyLocalScanMetadata(CardInfo card, CardEditionOption option) {
     card.setName(ScanIdentity.displayName(card.getName(), card.getLanguageCode(), option.getDisplayName()));
     card.setPrintingUuid(option.getPrintingUuid());
+    card.setMcmId(option.getMcmId());
+    card.setMcmMetaId(option.getMcmMetaId());
+    card.setMcmSetId(option.getMcmSetId());
+    card.setMcmSetIdExtras(option.getMcmSetIdExtras());
+    card.setMcmSetName(option.getMcmSetName());
     card.setSetCode(option.getSetCode());
     card.setSetName(option.getSetName());
     card.setCollectorNumber(option.getCollectorNumber());
@@ -1021,6 +1026,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         option.getTypeLine(), option.getRulesText())).trim());
     card.setImgPath(option.getImageUrl() == null ? "" : option.getImageUrl());
     card.setPrintingUuid(option.getPrintingUuid());
+    card.setMcmId(option.getMcmId());
+    card.setMcmMetaId(option.getMcmMetaId());
+    card.setMcmSetId(option.getMcmSetId());
+    card.setMcmSetIdExtras(option.getMcmSetIdExtras());
+    card.setMcmSetName(option.getMcmSetName());
     card.setSetCode(option.getSetCode());
     card.setSetName(option.getSetName());
     card.setCollectorNumber(option.getCollectorNumber());
@@ -1330,7 +1340,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
                   option.getRulesText(),
                   option.getPrice(),
                   option.getCurrency() == null ? "EUR" : option.getCurrency(),
-                  match.getLanguage()
+                  match.getLanguage(),
+                  option.getMcmId(),
+                  option.getMcmMetaId(),
+                  option.getMcmSetId(),
+                  option.getMcmSetIdExtras(),
+                  option.getMcmSetName()
               ));
             }
             pending[0]--;
@@ -3099,6 +3114,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           current.setDescription(cardinfoForUpdate.getDescription());
           current.setImgPath(cardinfoForUpdate.getImgPath());
           current.setPrintingUuid(cardinfoForUpdate.getPrintingUuid());
+          current.setMcmId(cardinfoForUpdate.getMcmId());
+          current.setMcmMetaId(cardinfoForUpdate.getMcmMetaId());
+          current.setMcmSetId(cardinfoForUpdate.getMcmSetId());
+          current.setMcmSetIdExtras(cardinfoForUpdate.getMcmSetIdExtras());
+          current.setMcmSetName(cardinfoForUpdate.getMcmSetName());
           current.setSetCode(cardinfoForUpdate.getSetCode());
           current.setSetName(cardinfoForUpdate.getSetName());
           current.setCollectorNumber(cardinfoForUpdate.getCollectorNumber());
@@ -3424,6 +3444,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       candidate.setDescription(source.getDescription());
       candidate.setImgPath(source.getImgPath());
       candidate.setPrintingUuid(source.getPrintingUuid());
+      candidate.setMcmId(source.getMcmId());
+      candidate.setMcmMetaId(source.getMcmMetaId());
+      candidate.setMcmSetId(source.getMcmSetId());
+      candidate.setMcmSetIdExtras(source.getMcmSetIdExtras());
+      candidate.setMcmSetName(source.getMcmSetName());
       candidate.setSetCode(source.getSetCode());
       candidate.setSetName(source.getSetName());
       candidate.setCollectorNumber(source.getCollectorNumber());

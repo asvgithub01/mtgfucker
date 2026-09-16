@@ -13,6 +13,12 @@ data class CardmarketExportRow(
     val priceEur: Double,
     val condition: String,
     val language: String,
+    val collectorNumber: String = "",
+    val mcmId: String = "",
+    val mcmMetaId: String = "",
+    val mcmSetId: Int? = null,
+    val mcmSetIdExtras: Int? = null,
+    val mcmSetName: String = "",
 )
 
 data class CardmarketExportBatch(
@@ -70,6 +76,12 @@ object CardmarketCsvExporter {
                     priceEur = price,
                     condition = card.condition,
                     language = language,
+                    collectorNumber = card.collectorNumber.orEmpty().trim(),
+                    mcmId = card.mcmId.trim(),
+                    mcmMetaId = card.mcmMetaId.trim(),
+                    mcmSetId = card.mcmSetId,
+                    mcmSetIdExtras = card.mcmSetIdExtras,
+                    mcmSetName = card.mcmSetName.trim(),
                 ),
             )
         }

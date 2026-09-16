@@ -32,7 +32,12 @@ data class CardEditionOption(
     val price: Double?,
     val currency: String?,
     val priceProvider: String?,
-    val priceDate: String?
+    val priceDate: String?,
+    val mcmId: String? = null,
+    val mcmMetaId: String? = null,
+    val mcmSetId: Int? = null,
+    val mcmSetIdExtras: Int? = null,
+    val mcmSetName: String? = null
 )
 
 data class SetCardOption(
@@ -46,7 +51,12 @@ data class SetCardOption(
     val typeLine: String,
     val rulesText: String,
     val price: Double?,
-    val currency: String?
+    val currency: String?,
+    val mcmId: String? = null,
+    val mcmMetaId: String? = null,
+    val mcmSetId: Int? = null,
+    val mcmSetIdExtras: Int? = null,
+    val mcmSetName: String? = null
 )
 
 data class MagicSetOption(
@@ -645,7 +655,12 @@ class CardRepository private constructor(context: Context) {
                         printing.typeLine,
                         printing.rulesText,
                         preferredPrice?.amount,
-                        preferredPrice?.currency
+                        preferredPrice?.currency,
+                        printing.mcmId,
+                        printing.mcmMetaId,
+                        printing.mcmSetId,
+                        printing.mcmSetIdExtras,
+                        printing.mcmSetName
                     )
                 }
                 mainHandler.post { callback(cards, null) }
@@ -729,7 +744,12 @@ class CardRepository private constructor(context: Context) {
                     price = price?.amount,
                     currency = price?.currency,
                     priceProvider = price?.provider,
-                    priceDate = price?.priceDate
+                    priceDate = price?.priceDate,
+                    mcmId = printing.mcmId,
+                    mcmMetaId = printing.mcmMetaId,
+                    mcmSetId = printing.mcmSetId,
+                    mcmSetIdExtras = printing.mcmSetIdExtras,
+                    mcmSetName = printing.mcmSetName
                 )
             }
         }

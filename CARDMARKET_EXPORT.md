@@ -19,3 +19,25 @@ las filas de producto; una fila puede representar varias copias de la misma impr
 
 La integración no usa credenciales ni el API privado de Cardmarket. El CSV se guarda mediante
 el selector de archivos de Android para que el usuario decida dónde conservarlo o sincronizarlo.
+
+## Web y extensión propia (prueba exacta)
+
+La alternativa recomendada vive en `web/` y `extension/`:
+
+1. Instala y construye los paquetes con `npm install` y `npm run build:browser`.
+2. Abre la web local con `npm run dev:web` y crea un lote de una carta usando su `mcmId`.
+3. En `chrome://extensions`, activa el modo desarrollador y carga `extension/dist` como extensión
+   descomprimida.
+4. Abre en Cardmarket **Vender > Insertar cartas por edición**, elige la edición y pulsa **Filtro**.
+5. Pulsa **Importar lote MTGFucker**, pega el código, comprueba la coincidencia exacta y rellena.
+6. Revisa el formulario. La extensión nunca pulsa el botón final de publicación.
+
+La coincidencia usa el campo oculto `idProduct[]` de Cardmarket contra el `mcmId` de MTGJSON. Si
+falta el producto, la edición no coincide o cambia la estructura de la página, se cancela el lote
+completo sin escribir parcialmente. El CSV anterior se conserva como plan alternativo.
+
+Los campos `mcmId`, `mcmMetaId`, `mcmSetId`, `mcmSetIdExtras` y `mcmSetName` se guardan en Room y
+en el modelo serializado de la colección. Cada sincronización guarda además una proyección JSON
+comprimida (`webChunks`) que la web puede leer sin intentar descodificar la serialización Java.
+Los borradores creados desde la web se guardan, cuando hay sesión, en
+`users/{uid}/cardmarketDrafts/{batchId}`.

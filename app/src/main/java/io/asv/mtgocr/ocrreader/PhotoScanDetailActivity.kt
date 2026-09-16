@@ -210,6 +210,11 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         card.cardName = option.cardName
         card.displayName = option.displayName
         card.printingUuid = option.printingUuid
+        card.mcmId = option.mcmId
+        card.mcmMetaId = option.mcmMetaId
+        card.mcmSetId = option.mcmSetId
+        card.mcmSetIdExtras = option.mcmSetIdExtras
+        card.mcmSetName = option.mcmSetName
         card.setCode = option.setCode
         card.setName = option.setName
         card.collectorNumber = option.collectorNumber
@@ -234,7 +239,12 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         typeLine = typeLine,
         rulesText = rulesText,
         price = price,
-        currency = currency ?: "EUR"
+        currency = currency ?: "EUR",
+        mcmId = mcmId,
+        mcmMetaId = mcmMetaId,
+        mcmSetId = mcmSetId,
+        mcmSetIdExtras = mcmSetIdExtras,
+        mcmSetName = mcmSetName
     )
 
     companion object {

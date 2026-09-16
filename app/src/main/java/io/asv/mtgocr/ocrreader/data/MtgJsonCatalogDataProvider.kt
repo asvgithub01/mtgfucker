@@ -44,7 +44,12 @@ class MtgJsonCatalogDataProvider(
                         val releaseDate = set.optString("releaseDate")
                         val count = set.optInt("totalSetSize", set.optInt("baseSetSize"))
                         if (code.isBlank() || name.isBlank() || releaseDate.isBlank() || count <= 0) continue
-                        add(MagicSetEntity(code, name, releaseDate, type, count, now))
+                        add(MagicSetEntity(
+                            code, name, releaseDate, type, count, now,
+                            set.optInt("mcmId").takeIf { set.has("mcmId") },
+                            set.optInt("mcmIdExtras").takeIf { set.has("mcmIdExtras") },
+                            set.optString("mcmName").takeIf { set.has("mcmName") && it.isNotBlank() }
+                        ))
                     }
                 }
             }
@@ -69,7 +74,12 @@ class MtgJsonCatalogDataProvider(
         val discoveryIsFresh = (dao.cardDiscoverySync(normalizedName)?.updatedAt ?: 0L) >= discoveryStaleBefore
         val legacySetSyncIsFresh = previousSetSyncs.isNotEmpty() &&
             previousSetSyncs.all { it.updatedAt >= discoveryStaleBefore }
-        if (cached.isNotEmpty() && (discoveryIsFresh || legacySetSyncIsFresh)) {
+        // Schema v4 cached no Cardmarket identifiers. Refresh those rows once so the
+        // web/extension flow can match BulkListing by exact idProduct instead of by name.
+        val hasCardmarketIdentifiers = cached.any { !it.mcmId.isNullOrBlank() }
+        if (cached.isNotEmpty() && hasCardmarketIdentifiers &&
+            (discoveryIsFresh || legacySetSyncIsFresh)
+        ) {
             if (!discoveryIsFresh) {
                 // Upgrade the per-set cache produced by older builds to the new discovery marker.
                 dao.saveSetSync(CardSetSyncEntity(normalizedName, CARD_DISCOVERY_SYNC_CODE, System.currentTimeMillis()))
@@ -87,7 +97,7 @@ class MtgJsonCatalogDataProvider(
             var lastSetError: Exception? = null
             for ((setCode, _) in hintsBySet) {
                 val sync = syncBySet[setCode]
-                if (sync != null && sync.updatedAt >= staleBefore) continue
+                if (hasCardmarketIdentifiers && sync != null && sync.updatedAt >= staleBefore) continue
                 try {
                     fetchSet(setCode, cardName, hintsByScryfall)
                     dao.saveSetSync(CardSetSyncEntity(normalizedName, setCode, System.currentTimeMillis()))
@@ -127,7 +137,9 @@ class MtgJsonCatalogDataProvider(
         val cached = dao.printingsBySet(normalizedSetCode)
         val sync = dao.fullSetSync(normalizedSetCode)
         val staleBefore = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-        if (cached.isNotEmpty() && sync != null && sync.updatedAt >= staleBefore) return cached
+        if (cached.isNotEmpty() && cached.any { !it.mcmId.isNullOrBlank() } &&
+            sync != null && sync.updatedAt >= staleBefore
+        ) return cached
         return try {
             val hints = imageProvider.getSetImages(normalizedSetCode)
             fetchSet(normalizedSetCode, null, hints.associateBy { it.scryfallId })
@@ -168,6 +180,11 @@ class MtgJsonCatalogDataProvider(
                         releaseDate = parsed.releaseDate.ifBlank { hint?.releasedAt.orEmpty() },
                         rarity = card.rarity,
                         scryfallId = card.scryfallId,
+                        mcmId = card.mcmId,
+                        mcmMetaId = card.mcmMetaId,
+                        mcmSetId = parsed.mcmId,
+                        mcmSetIdExtras = parsed.mcmIdExtras,
+                        mcmSetName = parsed.mcmName,
                         finishes = card.finishes.joinToString(","),
                         typeLine = card.type,
                         rulesText = card.text,

@@ -10,6 +10,8 @@ internal data class ParsedMtgJsonCard(
     val number: String,
     val rarity: String,
     val scryfallId: String?,
+    val mcmId: String?,
+    val mcmMetaId: String?,
     val finishes: List<String>,
     val availability: List<String>,
     val type: String,
@@ -20,6 +22,9 @@ internal data class ParsedMtgJsonSet(
     val code: String,
     val name: String,
     val releaseDate: String,
+    val mcmId: Int?,
+    val mcmIdExtras: Int?,
+    val mcmName: String?,
     val cards: List<ParsedMtgJsonCard>
 )
 
@@ -46,6 +51,9 @@ internal object MtgJsonParsers {
         var code = ""
         var name = ""
         var releaseDate = ""
+        var mcmId: Int? = null
+        var mcmIdExtras: Int? = null
+        var mcmName: String? = null
         val cards = mutableListOf<ParsedMtgJsonCard>()
         reader.beginObject()
         while (reader.hasNext()) {
@@ -57,6 +65,9 @@ internal object MtgJsonParsers {
                             "code" -> code = reader.nextString()
                             "name" -> name = reader.nextString()
                             "releaseDate" -> releaseDate = reader.nextString()
+                            "mcmId" -> mcmId = reader.nextInt()
+                            "mcmIdExtras" -> mcmIdExtras = reader.nextInt()
+                            "mcmName" -> mcmName = reader.nextString()
                             "cards" -> {
                                 reader.beginArray()
                                 while (reader.hasNext()) readCard(reader)?.let {
@@ -73,7 +84,7 @@ internal object MtgJsonParsers {
             }
         }
         reader.endObject()
-        return ParsedMtgJsonSet(code, name, releaseDate, cards)
+        return ParsedMtgJsonSet(code, name, releaseDate, mcmId, mcmIdExtras, mcmName, cards)
     }
 
     private fun readCard(reader: JsonReader): ParsedMtgJsonCard? {
@@ -83,6 +94,8 @@ internal object MtgJsonParsers {
         var number = ""
         var rarity = ""
         var scryfallId: String? = null
+        var mcmId: String? = null
+        var mcmMetaId: String? = null
         var type = ""
         var text = ""
         var finishes = emptyList<String>()
@@ -102,7 +115,12 @@ internal object MtgJsonParsers {
                 "identifiers" -> {
                     reader.beginObject()
                     while (reader.hasNext()) {
-                        if (reader.nextName() == "scryfallId") scryfallId = reader.nextString() else reader.skipValue()
+                        when (reader.nextName()) {
+                            "scryfallId" -> scryfallId = reader.nextString()
+                            "mcmId" -> mcmId = reader.nextString()
+                            "mcmMetaId" -> mcmMetaId = reader.nextString()
+                            else -> reader.skipValue()
+                        }
                     }
                     reader.endObject()
                 }
@@ -111,7 +129,8 @@ internal object MtgJsonParsers {
         }
         reader.endObject()
         return if (uuid.isBlank() || name.isBlank()) null else ParsedMtgJsonCard(
-            uuid, name, faceName, number, rarity, scryfallId, finishes, availability, type, text
+            uuid, name, faceName, number, rarity, scryfallId, mcmId, mcmMetaId,
+            finishes, availability, type, text
         )
     }
 

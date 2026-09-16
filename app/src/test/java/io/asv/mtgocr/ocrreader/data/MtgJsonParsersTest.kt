@@ -15,11 +15,14 @@ class MtgJsonParsersTest {
               "data":{
                 "cards":[
                   {"uuid":"other","name":"Other Card","number":"1","rarity":"common","finishes":["nonfoil"],"availability":["paper"],"identifiers":{},"type":"Artifact"},
-                  {"uuid":"38428eaf-113e-5a41-b79f-5f738c9599ec","name":"Mox Opal","number":"223","rarity":"mythic","finishes":["foil","nonfoil"],"availability":["mtgo","paper"],"identifiers":{"scryfallId":"6b3a20ac-1860-4513-bb73-35d23b088b04"},"text":"Metalcraft — {T}: Add one mana of any color.","type":"Legendary Artifact"}
+                  {"uuid":"38428eaf-113e-5a41-b79f-5f738c9599ec","name":"Mox Opal","number":"223","rarity":"mythic","finishes":["foil","nonfoil"],"availability":["mtgo","paper"],"identifiers":{"scryfallId":"6b3a20ac-1860-4513-bb73-35d23b088b04","mcmId":"241374","mcmMetaId":"12345"},"text":"Metalcraft — {T}: Add one mana of any color.","type":"Legendary Artifact"}
                 ],
                 "code":"MM2",
                 "name":"Modern Masters 2015",
-                "releaseDate":"2015-05-22"
+                "releaseDate":"2015-05-22",
+                "mcmId":1040,
+                "mcmIdExtras":1041,
+                "mcmName":"Modern Masters 2015"
               }
             }
         """.trimIndent()
@@ -28,9 +31,14 @@ class MtgJsonParsersTest {
 
         assertEquals("MM2", set.code)
         assertEquals("Modern Masters 2015", set.name)
+        assertEquals(1040, set.mcmId)
+        assertEquals(1041, set.mcmIdExtras)
+        assertEquals("Modern Masters 2015", set.mcmName)
         assertEquals(1, set.cards.size)
         assertEquals(listOf("foil", "nonfoil"), set.cards.single().finishes)
         assertEquals("6b3a20ac-1860-4513-bb73-35d23b088b04", set.cards.single().scryfallId)
+        assertEquals("241374", set.cards.single().mcmId)
+        assertEquals("12345", set.cards.single().mcmMetaId)
     }
 
     @Test

@@ -34,6 +34,11 @@ object LegacyCollectionStore {
             ).also { card ->
                 card.addedAt = baseTime + index
                 card.printingUuid = option.printingUuid
+                card.mcmId = option.mcmId
+                card.mcmMetaId = option.mcmMetaId
+                card.mcmSetId = option.mcmSetId
+                card.mcmSetIdExtras = option.mcmSetIdExtras
+                card.mcmSetName = option.mcmSetName
                 card.setCode = option.setCode
                 card.setName = option.setName
                 card.collectorNumber = option.collectorNumber
@@ -85,6 +90,11 @@ object LegacyCollectionStore {
             "1"
         ).also { card ->
             card.printingUuid = option.printingUuid
+            card.mcmId = option.mcmId
+            card.mcmMetaId = option.mcmMetaId
+            card.mcmSetId = option.mcmSetId
+            card.mcmSetIdExtras = option.mcmSetIdExtras
+            card.mcmSetName = option.mcmSetName
             card.setCode = option.setCode
             card.setName = option.setName
             card.collectorNumber = option.collectorNumber
@@ -140,6 +150,11 @@ object LegacyCollectionStore {
             ?: return false
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return false
         card.printingUuid = option.printingUuid
+        card.mcmId = option.mcmId
+        card.mcmMetaId = option.mcmMetaId
+        card.mcmSetId = option.mcmSetId
+        card.mcmSetIdExtras = option.mcmSetIdExtras
+        card.mcmSetName = option.mcmSetName
         card.setCode = option.setCode
         card.setName = option.setName
         card.collectorNumber = option.collectorNumber

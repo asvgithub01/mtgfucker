@@ -19,6 +19,12 @@ public class CardInfo implements Serializable {
     private String collectionItemId;
     private long addedAt;
     private String printingUuid;
+    /** Exact Cardmarket identifiers supplied by MTGJSON for this physical printing. */
+    private String mcmId;
+    private String mcmMetaId;
+    private Integer mcmSetId;
+    private Integer mcmSetIdExtras;
+    private String mcmSetName;
     private String setCode;
     private String setName;
     private String collectorNumber;
@@ -90,6 +96,11 @@ public class CardInfo implements Serializable {
         copy.collectionItemId = collectionItemId;
         copy.addedAt = addedAt;
         copy.printingUuid = printingUuid;
+        copy.mcmId = mcmId;
+        copy.mcmMetaId = mcmMetaId;
+        copy.mcmSetId = mcmSetId;
+        copy.mcmSetIdExtras = mcmSetIdExtras;
+        copy.mcmSetName = mcmSetName;
         copy.setCode = setCode;
         copy.setName = setName;
         copy.collectorNumber = collectorNumber;
@@ -157,6 +168,46 @@ public class CardInfo implements Serializable {
 
     public void setPrintingUuid(String printingUuid) {
         this.printingUuid = printingUuid;
+    }
+
+    public String getMcmId() {
+        return mcmId == null ? "" : mcmId;
+    }
+
+    public void setMcmId(String mcmId) {
+        this.mcmId = mcmId;
+    }
+
+    public String getMcmMetaId() {
+        return mcmMetaId == null ? "" : mcmMetaId;
+    }
+
+    public void setMcmMetaId(String mcmMetaId) {
+        this.mcmMetaId = mcmMetaId;
+    }
+
+    public Integer getMcmSetId() {
+        return mcmSetId;
+    }
+
+    public void setMcmSetId(Integer mcmSetId) {
+        this.mcmSetId = mcmSetId;
+    }
+
+    public Integer getMcmSetIdExtras() {
+        return mcmSetIdExtras;
+    }
+
+    public void setMcmSetIdExtras(Integer mcmSetIdExtras) {
+        this.mcmSetIdExtras = mcmSetIdExtras;
+    }
+
+    public String getMcmSetName() {
+        return mcmSetName == null ? "" : mcmSetName;
+    }
+
+    public void setMcmSetName(String mcmSetName) {
+        this.mcmSetName = mcmSetName;
     }
 
     public String getSetCode() {

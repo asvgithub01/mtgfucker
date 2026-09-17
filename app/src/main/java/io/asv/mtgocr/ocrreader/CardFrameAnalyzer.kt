@@ -165,6 +165,7 @@ object CardFrameAnalyzer {
                 CardBorderColor.WHITE -> Color.rgb(245, 245, 238)
                 CardBorderColor.GOLD -> Color.rgb(218, 166, 61)
                 CardBorderColor.SILVER -> Color.rgb(160, 166, 172)
+                CardBorderColor.FULL_ART -> Color.rgb(70, 205, 219)
                 CardBorderColor.MIXED -> Color.rgb(179, 95, 220)
                 CardBorderColor.UNKNOWN -> Color.rgb(239, 88, 88)
             }
@@ -194,17 +195,55 @@ object CardFrameAnalyzer {
     internal fun classifyBorderZones(zones: List<CardBorderZone>): Pair<CardBorderColor, Double> {
         if (zones.isEmpty()) return CardBorderColor.UNKNOWN to 0.0
         val known = zones.filter { it.color != CardBorderColor.UNKNOWN }
-        if (known.size < zones.size * .45) return CardBorderColor.UNKNOWN to known.size / zones.size.toDouble()
         val counts = known.groupingBy { it.color }.eachCount().entries.sortedByDescending { it.value }
-        val first = counts.first()
+        val first = counts.firstOrNull()
         val second = counts.getOrNull(1)
-        val winnerRatio = first.value / zones.size.toDouble()
         val knownRatio = known.size / zones.size.toDouble()
+        val winnerRatio = (first?.value ?: 0) / zones.size.toDouble()
         val secondRatio = (second?.value ?: 0) / zones.size.toDouble()
+        val unknownRatio = 1.0 - knownRatio
+        val dispersion = rgbDispersion(zones)
+        val chromaticUnknownRatio = zones.count { zone ->
+            zone.color == CardBorderColor.UNKNOWN &&
+                maxOf(zone.red, zone.green, zone.blue) - minOf(zone.red, zone.green, zone.blue) >= 42
+        } / zones.size.toDouble()
+
+        // A real printed border is deliberately uniform. Borderless/full-art cards instead expose
+        // unrelated illustration colours around the four sides. Use the raw samples, not only the
+        // coarse colour labels, so dark full-art edges do not become a false black border.
+        val looksBorderless = dispersion >= .18 ||
+            chromaticUnknownRatio >= .50 ||
+            (dispersion >= .10 && unknownRatio >= .38) ||
+            (dispersion >= .13 && winnerRatio < .62)
+        if (looksBorderless) {
+            val confidence = maxOf(
+                dispersion / .30,
+                chromaticUnknownRatio,
+                unknownRatio * .85
+            ).coerceIn(.45, .95)
+            return CardBorderColor.FULL_ART to confidence
+        }
+        if (known.size < zones.size * .45 || first == null) {
+            return CardBorderColor.UNKNOWN to knownRatio
+        }
         if (secondRatio >= .25 && winnerRatio - secondRatio < .20) {
             return CardBorderColor.MIXED to ((winnerRatio + secondRatio) * knownRatio).coerceIn(.35, .90)
         }
         return first.key to (winnerRatio * .75 + knownRatio * .25).coerceIn(.0, 1.0)
+    }
+
+    private fun rgbDispersion(zones: List<CardBorderZone>): Double {
+        if (zones.size < 2) return 0.0
+        fun median(values: List<Int>): Int = values.sorted()[values.size / 2]
+        val medianRed = median(zones.map(CardBorderZone::red))
+        val medianGreen = median(zones.map(CardBorderZone::green))
+        val medianBlue = median(zones.map(CardBorderZone::blue))
+        return zones.map { zone ->
+            val red = zone.red - medianRed
+            val green = zone.green - medianGreen
+            val blue = zone.blue - medianBlue
+            sqrt((red * red + green * green + blue * blue).toDouble()) / MAX_RGB_DISTANCE
+        }.average().coerceIn(0.0, 1.0)
     }
 
     private data class Edge(val coordinate: Int, val confidence: Double)
@@ -374,4 +413,5 @@ object CardFrameAnalyzer {
         (Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114) / 1000
 
     private const val CARD_ASPECT = 63.0 / 88.0
+    private const val MAX_RGB_DISTANCE = 441.67295593
 }

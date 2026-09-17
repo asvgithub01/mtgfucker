@@ -34,19 +34,24 @@ class PrintingLineOcr {
         focusedCrop.recycle()
         val wideContrast = autoContrast(wide)
         val focusedContrast = autoContrast(focused)
+        val fullCard = enlargeFullCard(card)
         val variants = listOf(
-            wide,
-            wideContrast,
-            otsuThreshold(wideContrast),
-            focused,
-            focusedContrast,
-            otsuThreshold(focusedContrast)
+            OcrVariant(wide, yearOnly = false),
+            OcrVariant(wideContrast, yearOnly = false),
+            OcrVariant(otsuThreshold(wideContrast), yearOnly = false),
+            OcrVariant(focused, yearOnly = false),
+            OcrVariant(focusedContrast, yearOnly = false),
+            OcrVariant(otsuThreshold(focusedContrast), yearOnly = false),
+            // Old cards often expose the copyright year outside the modern collector-number band.
+            // Read the complete rectified card but only retain lines containing a plausible year,
+            // otherwise rules text would pollute the printing-token parser.
+            OcrVariant(fullCard, yearOnly = true)
         )
-        val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it, 0)) }
+        val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it.bitmap, 0)) }
         Tasks.whenAllComplete(tasks).addOnCompleteListener {
             val lines = LinkedHashSet<String>()
             var successful = 0
-            tasks.forEach { task ->
+            tasks.forEachIndexed { index, task ->
                 if (task.isSuccessful) {
                     successful++
                     task.result?.textBlocks
@@ -54,10 +59,11 @@ class PrintingLineOcr {
                         ?.sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
                         ?.map { it.text.trim() }
                         ?.filter(String::isNotBlank)
+                        ?.filter { !variants[index].yearOnly || YEAR_PATTERN.containsMatchIn(it) }
                         ?.forEach(lines::add)
                 }
             }
-            variants.filter { it !== wide }.forEach(Bitmap::recycle)
+            variants.map(OcrVariant::bitmap).filter { it !== wide }.forEach(Bitmap::recycle)
             if (successful == 0) {
                 wide.recycle()
                 callback(null, tasks.firstNotNullOfOrNull { it.exception }
@@ -95,6 +101,17 @@ class PrintingLineOcr {
 
     private fun enlarge(source: Bitmap): Bitmap {
         val scale = min(3f, MAX_WIDTH / source.width.toFloat()).coerceAtLeast(1f)
+        if (scale <= 1f) return source.copy(Bitmap.Config.ARGB_8888, false)
+        return Bitmap.createScaledBitmap(
+            source,
+            max(1, (source.width * scale).toInt()),
+            max(1, (source.height * scale).toInt()),
+            true
+        )
+    }
+
+    private fun enlargeFullCard(source: Bitmap): Bitmap {
+        val scale = min(2f, FULL_CARD_WIDTH / source.width.toFloat()).coerceAtLeast(1f)
         if (scale <= 1f) return source.copy(Bitmap.Config.ARGB_8888, false)
         return Bitmap.createScaledBitmap(
             source,
@@ -180,5 +197,9 @@ class PrintingLineOcr {
 
     private companion object {
         const val MAX_WIDTH = 1_800f
+        const val FULL_CARD_WIDTH = 1_200f
+        val YEAR_PATTERN = Regex("(?<![0-9])(?:19|20)[0-9]{2}(?![0-9])")
     }
+
+    private data class OcrVariant(val bitmap: Bitmap, val yearOnly: Boolean)
 }

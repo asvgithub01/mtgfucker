@@ -58,6 +58,7 @@ private class PendingCardOcr {
     var printing: PrintingLineOcrResult? = null
     var title: CardTitleOcrResult? = null
     var nameMatch: LocalCardNameMatch? = null
+    var nameCandidates: List<LocalCardNameMatch> = emptyList()
     var language: CardTextLanguageResult? = null
     var visual: ExperimentalVisualEvidence? = null
     var error: Throwable? = null
@@ -425,18 +426,30 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                 pending.title = result
                 if (error != null && pending.error == null) pending.error = error
             }
-            if (result == null || result.lines.isEmpty() ||
-                synchronized(pending) { pending.nameMatch != null }
-            ) {
+            if (result == null || result.lines.isEmpty()) {
                 if (completeIfReady()) finishCombinedOcr(corrected, pending)
             } else {
-                repository.matchLocalOcrText(result.lines) { match ->
-                    synchronized(pending) { pending.nameMatch = match }
-                    if (match != null) runOnUiThread {
+                repository.matchLocalPhotoText(result.lines) { matches ->
+                    val staticMatches = matches.map {
+                        LocalCardNameMatch(it.canonicalName, it.displayName, it.language)
+                    }.distinctBy { it.canonicalName.lowercase(Locale.ROOT) }
+                    val selected = synchronized(pending) {
+                        val live = pending.nameMatch
+                        pending.nameCandidates = (staticMatches + listOfNotNull(live))
+                            .distinctBy { it.canonicalName.lowercase(Locale.ROOT) }
+                        staticMatches.firstOrNull { candidate ->
+                            live != null && candidate.canonicalName.equals(
+                                live.canonicalName,
+                                ignoreCase = true
+                            )
+                        } ?: staticMatches.firstOrNull() ?: live
+                    }
+                    synchronized(pending) { pending.nameMatch = selected }
+                    if (selected != null) runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
                             status.text = getString(
                                 R.string.experimental_scan_name_found_analyzing_edition,
-                                match.displayName
+                                selected.displayName
                             )
                         }
                     }
@@ -477,6 +490,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         val printing = synchronized(pending) { pending.printing }
         val title = synchronized(pending) { pending.title }
         val nameMatch = synchronized(pending) { pending.nameMatch }
+        val nameCandidates = synchronized(pending) { pending.nameCandidates }
         val language = synchronized(pending) { pending.language }
         val visual = synchronized(pending) { pending.visual }
         val error = synchronized(pending) { pending.error }
@@ -492,7 +506,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
             }
             printing?.preview?.let(::replaceDebugBitmap)
             val guess = PrintingMetadataParser.parse(printing?.rawText.orEmpty(), knownSetCodes)
-            resolveIdentity(printing, title, nameMatch, language, visual, guess)
+            resolveIdentity(printing, title, nameMatch, nameCandidates, language, visual, guess)
         }
     }
 
@@ -500,29 +514,21 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         printing: PrintingLineOcrResult?,
         title: CardTitleOcrResult?,
         match: LocalCardNameMatch?,
+        possibleNames: List<LocalCardNameMatch>,
         language: CardTextLanguageResult?,
         visual: ExperimentalVisualEvidence?,
         guess: PrintingMetadataGuess
     ) {
-        if (match == null) status.setText(R.string.experimental_scan_resolving_name)
+        val allNameMatches = (possibleNames + listOfNotNull(match))
+            .distinctBy { it.canonicalName.lowercase(Locale.ROOT) }
+        val preferredMatch = allNameMatches.firstOrNull() ?: match
+        if (preferredMatch == null) status.setText(R.string.experimental_scan_resolving_name)
         val setCodes = guess.setCodeCandidates.asSequence()
             .filter { knownSetCodes.isEmpty() || it in knownSetCodes }
             .take(MAX_SET_CANDIDATES)
             .toList()
         val canResolvePrinting = setCodes.isNotEmpty() && guess.collectorNumber != null
-        if (match != null) {
-            loadEditionCandidates(
-                match.canonicalName,
-                match.displayName,
-                printing,
-                title,
-                effectiveLanguage(guess, language, match.language),
-                language,
-                visual,
-                guess,
-                emptyList()
-            )
-        } else if (canResolvePrinting) {
+        if (canResolvePrinting) {
             status.setText(R.string.experimental_scan_resolving_printing)
             repository.resolvePrintingMetadata(setCodes, guess.collectorNumber!!) { cards, error ->
                 if (isFinishing || isDestroyed) return@resolvePrintingMetadata
@@ -530,13 +536,37 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                     Triple(it.cardName, it.setCode, it.collectorNumber)
                 }
                 val exactNames = exactMatches.distinctBy { it.cardName.lowercase(Locale.ROOT) }
-                if (exactNames.size == 1) {
+                val matchedPair = allNameMatches.firstNotNullOfOrNull { ocrMatch ->
+                    exactNames.firstOrNull {
+                        it.cardName.equals(ocrMatch.canonicalName, ignoreCase = true) ||
+                            it.cardName.equals(ocrMatch.displayName, ignoreCase = true)
+                    }?.let { it to ocrMatch }
+                }
+                val matchingOcrName = matchedPair?.first
+                val matchingOcrEvidence = matchedPair?.second
+                val resolvedPrinting = matchingOcrName ?: exactNames.singleOrNull()
+                if (resolvedPrinting != null) {
+                    val displayName = matchingOcrEvidence?.displayName
+                        ?.takeIf { matchingOcrName != null }
+                        ?: resolvedPrinting.cardName
                     loadEditionCandidates(
-                        exactNames.first().cardName,
-                        exactNames.first().cardName,
+                        resolvedPrinting.cardName,
+                        displayName,
                         printing,
                         title,
-                        effectiveLanguage(guess, language),
+                        effectiveLanguage(guess, language, matchingOcrEvidence?.language.orEmpty()),
+                        language,
+                        visual,
+                        guess,
+                        exactMatches
+                    )
+                } else if (preferredMatch != null) {
+                    loadEditionCandidates(
+                        preferredMatch.canonicalName,
+                        preferredMatch.displayName,
+                        printing,
+                        title,
+                        effectiveLanguage(guess, language, preferredMatch.language),
                         language,
                         visual,
                         guess,
@@ -547,6 +577,18 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                     showUnresolvedResult(printing, title, language, visual, guess, exactMatches, error)
                 }
             }
+        } else if (preferredMatch != null) {
+            loadEditionCandidates(
+                preferredMatch.canonicalName,
+                preferredMatch.displayName,
+                printing,
+                title,
+                effectiveLanguage(guess, language, preferredMatch.language),
+                language,
+                visual,
+                guess,
+                emptyList()
+            )
         } else {
             finishAnalysis()
             showUnresolvedResult(printing, title, language, visual, guess, emptyList(), null)
@@ -584,7 +626,8 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
             languageCode = languageCode,
             jpeg = visual.jpeg,
             preferFoil = false,
-            alreadyCropped = true
+            alreadyCropped = true,
+            useShapeSymbolMatcher = true
         ) { result, error ->
             if (isFinishing || isDestroyed) {
                 recycleIdentificationBitmaps(result)
@@ -787,6 +830,13 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
                     R.string.experimental_scan_evidence_visual,
                     ((1.0 - candidate.distance.coerceIn(0.0, 1.0)) * 100).toInt()
                 )
+                candidate.setSymbolShapeDistance?.takeIf { result.shapeMatchReliable }?.let { distance ->
+                    score += ((1.0 - distance.coerceIn(0.0, 1.0)) * 35).toInt()
+                    evidence += getString(
+                        R.string.experimental_scan_evidence_symbol_shape,
+                        ((1.0 - distance.coerceIn(0.0, 1.0)) * 100).toInt()
+                    )
+                }
                 if (languageCode.isNotBlank()) {
                     score += 55
                     evidence += getString(
@@ -1107,6 +1157,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
         CardBorderColor.WHITE -> getString(R.string.edition_scan_border_white)
         CardBorderColor.GOLD -> getString(R.string.edition_scan_border_gold)
         CardBorderColor.SILVER -> getString(R.string.edition_scan_border_silver)
+        CardBorderColor.FULL_ART -> getString(R.string.edition_scan_border_full_art)
         CardBorderColor.MIXED -> getString(R.string.edition_scan_border_mixed)
         CardBorderColor.UNKNOWN -> getString(R.string.edition_scan_border_unknown)
     }

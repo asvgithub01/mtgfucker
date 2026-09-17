@@ -330,6 +330,7 @@
     <string name="edition_scan_border_white">blanco</string>
     <string name="edition_scan_border_gold">dorado</string>
     <string name="edition_scan_border_silver">plateado</string>
+    <string name="edition_scan_border_full_art">sin borde / full art</string>
     <string name="edition_scan_border_mixed">variable</string>
     <string name="edition_scan_border_unknown">sin resolver</string>
     <string name="edition_scan_side_top">Arriba</string>
@@ -439,8 +440,8 @@
     <string name="cardmarket_export_saved">CSV guardado. Impórtalo en «Insertar cartas por edición» y revisa todo antes de publicar.</string>
     <string name="cardmarket_export_failed">No se pudo guardar el CSV.</string>
     <string name="cardmarket_export_no_file_app">No hay una aplicación disponible para guardar el CSV.</string>
-    <string name="open_experimental_scanner">Abrir escáner experimental</string>
-    <string name="experimental_scan_title">Escáner experimental · impresión</string>
+    <string name="open_experimental_scanner">Abrir nuevo escáner de edición</string>
+    <string name="experimental_scan_title">Nuevo escáner de edición</string>
     <string name="experimental_scan_align_card">Alinea la carta completa. La foto se hará automáticamente.</string>
     <string name="experimental_scan_finding_edges">Buscando los cuatro bordes…</string>
     <string name="experimental_scan_live_reading_name">Leyendo el nombre y comprobándolo en la base local…</string>
@@ -495,6 +496,7 @@
     <string name="experimental_scan_evidence_name_only">coincide por nombre</string>
     <string name="experimental_scan_evidence_language">impresión física en %1$s</string>
     <string name="experimental_scan_evidence_visual">imagen %1$d%%</string>
+    <string name="experimental_scan_evidence_symbol_shape">símbolo %1$d%%</string>
     <string name="experimental_scan_evidence_border_match">borde %1$s coincide</string>
     <string name="experimental_scan_evidence_border_mismatch">borde distinto</string>
     <string name="experimental_scan_language_result">Idioma físico: %1$s · confianza %2$d%%</string>

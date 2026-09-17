@@ -465,6 +465,7 @@ class CardRepository private constructor(context: Context) {
         lockedSetCodes: Set<String> = emptySet(),
         preferFoil: Boolean = false,
         alreadyCropped: Boolean = false,
+        useShapeSymbolMatcher: Boolean = false,
         callback: (CardIdentificationResult, Throwable?) -> Unit
     ): Future<*> = imageExecutor.submit {
         try {
@@ -491,7 +492,14 @@ class CardRepository private constructor(context: Context) {
                 }
             }
             val result = artworkIdentifier
-                .identify(jpeg, options, lockedSetCodes, preferFoil, alreadyCropped)
+                .identify(
+                    jpeg,
+                    options,
+                    lockedSetCodes,
+                    preferFoil,
+                    alreadyCropped,
+                    useShapeSymbolMatcher
+                )
                 .copy(
                     detectedLanguage = normalizedLanguage,
                     languageFilteredOut = languageFilteredOut

@@ -33,6 +33,36 @@ class CardFrameAnalyzerTest {
         assertTrue(result.second >= .70)
     }
 
+    @Test fun reportsFullArtWhenTheOuterEdgeContainsUnrelatedArtworkColours() {
+        val colors = listOf(
+            0xFF183B55.toInt(), 0xFFB56A38.toInt(), 0xFF287A4B.toInt(), 0xFF72445D.toInt(),
+            0xFFE0B76B.toInt(), 0xFF315D91.toInt(), 0xFF8C2F32.toInt(), 0xFF4D7D78.toInt(),
+            0xFF251F48.toInt(), 0xFFC17E92.toInt(), 0xFF44722A.toInt(), 0xFF8B713C.toInt(),
+            0xFF22465D.toInt(), 0xFFD05C38.toInt(), 0xFF566B2E.toInt(), 0xFF6F356D.toInt()
+        )
+        val zones = colors.mapIndexed { index, color ->
+            CardBorderZone(
+                CardBorderSide.entries[index % CardBorderSide.entries.size],
+                index / colors.size.toFloat(),
+                index,
+                index,
+                color shr 16 and 0xff,
+                color shr 8 and 0xff,
+                color and 0xff,
+                CardFrameAnalyzer.classifyRgb(
+                    color shr 16 and 0xff,
+                    color shr 8 and 0xff,
+                    color and 0xff
+                )
+            )
+        }
+
+        val result = CardFrameAnalyzer.classifyBorderZones(zones)
+
+        assertEquals(CardBorderColor.FULL_ART, result.first)
+        assertTrue(result.second >= .45)
+    }
+
     private fun zone(index: Int, color: CardBorderColor) = CardBorderZone(
         side = CardBorderSide.entries[index % CardBorderSide.entries.size],
         position = index / 16f,

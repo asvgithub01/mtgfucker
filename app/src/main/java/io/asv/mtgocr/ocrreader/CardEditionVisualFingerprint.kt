@@ -10,6 +10,7 @@ enum class CardBorderColor {
     WHITE,
     GOLD,
     SILVER,
+    FULL_ART,
     MIXED,
     UNKNOWN
 }

@@ -461,6 +461,10 @@
     <string name="rapid_scan_card_added_notice">✓ %1$s · %2$s añadida · %3$s</string>
     <string name="rapid_scan_view_session">VER SESIÓN</string>
     <string name="rapid_scan_all_editions">Todas las ediciones</string>
+    <string name="rapid_scan_more_options">Más opciones</string>
+    <string name="rapid_scan_correct_borders">Corregir bordes y reanalizar</string>
+    <string name="rapid_scan_reanalyze">Reanalizar</string>
+    <string name="rapid_scan_adjust_then_reanalyze">Corrige las cuatro esquinas y pulsa «Reanalizar».</string>
     <string name="rapid_scan_loading_all_editions">Cargando todas las ediciones…</string>
     <string name="rapid_scan_manual_edition">selección manual · descartada por el escáner</string>
     <string name="rapid_scan_scan_another_card">Escanear otra carta</string>

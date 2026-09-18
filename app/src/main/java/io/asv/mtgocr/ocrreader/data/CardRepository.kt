@@ -479,6 +479,30 @@ class CardRepository private constructor(context: Context) {
                 resolution?.displayName ?: printings.first().name
             )
             val normalizedLanguage = CardLanguage.toCode(languageCode)
+            val singleOption = ScanPrintingPolicy.singleEligible(
+                allOptions,
+                emptySet(),
+                preferFoil
+            )
+            if (singleOption != null) {
+                val result = CardIdentificationResult(
+                    candidates = listOf(
+                        CardIdentificationCandidate(
+                            option = singleOption,
+                            distance = 0.0,
+                            artworkDistance = 0.0
+                        )
+                    ),
+                    confident = true,
+                    comparedImages = 0,
+                    detectedLanguage = normalizedLanguage,
+                    eligibleEditions = 1
+                )
+                if (!Thread.currentThread().isInterrupted) {
+                    mainHandler.post { callback(result, null) }
+                }
+                return@submit
+            }
             var languageFilteredOut = 0
             val options = if (normalizedLanguage.isBlank()) {
                 allOptions

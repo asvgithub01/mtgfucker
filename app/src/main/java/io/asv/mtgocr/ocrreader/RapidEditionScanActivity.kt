@@ -1217,22 +1217,73 @@ class RapidEditionScanActivity : AppCompatActivity() {
             .setAdapter(ExperimentalEditionAdapter(candidates)) { _, which ->
                 addSelectedEdition(candidates[which].option, effectiveLanguage)
             }
-            .setNeutralButton(R.string.experimental_scan_show_ocr) { _, _ ->
-                showOcrDetails(
-                    displayName, candidates, printing, title,
-                    language, effectiveLanguage, visualResult, fallbackFrame, guess
-                )
-            }
             .setNegativeButton(R.string.rapid_scan_scan_another_card) { _, _ -> returnToCamera() }
-        if (allowAllEditions) {
-            builder.setPositiveButton(R.string.rapid_scan_all_editions) { _, _ ->
-                loadAllEditionCandidates(
+            .setPositiveButton(R.string.rapid_scan_more_options) { _, _ ->
+                showEditionCandidateActions(
                     displayName, candidates, printing, title, language, effectiveLanguage,
-                    visualResult, fallbackFrame, guess
+                    visualResult, fallbackFrame, guess, allowAllEditions
                 )
             }
-        }
         builder.show()
+    }
+
+    private fun showEditionCandidateActions(
+        displayName: String,
+        candidates: List<RapidRankedEdition>,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        language: CardTextLanguageResult?,
+        effectiveLanguage: String,
+        visualResult: CardIdentificationResult?,
+        fallbackFrame: CardFrameAnalysis?,
+        guess: PrintingMetadataGuess,
+        allowAllEditions: Boolean
+    ) {
+        val actions = buildList {
+            if (allowAllEditions) add(R.string.rapid_scan_all_editions)
+            add(R.string.rapid_scan_correct_borders)
+            add(R.string.experimental_scan_show_ocr)
+        }
+        fun reopenCandidates() = showEditionCandidates(
+            displayName, candidates, printing, title, language, effectiveLanguage,
+            visualResult, fallbackFrame, guess,
+            allowAllEditions = allowAllEditions,
+            announce = false
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.rapid_scan_more_options)
+            .setItems(actions.map(::getString).toTypedArray()) { _, which ->
+                when (actions[which]) {
+                    R.string.rapid_scan_all_editions -> loadAllEditionCandidates(
+                        displayName, candidates, printing, title, language, effectiveLanguage,
+                        visualResult, fallbackFrame, guess
+                    )
+                    R.string.rapid_scan_correct_borders -> resumeCropCorrection()
+                    else -> showOcrDetails(
+                        displayName, candidates, printing, title, language, effectiveLanguage,
+                        visualResult, fallbackFrame, guess, allowAllEditions
+                    )
+                }
+            }
+            .setNegativeButton(R.string.experimental_scan_back_to_editions) { _, _ ->
+                reopenCandidates()
+            }
+            .setOnCancelListener { reopenCandidates() }
+            .show()
+    }
+
+    private fun resumeCropCorrection() {
+        analysisInFlight = false
+        hideLoading()
+        debug.visibility = View.GONE
+        replaceDebugBitmap(null)
+        correction.visibility = View.VISIBLE
+        liveGuide.visibility = View.GONE
+        correctionMode = true
+        cancel.setText(R.string.edition_scan_retake_photo)
+        capture.setText(R.string.rapid_scan_reanalyze)
+        capture.isEnabled = true
+        instruction.setText(R.string.rapid_scan_adjust_then_reanalyze)
     }
 
     private fun loadAllEditionCandidates(
@@ -1518,10 +1569,11 @@ class RapidEditionScanActivity : AppCompatActivity() {
             .setPositiveButton(R.string.experimental_scan_back_to_editions) { _, _ ->
                 showEditionCandidates(
                     displayName, candidates, printing, title,
-                    language, effectiveLanguage, visualResult, fallbackFrame, guess
+                    language, effectiveLanguage, visualResult, fallbackFrame, guess,
+                    announce = false
                 )
             }
-            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+            .setNegativeButton(R.string.rapid_scan_scan_another_card) { _, _ -> returnToCamera() }
             .show()
     }
 
@@ -1534,7 +1586,8 @@ class RapidEditionScanActivity : AppCompatActivity() {
         effectiveLanguage: String,
         visualResult: CardIdentificationResult?,
         fallbackFrame: CardFrameAnalysis?,
-        guess: PrintingMetadataGuess
+        guess: PrintingMetadataGuess,
+        allowAllEditions: Boolean
     ) {
         AlertDialog.Builder(this)
             .setTitle(displayName)
@@ -1545,10 +1598,12 @@ class RapidEditionScanActivity : AppCompatActivity() {
             .setPositiveButton(R.string.experimental_scan_back_to_editions) { _, _ ->
                 showEditionCandidates(
                     displayName, candidates, printing, title,
-                    language, effectiveLanguage, visualResult, fallbackFrame, guess
+                    language, effectiveLanguage, visualResult, fallbackFrame, guess,
+                    allowAllEditions = allowAllEditions,
+                    announce = false
                 )
             }
-            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
+            .setNegativeButton(R.string.rapid_scan_scan_another_card) { _, _ -> returnToCamera() }
             .show()
     }
 
@@ -1652,8 +1707,15 @@ class RapidEditionScanActivity : AppCompatActivity() {
                 ))
             }
         }
-        val border = visualResult?.detectedBorder ?: fallbackFrame?.borderColor ?: CardBorderColor.UNKNOWN
-        val borderConfidence = visualResult?.detectedBorderConfidence ?: fallbackFrame?.borderConfidence ?: 0.0
+        val useVisualBorder = visualResult?.detectedBorder?.let {
+            it != CardBorderColor.UNKNOWN && visualResult.borderSampleCount > 0
+        } == true
+        val border = if (useVisualBorder) {
+            visualResult!!.detectedBorder
+        } else fallbackFrame?.borderColor ?: CardBorderColor.UNKNOWN
+        val borderConfidence = if (useVisualBorder) {
+            visualResult!!.detectedBorderConfidence
+        } else fallbackFrame?.borderConfidence ?: 0.0
         if (border != CardBorderColor.UNKNOWN || usedBorderZones.isNotEmpty()) {
             append("\n")
             append(getString(

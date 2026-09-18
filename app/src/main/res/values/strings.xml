@@ -460,6 +460,15 @@
     <string name="rapid_scan_session_copies">Escaneadas ahora: %1$d · En colección: %2$d</string>
     <string name="rapid_scan_card_added_notice">✓ %1$s · %2$s añadida · %3$s</string>
     <string name="rapid_scan_view_session">VER SESIÓN</string>
+    <string name="rapid_scan_all_editions">Todas las ediciones</string>
+    <string name="rapid_scan_loading_all_editions">Cargando todas las ediciones…</string>
+    <string name="rapid_scan_manual_edition">selección manual · descartada por el escáner</string>
+    <string name="rapid_scan_scan_another_card">Escanear otra carta</string>
+    <string name="rapid_scan_undo_last">Deshacer última</string>
+    <string name="rapid_scan_undo_confirm">¿Quitar de la colección la última copia escaneada de «%1$s»?</string>
+    <string name="rapid_scan_undo_success">Escaneo cancelado: %1$s</string>
+    <string name="rapid_scan_undo_error">No se pudo cancelar el último escaneo</string>
+    <string name="rapid_scan_all_editions_error">No se pudieron cargar todas las ediciones</string>
     <string name="rapid_scan_no_editions_title">No se pudo preparar la lista de ediciones</string>
     <string name="experimental_scan_align_card">Alinea la carta completa. La foto se hará automáticamente.</string>
     <string name="experimental_scan_finding_edges">Buscando los cuatro bordes…</string>

@@ -89,6 +89,11 @@ private data class RapidSessionEntry(
     var scannedCopies: Int = 1
 )
 
+private data class RapidAddedCopy(
+    val option: CardEditionOption,
+    val collectionItemId: String
+)
+
 private enum class RapidLiveScanPhase {
     NAME,
     EDGES
@@ -110,6 +115,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var loadingText: TextView
     private lateinit var earlyResult: TextView
     private lateinit var sessionButton: Button
+    private lateinit var undoLastButton: Button
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcr = PrintingLineOcr()
@@ -139,6 +145,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private var feedbackSnackbar: Snackbar? = null
     private var toneGenerator: ToneGenerator? = null
     private val sessionEntries = ArrayList<RapidSessionEntry>()
+    private val addedCopies = ArrayList<RapidAddedCopy>()
     private val addedCollectionItemIds = LinkedHashSet<String>()
     private var sessionAdapter: RapidSessionAdapter? = null
     private var cameraStarting = false
@@ -179,6 +186,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         loadingText = findViewById(R.id.rapidScanLoadingText)
         earlyResult = findViewById(R.id.rapidScanEarlyResult)
         sessionButton = findViewById(R.id.rapidScanSession)
+        undoLastButton = findViewById(R.id.rapidScanUndoLast)
         toneGenerator = runCatching {
             ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90)
         }.getOrNull()
@@ -190,6 +198,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
             }
         }
         sessionButton.setOnClickListener { showRapidSession() }
+        undoLastButton.setOnClickListener { confirmUndoLastScan() }
         capture.isEnabled = false
 
         openCvReady = OpenCVLoader.initLocal()
@@ -1053,7 +1062,8 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private fun rankEditions(
         options: List<CardEditionOption>,
         guess: PrintingMetadataGuess,
-        languageCode: String = ""
+        languageCode: String = "",
+        maxResults: Int = MAX_EDITION_RESULTS
     ): List<RapidRankedEdition> {
         val setCandidates = guess.setCodeCandidates.map { it.uppercase(Locale.US) }
         return options.groupBy(CardEditionOption::printingUuid)
@@ -1094,7 +1104,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
             }
             .sortedWith(compareByDescending<RapidRankedEdition> { it.score }
                 .thenByDescending { it.option.releaseDate })
-            .take(MAX_EDITION_RESULTS)
+            .let { ranked -> if (maxResults == Int.MAX_VALUE) ranked else ranked.take(maxResults) }
     }
 
     private fun rankVisualEditions(
@@ -1192,15 +1202,17 @@ class RapidEditionScanActivity : AppCompatActivity() {
         effectiveLanguage: String,
         visualResult: CardIdentificationResult?,
         fallbackFrame: CardFrameAnalysis?,
-        guess: PrintingMetadataGuess
+        guess: PrintingMetadataGuess,
+        allowAllEditions: Boolean = true,
+        announce: Boolean = true
     ) {
         val summary = resultSummary(
             displayName, printing, title, language, effectiveLanguage, visualResult, fallbackFrame, guess
         )
-        announceVerified(displayName, candidates)
+        if (announce) announceVerified(displayName, candidates)
         status.text = summary
         instruction.setText(R.string.experimental_scan_identified)
-        AlertDialog.Builder(this)
+        val builder = AlertDialog.Builder(this)
             .setTitle(getString(R.string.experimental_scan_editions_title, displayName))
             .setAdapter(ExperimentalEditionAdapter(candidates)) { _, which ->
                 addSelectedEdition(candidates[which].option, effectiveLanguage)
@@ -1211,8 +1223,78 @@ class RapidEditionScanActivity : AppCompatActivity() {
                     language, effectiveLanguage, visualResult, fallbackFrame, guess
                 )
             }
-            .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
-            .show()
+            .setNegativeButton(R.string.rapid_scan_scan_another_card) { _, _ -> returnToCamera() }
+        if (allowAllEditions) {
+            builder.setPositiveButton(R.string.rapid_scan_all_editions) { _, _ ->
+                loadAllEditionCandidates(
+                    displayName, candidates, printing, title, language, effectiveLanguage,
+                    visualResult, fallbackFrame, guess
+                )
+            }
+        }
+        builder.show()
+    }
+
+    private fun loadAllEditionCandidates(
+        displayName: String,
+        scannerCandidates: List<RapidRankedEdition>,
+        printing: PrintingLineOcrResult?,
+        title: CardTitleOcrResult?,
+        language: CardTextLanguageResult?,
+        effectiveLanguage: String,
+        visualResult: CardIdentificationResult?,
+        fallbackFrame: CardFrameAnalysis?,
+        guess: PrintingMetadataGuess
+    ) {
+        val canonicalName = scannerCandidates.firstOrNull()?.option?.cardName ?: displayName
+        status.setText(R.string.rapid_scan_loading_all_editions)
+        showLoading(getString(R.string.rapid_scan_loading_all_editions))
+        var delivered = false
+        repository.loadCard(
+            canonicalName,
+            forcePriceRefresh = false,
+            deliverEditionsBeforePrices = true
+        ) { options, error ->
+            if (isFinishing || isDestroyed || delivered) return@loadCard
+            if (options.isNotEmpty()) {
+                delivered = true
+                val scannerIds = scannerCandidates.mapTo(HashSet()) { it.option.printingUuid }
+                val manual = rankEditions(options, guess, effectiveLanguage, Int.MAX_VALUE)
+                    .filterNot { it.option.printingUuid in scannerIds }
+                    .map { candidate ->
+                        candidate.copy(
+                            evidence = listOf(getString(R.string.rapid_scan_manual_edition)) +
+                                candidate.evidence
+                        )
+                    }
+                hideLoading()
+                showEditionCandidates(
+                    displayName,
+                    (scannerCandidates + manual).distinctBy { it.option.printingUuid },
+                    printing,
+                    title,
+                    language,
+                    effectiveLanguage,
+                    visualResult,
+                    fallbackFrame,
+                    guess,
+                    allowAllEditions = false,
+                    announce = false
+                )
+            } else if (error != null) {
+                delivered = true
+                hideLoading()
+                Toast.makeText(
+                    this,
+                    error.message ?: getString(R.string.rapid_scan_all_editions_error),
+                    Toast.LENGTH_LONG
+                ).show()
+                showEditionCandidates(
+                    displayName, scannerCandidates, printing, title, language, effectiveLanguage,
+                    visualResult, fallbackFrame, guess, announce = false
+                )
+            }
+        }
     }
 
     private fun addSelectedEdition(option: CardEditionOption, languageCode: String) {
@@ -1237,7 +1319,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    rememberRapidSession(card)
+                    rememberRapidSession(card, option)
                     returnToCamera()
                     showCardAddedNotification(option, card)
                 }
@@ -1245,7 +1327,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun rememberRapidSession(card: CardInfo) {
+    private fun rememberRapidSession(card: CardInfo, option: CardEditionOption) {
         val existing = sessionEntries.firstOrNull {
             it.card.collectionItemId == card.collectionItemId
         }
@@ -1255,7 +1337,13 @@ class RapidEditionScanActivity : AppCompatActivity() {
             existing.card = card
             existing.scannedCopies++
         }
+        addedCopies += RapidAddedCopy(option, card.collectionItemId)
         addedCollectionItemIds += card.collectionItemId
+        updateSessionControls()
+        sessionAdapter?.notifyDataSetChanged()
+    }
+
+    private fun updateSessionControls() {
         setResult(
             RESULT_OK,
             Intent().putStringArrayListExtra(
@@ -1265,8 +1353,72 @@ class RapidEditionScanActivity : AppCompatActivity() {
         )
         val count = sessionEntries.sumOf(RapidSessionEntry::scannedCopies)
         sessionButton.text = getString(R.string.rapid_scan_session_count, count)
-        sessionButton.visibility = View.VISIBLE
+        sessionButton.visibility = if (count > 0) View.VISIBLE else View.GONE
+        undoLastButton.visibility = if (addedCopies.isNotEmpty()) View.VISIBLE else View.GONE
+        undoLastButton.isEnabled = addedCopies.isNotEmpty()
+    }
+
+    private fun confirmUndoLastScan() {
+        if (analysisInFlight || correctionMode) return
+        val last = addedCopies.lastOrNull() ?: return
+        captureGate.set(true)
+        AlertDialog.Builder(this)
+            .setTitle(R.string.rapid_scan_undo_last)
+            .setMessage(getString(R.string.rapid_scan_undo_confirm, last.option.displayName))
+            .setPositiveButton(R.string.rapid_scan_undo_last) { _, _ -> undoLastScan(last) }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> captureGate.set(false) }
+            .setOnCancelListener { captureGate.set(false) }
+            .show()
+    }
+
+    private fun undoLastScan(last: RapidAddedCopy) {
+        undoLastButton.isEnabled = false
+        metadataExecutor.execute {
+            val removed = runCatching {
+                LegacyCollectionStore.removeCopy(this, last.option, last.collectionItemId)
+            }.getOrNull()
+            if (removed == null) {
+                runOnUiThread { showUndoFailure() }
+            } else if (removed.remainingQuantity == 0) {
+                repository.clearSelectedEdition(last.collectionItemId) {
+                    applyUndoResult(last, removed.remainingQuantity)
+                }
+            } else {
+                runOnUiThread { applyUndoResult(last, removed.remainingQuantity) }
+            }
+        }
+    }
+
+    private fun applyUndoResult(last: RapidAddedCopy, remainingQuantity: Int) {
+        if (isFinishing || isDestroyed) return
+        if (addedCopies.lastOrNull() == last) addedCopies.removeAt(addedCopies.lastIndex)
+        val entry = sessionEntries.firstOrNull {
+            it.card.collectionItemId == last.collectionItemId
+        }
+        if (entry != null) {
+            entry.scannedCopies--
+            entry.card.quantityCount = remainingQuantity
+            if (entry.scannedCopies <= 0) sessionEntries.remove(entry)
+        }
+        if (sessionEntries.none { it.card.collectionItemId == last.collectionItemId }) {
+            addedCollectionItemIds.remove(last.collectionItemId)
+        }
+        updateSessionControls()
         sessionAdapter?.notifyDataSetChanged()
+        captureGate.set(false)
+        stability.reset()
+        Toast.makeText(
+            this,
+            getString(R.string.rapid_scan_undo_success, last.option.displayName),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun showUndoFailure() {
+        if (isFinishing || isDestroyed) return
+        undoLastButton.isEnabled = addedCopies.isNotEmpty()
+        captureGate.set(false)
+        Toast.makeText(this, R.string.rapid_scan_undo_error, Toast.LENGTH_LONG).show()
     }
 
     private fun showCardAddedNotification(option: CardEditionOption, card: CardInfo) {

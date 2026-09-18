@@ -65,17 +65,37 @@
             android:textStyle="bold"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/rapidScanSession"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:minHeight="40dp"
-            android:text="@string/rapid_scan_session_empty"
-            android:textColor="#FFFFFF"
-            android:visibility="gone"
-            app:strokeColor="?attr/colorSecondary" />
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/rapidScanSession"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="40dp"
+                android:text="@string/rapid_scan_session_empty"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                app:strokeColor="?attr/colorSecondary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/rapidScanUndoLast"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:minHeight="40dp"
+                android:text="@string/rapid_scan_undo_last"
+                android:textColor="#FFFFFF"
+                android:visibility="gone"
+                app:strokeColor="?attr/colorSecondary" />
+        </LinearLayout>
     </LinearLayout>
 
     <LinearLayout

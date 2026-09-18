@@ -817,6 +817,13 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    fun clearSelectedEdition(collectionItemId: String, callback: () -> Unit = {}) {
+        selectionExecutor.execute {
+            dao.deleteOwnedPrinting(collectionItemId)
+            mainHandler.post(callback)
+        }
+    }
+
     private fun combine(
         printings: List<CardPrintingEntity>,
         prices: List<CardPriceEntity>,

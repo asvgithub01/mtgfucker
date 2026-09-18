@@ -130,8 +130,12 @@
             <Spinner
                 android:id="@+id/cardLanguageSpinner"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_weight="1"
+                android:background="@drawable/gallery_language_background"
+                android:dropDownWidth="match_parent"
+                android:popupBackground="@drawable/gallery_language_background"
+                android:spinnerMode="dropdown"
                 android:visibility="gone" />
         </LinearLayout>
 

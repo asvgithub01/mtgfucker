@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.Spinner
@@ -469,7 +468,7 @@ class CardImageActivity : AppCompatActivity() {
             if (loaded.isEmpty()) return@loadImageLanguages
             variants = loaded
             val labels = loaded.map { "${languageLabel(it.languageCode)} — ${it.printedName}" }
-            languageSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+            languageSpinner.adapter = GalleryLanguageSpinnerAdapter(this, loaded, labels)
             languageSpinner.visibility = View.VISIBLE
             val preferred = loaded.indexOfFirst { it.imageUrl == page.imageUrl }
                 .takeIf { it >= 0 }

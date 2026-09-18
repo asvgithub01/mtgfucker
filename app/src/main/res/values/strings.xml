@@ -126,6 +126,11 @@
     <string name="groups_summary">%1$s</string>
     <string name="show_as_grid">Mostrar como cuadrícula</string>
     <string name="show_as_list">Mostrar como lista</string>
+    <string name="collection_view_mode_selected">Vista de la Biblio: %1$s. Toca para elegir otra.</string>
+    <string name="collection_view_list">Lista clásica</string>
+    <string name="collection_view_cards_two_columns">Cartas completas · 2 columnas</string>
+    <string name="collection_view_art_one_column">Arte · 1 columna</string>
+    <string name="collection_view_art_two_columns">Arte · 2 columnas</string>
     <string name="personal_collection_label">Colección personal</string>
     <string name="grid_set_overlay">Colección: %1$s</string>
     <string name="card_name_hint">Nombre de la carta</string>

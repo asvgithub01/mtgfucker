@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.view.animation.TranslateAnimation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import io.asv.mtgocr.ocrreader.model.CardInfo;
 import io.asv.mtgocr.ocrreader.data.PriceCurrency;
@@ -37,7 +36,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
 
   private List<CardInfo> mDataset;
   private static OcrCaptureActivity mContext;
-  private final boolean gridMode;
+  private final int viewMode;
 
   // Provide a reference to the views for each data item
   // Complex data items may need more than one view per item, and
@@ -45,7 +44,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   public static class ViewHolder extends RecyclerView.ViewHolder {
     // each data item is just a string in this case
     public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
-    LinearLayout mLytViewHolder;
+    View mLytViewHolder;
     RoundedCardImageView mImgCard;
     ImageView mFoilBadge;
     ImageButton btnOrganize, btnDetails, btnGallery;
@@ -63,7 +62,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       btnDetails = (ImageButton) v.findViewById(R.id.btnCardDetails);
       btnGallery = (ImageButton) v.findViewById(R.id.btnCardGallery);
       txtQuantity = (TextView) v.findViewById(R.id.txtCardQuantity);
-      mLytViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
+      mLytViewHolder = v.findViewById(R.id.lytViewHolder);
 
       Typeface tf = Typeface.createFromAsset(mContext.getAssets(), "title_font.ttf");
       mtxtName.setTypeface(tf);
@@ -72,25 +71,27 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   }
 
   // Provide a suitable constructor (depends on the kind of dataset)
-  public MyAdapter(List<CardInfo> myDataset, OcrCaptureActivity context, boolean gridMode) {
+  public MyAdapter(List<CardInfo> myDataset, OcrCaptureActivity context, int viewMode) {
     mDataset = myDataset;
     mContext = context;
-    this.gridMode = gridMode;
+    this.viewMode = CollectionViewMode.sanitize(viewMode);
     itemsPendingRemoval = new ArrayList<>();
   }
 
-  LinearLayout mLinearViewHolder;
+  View mLinearViewHolder;
 
   // Create new views (invoked by the layout manager)
   @Override public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
     // create a new view
-    View v = LayoutInflater.from(parent.getContext()).inflate(
-        gridMode ? R.layout.card_grid_item : R.layout.card_item, parent, false);
+    int layout = viewMode == CollectionViewMode.CARD_GRID
+        ? R.layout.card_grid_item
+        : CollectionViewMode.usesArtwork(viewMode) ? R.layout.card_art_item : R.layout.card_item;
+    View v = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
     // set the view's size, margins, paddings and layout parameters
     //v.setOnClickListener(this);
     ViewHolder vh = new ViewHolder(v);
 
-    mLinearViewHolder = (LinearLayout) v.findViewById(R.id.lytViewHolder);
+    mLinearViewHolder = v.findViewById(R.id.lytViewHolder);
     mLinearViewHolder.setOnTouchListener(new View.OnTouchListener() {
       private GestureDetector gesture =
           new GestureDetector(mContext, new GestureDetector.SimpleOnGestureListener() {
@@ -202,12 +203,14 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mImgCard.setFoilEffect(foil);
       StringBuilder groups = new StringBuilder();
       if (item.getSetName() != null && item.getSetName().trim().length() > 0) {
-        if (gridMode) groups.append(mContext.getString(R.string.grid_set_overlay, item.getSetName()));
+        if (viewMode != CollectionViewMode.LIST) {
+          groups.append(mContext.getString(R.string.grid_set_overlay, item.getSetName()));
+        }
         else groups.append(item.getSetName());
         if (item.getSetCode() != null && item.getSetCode().trim().length() > 0) {
           groups.append(" (").append(item.getSetCode()).append(")");
         }
-      } else if (gridMode) {
+      } else if (viewMode != CollectionViewMode.LIST) {
         groups.append(mContext.getString(R.string.personal_collection_label));
       }
       if (groups.length() > 0) groups.append(" · ");
@@ -242,8 +245,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
           mContext.showOrganizerDialog(item);
         }
       });
-      CardImageCache.display(mContext, item.getImgPath(), holder.mImgCard);
-      if (gridMode) {
+      String imageUrl = CollectionViewMode.usesArtwork(viewMode)
+          ? LaunchArtworkUrl.resolve(item.getImgPath())
+          : item.getImgPath();
+      CardImageCache.display(mContext, imageUrl == null ? item.getImgPath() : imageUrl, holder.mImgCard);
+      if (viewMode != CollectionViewMode.LIST) {
         holder.itemView.animate().cancel();
         // Never fade a recycled image from near-transparent: Glide may finish in the same frame,
         // which looked like a brightness flash while scrolling the gallery. Keep only a restrained

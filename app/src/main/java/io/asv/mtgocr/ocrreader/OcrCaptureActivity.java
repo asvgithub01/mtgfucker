@@ -80,6 +80,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
@@ -256,8 +257,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int sessionPriceUpdateGeneration;
   private CardRepository cardRepository;
   private Runnable pendingNamePrediction;
-  private boolean gridMode = false;
+  private int collectionViewMode = CollectionViewMode.LIST;
   private static final String PREF_COLLECTION_GRID = "collection_grid_mode";
+  private static final String PREF_COLLECTION_VIEW_MODE = "collection_view_mode";
   private static final String PREF_LAST_SET_FILTER = "last_set_filter";
   private static final long NAME_PREDICTION_DELAY_MS = 150L;
   private ListView cardNameSuggestions;
@@ -1088,7 +1090,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
     // The merged catalog and card grid have responsive/variable row heights.
     mRecyclerView.setHasFixedSize(false);
-    gridMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_COLLECTION_GRID, false);
+    if (getPreferences(MODE_PRIVATE).contains(PREF_COLLECTION_VIEW_MODE)) {
+      collectionViewMode = CollectionViewMode.sanitize(
+          getPreferences(MODE_PRIVATE).getInt(PREF_COLLECTION_VIEW_MODE, CollectionViewMode.LIST));
+    } else {
+      collectionViewMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_COLLECTION_GRID, false)
+          ? CollectionViewMode.CARD_GRID : CollectionViewMode.LIST;
+    }
     applyCollectionLayoutMode();
 
     setUpItemTouchHelper();
@@ -1112,13 +1120,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     viewModeButton = (ImageButton) findViewById(R.id.btnCollectionViewMode);
     cardmarketExportButton.setOnClickListener(view -> showCardmarketExportDialog());
     updateViewModeButton();
-    viewModeButton.setOnClickListener(view -> {
-      gridMode = !gridMode;
-      getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_COLLECTION_GRID, gridMode).apply();
-      applyCollectionLayoutMode();
-      updateViewModeButton();
-      refreshUI();
-    });
+    viewModeButton.setOnClickListener(this::showCollectionViewModeMenu);
     collectionSearch.addTextChangedListener(new TextWatcher() {
       @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
       @Override public void onTextChanged(CharSequence text, int start, int before, int count) {
@@ -2068,7 +2070,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void applyCollectionLayoutMode() {
-    mLayoutManager = gridMode && "0".equals(mPersistorMode)
+    mLayoutManager = CollectionViewMode.usesTwoColumns(collectionViewMode) && "0".equals(mPersistorMode)
         ? new GridLayoutManager(this, 2)
         : new LinearLayoutManager(this);
     mRecyclerView.setLayoutManager(mLayoutManager);
@@ -2076,12 +2078,47 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void updateViewModeButton() {
     if (viewModeButton == null) return;
-    viewModeButton.setImageResource(gridMode
+    int icon = collectionViewMode == CollectionViewMode.LIST
         ? android.R.drawable.ic_menu_sort_by_size
-        : android.R.drawable.ic_menu_gallery);
-    viewModeButton.setContentDescription(getString(gridMode
-        ? R.string.show_as_list
-        : R.string.show_as_grid));
+        : collectionViewMode == CollectionViewMode.CARD_GRID
+            ? android.R.drawable.ic_menu_gallery
+            : android.R.drawable.ic_menu_crop;
+    viewModeButton.setImageResource(icon);
+    viewModeButton.setContentDescription(getString(
+        R.string.collection_view_mode_selected,
+        getString(collectionViewModeLabel(collectionViewMode))));
+  }
+
+  private void showCollectionViewModeMenu(View anchor) {
+    PopupMenu popup = new PopupMenu(this, anchor);
+    addCollectionViewMode(popup, CollectionViewMode.LIST, R.string.collection_view_list);
+    addCollectionViewMode(popup, CollectionViewMode.CARD_GRID, R.string.collection_view_cards_two_columns);
+    addCollectionViewMode(popup, CollectionViewMode.ARTWORK_WIDE, R.string.collection_view_art_one_column);
+    addCollectionViewMode(popup, CollectionViewMode.ARTWORK_GRID, R.string.collection_view_art_two_columns);
+    popup.setOnMenuItemClickListener(item -> {
+      collectionViewMode = CollectionViewMode.sanitize(item.getItemId());
+      getPreferences(MODE_PRIVATE).edit()
+          .putInt(PREF_COLLECTION_VIEW_MODE, collectionViewMode)
+          .apply();
+      applyCollectionLayoutMode();
+      updateViewModeButton();
+      refreshUI();
+      return true;
+    });
+    popup.show();
+  }
+
+  private void addCollectionViewMode(PopupMenu popup, int mode, int title) {
+    popup.getMenu().add(0, mode, mode, title)
+        .setCheckable(true)
+        .setChecked(collectionViewMode == mode);
+  }
+
+  private int collectionViewModeLabel(int mode) {
+    if (mode == CollectionViewMode.CARD_GRID) return R.string.collection_view_cards_two_columns;
+    if (mode == CollectionViewMode.ARTWORK_WIDE) return R.string.collection_view_art_one_column;
+    if (mode == CollectionViewMode.ARTWORK_GRID) return R.string.collection_view_art_two_columns;
+    return R.string.collection_view_list;
   }
 
   /**
@@ -2441,18 +2478,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       sortCards(visibleCards);
       visibleCards = clusterSameNamedCards(visibleCards);
       showTotalPrice(visibleCards);
-      mAdapter = new MyAdapter(visibleCards, this, gridMode);
+      mAdapter = new MyAdapter(visibleCards, this, collectionViewMode);
       mRecyclerView.setAdapter(mAdapter);
       restoreCollectionScrollAfterDetail();
     }
     if (mPersistorMode.equals("1"))//newdeck
     {
-      mAdapter = new MyAdapter(mBiblio.cards, this, false);
+      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.LIST);
       mRecyclerView.setAdapter(mAdapter);
     }
     if (mPersistorMode.equals("2"))//Editdeck
     {
-      mAdapter = new MyAdapter(mBiblio.cards, this, false);
+      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.LIST);
       mRecyclerView.setAdapter(mAdapter);
     }
   }
@@ -2614,7 +2651,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         R.plurals.deck_count, summaries.size(), summaries.size()));
     mAdapter = new DeckSummaryAdapter(
         summaries,
-        gridMode,
+        CollectionViewMode.usesTwoColumns(collectionViewMode),
         new DeckSummaryAdapter.Listener() {
           @Override public void onOpen(DeckDefinition deck) {
             currentFilterKey = "deck:" + deck.getName();

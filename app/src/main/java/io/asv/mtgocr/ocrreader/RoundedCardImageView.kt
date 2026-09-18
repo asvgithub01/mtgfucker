@@ -15,6 +15,7 @@ import android.graphics.RectF
 import android.graphics.RuntimeShader
 import android.graphics.Shader
 import android.graphics.SweepGradient
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.util.AttributeSet
 import android.view.View
@@ -63,6 +64,11 @@ open class RoundedCardImageView @JvmOverloads constructor(
     private var foilPhase = 0f
     private var foilEffectEnabled = false
     private var foilEffectModes = FoilEffectMode.DEFAULT
+
+    override fun setImageDrawable(drawable: Drawable?) {
+        super.setImageDrawable(drawable)
+        (parent as? RoundedCardFrameLayout)?.updateCardBackdrop(drawable)
+    }
 
     /** Selects which foil layers are combined. A zero mask leaves the card completely untouched. */
     fun setFoilEffectModes(modes: Int) {

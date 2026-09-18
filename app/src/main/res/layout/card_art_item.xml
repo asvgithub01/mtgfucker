@@ -3,16 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="1dp">
+    android:padding="3dp">
 
     <LinearLayout
         android:id="@+id/lytViewHolder"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
+        android:background="@drawable/bg_arcane_card_row"
         android:orientation="vertical">
 
-        <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
+        <io.asv.mtgocr.ocrreader.RoundedArtworkFrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="#202020">
@@ -22,25 +22,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:contentDescription="@string/card_image"
-                android:scaleType="fitCenter" />
-
-            <TextView
-                android:id="@+id/txtPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|start"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="36dp"
-                android:layout_marginEnd="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="#D9000000"
-                android:paddingStart="7dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="7dp"
-                android:paddingBottom="4dp"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:scaleType="centerCrop" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -49,6 +31,7 @@
                 android:layout_margin="4dp"
                 android:background="#DDFFFFFF"
                 android:orientation="horizontal">
+
                 <ImageButton
                     android:id="@+id/btnCardDetails"
                     android:layout_width="32dp"
@@ -57,6 +40,7 @@
                     android:contentDescription="@string/view_card_details"
                     android:padding="6dp"
                     android:src="@android:drawable/ic_menu_info_details" />
+
                 <ImageButton
                     android:id="@+id/btnCardGallery"
                     android:layout_width="32dp"
@@ -65,6 +49,7 @@
                     android:contentDescription="@string/open_card_gallery"
                     android:padding="6dp"
                     android:src="@android:drawable/ic_menu_gallery" />
+
                 <ImageButton
                     android:id="@+id/btnOrganizeCard"
                     android:layout_width="32dp"
@@ -79,9 +64,8 @@
                 android:id="@+id/txtCardQuantity"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="46dp"
-                android:layout_marginEnd="7dp"
+                android:layout_gravity="top|start"
+                android:layout_margin="7dp"
                 android:background="@drawable/bg_quantity_badge"
                 android:gravity="center"
                 android:minWidth="34dp"
@@ -93,41 +77,58 @@
                 android:id="@+id/imgFoilBadge"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="86dp"
-                android:layout_marginEnd="8dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="8dp"
                 android:contentDescription="@string/foil_card_badge"
                 android:src="@drawable/ic_foil_badge"
                 android:visibility="gone" />
+        </io.asv.mtgocr.ocrreader.RoundedArtworkFrameLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="9dp"
+            android:paddingTop="7dp"
+            android:paddingEnd="9dp"
+            android:paddingBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:background="#D9000000"
-                android:orientation="vertical"
-                android:padding="7dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
                 <TextView
                     android:id="@+id/txtName"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="#FFFFFF"
+                    android:textColor="?attr/colorOnSurface"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/txtGroups"
-                    android:layout_width="match_parent"
+                    android:id="@+id/txtPrice"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:textColor="#F1F1F1"
-                    android:textSize="11sp" />
+                    android:layout_marginStart="0dp"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
             </LinearLayout>
-        </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
+
+            <TextView
+                android:id="@+id/txtGroups"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="?attr/appMutedColor"
+                android:textSize="12sp" />
+        </LinearLayout>
     </LinearLayout>
 
     <TextView

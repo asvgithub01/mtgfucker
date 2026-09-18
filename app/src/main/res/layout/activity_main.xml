@@ -5,8 +5,8 @@
     <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#62000000" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_horizontal" android:orientation="vertical" android:padding="24dp">
         <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1" />
-        <TextView android:id="@+id/txtLaunchTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="MTG Biblio" android:textColor="#FFFFFF" android:textSize="42sp" />
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="Escanea, organiza y valora tu colección" android:textColor="#E8DFCF" android:textSize="16sp" />
+        <TextView android:id="@+id/txtLaunchTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:text="@string/app_display_name" android:textColor="#FFFFFF" android:textSize="42sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:gravity="center" android:text="@string/launch_tagline" android:textColor="#E8DFCF" android:textSize="16sp" />
         <Space android:layout_width="1dp" android:layout_height="0dp" android:layout_weight="1.4" />
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_launch_panel" android:orientation="vertical" android:padding="18dp">
             <TextView android:id="@+id/txtLaunchLibraryLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="5dp" android:text="@string/choose_library" android:textColor="?attr/colorOnSurface" android:textStyle="bold" android:visibility="gone" />

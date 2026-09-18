@@ -6,6 +6,10 @@
     <string name="no_camera_permission">This application cannot run because it does not have the camera permission. The application will now exit.</string>
     <string name="low_storage_error">Ocr dependencies cannot be downloaded due to low device storage</string>
     <string name="title_activity_main">PaNiKa</string>
+    <string name="app_display_name">MTG Biblio</string>
+    <string name="launch_tagline">Escanea, organiza y valora tu colección</string>
+    <string name="splash_tagline">Tu colección, siempre a mano</string>
+    <string name="splash_branch">Rama: %1$s</string>
     <string name="ocr_header">Click "Detect Text" to detect text</string>
     <string name="mode_biblio">Abrir mi Biblio</string>
     <string name="mode_new_Deck">Create new Deck</string>
@@ -242,6 +246,22 @@
     <string name="deck_card_counts">%1$d cartas + %2$d de banquillo</string>
     <string name="deck_cover">Portada del mazo</string>
     <string name="edit_deck">Editar mazo</string>
+    <string name="deck_format_standard">Estándar</string>
+    <string name="deck_format_modern">Modern</string>
+    <string name="deck_format_pioneer">Pioneer</string>
+    <string name="deck_format_pauper">Pauper</string>
+    <string name="deck_format_legacy">Legacy</string>
+    <string name="deck_format_vintage">Vintage</string>
+    <string name="deck_format_commander">Commander</string>
+    <string name="deck_format_free">Libre / casual</string>
+    <string name="deck_format_standard_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · solo colecciones actualmente legales en Estándar.</string>
+    <string name="deck_format_modern_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · usa la reserva legal de Modern y su lista de prohibidas.</string>
+    <string name="deck_format_pioneer_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · cartas legales desde Regreso a Rávnica y productos admitidos.</string>
+    <string name="deck_format_pauper_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · cada carta debe haber sido publicada como común en papel o MTGO.</string>
+    <string name="deck_format_legacy_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · admite casi toda la historia de Magic salvo su lista de prohibidas.</string>
+    <string name="deck_format_vintage_rules">60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · las cartas restringidas solo permiten una copia entre mazo y banquillo.</string>
+    <string name="deck_format_commander_rules">100 cartas exactas: 99 + comandante · una copia por nombre salvo tierras básicas · identidad de color del comandante · sin banquillo reglamentario.</string>
+    <string name="deck_format_free_rules">Sin validación de formato. Organiza el mazo principal y el banquillo como prefieras.</string>
     <plurals name="deck_count">
         <item quantity="one">%d mazo</item>
         <item quantity="other">%d mazos</item>
@@ -283,10 +303,10 @@
     <string name="scan_duplicate_yes">Sí, añadir</string>
     <string name="scan_duplicate_no">No</string>
     <string name="scan_duplicate_rejected">Copia repetida no añadida</string>
-    <string name="scan_debug_name_lookup">matching del nombre</string>
-    <string name="scan_debug_card_info">búsqueda de edición/precio</string>
-    <string name="scan_debug_artwork">análisis de ilustración, borde e icono</string>
-    <string name="scan_edition_debug_symbol_crop">Recorte del símbolo de colección leído</string>
+    <string name="scan_debug_name_lookup" translatable="false">matching del nombre</string>
+    <string name="scan_debug_card_info" translatable="false">búsqueda de edición/precio</string>
+    <string name="scan_debug_artwork" translatable="false">análisis de ilustración, borde e icono</string>
+    <string name="scan_edition_debug_symbol_crop" translatable="false">Recorte del símbolo de colección leído</string>
     <string name="edition_scan_title">Lector de edición</string>
     <string name="edition_scan_align_line">Alinea la línea del tipo de carta con la franja y coloca el símbolo en el recuadro central.</string>
     <string name="edition_scan_align_card">Haz una foto con la carta completa. No hace falta encajarla perfectamente: podrás corregirla después.</string>
@@ -307,7 +327,7 @@
     <string name="edition_scan_language_unresolved">El texto no permite asegurar el idioma. Comparando todas las ediciones posibles…</string>
     <string name="edition_scan_no_match">No se reconoció la edición. Ajusta la carta y vuelve a intentarlo.</string>
     <string name="edition_scan_no_match_title">Aún no hay una coincidencia clara</string>
-    <string name="edition_scan_no_match_with_evidence">No se pudo comparar ninguna edición.\nCandidatas por nombre/idioma: %5$d · con imagen: %6$d · comparadas: %7$d · fallos de descarga: %8$d\nContorno %1$d%% · borde %2$s %3$d%% · %4$d zonas leídas</string>
+    <string name="edition_scan_no_match_with_evidence" translatable="false">No se pudo comparar ninguna edición.\nCandidatas por nombre/idioma: %5$d · con imagen: %6$d · comparadas: %7$d · fallos de descarga: %8$d\nContorno %1$d%% · borde %2$s %3$d%% · %4$d zonas leídas</string>
     <string name="edition_scan_error_detail">No se pudo preparar la comparación:\n%1$s</string>
     <string name="edition_scan_candidate">%1$s (%2$s) · total %3$d%%\nArte %4$d%% · símbolo %5$d%% · %6$s</string>
     <string name="edition_scan_candidate_title">%1$s (%2$s)</string>
@@ -319,7 +339,7 @@
     <string name="edition_scan_choose">Edición más probable</string>
     <string name="edition_scan_confirmed">Coincidencia visual clara</string>
     <string name="edition_scan_probable">Ediciones más probables</string>
-    <string name="edition_scan_result">Contorno %1$d%% · borde %2$s %3$d%% (%4$d zonas)\nIdioma %5$s · %6$d descartadas · %7$d comparadas en %8$d ms\nReflejo detectado: %9$d%%</string>
+    <string name="edition_scan_result" translatable="false">Contorno %1$d%% · borde %2$s %3$d%% (%4$d zonas)\nIdioma %5$s · %6$d descartadas · %7$d comparadas en %8$d ms\nReflejo detectado: %9$d%%</string>
     <string name="edition_scan_retry">Repetir foto</string>
     <string name="edition_scan_back">Volver</string>
     <string name="edition_scan_use_edition">Usar esta edición</string>
@@ -330,7 +350,7 @@
     <string name="edition_scan_evidence_border_match">El borde detectado (%1$s) coincide con la referencia.</string>
     <string name="edition_scan_evidence_border_mismatch">El borde detectado es %1$s, pero la referencia parece %2$s.</string>
     <string name="edition_scan_evidence_border_unknown">El borde no aporta una prueba concluyente.</string>
-    <string name="edition_scan_explanation">Coincidencia total: %1$d%%\n\nPRUEBAS\n• Ilustración: %2$d%%\n• Símbolo o zona de edición: %3$d%%\n• %4$s\n• Contorno detectado: %5$d%%\n• Muestras del borde: %6$d\n\nRGB MEDIO POR LADO\n%9$s\n\nCALIDAD DE LA FOTO\n• Reflejo: %7$d%%\n• Nitidez: %8$d%%\n\nLa edición no se asignará hasta que pulses «Usar esta edición».</string>
+    <string name="edition_scan_explanation" translatable="false">Coincidencia total: %1$d%%\n\nPRUEBAS\n• Ilustración: %2$d%%\n• Símbolo o zona de edición: %3$d%%\n• %4$s\n• Contorno detectado: %5$d%%\n• Muestras del borde: %6$d\n\nRGB MEDIO POR LADO\n%9$s\n\nCALIDAD DE LA FOTO\n• Reflejo: %7$d%%\n• Nitidez: %8$d%%\n\nLa edición no se asignará hasta que pulses «Usar esta edición».</string>
     <string name="edition_scan_border_black">negro</string>
     <string name="edition_scan_border_white">blanco</string>
     <string name="edition_scan_border_gold">dorado</string>
@@ -342,11 +362,11 @@
     <string name="edition_scan_side_right">Derecha</string>
     <string name="edition_scan_side_bottom">Abajo</string>
     <string name="edition_scan_side_left">Izquierda</string>
-    <string name="scan_debug_unknown_work">trabajo interno</string>
-    <string name="scan_debug_blocked">DEBUG OCR · %1$d frames en espera · %2$s (%3$d ms)</string>
-    <string name="scan_debug_recovered">DEBUG OCR · cola recuperada (%1$d frames) · %2$s (%3$d ms)</string>
-    <string name="scan_debug_characters">OCR lee: %1$s</string>
-    <string name="scan_debug_characters_empty">OCR lee: —</string>
+    <string name="scan_debug_unknown_work" translatable="false">trabajo interno</string>
+    <string name="scan_debug_blocked" translatable="false">DEBUG OCR · %1$d frames en espera · %2$s (%3$d ms)</string>
+    <string name="scan_debug_recovered" translatable="false">DEBUG OCR · cola recuperada (%1$d frames) · %2$s (%3$d ms)</string>
+    <string name="scan_debug_characters" translatable="false">OCR lee: %1$s</string>
+    <string name="scan_debug_characters_empty" translatable="false">OCR lee: —</string>
     <string name="scan_preparing_name_index">Preparando índice de nombres…</string>
     <string name="scan_name_index_ready">Índice de nombres listo</string>
     <string name="scan_session_empty">Sesión (0)</string>
@@ -391,6 +411,23 @@
     <string name="price_sources_description">Arrastra las fuentes para decidir cuál se intenta primero. Si una impresión no tiene precio, se prueba la siguiente.</string>
     <string name="reorder_price_source">Reordenar fuente de precio</string>
     <string name="price_source_order_saved">Prioridad de precios guardada</string>
+    <string name="price_source_cardmarket">Cardmarket</string>
+    <string name="price_source_scryfall">Scryfall</string>
+    <string name="price_source_tcgplayer">TCGplayer</string>
+    <string name="price_source_cardkingdom">Card Kingdom</string>
+    <string name="price_source_cardsphere">Cardsphere</string>
+    <string name="price_source_cardmarket_description">EUR · precio retail diario vía MTGJSON</string>
+    <string name="price_source_scryfall_description">EUR · impresión exacta, sin cuenta</string>
+    <string name="price_source_tcgplayer_description">USD · precio retail diario vía MTGJSON</string>
+    <string name="price_source_cardkingdom_description">USD · precio retail diario vía MTGJSON</string>
+    <string name="price_source_cardsphere_description">USD · índice diario vía MTGJSON</string>
+    <string name="decks_prefix">Mazos: </string>
+    <string name="sideboard_parenthetical">(banquillo)</string>
+    <string name="undo">DESHACER</string>
+    <string name="languages">Idiomas</string>
+    <string name="language_chinese_simplified">Chino simplificado</string>
+    <string name="language_chinese_traditional">Chino tradicional</string>
+    <string name="language_phyrexian">Phyrexiano</string>
     <string name="open_card_gallery">Abrir galería de cartas</string>
     <string name="view_card_details">Ver detalle</string>
     <string name="card_missing_disabled">Carta que falta en tu colección</string>
@@ -503,44 +540,44 @@
     <string name="experimental_scan_card_not_found">No se encontró un contorno de carta válido.</string>
     <string name="experimental_scan_ocr_error">No se pudo leer la franja inferior.</string>
     <string name="experimental_scan_name_result">Carta: %1$s</string>
-    <string name="experimental_scan_parsed">Colección: %1$s · Número: %2$s · Idioma: %3$s · Año: %4$s</string>
-    <string name="experimental_scan_variants">Variantes OCR procesadas: %1$d/%2$d</string>
-    <string name="experimental_scan_title_variants">Variantes del nombre procesadas: %1$d/%2$d</string>
-    <string name="experimental_scan_title_raw">Texto leído en el encabezado:</string>
+    <string name="experimental_scan_parsed" translatable="false">Colección: %1$s · Número: %2$s · Idioma: %3$s · Año: %4$s</string>
+    <string name="experimental_scan_variants" translatable="false">Variantes OCR procesadas: %1$d/%2$d</string>
+    <string name="experimental_scan_title_variants" translatable="false">Variantes del nombre procesadas: %1$d/%2$d</string>
+    <string name="experimental_scan_title_raw" translatable="false">Texto leído en el encabezado:</string>
     <string name="experimental_scan_match">%1$s\n%2$s (%3$s) · #%4$s</string>
-    <string name="experimental_scan_multiple_matches">Se encontraron %1$d coincidencias locales.</string>
+    <string name="experimental_scan_multiple_matches" translatable="false">Se encontraron %1$d coincidencias locales.</string>
     <string name="experimental_scan_lookup_error">No se pudo consultar la colección: %1$s</string>
     <string name="experimental_scan_no_local_match">No se encontró una impresión exacta con esos datos.</string>
     <string name="experimental_scan_name_without_editions">El nombre se ha reconocido, pero no se pudieron preparar sus ediciones.</string>
-    <string name="experimental_scan_raw_text">Texto OCR sin procesar:</string>
-    <string name="experimental_scan_no_text">(sin texto)</string>
+    <string name="experimental_scan_raw_text" translatable="false">Texto OCR sin procesar:</string>
+    <string name="experimental_scan_no_text" translatable="false">(sin texto)</string>
     <string name="experimental_scan_identified">Impresión identificada. Puedes repetir la lectura o tomar otra foto.</string>
     <string name="experimental_scan_adjust_and_retry">Revisa las esquinas y repite la lectura.</string>
     <string name="experimental_scan_result_identified">Impresión identificada</string>
     <string name="experimental_scan_result_title">Resultado experimental</string>
     <string name="experimental_scan_read_again">Volver a leer</string>
     <string name="experimental_scan_editions_title">%1$s · toca una edición para añadirla</string>
-    <string name="experimental_scan_show_ocr">Ver lectura OCR</string>
-    <string name="experimental_scan_back_to_editions">Volver a ediciones</string>
+    <string name="experimental_scan_show_ocr" translatable="false">Ver lectura OCR</string>
+    <string name="experimental_scan_back_to_editions" translatable="false">Volver a ediciones</string>
     <string name="experimental_scan_candidate_set">%1$s (%2$s)</string>
     <string name="experimental_scan_candidate_metadata">N.º %1$s · %2$s · %3$s</string>
     <string name="experimental_scan_candidate_price">NM · %1$s</string>
     <string name="experimental_scan_saving_card">Guardando la carta en tu Biblio…</string>
     <string name="experimental_scan_card_added">%1$s · %2$s añadida. Ahora tienes %3$d.</string>
-    <string name="experimental_scan_evidence_set">colección leída</string>
-    <string name="experimental_scan_evidence_collector">número leído</string>
-    <string name="experimental_scan_evidence_year">año leído</string>
-    <string name="experimental_scan_evidence_name_only">coincide por nombre</string>
-    <string name="experimental_scan_evidence_language">impresión física en %1$s</string>
-    <string name="experimental_scan_evidence_visual">imagen %1$d%%</string>
-    <string name="experimental_scan_evidence_symbol_shape">símbolo %1$d%%</string>
-    <string name="experimental_scan_evidence_border_match">borde %1$s coincide</string>
-    <string name="experimental_scan_evidence_border_mismatch">borde distinto</string>
-    <string name="experimental_scan_evidence_chronicles">borde blanco + símbolo histórico: Chronicles</string>
-    <string name="experimental_scan_language_result">Idioma físico: %1$s · confianza %2$d%%</string>
-    <string name="experimental_scan_language_result_inferred">Idioma físico usado: %1$s · por nombre o código impreso</string>
-    <string name="experimental_scan_border_result">Borde: %1$s · confianza %2$d%%</string>
-    <string name="experimental_scan_language_raw">Texto usado para detectar idioma:</string>
+    <string name="experimental_scan_evidence_set" translatable="false">colección leída</string>
+    <string name="experimental_scan_evidence_collector" translatable="false">número leído</string>
+    <string name="experimental_scan_evidence_year" translatable="false">año leído</string>
+    <string name="experimental_scan_evidence_name_only" translatable="false">coincide por nombre</string>
+    <string name="experimental_scan_evidence_language" translatable="false">impresión física en %1$s</string>
+    <string name="experimental_scan_evidence_visual" translatable="false">imagen %1$d%%</string>
+    <string name="experimental_scan_evidence_symbol_shape" translatable="false">símbolo %1$d%%</string>
+    <string name="experimental_scan_evidence_border_match" translatable="false">borde %1$s coincide</string>
+    <string name="experimental_scan_evidence_border_mismatch" translatable="false">borde distinto</string>
+    <string name="experimental_scan_evidence_chronicles" translatable="false">borde blanco + símbolo histórico: Chronicles</string>
+    <string name="experimental_scan_language_result" translatable="false">Idioma físico: %1$s · confianza %2$d%%</string>
+    <string name="experimental_scan_language_result_inferred" translatable="false">Idioma físico usado: %1$s · por nombre o código impreso</string>
+    <string name="experimental_scan_border_result" translatable="false">Borde: %1$s · confianza %2$d%%</string>
+    <string name="experimental_scan_language_raw" translatable="false">Texto usado para detectar idioma:</string>
     <string name="experimental_scan_no_language_printings">No existe una impresión física confirmada en %1$s entre estas ediciones.</string>
-    <string name="experimental_scan_edition_detail">%1$s (%2$s)\nN.º %3$s · Año %4$s · %5$s\n\nCoincidencias: %6$s</string>
+    <string name="experimental_scan_edition_detail" translatable="false">%1$s (%2$s)\nN.º %3$s · Año %4$s · %5$s\n\nCoincidencias: %6$s</string>
 </resources>

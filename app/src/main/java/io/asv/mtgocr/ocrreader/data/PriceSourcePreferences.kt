@@ -1,12 +1,17 @@
 package io.asv.mtgocr.ocrreader.data
 
 import android.content.Context
+import androidx.annotation.StringRes
+import io.asv.mtgocr.ocrreader.R
 
 data class PriceSourceDefinition(
     val id: String,
-    val label: String,
-    val description: String
-)
+    @StringRes val labelRes: Int,
+    @StringRes val descriptionRes: Int
+) {
+    fun label(context: Context): String = context.getString(labelRes)
+    fun description(context: Context): String = context.getString(descriptionRes)
+}
 
 /** User-controlled priority for the price providers used by the repository. */
 object PriceSourcePreferences {
@@ -21,11 +26,11 @@ object PriceSourcePreferences {
 
     @JvmField
     val available = listOf(
-        PriceSourceDefinition(CARDMARKET, "Cardmarket", "EUR · precio retail diario vía MTGJSON"),
-        PriceSourceDefinition(SCRYFALL, "Scryfall", "EUR · impresión exacta, sin cuenta"),
-        PriceSourceDefinition(TCGPLAYER, "TCGplayer", "USD · precio retail diario vía MTGJSON"),
-        PriceSourceDefinition(CARDKINGDOM, "Card Kingdom", "USD · precio retail diario vía MTGJSON"),
-        PriceSourceDefinition(CARDSPHERE, "Cardsphere", "USD · índice diario vía MTGJSON")
+        PriceSourceDefinition(CARDMARKET, R.string.price_source_cardmarket, R.string.price_source_cardmarket_description),
+        PriceSourceDefinition(SCRYFALL, R.string.price_source_scryfall, R.string.price_source_scryfall_description),
+        PriceSourceDefinition(TCGPLAYER, R.string.price_source_tcgplayer, R.string.price_source_tcgplayer_description),
+        PriceSourceDefinition(CARDKINGDOM, R.string.price_source_cardkingdom, R.string.price_source_cardkingdom_description),
+        PriceSourceDefinition(CARDSPHERE, R.string.price_source_cardsphere, R.string.price_source_cardsphere_description)
     )
 
     @JvmStatic

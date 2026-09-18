@@ -53,7 +53,8 @@ class GroupBuilderActivity : AppCompatActivity() {
             text = getString(R.string.choose_deck_cards, deckName)
             typeface = Typeface.createFromAsset(assets, "title_font.ttf")
         }
-        findViewById<TextView>(R.id.txtDeckFormatRules).text = "${rule.label} · ${rule.summary}"
+        findViewById<TextView>(R.id.txtDeckFormatRules).text =
+            "${rule.label(this)} · ${rule.summary(this)}"
         count = findViewById(R.id.txtGroupSelectionCount)
         adapter = DeckCardsAdapter(
             Typeface.createFromAsset(assets, "title_font.ttf"),

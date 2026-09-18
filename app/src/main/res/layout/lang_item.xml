@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:padding="10dp"
         android:textStyle="italic"
-        android:text="Languages"
+        android:text="@string/languages"
         android:layout_gravity="center_vertical"
         />
 </LinearLayout>

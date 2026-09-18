@@ -1,7 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DeckFormatRulesTest {
@@ -25,6 +24,6 @@ class DeckFormatRulesTest {
         assertEquals(100, commander.minimumMain)
         assertEquals(0, commander.maximumSideboard)
         assertEquals(1, commander.maximumCopies)
-        assertTrue(commander.summary.contains("99 + comandante"))
+        assertEquals(R.string.deck_format_commander_rules, commander.summaryRes)
     }
 }

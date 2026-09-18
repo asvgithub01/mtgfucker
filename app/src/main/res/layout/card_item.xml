@@ -27,7 +27,7 @@
         android:id="@+id/txtName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Disciple of the Vault"
+        tools:text="Disciple of the Vault"
         android:textSize="24sp"
         android:textStyle="normal|bold"
         android:textColor="#000"
@@ -38,7 +38,7 @@
           android:layout_width="wrap_content"
           android:layout_height="wrap_content"
           android:layout_marginStart="0dp"
-          android:text="L:$0.10 M:$0.10 H:$0.10"/>
+          tools:text="L:$0.10 M:$0.10 H:$0.10"/>
         <TextView
           android:id="@+id/txtGroups"
           android:textColor="#666"
@@ -124,7 +124,7 @@
         <TextView
             android:id="@+id/txtUndo"
             android:textStyle="bold"
-            android:text="UNDO"
+            android:text="@string/undo"
             android:textColor="#fff"
             android:layout_alignParentRight="true"
             android:layout_centerVertical="true"

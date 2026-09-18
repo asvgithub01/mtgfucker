@@ -6,6 +6,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import io.asv.mtgocr.ocrreader.model.Biblio
+import io.asv.mtgocr.ocrreader.PrintingMetadataParser
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import java.util.Collections
@@ -464,6 +465,7 @@ class CardRepository private constructor(context: Context) {
         lockedSetCodes: Set<String> = emptySet(),
         preferFoil: Boolean = false,
         alreadyCropped: Boolean = false,
+        useShapeSymbolMatcher: Boolean = false,
         callback: (CardIdentificationResult, Throwable?) -> Unit
     ): Future<*> = imageExecutor.submit {
         try {
@@ -477,6 +479,30 @@ class CardRepository private constructor(context: Context) {
                 resolution?.displayName ?: printings.first().name
             )
             val normalizedLanguage = CardLanguage.toCode(languageCode)
+            val singleOption = ScanPrintingPolicy.singleEligible(
+                allOptions,
+                emptySet(),
+                preferFoil
+            )
+            if (singleOption != null) {
+                val result = CardIdentificationResult(
+                    candidates = listOf(
+                        CardIdentificationCandidate(
+                            option = singleOption,
+                            distance = 0.0,
+                            artworkDistance = 0.0
+                        )
+                    ),
+                    confident = true,
+                    comparedImages = 0,
+                    detectedLanguage = normalizedLanguage,
+                    eligibleEditions = 1
+                )
+                if (!Thread.currentThread().isInterrupted) {
+                    mainHandler.post { callback(result, null) }
+                }
+                return@submit
+            }
             var languageFilteredOut = 0
             val options = if (normalizedLanguage.isBlank()) {
                 allOptions
@@ -490,7 +516,14 @@ class CardRepository private constructor(context: Context) {
                 }
             }
             val result = artworkIdentifier
-                .identify(jpeg, options, lockedSetCodes, preferFoil, alreadyCropped)
+                .identify(
+                    jpeg,
+                    options,
+                    lockedSetCodes,
+                    preferFoil,
+                    alreadyCropped,
+                    useShapeSymbolMatcher
+                )
                 .copy(
                     detectedLanguage = normalizedLanguage,
                     languageFilteredOut = languageFilteredOut
@@ -716,6 +749,52 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** Lightweight lookup used by the isolated lower-printing-line OCR experiment. */
+    fun resolvePrintingMetadata(
+        setCodes: List<String>,
+        collectorNumber: String,
+        callback: (List<SetCardOption>, Throwable?) -> Unit
+    ) {
+        executor.execute {
+            val matches = ArrayList<SetCardOption>()
+            var firstError: Throwable? = null
+            setCodes.asSequence().map { it.trim().uppercase(Locale.US) }.filter(String::isNotBlank)
+                .distinct().forEach { setCode ->
+                try {
+                    val cards = catalog.setCards(setCode)
+                    .filter {
+                        PrintingMetadataParser.collectorKeysMatch(
+                            it.collectorNumber,
+                            collectorNumber
+                        )
+                    }
+                    .map { printing ->
+                        val finishes = printing.finishes.split(',').filter(String::isNotBlank)
+                        val finish = if ("nonfoil" in finishes) "nonfoil"
+                            else finishes.firstOrNull() ?: "nonfoil"
+                        SetCardOption(
+                            printing.uuid,
+                            printing.name,
+                            printing.setCode,
+                            printing.setName,
+                            printing.collectorNumber,
+                            finish,
+                            printing.imageUrl,
+                            printing.typeLine,
+                            printing.rulesText,
+                            null,
+                            null
+                        )
+                    }
+                    matches += cards
+                } catch (error: Throwable) {
+                    if (firstError == null) firstError = error
+                }
+            }
+            mainHandler.post { callback(matches, if (matches.isEmpty()) firstError else null) }
+        }
+    }
+
     fun loadImageLanguages(
         setCode: String,
         collectorNumber: String,
@@ -758,6 +837,13 @@ class CardRepository private constructor(context: Context) {
                     System.currentTimeMillis()
                 )
             )
+            mainHandler.post(callback)
+        }
+    }
+
+    fun clearSelectedEdition(collectionItemId: String, callback: () -> Unit = {}) {
+        selectionExecutor.execute {
+            dao.deleteOwnedPrinting(collectionItemId)
             mainHandler.post(callback)
         }
     }
@@ -839,6 +925,33 @@ class CardRepository private constructor(context: Context) {
                 } catch (error: Throwable) {
                     mainHandler.post { callback(null, error) }
                 }
+            }
+        }
+    }
+
+    /** Keeps only editions that Scryfall confirms were physically printed in the requested language. */
+    fun localizedEditionOptions(
+        cardName: String,
+        languageCode: String,
+        options: List<CardEditionOption>,
+        callback: (List<CardEditionOption>, Throwable?) -> Unit
+    ) {
+        val normalizedLanguage = CardLanguage.toCode(languageCode)
+        if (normalizedLanguage.isBlank()) {
+            mainHandler.post { callback(options, null) }
+            return
+        }
+        imageExecutor.execute {
+            try {
+                val canonicalName = nameResolver.cached(cardName)?.canonicalName ?: cardName
+                val cacheKey = "${MtgJsonCatalogDataProvider.normalize(canonicalName)}|$normalizedLanguage"
+                val localized = localizedPrintingCache[cacheKey] ?: imageProvider
+                    .getLocalizedPrintings(canonicalName, normalizedLanguage)
+                    .also { localizedPrintingCache[cacheKey] = it }
+                val filtered = LocalizedEditionPolicy.filter(options, localized)
+                mainHandler.post { callback(filtered, null) }
+            } catch (error: Throwable) {
+                mainHandler.post { callback(emptyList(), error) }
             }
         }
     }

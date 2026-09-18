@@ -184,6 +184,9 @@ interface CardDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun saveOwnedPrinting(owned: OwnedPrintingEntity)
 
+    @Query("DELETE FROM owned_printings WHERE collectionItemId = :collectionItemId")
+    fun deleteOwnedPrinting(collectionItemId: String)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun saveCardNameAlias(alias: CardNameAliasEntity)
 

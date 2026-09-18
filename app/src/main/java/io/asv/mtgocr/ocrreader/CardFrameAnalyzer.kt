@@ -45,7 +45,13 @@ data class CardFrameAnalysis(
  */
 object CardFrameAnalyzer {
     private const val CARD_HEIGHT_FRACTION = .72f
-    private val samplePositions = floatArrayOf(.16f, .38f, .62f, .84f)
+    internal const val WHITE_CHANNEL_MIN = 220
+    private const val WHITE_WARM_MIN_CHANNEL = 175
+    private const val WHITE_WARM_MAX_CHROMA = 70
+    private const val MIN_WHITE_ZONES_PER_SIDE = 2
+    private const val MIN_WHITE_SIDES = 3
+    internal const val BORDER_SAMPLE_INSET_FRACTION = .014f
+    internal val borderSamplePositions = floatArrayOf(.12f, .27f, .42f, .58f, .73f, .88f)
 
     fun analyze(bitmap: Bitmap): CardFrameAnalysis {
         val expected = CardImageFingerprint.centeredCardRect(
@@ -165,6 +171,7 @@ object CardFrameAnalyzer {
                 CardBorderColor.WHITE -> Color.rgb(245, 245, 238)
                 CardBorderColor.GOLD -> Color.rgb(218, 166, 61)
                 CardBorderColor.SILVER -> Color.rgb(160, 166, 172)
+                CardBorderColor.FULL_ART -> Color.rgb(70, 205, 219)
                 CardBorderColor.MIXED -> Color.rgb(179, 95, 220)
                 CardBorderColor.UNKNOWN -> Color.rgb(239, 88, 88)
             }
@@ -182,8 +189,11 @@ object CardFrameAnalyzer {
         val chroma = high - low
         val luma = (red * 299 + green * 587 + blue * 114) / 1000
         return when {
+            (red >= WHITE_CHANNEL_MIN && green >= WHITE_CHANNEL_MIN && blue >= WHITE_CHANNEL_MIN) ||
+                (luma >= WHITE_CHANNEL_MIN && low >= WHITE_WARM_MIN_CHANNEL &&
+                    chroma <= WHITE_WARM_MAX_CHROMA) ->
+                CardBorderColor.WHITE
             luma <= 92 -> CardBorderColor.BLACK
-            luma >= 157 && chroma <= 70 -> CardBorderColor.WHITE
             luma in 92..185 && chroma <= 38 -> CardBorderColor.SILVER
             luma in 75..215 && red > green + 5 && green > blue + 4 && red - blue >= 25 ->
                 CardBorderColor.GOLD
@@ -193,18 +203,75 @@ object CardFrameAnalyzer {
 
     internal fun classifyBorderZones(zones: List<CardBorderZone>): Pair<CardBorderColor, Double> {
         if (zones.isEmpty()) return CardBorderColor.UNKNOWN to 0.0
+        val whiteZones = zones.count { it.color == CardBorderColor.WHITE }
+        val whiteSides = CardBorderSide.entries.count { side ->
+            val sideZones = zones.filter { it.side == side }
+            sideZones.isNotEmpty() &&
+                sideZones.count { it.color == CardBorderColor.WHITE } >=
+                min(MIN_WHITE_ZONES_PER_SIDE, sideZones.size)
+        }
+        // White borders must be visible around the physical card, not only in one glare patch.
+        // The printed strip can be only a few pixels wide or one side can be partially missed by
+        // the crop, so requiring four of the six circles on every side discarded real white cards.
+        // Two unambiguously bright circles on three different sides are enough evidence, while a
+        // single glare-affected side still cannot turn a black card white.
+        val minimumWhiteZones = MIN_WHITE_ZONES_PER_SIDE * MIN_WHITE_SIDES
+        if (whiteSides >= MIN_WHITE_SIDES && whiteZones >= minimumWhiteZones) {
+            val sideCoverage = whiteSides / CardBorderSide.entries.size.toDouble()
+            val sampleCoverage = (whiteZones / minimumWhiteZones.toDouble()).coerceAtMost(1.0)
+            val confidence = (sideCoverage * .65 + sampleCoverage * .35).coerceIn(.55, 1.0)
+            return CardBorderColor.WHITE to confidence
+        }
         val known = zones.filter { it.color != CardBorderColor.UNKNOWN }
-        if (known.size < zones.size * .45) return CardBorderColor.UNKNOWN to known.size / zones.size.toDouble()
         val counts = known.groupingBy { it.color }.eachCount().entries.sortedByDescending { it.value }
-        val first = counts.first()
+        val first = counts.firstOrNull()
         val second = counts.getOrNull(1)
-        val winnerRatio = first.value / zones.size.toDouble()
         val knownRatio = known.size / zones.size.toDouble()
+        val winnerRatio = (first?.value ?: 0) / zones.size.toDouble()
         val secondRatio = (second?.value ?: 0) / zones.size.toDouble()
+        val unknownRatio = 1.0 - knownRatio
+        val dispersion = rgbDispersion(zones)
+        val chromaticUnknownRatio = zones.count { zone ->
+            zone.color == CardBorderColor.UNKNOWN &&
+                maxOf(zone.red, zone.green, zone.blue) - minOf(zone.red, zone.green, zone.blue) >= 42
+        } / zones.size.toDouble()
+
+        // A real printed border is deliberately uniform. Borderless/full-art cards instead expose
+        // unrelated illustration colours around the four sides. Use the raw samples, not only the
+        // coarse colour labels, so dark full-art edges do not become a false black border.
+        val looksBorderless = dispersion >= .18 ||
+            chromaticUnknownRatio >= .50 ||
+            (dispersion >= .10 && unknownRatio >= .38) ||
+            (dispersion >= .13 && winnerRatio < .62)
+        if (looksBorderless) {
+            val confidence = maxOf(
+                dispersion / .30,
+                chromaticUnknownRatio,
+                unknownRatio * .85
+            ).coerceIn(.45, .95)
+            return CardBorderColor.FULL_ART to confidence
+        }
+        if (known.size < zones.size * .45 || first == null) {
+            return CardBorderColor.UNKNOWN to knownRatio
+        }
         if (secondRatio >= .25 && winnerRatio - secondRatio < .20) {
             return CardBorderColor.MIXED to ((winnerRatio + secondRatio) * knownRatio).coerceIn(.35, .90)
         }
         return first.key to (winnerRatio * .75 + knownRatio * .25).coerceIn(.0, 1.0)
+    }
+
+    private fun rgbDispersion(zones: List<CardBorderZone>): Double {
+        if (zones.size < 2) return 0.0
+        fun median(values: List<Int>): Int = values.sorted()[values.size / 2]
+        val medianRed = median(zones.map(CardBorderZone::red))
+        val medianGreen = median(zones.map(CardBorderZone::green))
+        val medianBlue = median(zones.map(CardBorderZone::blue))
+        return zones.map { zone ->
+            val red = zone.red - medianRed
+            val green = zone.green - medianGreen
+            val blue = zone.blue - medianBlue
+            sqrt((red * red + green * green + blue * blue).toDouble()) / MAX_RGB_DISTANCE
+        }.average().coerceIn(0.0, 1.0)
     }
 
     private data class Edge(val coordinate: Int, val confidence: Double)
@@ -280,10 +347,13 @@ object CardFrameAnalyzer {
     }
 
     private fun sampleBorderZones(bitmap: Bitmap, card: Rect): List<CardBorderZone> {
-        val inset = max(2, (min(card.width(), card.height()) * .027f).toInt())
-        val patchRadius = max(1, min(card.width(), card.height()) / 420)
-        val zones = ArrayList<CardBorderZone>(samplePositions.size * 4)
-        for (position in samplePositions) {
+        val shortestSide = min(card.width(), card.height())
+        val patchRadius = max(2, shortestSide / 360)
+        // Stay close to the physical edge. At 2.7% this reached the inner grey/brown frame of
+        // old artifact cards and classified that frame instead of the printed white border.
+        val inset = max(patchRadius + 1, (shortestSide * BORDER_SAMPLE_INSET_FRACTION).toInt())
+        val zones = ArrayList<CardBorderZone>(borderSamplePositions.size * 4)
+        for (position in borderSamplePositions) {
             val x = (card.left + card.width() * position).toInt().coerceIn(0, bitmap.width - 1)
             val y = (card.top + card.height() * position).toInt().coerceIn(0, bitmap.height - 1)
             zones += zone(bitmap, CardBorderSide.TOP, position, x, card.top + inset, patchRadius)
@@ -305,7 +375,11 @@ object CardFrameAnalyzer {
         val pixels = ArrayList<Int>((radius * 2 + 1) * (radius * 2 + 1))
         for (sampleY in (y - radius).coerceAtLeast(0)..(y + radius).coerceAtMost(bitmap.height - 1)) {
             for (sampleX in (x - radius).coerceAtLeast(0)..(x + radius).coerceAtMost(bitmap.width - 1)) {
-                pixels += bitmap.getPixel(sampleX, sampleY)
+                val dx = sampleX - x
+                val dy = sampleY - y
+                if (dx * dx + dy * dy <= radius * radius) {
+                    pixels += bitmap.getPixel(sampleX, sampleY)
+                }
             }
         }
         fun median(channel: (Int) -> Int): Int = pixels.map(channel).sorted()[pixels.size / 2]
@@ -374,4 +448,5 @@ object CardFrameAnalyzer {
         (Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114) / 1000
 
     private const val CARD_ASPECT = 63.0 / 88.0
+    private const val MAX_RGB_DISTANCE = 441.67295593
 }

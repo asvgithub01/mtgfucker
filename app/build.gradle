@@ -11,6 +11,18 @@ if (file('google-services.json').exists()) {
     logger.warn('Firebase cloud sync disabled: app/google-services.json is missing')
 }
 
+def gitBranchName = 'unknown'
+try {
+    def gitBranchProcess = ['git', 'rev-parse', '--abbrev-ref', 'HEAD'].execute(null, rootDir)
+    gitBranchProcess.waitFor()
+    if (gitBranchProcess.exitValue() == 0) {
+        gitBranchName = gitBranchProcess.text.trim()
+    }
+} catch (Exception ignored) {
+    logger.warn('Could not determine the current Git branch for the splash screen')
+}
+def escapedGitBranchName = gitBranchName.replace('\\', '\\\\').replace('"', '\\"')
+
 android {
     namespace 'io.asv.mtgocr.ocrreader'
     compileSdkVersion 34
@@ -25,6 +37,7 @@ android {
         targetSdkVersion 33
         versionCode 10
         versionName "2.8"
+        buildConfigField "String", "GIT_BRANCH", "\"${escapedGitBranchName}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,6 +57,7 @@ android {
         jvmTarget = '17'
     }
     buildFeatures {
+        buildConfig true
         compose true
     }
     composeOptions {
@@ -76,6 +90,15 @@ dependencies {
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-japanese:16.0.1'
     implementation 'com.google.mlkit:language-id:17.0.6'
+
+    // Isolated next-generation scanner. The maintained scanner still uses the legacy camera.
+    def camerax_version = '1.3.4'
+    implementation "androidx.camera:camera-core:$camerax_version"
+    implementation "androidx.camera:camera-camera2:$camerax_version"
+    implementation "androidx.camera:camera-lifecycle:$camerax_version"
+    implementation "androidx.camera:camera-view:$camerax_version"
+    implementation 'androidx.exifinterface:exifinterface:1.3.7'
+    implementation 'org.opencv:opencv:4.14.0'
 
     implementation 'com.koushikdutta.ion:ion:2.2.1'
     implementation 'com.github.bumptech.glide:glide:3.7.0'

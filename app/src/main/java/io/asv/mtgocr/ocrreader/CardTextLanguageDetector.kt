@@ -62,14 +62,23 @@ class CardTextLanguageDetector {
             .filter { it.count(Char::isLetter) >= 3 }.joinToString(" ").take(MAX_LANGUAGE_TEXT)
         val identifier = languageIdentifier
         val shortLanguage = ScanLanguagePolicy.shortRulesLanguage(text)
+        // A distinctive rules word is stronger evidence than statistical identification,
+        // especially between Italian, Spanish and Portuguese.
+        if (shortLanguage != null) {
+            callback(CardTextLanguageResult(shortLanguage, 1f, text))
+            return
+        }
         if (identifier == null || text.count(Char::isLetter) < MIN_TEXT_LETTERS) {
-            callback(CardTextLanguageResult(shortLanguage ?: fallback, if (shortLanguage == null) 0f else 1f, text))
+            callback(CardTextLanguageResult(fallback, 0f, text))
             return
         }
         identifier.identifyPossibleLanguages(text)
             .addOnSuccessListener { candidates ->
                 val chosen = ScanLanguagePolicy.choose(fallback,
-                    candidates.map { CardLanguage.toCode(it.languageTag) to it.confidence })
+                    ScanLanguagePolicy.scriptCompatibleCandidates(
+                        text,
+                        candidates.map { CardLanguage.toCode(it.languageTag) to it.confidence }
+                    ))
                 callback(CardTextLanguageResult(chosen.first, chosen.second, text))
             }
             .addOnFailureListener { callback(CardTextLanguageResult(fallback, 0f, text)) }

@@ -29,11 +29,36 @@ class ScanPrintingPolicyTest {
         assertEquals("regular-a", ScanPrintingPolicy.preferred(options, true)?.printingUuid)
     }
 
-    private fun option(uuid: String, foil: Boolean) = CardEditionOption(
+    @Test fun singleEligibleAcceptsSeveralFinishesOfTheSamePrinting() {
+        val options = listOf(option("same", true), option("same", false))
+        assertEquals("same", ScanPrintingPolicy.singleEligible(options, emptySet(), false)?.printingUuid)
+        assertEquals(false, ScanPrintingPolicy.singleEligible(options, emptySet(), false)?.isFoil)
+    }
+
+    @Test fun singleEligibleRejectsCardsWithSeveralPossiblePrintings() {
+        assertNull(ScanPrintingPolicy.singleEligible(
+            listOf(option("first", false), option("second", false)),
+            emptySet(),
+            false
+        ))
+    }
+
+    @Test fun singleEligibleHonoursTheDetectedSetLock() {
+        val options = listOf(
+            option("first", false, "ONE"),
+            option("second", false, "TWO")
+        )
+        assertEquals(
+            "second",
+            ScanPrintingPolicy.singleEligible(options, setOf("two"), false)?.printingUuid
+        )
+    }
+
+    private fun option(uuid: String, foil: Boolean, setCode: String = "TST") = CardEditionOption(
         printingUuid = uuid,
         cardName = "Card",
         displayName = "Card",
-        setCode = "TST",
+        setCode = setCode,
         setName = "Test",
         collectorNumber = "1",
         releaseDate = "2026-01-01",

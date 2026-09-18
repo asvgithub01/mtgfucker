@@ -31,10 +31,21 @@
             android:paddingBottom="10dp">
 
             <ImageView
+                android:id="@+id/editionCandidateCardImage"
+                android:layout_width="62dp"
+                android:layout_height="86dp"
+                android:layout_marginEnd="10dp"
+                android:clickable="true"
+                android:contentDescription="@string/card_edition_image"
+                android:focusable="false"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <ImageView
                 android:id="@+id/editionCandidateSetSymbol"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginEnd="14dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
                 android:contentDescription="@string/set_symbol"
                 android:scaleType="fitCenter"
                 android:visibility="gone" />

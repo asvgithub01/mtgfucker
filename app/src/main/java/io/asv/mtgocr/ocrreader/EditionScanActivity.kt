@@ -541,6 +541,7 @@ class EditionScanActivity : AppCompatActivity() {
         CardBorderColor.WHITE -> getString(R.string.edition_scan_border_white)
         CardBorderColor.GOLD -> getString(R.string.edition_scan_border_gold)
         CardBorderColor.SILVER -> getString(R.string.edition_scan_border_silver)
+        CardBorderColor.FULL_ART -> getString(R.string.edition_scan_border_full_art)
         CardBorderColor.MIXED -> getString(R.string.edition_scan_border_mixed)
         CardBorderColor.UNKNOWN -> getString(R.string.edition_scan_border_unknown)
     }

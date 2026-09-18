@@ -8,6 +8,7 @@ import io.asv.mtgocr.ocrreader.CardBorderZone
 import io.asv.mtgocr.ocrreader.CardEditionVisualFingerprint
 import io.asv.mtgocr.ocrreader.CardFrameAnalyzer
 import io.asv.mtgocr.ocrreader.CardImageFingerprint
+import io.asv.mtgocr.ocrreader.SetSymbolShapeMatcher
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -21,6 +22,7 @@ data class CardIdentificationCandidate(
     val distance: Double,
     val artworkDistance: Double = distance,
     val setSymbolDistance: Double = 1.0,
+    val setSymbolShapeDistance: Double? = null,
     val referenceBorder: CardBorderColor = CardBorderColor.UNKNOWN,
     val borderMatches: Boolean? = null
 )
@@ -43,7 +45,9 @@ data class CardIdentificationResult(
     val sharpness: Double = 0.0,
     val eligibleEditions: Int = 0,
     val referenceImages: Int = 0,
-    val referenceFailures: Int = 0
+    val referenceFailures: Int = 0,
+    val shapeComparedSets: Int = 0,
+    val shapeMatchReliable: Boolean = false
 )
 
 data class SetSymbolIdentificationCandidate(
@@ -70,13 +74,15 @@ class CardArtworkIdentifier(
 ) {
     private val fingerprintDirectory = File(context.cacheDir, "card-edition-fingerprints").apply { mkdirs() }
     private val fingerprintExecutor = Executors.newFixedThreadPool(FINGERPRINT_WORKERS)
+    private val setSymbolShapeMatcher = SetSymbolShapeMatcher(context.applicationContext, client)
 
     fun identify(
         jpeg: ByteArray,
         options: List<CardEditionOption>,
         lockedSetCodes: Set<String>,
         preferFoil: Boolean,
-        alreadyCropped: Boolean = false
+        alreadyCropped: Boolean = false,
+        useShapeSymbolMatcher: Boolean = false
     ): CardIdentificationResult {
         val cameraBitmap = decodeSampled(jpeg, ensurePortrait = true)
             ?: return CardIdentificationResult(emptyList(), false, 0)
@@ -92,7 +98,6 @@ class CardArtworkIdentifier(
             frameAnalysis.bounds
         )
         val analysisPreview = CardFrameAnalyzer.annotatedPreview(cameraBitmap, frameAnalysis)
-        cameraBitmap.recycle()
         val locked = ScanSetLockPolicy.expand(lockedSetCodes)
         val unique = options.asSequence()
             .filter { it.imageUrl?.isNotBlank() == true }
@@ -105,14 +110,31 @@ class CardArtworkIdentifier(
             }
             .take(MAX_CANDIDATE_IMAGES)
             .toList()
+        val shapeMatch = if (useShapeSymbolMatcher) {
+            runCatching {
+                setSymbolShapeMatcher.match(
+                    cameraBitmap,
+                    frameAnalysis.bounds,
+                    unique.map { it.setCode }
+                )
+            }.getOrNull()
+        } else null
+        cameraBitmap.recycle()
 
         val jobs = unique.map { option ->
             fingerprintExecutor.submit<CardIdentificationCandidate?> {
                 val fingerprint = fingerprint(option.imageUrl!!) ?: return@submit null
                 val artworkDistance = CardImageFingerprint.normalizedDistance(
                     cameraFingerprint.artworkHash, fingerprint.artworkHash)
-                val symbolDistance = CardImageFingerprint.normalizedDistance(
+                val legacySymbolDistance = CardImageFingerprint.normalizedDistance(
                     cameraFingerprint.setSymbolHash, fingerprint.setSymbolHash)
+                val shapeDistance = shapeMatch?.distanceBySetCode
+                    ?.get(option.setCode.uppercase(Locale.US))
+                val symbolDistance = SetSymbolShapeMatcher.fuseDistance(
+                    legacySymbolDistance,
+                    shapeDistance,
+                    shapeMatch?.reliable == true
+                )
                 val borderMatches = if (
                     cameraFingerprint.borderColor == CardBorderColor.UNKNOWN ||
                     fingerprint.borderColor == CardBorderColor.UNKNOWN
@@ -129,6 +151,7 @@ class CardArtworkIdentifier(
                     ),
                     artworkDistance,
                     symbolDistance,
+                    shapeDistance,
                     fingerprint.borderColor,
                     borderMatches
                 )
@@ -147,12 +170,23 @@ class CardArtworkIdentifier(
             }
         }
         val ranked = matches.sortedBy { it.distance }
-        val best = ranked.firstOrNull()
-        val runnerUp = ranked.getOrNull(1)
+        // A clearly detected printed border is physical evidence. Do not let a slightly closer
+        // artwork hash fill the panel with black-border editions when white-border references exist.
+        val borderConsistent = if (
+            cameraFingerprint.borderConfidence >= MIN_RELIABLE_BORDER_CONFIDENCE &&
+            cameraFingerprint.borderColor !in setOf(
+                CardBorderColor.UNKNOWN,
+                CardBorderColor.MIXED
+            )
+        ) {
+            ranked.filter { it.borderMatches == true }.ifEmpty { ranked }
+        } else ranked
+        val best = borderConsistent.firstOrNull()
+        val runnerUp = borderConsistent.getOrNull(1)
         val confident = best != null && best.distance <= MAX_CONFIDENT_DISTANCE &&
             (runnerUp == null || runnerUp.distance - best.distance >= MIN_WINNING_MARGIN)
         return CardIdentificationResult(
-            ranked.take(6),
+            borderConsistent.take(6),
             confident,
             matches.size,
             cameraFingerprint.borderColor,
@@ -167,7 +201,9 @@ class CardArtworkIdentifier(
             sharpness = frameAnalysis.sharpness,
             eligibleEditions = options.size,
             referenceImages = unique.size,
-            referenceFailures = (unique.size - matches.size).coerceAtLeast(0)
+            referenceFailures = (unique.size - matches.size).coerceAtLeast(0),
+            shapeComparedSets = shapeMatch?.comparedSets ?: 0,
+            shapeMatchReliable = shapeMatch?.reliable == true
         )
     }
 
@@ -290,9 +326,10 @@ class CardArtworkIdentifier(
         .replace("/normal/", "/small/")
 
     companion object {
+        private const val MIN_RELIABLE_BORDER_CONFIDENCE = .62
         private const val MAX_CANDIDATE_IMAGES = 48
         private const val FINGERPRINT_WORKERS = 4
-        private const val CACHE_VERSION = "v4"
+        private const val CACHE_VERSION = "v5"
         private const val MAX_CONFIDENT_DISTANCE = .40
         private const val MIN_WINNING_MARGIN = .025
     }

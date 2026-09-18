@@ -5,6 +5,8 @@
 - Responder en español y hacer el cambio mínimo que resuelva la petición.
 - Consultar `git status --short` y la rama actual antes de editar. No sobrescribir ni
   incluir en commits cambios ajenos, especialmente `.idea/` y `*.iml`.
+- Cuando se trabaje desde una rama distinta de `master`, mostrar el nombre de la rama en
+  la splash screen para identificar claramente la APK instalada.
 - Leer esta guía y abrir únicamente los archivos del área afectada. Usar `rg` para
   localizar métodos; no empezar leyendo todo `OcrCaptureActivity.java` ni los backups.
 - Si Engram está disponible, consultar `mem_context` del proyecto `mtgfucker` y buscar
@@ -29,6 +31,7 @@
 | Área | Archivos de entrada |
 | --- | --- |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
+| Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
 | Detalle de carta y ediciones | `Main2Activity.kt` (incluye `EditionAdapter`); layouts `activity_main2.xml`, `edition_item.xml` |

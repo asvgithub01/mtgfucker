@@ -56,6 +56,25 @@ class LocalizedEditionPolicyTest {
         assertTrue(filtered.all { it.displayName == "Nombre ES" })
     }
 
+    @Test
+    fun italianColossoKeepsRinascimentoInsteadOfEnglishAntiquitiesOrChronicles() {
+        val options = listOf(
+            option("atq", "10", "Colossus of Sardia"),
+            option("chr", "XX", "Colossus of Sardia"),
+            option("rin", "111", "Colossus of Sardia")
+        )
+        val italian = listOf(
+            LocalizedPrintingVariant(
+                "RIN", "111", "it", "Colosso di Sardia", "https://img/rin-it.jpg"
+            )
+        )
+
+        val filtered = LocalizedEditionPolicy.filter(options, italian)
+
+        assertEquals(listOf("rin"), filtered.map { it.setCode })
+        assertEquals("Colosso di Sardia", filtered.single().displayName)
+    }
+
     private fun option(set: String, collector: String, display: String) = CardEditionOption(
         printingUuid = "$set-$collector",
         cardName = "Thunder-Thrash Elder",

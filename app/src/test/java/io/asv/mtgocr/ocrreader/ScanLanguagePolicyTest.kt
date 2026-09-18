@@ -8,9 +8,12 @@ class ScanLanguagePolicyTest {
         assertEquals("es", ScanLanguagePolicy.shortRulesLanguage("{T}: Agrega {G}."))
         assertEquals("es", ScanLanguagePolicy.shortRulesLanguage("Añade {G}."))
         assertEquals("pt", ScanLanguagePolicy.shortRulesLanguage("{T}: Adicione {G}."))
+        assertEquals("it", ScanLanguagePolicy.shortRulesLanguage("{T}: Aggiungi {G}."))
+        assertEquals("it", ScanLanguagePolicy.shortRulesLanguage("Pesca una carta. La creatura bersaglio."))
         assertEquals("en", ScanLanguagePolicy.shortRulesLanguage("{T}: Add {G}."))
         assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Criatura — Elfo"))
         assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Agrega Adicione"))
+        assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Aggiungi Agrega"))
     }
 
     @Test fun clearSpanishRulesOverrideAmbiguousPortugueseTitle() {
@@ -25,6 +28,18 @@ class ScanLanguagePolicyTest {
     }
     @Test fun unavailableLanguageDoesNotInventOne() {
         assertEquals("", ScanLanguagePolicy.choose("", listOf("und" to .99f)).first)
+    }
+    @Test fun cavalloDEbanoProvidesItalianTitleEvidence() {
+        assertEquals("it", ScanLanguagePolicy.localizedTitleLanguage("Cavallo d'Ebano"))
+        assertEquals("es", ScanLanguagePolicy.localizedTitleLanguage("Caballo de Ébano"))
+        assertEquals("pt", ScanLanguagePolicy.localizedTitleLanguage("Cavalo de Ébano"))
+    }
+    @Test fun latinOcrCannotBeClassifiedAsTraditionalChinese() {
+        val candidates = ScanLanguagePolicy.scriptCompatibleCandidates(
+            "Cavallo d'Ebano Pesca una carta",
+            listOf("zht" to .91f, "it" to .72f)
+        )
+        assertEquals(listOf("it" to .72f), candidates)
     }
     @Test fun enrichmentDoesNotReplaceLocalizedNameWithCanonicalEnglish() {
         assertEquals("Elfos de Llanowar", ScanIdentity.displayName("Elfos de Llanowar", "es", "Llanowar Elves"))

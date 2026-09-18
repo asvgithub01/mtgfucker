@@ -17,7 +17,7 @@ class CardFrameAnalyzerTest {
     @Test fun reportsVariableBorderWhenSeparatedZonesDisagree() {
         val zones = buildList {
             repeat(8) { add(zone(it, CardBorderColor.BLACK)) }
-            repeat(8) { add(zone(it + 8, CardBorderColor.WHITE)) }
+            repeat(8) { add(zone(it + 8, CardBorderColor.GOLD)) }
         }
         val result = CardFrameAnalyzer.classifyBorderZones(zones)
         assertEquals(CardBorderColor.MIXED, result.first)
@@ -54,6 +54,35 @@ class CardFrameAnalyzerTest {
             CardBorderSide.entries.forEach { side ->
                 repeat(6) { index ->
                     add(zone(index, if (side == CardBorderSide.TOP) CardBorderColor.WHITE else CardBorderColor.BLACK, side))
+                }
+            }
+        }
+
+        assertTrue(CardFrameAnalyzer.classifyBorderZones(zones).first != CardBorderColor.WHITE)
+    }
+
+    @Test fun acceptsTwoWhiteCirclesOnEachOfThreeDetectedSides() {
+        val zones = buildList {
+            CardBorderSide.entries.forEach { side ->
+                repeat(6) { index ->
+                    val isWhite = side != CardBorderSide.BOTTOM && index < 2
+                    add(zone(index, if (isWhite) CardBorderColor.WHITE else CardBorderColor.BLACK, side))
+                }
+            }
+        }
+
+        val result = CardFrameAnalyzer.classifyBorderZones(zones)
+
+        assertEquals(CardBorderColor.WHITE, result.first)
+        assertTrue(result.second >= .55)
+    }
+
+    @Test fun twoWhiteSidesAreNotEnoughToCallTheBorderWhite() {
+        val zones = buildList {
+            CardBorderSide.entries.forEach { side ->
+                repeat(6) { index ->
+                    val isWhite = side in setOf(CardBorderSide.TOP, CardBorderSide.LEFT) && index < 3
+                    add(zone(index, if (isWhite) CardBorderColor.WHITE else CardBorderColor.BLACK, side))
                 }
             }
         }

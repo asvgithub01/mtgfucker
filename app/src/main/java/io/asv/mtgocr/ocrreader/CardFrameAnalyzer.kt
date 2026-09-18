@@ -45,7 +45,9 @@ data class CardFrameAnalysis(
  */
 object CardFrameAnalyzer {
     private const val CARD_HEIGHT_FRACTION = .72f
-    private const val WHITE_CHANNEL_MIN = 220
+    internal const val WHITE_CHANNEL_MIN = 220
+    private const val MIN_WHITE_ZONES_PER_SIDE = 2
+    private const val MIN_WHITE_SIDES = 3
     private val samplePositions = floatArrayOf(.12f, .27f, .42f, .58f, .73f, .88f)
 
     fun analyze(bitmap: Bitmap): CardFrameAnalysis {
@@ -196,17 +198,23 @@ object CardFrameAnalyzer {
 
     internal fun classifyBorderZones(zones: List<CardBorderZone>): Pair<CardBorderColor, Double> {
         if (zones.isEmpty()) return CardBorderColor.UNKNOWN to 0.0
-        val whiteRatio = zones.count { it.color == CardBorderColor.WHITE } / zones.size.toDouble()
+        val whiteZones = zones.count { it.color == CardBorderColor.WHITE }
         val whiteSides = CardBorderSide.entries.count { side ->
             val sideZones = zones.filter { it.side == side }
             sideZones.isNotEmpty() &&
-                sideZones.count { it.color == CardBorderColor.WHITE } > sideZones.size / 2
+                sideZones.count { it.color == CardBorderColor.WHITE } >=
+                min(MIN_WHITE_ZONES_PER_SIDE, sideZones.size)
         }
         // White borders must be visible around the physical card, not only in one glare patch.
-        // Give this four-side vote priority before dispersion can mistake the inner artifact frame
-        // for a borderless/full-art edge.
-        if (whiteSides >= 3 && whiteRatio >= .50) {
-            val confidence = (whiteRatio * .70 + whiteSides / 4.0 * .30).coerceIn(.50, 1.0)
+        // The printed strip can be only a few pixels wide or one side can be partially missed by
+        // the crop, so requiring four of the six circles on every side discarded real white cards.
+        // Two unambiguously bright circles on three different sides are enough evidence, while a
+        // single glare-affected side still cannot turn a black card white.
+        val minimumWhiteZones = MIN_WHITE_ZONES_PER_SIDE * MIN_WHITE_SIDES
+        if (whiteSides >= MIN_WHITE_SIDES && whiteZones >= minimumWhiteZones) {
+            val sideCoverage = whiteSides / CardBorderSide.entries.size.toDouble()
+            val sampleCoverage = (whiteZones / minimumWhiteZones.toDouble()).coerceAtMost(1.0)
+            val confidence = (sideCoverage * .65 + sampleCoverage * .35).coerceIn(.55, 1.0)
             return CardBorderColor.WHITE to confidence
         }
         val known = zones.filter { it.color != CardBorderColor.UNKNOWN }

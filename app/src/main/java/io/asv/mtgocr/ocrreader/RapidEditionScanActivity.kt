@@ -1500,6 +1500,11 @@ class RapidEditionScanActivity : AppCompatActivity() {
             ))
         }
         if (includeRaw) {
+            val usedBorderZones = visualResult?.borderZones
+                ?.takeIf { it.isNotEmpty() }
+                ?: fallbackFrame?.borderZones.orEmpty()
+            append("\n\n")
+            append(borderRgbDebug(usedBorderZones))
             append("\n\n")
             append(getString(R.string.experimental_scan_title_raw))
             append("\n")
@@ -1516,6 +1521,40 @@ class RapidEditionScanActivity : AppCompatActivity() {
                 append(language?.recognizedText)
             }
         }
+    }
+
+    private fun borderRgbDebug(zones: List<CardBorderZone>): String = buildString {
+        append("Lectura RGB del borde (blanco si R, G y B ≥ ")
+        append(CardFrameAnalyzer.WHITE_CHANNEL_MIN)
+        append(")")
+        if (zones.isEmpty()) {
+            append("\n—")
+            return@buildString
+        }
+        CardBorderSide.entries.forEach { side ->
+            val sideZones = zones.filter { it.side == side }.sortedBy { it.position }
+            val whiteCount = sideZones.count { it.color == CardBorderColor.WHITE }
+            append("\n")
+            append(borderSideLabel(side))
+            append(" [").append(whiteCount).append("/").append(sideZones.size).append("]: ")
+            append(sideZones.joinToString(" · ") { zone ->
+                "${zone.red}/${zone.green}/${zone.blue}" +
+                    if (zone.color == CardBorderColor.WHITE) " ✓" else ""
+            })
+        }
+        val totalWhite = zones.count { it.color == CardBorderColor.WHITE }
+        val whiteSides = CardBorderSide.entries.count { side ->
+            zones.count { it.side == side && it.color == CardBorderColor.WHITE } >= 2
+        }
+        append("\nTotal: ").append(totalWhite).append("/").append(zones.size)
+            .append(" muestras blancas · ").append(whiteSides).append("/4 lados")
+    }
+
+    private fun borderSideLabel(side: CardBorderSide): String = when (side) {
+        CardBorderSide.TOP -> getString(R.string.edition_scan_side_top)
+        CardBorderSide.RIGHT -> getString(R.string.edition_scan_side_right)
+        CardBorderSide.BOTTOM -> getString(R.string.edition_scan_side_bottom)
+        CardBorderSide.LEFT -> getString(R.string.edition_scan_side_left)
     }
 
     private fun borderLabel(border: CardBorderColor): String = when (border) {

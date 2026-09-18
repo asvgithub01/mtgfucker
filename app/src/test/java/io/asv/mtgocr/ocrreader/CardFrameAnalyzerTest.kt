@@ -7,7 +7,8 @@ import org.junit.Test
 class CardFrameAnalyzerTest {
     @Test fun classifiesIndividualBorderZones() {
         assertEquals(CardBorderColor.BLACK, CardFrameAnalyzer.classifyRgb(24, 23, 21))
-        assertEquals(CardBorderColor.WHITE, CardFrameAnalyzer.classifyRgb(225, 219, 205))
+        assertEquals(CardBorderColor.WHITE, CardFrameAnalyzer.classifyRgb(220, 220, 220))
+        assertEquals(CardBorderColor.UNKNOWN, CardFrameAnalyzer.classifyRgb(220, 219, 220))
         assertEquals(CardBorderColor.GOLD, CardFrameAnalyzer.classifyRgb(198, 154, 66))
         assertEquals(CardBorderColor.SILVER, CardFrameAnalyzer.classifyRgb(142, 147, 151))
         assertEquals(CardBorderColor.UNKNOWN, CardFrameAnalyzer.classifyRgb(55, 125, 61))
@@ -31,6 +32,33 @@ class CardFrameAnalyzerTest {
         val result = CardFrameAnalyzer.classifyBorderZones(zones)
         assertEquals(CardBorderColor.WHITE, result.first)
         assertTrue(result.second >= .70)
+    }
+
+    @Test fun requiresWhiteCirclesAcrossAtLeastThreeSides() {
+        val zones = buildList {
+            CardBorderSide.entries.forEach { side ->
+                repeat(6) { index ->
+                    add(zone(index, if (side == CardBorderSide.BOTTOM) CardBorderColor.UNKNOWN else CardBorderColor.WHITE, side))
+                }
+            }
+        }
+
+        val result = CardFrameAnalyzer.classifyBorderZones(zones)
+
+        assertEquals(CardBorderColor.WHITE, result.first)
+        assertTrue(result.second >= .70)
+    }
+
+    @Test fun oneBrightSideIsNotEnoughToCallTheBorderWhite() {
+        val zones = buildList {
+            CardBorderSide.entries.forEach { side ->
+                repeat(6) { index ->
+                    add(zone(index, if (side == CardBorderSide.TOP) CardBorderColor.WHITE else CardBorderColor.BLACK, side))
+                }
+            }
+        }
+
+        assertTrue(CardFrameAnalyzer.classifyBorderZones(zones).first != CardBorderColor.WHITE)
     }
 
     @Test fun reportsFullArtWhenTheOuterEdgeContainsUnrelatedArtworkColours() {
@@ -63,8 +91,12 @@ class CardFrameAnalyzerTest {
         assertTrue(result.second >= .45)
     }
 
-    private fun zone(index: Int, color: CardBorderColor) = CardBorderZone(
-        side = CardBorderSide.entries[index % CardBorderSide.entries.size],
+    private fun zone(
+        index: Int,
+        color: CardBorderColor,
+        side: CardBorderSide = CardBorderSide.entries[index % CardBorderSide.entries.size]
+    ) = CardBorderZone(
+        side = side,
         position = index / 16f,
         x = index,
         y = index,

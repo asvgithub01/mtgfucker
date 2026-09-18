@@ -45,7 +45,8 @@ data class CardFrameAnalysis(
  */
 object CardFrameAnalyzer {
     private const val CARD_HEIGHT_FRACTION = .72f
-    private val samplePositions = floatArrayOf(.16f, .38f, .62f, .84f)
+    private const val WHITE_CHANNEL_MIN = 220
+    private val samplePositions = floatArrayOf(.12f, .27f, .42f, .58f, .73f, .88f)
 
     fun analyze(bitmap: Bitmap): CardFrameAnalysis {
         val expected = CardImageFingerprint.centeredCardRect(
@@ -183,8 +184,9 @@ object CardFrameAnalyzer {
         val chroma = high - low
         val luma = (red * 299 + green * 587 + blue * 114) / 1000
         return when {
+            red >= WHITE_CHANNEL_MIN && green >= WHITE_CHANNEL_MIN && blue >= WHITE_CHANNEL_MIN ->
+                CardBorderColor.WHITE
             luma <= 92 -> CardBorderColor.BLACK
-            luma >= 157 && chroma <= 70 -> CardBorderColor.WHITE
             luma in 92..185 && chroma <= 38 -> CardBorderColor.SILVER
             luma in 75..215 && red > green + 5 && green > blue + 4 && red - blue >= 25 ->
                 CardBorderColor.GOLD
@@ -194,6 +196,19 @@ object CardFrameAnalyzer {
 
     internal fun classifyBorderZones(zones: List<CardBorderZone>): Pair<CardBorderColor, Double> {
         if (zones.isEmpty()) return CardBorderColor.UNKNOWN to 0.0
+        val whiteRatio = zones.count { it.color == CardBorderColor.WHITE } / zones.size.toDouble()
+        val whiteSides = CardBorderSide.entries.count { side ->
+            val sideZones = zones.filter { it.side == side }
+            sideZones.isNotEmpty() &&
+                sideZones.count { it.color == CardBorderColor.WHITE } > sideZones.size / 2
+        }
+        // White borders must be visible around the physical card, not only in one glare patch.
+        // Give this four-side vote priority before dispersion can mistake the inner artifact frame
+        // for a borderless/full-art edge.
+        if (whiteSides >= 3 && whiteRatio >= .50) {
+            val confidence = (whiteRatio * .70 + whiteSides / 4.0 * .30).coerceIn(.50, 1.0)
+            return CardBorderColor.WHITE to confidence
+        }
         val known = zones.filter { it.color != CardBorderColor.UNKNOWN }
         val counts = known.groupingBy { it.color }.eachCount().entries.sortedByDescending { it.value }
         val first = counts.firstOrNull()
@@ -319,8 +334,11 @@ object CardFrameAnalyzer {
     }
 
     private fun sampleBorderZones(bitmap: Bitmap, card: Rect): List<CardBorderZone> {
-        val inset = max(2, (min(card.width(), card.height()) * .027f).toInt())
-        val patchRadius = max(1, min(card.width(), card.height()) / 420)
+        val shortestSide = min(card.width(), card.height())
+        val patchRadius = max(2, shortestSide / 360)
+        // Stay close to the physical edge. At 2.7% this reached the inner grey/brown frame of
+        // old artifact cards and classified that frame instead of the printed white border.
+        val inset = max(patchRadius + 1, (shortestSide * .014f).toInt())
         val zones = ArrayList<CardBorderZone>(samplePositions.size * 4)
         for (position in samplePositions) {
             val x = (card.left + card.width() * position).toInt().coerceIn(0, bitmap.width - 1)
@@ -344,7 +362,11 @@ object CardFrameAnalyzer {
         val pixels = ArrayList<Int>((radius * 2 + 1) * (radius * 2 + 1))
         for (sampleY in (y - radius).coerceAtLeast(0)..(y + radius).coerceAtMost(bitmap.height - 1)) {
             for (sampleX in (x - radius).coerceAtLeast(0)..(x + radius).coerceAtMost(bitmap.width - 1)) {
-                pixels += bitmap.getPixel(sampleX, sampleY)
+                val dx = sampleX - x
+                val dy = sampleY - y
+                if (dx * dx + dy * dy <= radius * radius) {
+                    pixels += bitmap.getPixel(sampleX, sampleY)
+                }
             }
         }
         fun median(channel: (Int) -> Int): Int = pixels.map(channel).sorted()[pixels.size / 2]

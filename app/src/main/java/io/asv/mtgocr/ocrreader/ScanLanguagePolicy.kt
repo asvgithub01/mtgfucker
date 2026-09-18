@@ -14,6 +14,10 @@ internal object ScanLanguagePolicy {
         val signals = mapOf(
             "es" to setOf("agrega", "anade", "endereza", "gira"),
             "pt" to setOf("adicione", "desvire", "vire"),
+            "it" to setOf(
+                "aggiungi", "pesca", "bersaglio", "avversario", "segnalino",
+                "distruggi", "sacrifica", "infligge", "cimitero", "battaglia"
+            ),
             "en" to setOf("add", "untap")
         ).filterValues { verbs -> verbs.any { it in words } }.keys
         return signals.singleOrNull()

@@ -23,6 +23,8 @@ class CardCropAdjustView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : View(context, attrs) {
+    /** Optional hook used by automatic scanners to pause auto-analysis while a corner is edited. */
+    var onUserInteraction: (() -> Unit)? = null
     private var photo: Bitmap? = null
     private val corners = Array(4) { PointF() } // top-left, top-right, bottom-right, bottom-left
     private val imageRect = RectF()
@@ -177,6 +179,7 @@ class CardCropAdjustView @JvmOverloads constructor(
         val point = toImage(event.x, event.y)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                onUserInteraction?.invoke()
                 lastTouchX = event.x
                 lastTouchY = event.y
                 activeHandle = nearestHandle(event.x, event.y)

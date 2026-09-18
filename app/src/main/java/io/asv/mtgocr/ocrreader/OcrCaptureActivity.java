@@ -151,6 +151,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final int RC_SPEAK_CARD_NAME = 4;
   private static final int RC_SCAN_EDITION = 5;
   private static final int RC_SAVE_CARDMARKET_CSV = 6;
+  private static final int RC_RAPID_EDITION_SCAN = 7;
   private static final String SCANNER_PREFERENCES = "scanner_preferences";
   private static final String PREF_CLOSE_AFTER_SCAN = "close_after_successful_scan";
   private static final String PREF_AUTO_IDENTIFY = "auto_identify";
@@ -206,7 +207,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private ImageButton speakCardNameButton;
   private ImageButton addTypedCardButton;
   private TextView scanSessionTotalText;
-  FloatingActionButton fabOcr, fabOcrMlKit, fabExperimentalScanner;
+  FloatingActionButton fabOcr, fabOcrMlKit, fabRapidEditionScanner;
   EditText txtSearch;
   RelativeLayout lytSearch;
   LinearLayout lytRecycler, topLayout;
@@ -366,8 +367,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanSessionTotalText = (TextView) findViewById(R.id.txtScanSessionTotal);
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     fabOcrMlKit = (FloatingActionButton) findViewById(R.id.fabOcrMlKit);
-    fabExperimentalScanner =
-        (FloatingActionButton) findViewById(R.id.fabExperimentalScanner);
+    fabRapidEditionScanner =
+        (FloatingActionButton) findViewById(R.id.fabRapidEditionScanner);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
     lytSearch = (RelativeLayout) findViewById(R.id.lytSearch);
@@ -484,7 +485,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
     fabOcr.setOnClickListener(this);
     fabOcrMlKit.setOnClickListener(this);
-    fabExperimentalScanner.setOnClickListener(this);
+    fabRapidEditionScanner.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
 
@@ -1596,7 +1597,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     totalText.setVisibility(!settings && !catalog && !photos ? View.VISIBLE : View.GONE);
     fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
-    fabExperimentalScanner.setVisibility(
+    fabRapidEditionScanner.setVisibility(
         settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
@@ -2148,6 +2149,19 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           Log.e(TAG, "Could not save Cardmarket CSV", error);
           Toast.makeText(this, R.string.cardmarket_export_failed, Toast.LENGTH_LONG).show();
         }
+      }
+      return;
+    }
+    if (requestCode == RC_RAPID_EDITION_SCAN) {
+      if (resultCode == Activity.RESULT_OK && data != null) {
+        ArrayList<String> cardIds = data.getStringArrayListExtra(
+            RapidEditionScanActivity.EXTRA_SESSION_CARD_IDS);
+        if (cardIds != null) for (String cardId : cardIds) {
+          CardInfo current = findCollectionCard(cardId);
+          if (current != null) rememberSessionScan(current);
+        }
+        updateScanSessionUi();
+        if (mRecyclerView != null) refreshUI();
       }
       return;
     }
@@ -3160,8 +3174,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       openScannerWithEngine(false);
     } else if (viewId == R.id.fabOcrMlKit) {
       openScannerWithEngine(true);
-    } else if (viewId == R.id.fabExperimentalScanner) {
-      startActivity(new Intent(this, ExperimentalCardScanActivity.class));
+    } else if (viewId == R.id.fabRapidEditionScanner) {
+      startActivityForResult(
+          new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
     }
   }
 
@@ -4396,7 +4411,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (bottomNavigation != null) bottomNavigation.setVisibility(View.GONE);
     fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(View.GONE);
-    fabExperimentalScanner.setVisibility(View.GONE);
+    fabRapidEditionScanner.setVisibility(View.GONE);
     topLayout.setVisibility(View.VISIBLE);
     lytSearch.setVisibility(View.VISIBLE);
     lytSearch.bringToFront();

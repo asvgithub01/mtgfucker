@@ -8,9 +8,12 @@ class ScanLanguagePolicyTest {
         assertEquals("es", ScanLanguagePolicy.shortRulesLanguage("{T}: Agrega {G}."))
         assertEquals("es", ScanLanguagePolicy.shortRulesLanguage("Añade {G}."))
         assertEquals("pt", ScanLanguagePolicy.shortRulesLanguage("{T}: Adicione {G}."))
+        assertEquals("it", ScanLanguagePolicy.shortRulesLanguage("{T}: Aggiungi {G}."))
+        assertEquals("it", ScanLanguagePolicy.shortRulesLanguage("Pesca una carta. La creatura bersaglio."))
         assertEquals("en", ScanLanguagePolicy.shortRulesLanguage("{T}: Add {G}."))
         assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Criatura — Elfo"))
         assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Agrega Adicione"))
+        assertEquals(null, ScanLanguagePolicy.shortRulesLanguage("Aggiungi Agrega"))
     }
 
     @Test fun clearSpanishRulesOverrideAmbiguousPortugueseTitle() {

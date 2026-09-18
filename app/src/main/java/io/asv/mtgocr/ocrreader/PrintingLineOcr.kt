@@ -13,6 +13,7 @@ import kotlin.math.min
 data class PrintingLineOcrResult(
     val rawText: String,
     val lines: List<String>,
+    val fullCardText: String,
     val preview: Bitmap,
     val successfulVariants: Int,
     val attemptedVariants: Int
@@ -50,10 +51,14 @@ class PrintingLineOcr {
         val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it.bitmap, 0)) }
         Tasks.whenAllComplete(tasks).addOnCompleteListener {
             val lines = LinkedHashSet<String>()
+            var fullCardText = ""
             var successful = 0
             tasks.forEachIndexed { index, task ->
                 if (task.isSuccessful) {
                     successful++
+                    if (variants[index].yearOnly) {
+                        fullCardText = task.result?.text.orEmpty()
+                    }
                     task.result?.textBlocks
                         ?.flatMap { it.lines }
                         ?.sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
@@ -73,6 +78,7 @@ class PrintingLineOcr {
                     PrintingLineOcrResult(
                         rawText = lines.joinToString("\n"),
                         lines = lines.toList(),
+                        fullCardText = fullCardText,
                         preview = wide,
                         successfulVariants = successful,
                         attemptedVariants = variants.size

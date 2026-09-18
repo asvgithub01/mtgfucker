@@ -15,14 +15,17 @@ data class PrintingMetadataGuess(
 /** Extracts the stable printing tokens from OCR of a rectified card's lower band. */
 object PrintingMetadataParser {
     private val collectorWithTotal = Regex(
-        "(?i)(?<![0-9])([0-9oil]{1,4}[a-z]?)\\s*[/|]\\s*[0-9oil]{1,4}[a-z]?(?![0-9])"
+        "(?i)(?<![a-z0-9])([0-9oil|!]{1,4}[a-z]?)\\s*[/|]\\s*[0-9oil|!]{1,4}[a-z]?(?![a-z0-9])"
     )
     private val labelledCollector = Regex(
-        "(?i)(?:#|N[O0]\\.?\\s*)([0-9oil]{1,4}[a-z]?)(?![0-9])"
+        "(?i)(?:#|N[O0]\\.?\\s*)([0-9oil|!]{1,4}[a-z]?)(?![a-z0-9])"
     )
     private val standaloneCollector = Regex("(?i)(?<![a-z0-9])([0-9]{1,4}[a-z]?)(?![a-z0-9])")
     private val tokenPattern = Regex("[A-Z0-9]{2,6}")
-    private val yearPattern = Regex("(?i)(?<![a-z0-9])([12oil][0-9oil]{3})(?![a-z0-9])")
+    private val yearPattern = Regex(
+        "(?<![A-Z0-9])([1IL|!]\\s*[9O]\\s*[0-9OIL|!]\\s*[0-9OIL|!]|" +
+            "2\\s*[0O]\\s*[0-9OIL|!]\\s*[0-9OIL|!])(?![A-Z0-9])"
+    )
     private val languageTokens = mapOf(
         "EN" to "en",
         "ES" to "es",
@@ -60,7 +63,7 @@ object PrintingMetadataParser {
         val languageToken = tokens.firstOrNull { it in languageTokens }
         val language = languageToken?.let(languageTokens::get)
         val printingYear = yearPattern.findAll(normalized)
-            .mapNotNull { repairCollectorOcr(it.groupValues[1]).toIntOrNull() }
+            .mapNotNull { repairExpectedNumber(it.groupValues[1]).toIntOrNull() }
             .firstOrNull { it in 1993..2100 }
         val known = knownSetCodes.mapTo(LinkedHashSet()) { normalizeToken(it) }
         val candidates = tokens.asSequence()
@@ -90,7 +93,7 @@ object PrintingMetadataParser {
         }
         return PrintingMetadataGuess(
             rawText = rawText.trim(),
-            collectorNumber = collector?.let(::repairCollectorOcr)?.uppercase(Locale.US),
+            collectorNumber = collector?.let(::repairExpectedNumber)?.uppercase(Locale.US),
             setCode = orderedCandidates.firstOrNull(),
             languageCode = language,
             printingYear = printingYear,
@@ -102,7 +105,7 @@ object PrintingMetadataParser {
         normalizeCollector(first) == normalizeCollector(second)
 
     internal fun normalizeCollector(value: String): String {
-        val token = repairCollectorOcr(value.trim().substringBefore('/').trim())
+        val token = repairExpectedNumber(value.trim().substringBefore('/').trim())
             .lowercase(Locale.US)
         val match = Regex("^0*([0-9]+)([a-z]*)$").matchEntire(token) ?: return token
         return (match.groupValues[1].trimStart('0').ifEmpty { "0" } + match.groupValues[2])
@@ -129,20 +132,27 @@ object PrintingMetadataParser {
         .uppercase(Locale.US)
         .replace('•', ' ')
         .replace('·', ' ')
+        .replace('│', '|')
+        .replace('┃', '|')
+        .replace('｜', '|')
+        .replace('¦', '|')
 
     private fun normalizeToken(value: String): String = value.uppercase(Locale.US)
         .filter(Char::isLetterOrDigit)
 
     private fun looksLikeYear(value: String): Boolean =
-        repairCollectorOcr(value).takeWhile(Char::isDigit).toIntOrNull() in 1993..2100
+        repairExpectedNumber(value).takeWhile(Char::isDigit).toIntOrNull() in 1993..2100
 
-    private fun repairCollectorOcr(value: String): String = value.map { character ->
-        when (character.uppercaseChar()) {
-            'O' -> '0'
-            'I', 'L' -> '1'
-            else -> character
+    /** Repairs only values already recognized as numeric metadata, never ordinary card text. */
+    private fun repairExpectedNumber(value: String): String = buildString(value.length) {
+        value.forEach { character ->
+            when (character.uppercaseChar()) {
+                'O' -> append('0')
+                'I', 'L', '|', '!', '│', '┃', '｜', '¦' -> append('1')
+                else -> if (!character.isWhitespace()) append(character)
+            }
         }
-    }.joinToString("")
+    }
 
     private fun editDistance(first: String, second: String): Int {
         if (first == second) return 0

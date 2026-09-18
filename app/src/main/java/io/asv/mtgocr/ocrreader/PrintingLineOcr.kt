@@ -64,7 +64,7 @@ class PrintingLineOcr {
                         ?.sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
                         ?.map { it.text.trim() }
                         ?.filter(String::isNotBlank)
-                        ?.filter { !variants[index].yearOnly || YEAR_PATTERN.containsMatchIn(it) }
+                        ?.filter { !variants[index].yearOnly || containsPossibleYear(it) }
                         ?.forEach(lines::add)
                 }
             }
@@ -204,8 +204,15 @@ class PrintingLineOcr {
     private companion object {
         const val MAX_WIDTH = 1_800f
         const val FULL_CARD_WIDTH = 1_200f
-        // Copyright text is tiny: OCR commonly turns 1 into I/l and 0 into O.
-        val YEAR_PATTERN = Regex("(?i)(?<![a-z0-9])(?:[1il][9o]|2[0o])[0-9oil]{2}(?![a-z0-9])")
+        // Copyright text is tiny: OCR commonly turns 1 into I/l/|/! and 0 into O.
+        val YEAR_PATTERN = Regex(
+            "(?i)(?<![a-z0-9])(?:[1il|!]\\s*[9o]|2\\s*[0o])" +
+                "\\s*[0-9oil|!]\\s*[0-9oil|!](?![a-z0-9])"
+        )
+
+        fun containsPossibleYear(value: String): Boolean = YEAR_PATTERN.containsMatchIn(
+            value.replace('│', '|').replace('┃', '|').replace('｜', '|').replace('¦', '|')
+        )
     }
 
     private data class OcrVariant(val bitmap: Bitmap, val yearOnly: Boolean)

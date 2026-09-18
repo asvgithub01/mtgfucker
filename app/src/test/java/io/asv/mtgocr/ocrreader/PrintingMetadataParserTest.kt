@@ -90,4 +90,20 @@ class PrintingMetadataParserTest {
 
         assertEquals(1995, result.printingYear)
     }
+
+    @Test
+    fun repairsExpectedYearDigitsFromPipeLowercaseLAndLetterO() {
+        assertEquals(1995, PrintingMetadataParser.parse("© |995", emptySet()).printingYear)
+        assertEquals(1995, PrintingMetadataParser.parse("© l995", emptySet()).printingYear)
+        assertEquals(1995, PrintingMetadataParser.parse("© I 9 9 5", emptySet()).printingYear)
+        assertEquals(2020, PrintingMetadataParser.parse("© 2O2O", emptySet()).printingYear)
+        assertEquals(1995, PrintingMetadataParser.parse("© │995", emptySet()).printingYear)
+    }
+
+    @Test
+    fun repairsPipeInsideExpectedCollectorNumber() {
+        val result = PrintingMetadataParser.parse("|23/28O R", emptySet())
+
+        assertEquals("123", result.collectorNumber)
+    }
 }

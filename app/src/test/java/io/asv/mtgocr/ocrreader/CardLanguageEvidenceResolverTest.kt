@@ -5,6 +5,19 @@ import org.junit.Test
 
 class CardLanguageEvidenceResolverTest {
     @Test
+    fun `italian title beats impossible traditional chinese rules guess`() {
+        assertEquals(
+            "it",
+            CardLanguageEvidenceResolver.resolve(
+                footerLanguage = null,
+                detectedRulesLanguage = "zht",
+                detectedRulesConfidence = .96f,
+                matchedTitleLanguage = "it"
+            )
+        )
+    }
+
+    @Test
     fun `localized title wins over a footer token found inside ordinary text`() {
         assertEquals(
             "pt",

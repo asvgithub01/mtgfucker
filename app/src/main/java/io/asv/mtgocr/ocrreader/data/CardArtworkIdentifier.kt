@@ -170,12 +170,23 @@ class CardArtworkIdentifier(
             }
         }
         val ranked = matches.sortedBy { it.distance }
-        val best = ranked.firstOrNull()
-        val runnerUp = ranked.getOrNull(1)
+        // A clearly detected printed border is physical evidence. Do not let a slightly closer
+        // artwork hash fill the panel with black-border editions when white-border references exist.
+        val borderConsistent = if (
+            cameraFingerprint.borderConfidence >= MIN_RELIABLE_BORDER_CONFIDENCE &&
+            cameraFingerprint.borderColor !in setOf(
+                CardBorderColor.UNKNOWN,
+                CardBorderColor.MIXED
+            )
+        ) {
+            ranked.filter { it.borderMatches == true }.ifEmpty { ranked }
+        } else ranked
+        val best = borderConsistent.firstOrNull()
+        val runnerUp = borderConsistent.getOrNull(1)
         val confident = best != null && best.distance <= MAX_CONFIDENT_DISTANCE &&
             (runnerUp == null || runnerUp.distance - best.distance >= MIN_WINNING_MARGIN)
         return CardIdentificationResult(
-            ranked.take(6),
+            borderConsistent.take(6),
             confident,
             matches.size,
             cameraFingerprint.borderColor,
@@ -315,6 +326,7 @@ class CardArtworkIdentifier(
         .replace("/normal/", "/small/")
 
     companion object {
+        private const val MIN_RELIABLE_BORDER_CONFIDENCE = .62
         private const val MAX_CANDIDATE_IMAGES = 48
         private const val FINGERPRINT_WORKERS = 4
         private const val CACHE_VERSION = "v5"

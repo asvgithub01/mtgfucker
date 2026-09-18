@@ -204,7 +204,8 @@ class PrintingLineOcr {
     private companion object {
         const val MAX_WIDTH = 1_800f
         const val FULL_CARD_WIDTH = 1_200f
-        val YEAR_PATTERN = Regex("(?<![0-9])(?:19|20)[0-9]{2}(?![0-9])")
+        // Copyright text is tiny: OCR commonly turns 1 into I/l and 0 into O.
+        val YEAR_PATTERN = Regex("(?i)(?<![a-z0-9])(?:[1il][9o]|2[0o])[0-9oil]{2}(?![a-z0-9])")
     }
 
     private data class OcrVariant(val bitmap: Bitmap, val yearOnly: Boolean)

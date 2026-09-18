@@ -80,4 +80,14 @@ class PrintingMetadataParserTest {
         assertEquals(2023, result.printingYear)
         assertEquals("LTR", result.setCode)
     }
+
+    @Test
+    fun repairsOldCopyrightYearReadWithLetterI() {
+        val result = PrintingMetadataParser.parse(
+            "© I995 Wizards of the Coast",
+            emptySet()
+        )
+
+        assertEquals(1995, result.printingYear)
+    }
 }

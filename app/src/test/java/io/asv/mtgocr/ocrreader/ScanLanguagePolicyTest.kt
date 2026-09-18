@@ -29,6 +29,18 @@ class ScanLanguagePolicyTest {
     @Test fun unavailableLanguageDoesNotInventOne() {
         assertEquals("", ScanLanguagePolicy.choose("", listOf("und" to .99f)).first)
     }
+    @Test fun cavalloDEbanoProvidesItalianTitleEvidence() {
+        assertEquals("it", ScanLanguagePolicy.localizedTitleLanguage("Cavallo d'Ebano"))
+        assertEquals("es", ScanLanguagePolicy.localizedTitleLanguage("Caballo de Ébano"))
+        assertEquals("pt", ScanLanguagePolicy.localizedTitleLanguage("Cavalo de Ébano"))
+    }
+    @Test fun latinOcrCannotBeClassifiedAsTraditionalChinese() {
+        val candidates = ScanLanguagePolicy.scriptCompatibleCandidates(
+            "Cavallo d'Ebano Pesca una carta",
+            listOf("zht" to .91f, "it" to .72f)
+        )
+        assertEquals(listOf("it" to .72f), candidates)
+    }
     @Test fun enrichmentDoesNotReplaceLocalizedNameWithCanonicalEnglish() {
         assertEquals("Elfos de Llanowar", ScanIdentity.displayName("Elfos de Llanowar", "es", "Llanowar Elves"))
         assertEquals("Llanura", ScanIdentity.displayName("Llanura", "es", "Plains"))

@@ -794,7 +794,12 @@ class RapidEditionScanActivity : AppCompatActivity() {
                         displayName,
                         printing,
                         title,
-                        effectiveLanguage(guess, language, matchingOcrEvidence?.language.orEmpty()),
+                        effectiveLanguage(
+                            guess,
+                            language,
+                            matchingOcrEvidence?.language.orEmpty(),
+                            titleEvidence(title, displayName)
+                        ),
                         language,
                         visual,
                         guess,
@@ -806,7 +811,12 @@ class RapidEditionScanActivity : AppCompatActivity() {
                         preferredMatch.displayName,
                         printing,
                         title,
-                        effectiveLanguage(guess, language, preferredMatch.language),
+                        effectiveLanguage(
+                            guess,
+                            language,
+                            preferredMatch.language,
+                            titleEvidence(title, preferredMatch.displayName)
+                        ),
                         language,
                         visual,
                         guess,
@@ -823,7 +833,12 @@ class RapidEditionScanActivity : AppCompatActivity() {
                 preferredMatch.displayName,
                 printing,
                 title,
-                effectiveLanguage(guess, language, preferredMatch.language),
+                effectiveLanguage(
+                    guess,
+                    language,
+                    preferredMatch.language,
+                    titleEvidence(title, preferredMatch.displayName)
+                ),
                 language,
                 visual,
                 guess,
@@ -933,13 +948,20 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private fun effectiveLanguage(
         guess: PrintingMetadataGuess,
         detected: CardTextLanguageResult?,
-        titleLanguage: String = ""
-    ): String = CardLanguageEvidenceResolver.resolve(
-        footerLanguage = guess.languageCode,
-        detectedRulesLanguage = detected?.languageCode,
-        detectedRulesConfidence = detected?.confidence ?: 0f,
-        matchedTitleLanguage = titleLanguage
-    )
+        titleLanguage: String = "",
+        titleText: String = ""
+    ): String {
+        val titleHint = ScanLanguagePolicy.localizedTitleLanguage(titleText)
+        return CardLanguageEvidenceResolver.resolve(
+            footerLanguage = guess.languageCode,
+            detectedRulesLanguage = detected?.languageCode,
+            detectedRulesConfidence = detected?.confidence ?: 0f,
+            matchedTitleLanguage = titleHint ?: titleLanguage
+        )
+    }
+
+    private fun titleEvidence(title: CardTitleOcrResult?, displayName: String): String =
+        (listOf(displayName) + title?.lines.orEmpty()).joinToString(" ")
 
     private fun loadMetadataEditionCandidates(
         canonicalName: String,
@@ -1370,7 +1392,11 @@ class RapidEditionScanActivity : AppCompatActivity() {
     ) {
         val resolvedName = detectedName
             ?: matches.map(SetCardOption::cardName).distinct().singleOrNull()
-        val effectiveLanguage = effectiveLanguage(guess, language)
+        val effectiveLanguage = effectiveLanguage(
+            guess,
+            language,
+            titleText = title?.lines.orEmpty().joinToString(" ")
+        )
         val parsed = resultSummary(
             resolvedName, ocr, title, language, effectiveLanguage,
             null, visual?.frame, guess, includeRaw = true
@@ -1556,6 +1582,22 @@ class RapidEditionScanActivity : AppCompatActivity() {
             )
             view.findViewById<TextView>(R.id.editionCandidateBorder).text =
                 candidate.evidence.joinToString(" · ")
+            val cardImage = view.findViewById<ImageView>(R.id.editionCandidateCardImage)
+            if (option.imageUrl.isNullOrBlank()) {
+                cardImage.visibility = View.GONE
+                cardImage.setOnClickListener(null)
+            } else {
+                cardImage.visibility = View.VISIBLE
+                CardImageCache.display(view.context, option.imageUrl, cardImage)
+                cardImage.setOnClickListener {
+                    startActivity(Intent(this@RapidEditionScanActivity, CardImageActivity::class.java).apply {
+                        putExtra(CardImageActivity.EXTRA_IMAGE_URL, option.imageUrl)
+                        putExtra(CardImageActivity.EXTRA_SET_CODE, option.setCode)
+                        putExtra(CardImageActivity.EXTRA_COLLECTOR_NUMBER, option.collectorNumber)
+                        putExtra(CardImageActivity.EXTRA_FINISH, option.finish)
+                    })
+                }
+            }
             SetSymbolLoader.display(
                 view.context,
                 option.setCode,

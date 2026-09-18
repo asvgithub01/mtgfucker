@@ -75,7 +75,10 @@ class CardTextLanguageDetector {
         identifier.identifyPossibleLanguages(text)
             .addOnSuccessListener { candidates ->
                 val chosen = ScanLanguagePolicy.choose(fallback,
-                    candidates.map { CardLanguage.toCode(it.languageTag) to it.confidence })
+                    ScanLanguagePolicy.scriptCompatibleCandidates(
+                        text,
+                        candidates.map { CardLanguage.toCode(it.languageTag) to it.confidence }
+                    ))
                 callback(CardTextLanguageResult(chosen.first, chosen.second, text))
             }
             .addOnFailureListener { callback(CardTextLanguageResult(fallback, 0f, text)) }

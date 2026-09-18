@@ -21,8 +21,8 @@ class PriceSourceAdapter(
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
         holder.priority.text = (position + 1).toString()
-        holder.name.text = item.label
-        holder.description.text = item.description
+        holder.name.text = item.label(holder.itemView.context)
+        holder.description.text = item.description(holder.itemView.context)
     }
 
     override fun getItemCount() = items.size

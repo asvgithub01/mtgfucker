@@ -56,7 +56,7 @@ public final class DeckSummaryAdapter extends RecyclerView.Adapter<DeckSummaryAd
     holder.name.setText(item.deck.getName());
     holder.counts.setText(holder.itemView.getContext().getString(
         R.string.deck_card_counts, item.mainCount, item.sideboardCount));
-    holder.format.setText(DeckFormatRules.byId(item.deck.getFormatId()).getLabel());
+    holder.format.setText(DeckFormatRules.byId(item.deck.getFormatId()).label(holder.itemView.getContext()));
     if (item.cover != null) CardImageCache.display(holder.itemView.getContext(), item.cover.getImgPath(), holder.cover);
     else holder.cover.setImageResource(R.drawable.ic_groups);
     holder.foilBadge.setVisibility(

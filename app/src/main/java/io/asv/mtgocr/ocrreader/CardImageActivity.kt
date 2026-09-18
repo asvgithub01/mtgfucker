@@ -495,9 +495,9 @@ class CardImageActivity : AppCompatActivity() {
     }
 
     private fun languageLabel(code: String): String = when (code) {
-        "zhs" -> "Chino simplificado"
-        "zht" -> "Chino tradicional"
-        "phyrexian" -> "Phyrexiano"
+        "zhs" -> getString(R.string.language_chinese_simplified)
+        "zht" -> getString(R.string.language_chinese_traditional)
+        "phyrexian" -> getString(R.string.language_phyrexian)
         else -> Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault()).replaceFirstChar { it.uppercase() }
     }
 

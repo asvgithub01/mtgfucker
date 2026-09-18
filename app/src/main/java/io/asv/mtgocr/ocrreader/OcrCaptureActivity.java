@@ -2829,14 +2829,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     final TextView rules = new TextView(this);
     rules.setPadding(0, padding, 0, padding / 2);
     List<String> labels = new ArrayList<>();
-    for (DeckFormatRule rule : DeckFormatRules.INSTANCE.getAll()) labels.add(rule.getLabel());
+    for (DeckFormatRule rule : DeckFormatRules.INSTANCE.getAll()) labels.add(rule.label(this));
     ArrayAdapter<String> formatAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, labels);
     formatAdapter.setDropDownViewResource(R.layout.spinner_item);
     formats.setAdapter(formatAdapter);
-    rules.setText(DeckFormatRules.INSTANCE.getAll().get(0).getSummary());
+    rules.setText(DeckFormatRules.INSTANCE.getAll().get(0).summary(this));
     formats.setOnItemSelectedListener(new SimpleItemSelectedListener(position -> {
       DeckFormatRule selected = DeckFormatRules.INSTANCE.getAll().get(position);
-      rules.setText(selected.getSummary());
+      rules.setText(selected.summary(this));
       return kotlin.Unit.INSTANCE;
     }));
     content.addView(input, new LinearLayout.LayoutParams(

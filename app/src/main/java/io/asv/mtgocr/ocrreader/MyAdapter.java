@@ -218,12 +218,14 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
           CardCondition.indexOf(item.getCondition())]);
       if (!item.getDecks().isEmpty()) {
         if (groups.length() > 0) groups.append(" · ");
-        groups.append("Mazos: ");
+        groups.append(mContext.getString(R.string.decks_prefix));
         for (int deckIndex = 0; deckIndex < item.getDecks().size(); deckIndex++) {
           if (deckIndex > 0) groups.append(", ");
           String deck = item.getDecks().get(deckIndex);
           groups.append(deck);
-          if (item.isSideboardForDeck(deck)) groups.append(" (banquillo)");
+          if (item.isSideboardForDeck(deck)) {
+            groups.append(" ").append(mContext.getString(R.string.sideboard_parenthetical));
+          }
         }
       }
       holder.mTxtGroups.setText(groups.toString());

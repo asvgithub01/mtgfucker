@@ -1,24 +1,30 @@
 package io.asv.mtgocr.ocrreader
 
+import android.content.Context
+import androidx.annotation.StringRes
+
 data class DeckFormatRule(
     val id: String,
-    val label: String,
-    val summary: String,
+    @StringRes val labelRes: Int,
+    @StringRes val summaryRes: Int,
     val minimumMain: Int,
     val maximumSideboard: Int,
     val maximumCopies: Int
-)
+) {
+    fun label(context: Context): String = context.getString(labelRes)
+    fun summary(context: Context): String = context.getString(summaryRes)
+}
 
 object DeckFormatRules {
     val all: List<DeckFormatRule> = listOf(
-        DeckFormatRule("standard", "Estándar", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · solo colecciones actualmente legales en Estándar.", 60, 15, 4),
-        DeckFormatRule("modern", "Modern", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · usa la reserva legal de Modern y su lista de prohibidas.", 60, 15, 4),
-        DeckFormatRule("pioneer", "Pioneer", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · cartas legales desde Regreso a Rávnica y productos admitidos.", 60, 15, 4),
-        DeckFormatRule("pauper", "Pauper", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · cada carta debe haber sido publicada como común en papel o MTGO.", 60, 15, 4),
-        DeckFormatRule("legacy", "Legacy", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · admite casi toda la historia de Magic salvo su lista de prohibidas.", 60, 15, 4),
-        DeckFormatRule("vintage", "Vintage", "60 cartas mínimo · banquillo de hasta 15 · máximo 4 copias salvo tierras básicas · las cartas restringidas solo permiten una copia entre mazo y banquillo.", 60, 15, 4),
-        DeckFormatRule("commander", "Commander", "100 cartas exactas: 99 + comandante · una copia por nombre salvo tierras básicas · identidad de color del comandante · sin banquillo reglamentario.", 100, 0, 1),
-        DeckFormatRule("free", "Libre / casual", "Sin validación de formato. Organiza el mazo principal y el banquillo como prefieras.", 0, Int.MAX_VALUE, Int.MAX_VALUE)
+        DeckFormatRule("standard", R.string.deck_format_standard, R.string.deck_format_standard_rules, 60, 15, 4),
+        DeckFormatRule("modern", R.string.deck_format_modern, R.string.deck_format_modern_rules, 60, 15, 4),
+        DeckFormatRule("pioneer", R.string.deck_format_pioneer, R.string.deck_format_pioneer_rules, 60, 15, 4),
+        DeckFormatRule("pauper", R.string.deck_format_pauper, R.string.deck_format_pauper_rules, 60, 15, 4),
+        DeckFormatRule("legacy", R.string.deck_format_legacy, R.string.deck_format_legacy_rules, 60, 15, 4),
+        DeckFormatRule("vintage", R.string.deck_format_vintage, R.string.deck_format_vintage_rules, 60, 15, 4),
+        DeckFormatRule("commander", R.string.deck_format_commander, R.string.deck_format_commander_rules, 100, 0, 1),
+        DeckFormatRule("free", R.string.deck_format_free, R.string.deck_format_free_rules, 0, Int.MAX_VALUE, Int.MAX_VALUE)
     )
 
     @JvmStatic fun byId(id: String?): DeckFormatRule = all.firstOrNull { it.id == id } ?: all.last()

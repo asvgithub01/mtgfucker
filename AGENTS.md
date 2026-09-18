@@ -3,6 +3,11 @@
 ## Cómo empezar sin recorrer todo el proyecto
 
 - Responder en español y hacer el cambio mínimo que resuelva la petición.
+- Todo texto fijo visible nuevo debe vivir en recursos y traducirse en `values` (español),
+  `values-en`, `values-de`, `values-fr`, `values-pt` y `values-it`. La única excepción son
+  los textos de depuración de los escáneres (`scan_debug_*`,
+  `scan_edition_debug_*` y diagnósticos OCR marcados `translatable="false"`), que se
+  mantienen solo en español. Marcar de igual modo cualquier texto nuevo exclusivo de debug.
 - Consultar `git status --short` y la rama actual antes de editar. No sobrescribir ni
   incluir en commits cambios ajenos, especialmente `.idea/` y `*.iml`.
 - Cuando se trabaje desde una rama distinta de `master`, mostrar el nombre de la rama en

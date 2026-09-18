@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -226,14 +227,14 @@ private fun LiquidGlassSplash(
                     }
                     Spacer(Modifier.height(20.dp))
                     Text(
-                        text = "MTG Biblio",
+                        text = stringResource(R.string.app_display_name),
                         color = paletteDark,
                         fontFamily = mtgFont,
                         fontSize = 38.sp,
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Tu colección, siempre a mano",
+                        text = stringResource(R.string.splash_tagline),
                         color = paletteDark.copy(alpha = .86f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
@@ -242,7 +243,7 @@ private fun LiquidGlassSplash(
                     )
                     if (branchName != null) {
                         Text(
-                            text = "Rama: $branchName",
+                            text = stringResource(R.string.splash_branch, branchName),
                             color = paletteDark.copy(alpha = .68f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,

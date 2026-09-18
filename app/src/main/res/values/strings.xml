@@ -518,6 +518,7 @@
     <string name="experimental_scan_evidence_symbol_shape">símbolo %1$d%%</string>
     <string name="experimental_scan_evidence_border_match">borde %1$s coincide</string>
     <string name="experimental_scan_evidence_border_mismatch">borde distinto</string>
+    <string name="experimental_scan_evidence_chronicles">borde blanco + símbolo histórico: Chronicles</string>
     <string name="experimental_scan_language_result">Idioma físico: %1$s · confianza %2$d%%</string>
     <string name="experimental_scan_language_result_inferred">Idioma físico usado: %1$s · por nombre o código impreso</string>
     <string name="experimental_scan_border_result">Borde: %1$s · confianza %2$d%%</string>

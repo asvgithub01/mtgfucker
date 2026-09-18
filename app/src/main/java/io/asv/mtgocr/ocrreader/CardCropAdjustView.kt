@@ -255,13 +255,13 @@ class CardCropAdjustView @JvmOverloads constructor(
     }
 
     private fun drawEvidenceGuides(canvas: Canvas) {
-        val positions = floatArrayOf(.16f, .38f, .62f, .84f)
         val radius = resources.displayMetrics.density * 4f
-        for (position in positions) {
-            drawSample(canvas, bilinear(position, .027f), radius)
-            drawSample(canvas, bilinear(position, .973f), radius)
-            drawSample(canvas, bilinear(.027f, position), radius)
-            drawSample(canvas, bilinear(.973f, position), radius)
+        val inset = CardFrameAnalyzer.BORDER_SAMPLE_INSET_FRACTION
+        for (position in CardFrameAnalyzer.borderSamplePositions) {
+            drawSample(canvas, bilinear(position, inset), radius)
+            drawSample(canvas, bilinear(position, 1f - inset), radius)
+            drawSample(canvas, bilinear(inset, position), radius)
+            drawSample(canvas, bilinear(1f - inset, position), radius)
         }
         val symbol = arrayOf(
             bilinear(.81f, .515f),

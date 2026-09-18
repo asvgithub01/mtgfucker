@@ -8,7 +8,9 @@ class CardFrameAnalyzerTest {
     @Test fun classifiesIndividualBorderZones() {
         assertEquals(CardBorderColor.BLACK, CardFrameAnalyzer.classifyRgb(24, 23, 21))
         assertEquals(CardBorderColor.WHITE, CardFrameAnalyzer.classifyRgb(220, 220, 220))
+        assertEquals(CardBorderColor.WHITE, CardFrameAnalyzer.classifyRgb(235, 233, 197))
         assertEquals(CardBorderColor.UNKNOWN, CardFrameAnalyzer.classifyRgb(220, 219, 220))
+        assertEquals(CardBorderColor.UNKNOWN, CardFrameAnalyzer.classifyRgb(255, 230, 100))
         assertEquals(CardBorderColor.GOLD, CardFrameAnalyzer.classifyRgb(198, 154, 66))
         assertEquals(CardBorderColor.SILVER, CardFrameAnalyzer.classifyRgb(142, 147, 151))
         assertEquals(CardBorderColor.UNKNOWN, CardFrameAnalyzer.classifyRgb(55, 125, 61))

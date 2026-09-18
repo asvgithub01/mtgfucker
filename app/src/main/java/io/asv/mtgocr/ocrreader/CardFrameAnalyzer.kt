@@ -46,9 +46,12 @@ data class CardFrameAnalysis(
 object CardFrameAnalyzer {
     private const val CARD_HEIGHT_FRACTION = .72f
     internal const val WHITE_CHANNEL_MIN = 220
+    private const val WHITE_WARM_MIN_CHANNEL = 175
+    private const val WHITE_WARM_MAX_CHROMA = 70
     private const val MIN_WHITE_ZONES_PER_SIDE = 2
     private const val MIN_WHITE_SIDES = 3
-    private val samplePositions = floatArrayOf(.12f, .27f, .42f, .58f, .73f, .88f)
+    internal const val BORDER_SAMPLE_INSET_FRACTION = .014f
+    internal val borderSamplePositions = floatArrayOf(.12f, .27f, .42f, .58f, .73f, .88f)
 
     fun analyze(bitmap: Bitmap): CardFrameAnalysis {
         val expected = CardImageFingerprint.centeredCardRect(
@@ -186,7 +189,9 @@ object CardFrameAnalyzer {
         val chroma = high - low
         val luma = (red * 299 + green * 587 + blue * 114) / 1000
         return when {
-            red >= WHITE_CHANNEL_MIN && green >= WHITE_CHANNEL_MIN && blue >= WHITE_CHANNEL_MIN ->
+            (red >= WHITE_CHANNEL_MIN && green >= WHITE_CHANNEL_MIN && blue >= WHITE_CHANNEL_MIN) ||
+                (luma >= WHITE_CHANNEL_MIN && low >= WHITE_WARM_MIN_CHANNEL &&
+                    chroma <= WHITE_WARM_MAX_CHROMA) ->
                 CardBorderColor.WHITE
             luma <= 92 -> CardBorderColor.BLACK
             luma in 92..185 && chroma <= 38 -> CardBorderColor.SILVER
@@ -346,9 +351,9 @@ object CardFrameAnalyzer {
         val patchRadius = max(2, shortestSide / 360)
         // Stay close to the physical edge. At 2.7% this reached the inner grey/brown frame of
         // old artifact cards and classified that frame instead of the printed white border.
-        val inset = max(patchRadius + 1, (shortestSide * .014f).toInt())
-        val zones = ArrayList<CardBorderZone>(samplePositions.size * 4)
-        for (position in samplePositions) {
+        val inset = max(patchRadius + 1, (shortestSide * BORDER_SAMPLE_INSET_FRACTION).toInt())
+        val zones = ArrayList<CardBorderZone>(borderSamplePositions.size * 4)
+        for (position in borderSamplePositions) {
             val x = (card.left + card.width() * position).toInt().coerceIn(0, bitmap.width - 1)
             val y = (card.top + card.height() * position).toInt().coerceIn(0, bitmap.height - 1)
             zones += zone(bitmap, CardBorderSide.TOP, position, x, card.top + inset, patchRadius)

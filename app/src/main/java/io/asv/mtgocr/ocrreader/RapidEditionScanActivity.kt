@@ -882,11 +882,23 @@ class RapidEditionScanActivity : AppCompatActivity() {
             .filter { knownSetCodes.isEmpty() || it in knownSetCodes }
             .take(MAX_SET_CANDIDATES)
             .toSet()
+        val compareChronicles = ChroniclesSymbolPolicy.applies(
+            detectedSets,
+            guess.printingYear,
+            visual.frame.borderColor
+        )
+        val visualSetCodes = ChroniclesSymbolPolicy.visualSetCodes(
+            detectedSets,
+            guess.printingYear,
+            visual.frame.borderColor
+        )
         repository.identifyCardArtwork(
             cardName = canonicalName,
-            languageCode = languageCode,
+            // A false language guess must not remove Chronicles before its retained old symbol
+            // and white border can be compared. The accepted scan still keeps its OCR language.
+            languageCode = if (compareChronicles) "" else languageCode,
             jpeg = visual.jpeg,
-            lockedSetCodes = detectedSets,
+            lockedSetCodes = visualSetCodes,
             preferFoil = false,
             alreadyCropped = true,
             useShapeSymbolMatcher = true
@@ -1091,6 +1103,8 @@ class RapidEditionScanActivity : AppCompatActivity() {
         languageCode: String
     ): List<RapidRankedEdition> {
         val setCandidates = guess.setCodeCandidates.map { it.uppercase(Locale.US) }
+        val chroniclesSymbolCase = result.detectedBorder == CardBorderColor.WHITE &&
+            ChroniclesSymbolPolicy.hasRetainedSymbolEvidence(setCandidates)
         return result.candidates
             .distinctBy { it.option.printingUuid }
             .map { candidate ->
@@ -1132,7 +1146,13 @@ class RapidEditionScanActivity : AppCompatActivity() {
                     else -> Unit
                 }
                 val setIndex = setCandidates.indexOf(option.setCode.uppercase(Locale.US))
-                if (setIndex >= 0) {
+                if (chroniclesSymbolCase && ChroniclesSymbolPolicy.isChronicles(option.setCode)) {
+                    score += 125
+                    evidence += getString(R.string.experimental_scan_evidence_chronicles)
+                } else if (
+                    setIndex >= 0 &&
+                    !(chroniclesSymbolCase && ChroniclesSymbolPolicy.isRetainedSymbolSet(option.setCode))
+                ) {
                     score += 100 - setIndex.coerceAtMost(10) * 3
                     evidence += getString(R.string.experimental_scan_evidence_set)
                 }
@@ -1452,6 +1472,9 @@ class RapidEditionScanActivity : AppCompatActivity() {
         guess: PrintingMetadataGuess,
         includeRaw: Boolean = false
     ): String = buildString {
+        val usedBorderZones = visualResult?.borderZones
+            ?.takeIf { it.isNotEmpty() }
+            ?: fallbackFrame?.borderZones.orEmpty()
         append(getString(R.string.experimental_scan_name_result, displayName ?: "—"))
         append("\n")
         append(getString(
@@ -1479,13 +1502,17 @@ class RapidEditionScanActivity : AppCompatActivity() {
         }
         val border = visualResult?.detectedBorder ?: fallbackFrame?.borderColor ?: CardBorderColor.UNKNOWN
         val borderConfidence = visualResult?.detectedBorderConfidence ?: fallbackFrame?.borderConfidence ?: 0.0
-        if (border != CardBorderColor.UNKNOWN) {
+        if (border != CardBorderColor.UNKNOWN || usedBorderZones.isNotEmpty()) {
             append("\n")
             append(getString(
                 R.string.experimental_scan_border_result,
                 borderLabel(border),
                 (borderConfidence * 100).toInt()
             ))
+        }
+        if (usedBorderZones.isNotEmpty()) {
+            append("\n")
+            append(borderRgbCompact(usedBorderZones))
         }
         if (ocr != null) {
             append("\n")
@@ -1500,9 +1527,6 @@ class RapidEditionScanActivity : AppCompatActivity() {
             ))
         }
         if (includeRaw) {
-            val usedBorderZones = visualResult?.borderZones
-                ?.takeIf { it.isNotEmpty() }
-                ?: fallbackFrame?.borderZones.orEmpty()
             append("\n\n")
             append(borderRgbDebug(usedBorderZones))
             append("\n\n")
@@ -1523,8 +1547,21 @@ class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
+    private fun borderRgbCompact(zones: List<CardBorderZone>): String =
+        CardBorderSide.entries.joinToString(" · ", prefix = "RGB ") { side ->
+            val sideZones = zones.filter { it.side == side }
+            val brightest = sideZones.maxByOrNull {
+                it.red * 299 + it.green * 587 + it.blue * 114
+            }
+            val whiteCount = sideZones.count { it.color == CardBorderColor.WHITE }
+            val rgb = brightest?.let { "${it.red}/${it.green}/${it.blue}" } ?: "—"
+            "${borderSideShortLabel(side)} $rgb [$whiteCount/${sideZones.size}]"
+        }
+
     private fun borderRgbDebug(zones: List<CardBorderZone>): String = buildString {
         append("Lectura RGB del borde (blanco si R, G y B ≥ ")
+        append(CardFrameAnalyzer.WHITE_CHANNEL_MIN)
+        append("; también crema clara con luminosidad ≥ ")
         append(CardFrameAnalyzer.WHITE_CHANNEL_MIN)
         append(")")
         if (zones.isEmpty()) {
@@ -1555,6 +1592,13 @@ class RapidEditionScanActivity : AppCompatActivity() {
         CardBorderSide.RIGHT -> getString(R.string.edition_scan_side_right)
         CardBorderSide.BOTTOM -> getString(R.string.edition_scan_side_bottom)
         CardBorderSide.LEFT -> getString(R.string.edition_scan_side_left)
+    }
+
+    private fun borderSideShortLabel(side: CardBorderSide): String = when (side) {
+        CardBorderSide.TOP -> "A"
+        CardBorderSide.RIGHT -> "D"
+        CardBorderSide.BOTTOM -> "Ab"
+        CardBorderSide.LEFT -> "I"
     }
 
     private fun borderLabel(border: CardBorderColor): String = when (border) {

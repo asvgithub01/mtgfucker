@@ -5,6 +5,8 @@
 - Responder en español y hacer el cambio mínimo que resuelva la petición.
 - Consultar `git status --short` y la rama actual antes de editar. No sobrescribir ni
   incluir en commits cambios ajenos, especialmente `.idea/` y `*.iml`.
+- Cuando se trabaje desde una rama distinta de `master`, mostrar el nombre de la rama en
+  la splash screen para identificar claramente la APK instalada.
 - Leer esta guía y abrir únicamente los archivos del área afectada. Usar `rg` para
   localizar métodos; no empezar leyendo todo `OcrCaptureActivity.java` ni los backups.
 - Si Engram está disponible, consultar `mem_context` del proyecto `mtgfucker` y buscar

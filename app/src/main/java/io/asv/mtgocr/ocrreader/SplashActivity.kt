@@ -77,6 +77,9 @@ class SplashActivity : ComponentActivity() {
                     paletteAccent = Color(paletteAccent),
                     showGlass = showGlass.value,
                     animationStarted = animationStarted.value,
+                    branchName = BuildConfig.GIT_BRANCH.takeUnless {
+                        it.isBlank() || it == "unknown" || it == "master" || it == "main"
+                    },
                     onGlassDrawn = { animationStarted.value = true }
                 ) {
                     startActivity(Intent(this, MainActivity::class.java))
@@ -114,6 +117,7 @@ private fun LiquidGlassSplash(
     paletteAccent: Color,
     showGlass: Boolean,
     animationStarted: Boolean,
+    branchName: String?,
     onGlassDrawn: () -> Unit,
     onFinished: () -> Unit
 ) {
@@ -236,6 +240,16 @@ private fun LiquidGlassSplash(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 6.dp)
                     )
+                    if (branchName != null) {
+                        Text(
+                            text = "Rama: $branchName",
+                            color = paletteDark.copy(alpha = .68f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
                     Spacer(Modifier.height(28.dp))
                     Box(
                         Modifier

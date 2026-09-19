@@ -75,7 +75,8 @@ private class RapidPendingCardOcr {
 
 private data class RapidVisualEvidence(
     val jpeg: ByteArray,
-    val frame: CardFrameAnalysis
+    val frame: CardFrameAnalysis,
+    val artHash: ArtHashMatcher.Result?
 )
 
 private data class RapidRankedEdition(
@@ -111,6 +112,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var debug: View
     private lateinit var crop: ImageView
     private lateinit var status: TextView
+    private lateinit var artHashStatus: TextView
     private lateinit var loading: View
     private lateinit var loadingText: TextView
     private lateinit var earlyResult: TextView
@@ -130,6 +132,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
     )
     private val analysisExecutor = Executors.newSingleThreadExecutor()
     private val photoExecutor = Executors.newSingleThreadExecutor()
+    private var artHashMatcher: ArtHashMatcher? = null // Only accessed on photoExecutor.
     private val metadataExecutor = Executors.newSingleThreadExecutor()
     private val captureGate = AtomicBoolean(false)
     private val liveNameOcrGate = AtomicBoolean(false)
@@ -182,6 +185,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         debug = findViewById(R.id.experimentalScanDebug)
         crop = findViewById(R.id.experimentalScanCrop)
         status = findViewById(R.id.experimentalScanStatus)
+        artHashStatus = findViewById(R.id.rapidScanArtHashStatus)
         loading = findViewById(R.id.rapidScanLoading)
         loadingText = findViewById(R.id.rapidScanLoadingText)
         earlyResult = findViewById(R.id.rapidScanEarlyResult)
@@ -642,6 +646,10 @@ class RapidEditionScanActivity : AppCompatActivity() {
         analysisInFlight = true
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
+        if (BuildConfig.DEBUG && BuildConfig.GIT_BRANCH == ART_HASH_BRANCH) {
+            artHashStatus.visibility = View.VISIBLE
+            artHashStatus.setText(R.string.scan_debug_art_hash_running)
+        }
         status.setText(R.string.experimental_scan_reading_name_first)
         instruction.setText(R.string.experimental_scan_reading_name_first)
         showLoading(getString(R.string.rapid_scan_loading_ocr))
@@ -722,7 +730,21 @@ class RapidEditionScanActivity : AppCompatActivity() {
                     corrected.compress(Bitmap.CompressFormat.JPEG, 94, output)
                     output.toByteArray()
                 }
-                RapidVisualEvidence(jpeg, frame)
+                val artHash = if (BuildConfig.DEBUG && BuildConfig.GIT_BRANCH == ART_HASH_BRANCH) {
+                    runCatching {
+                        val matcher = artHashMatcher ?: run {
+                            val loadStarted = SystemClock.elapsedRealtime()
+                            ArtHashMatcher(ArtHashIndex.read(assets.open(ArtHashIndex.ASSET))).also {
+                                artHashMatcher = it
+                                Log.d(PERF_TAG, "indice_arte=${SystemClock.elapsedRealtime() - loadStarted}ms")
+                            }
+                        }
+                        matcher.match(corrected)
+                    }.onFailure { Log.w(PERF_TAG, "No se pudo comparar el arte local", it) }
+                        .getOrNull()
+                } else null
+                artHash?.let { Log.d(PERF_TAG, "busqueda_arte=${it.elapsedMs}ms") }
+                RapidVisualEvidence(jpeg, frame, artHash)
             }
             synchronized(pending) {
                 pending.visual = evidence.getOrNull()
@@ -748,7 +770,28 @@ class RapidEditionScanActivity : AppCompatActivity() {
                 printing?.preview?.recycle()
                 return@runOnUiThread
             }
-            if (printing == null && title == null) {
+            if (artHashStatus.visibility == View.VISIBLE) {
+                val artHash = visual?.artHash
+                artHashStatus.text = if (artHash == null || artHash.candidates.isEmpty()) {
+                    getString(R.string.scan_debug_art_hash_unavailable)
+                } else {
+                    val candidates = artHash.candidates.take(2).joinToString(" · ") {
+                        getString(
+                            R.string.scan_debug_art_hash_candidate,
+                            it.hit.name,
+                            it.hit.phashDistance,
+                            it.hit.dhashDistance
+                        )
+                    }
+                    getString(
+                        R.string.scan_debug_art_hash_result,
+                        artHash.indexedArts,
+                        artHash.elapsedMs,
+                        candidates
+                    )
+                }
+            }
+            if (printing == null && title == null && visual?.artHash?.candidates.isNullOrEmpty()) {
                 finishAnalysis()
                 showError(error?.message ?: getString(R.string.experimental_scan_ocr_error))
                 return@runOnUiThread
@@ -1277,6 +1320,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         analysisInFlight = false
         hideLoading()
         debug.visibility = View.GONE
+        artHashStatus.visibility = View.GONE
         replaceDebugBitmap(null)
         correction.visibility = View.VISIBLE
         liveGuide.visibility = View.GONE
@@ -1651,13 +1695,17 @@ class RapidEditionScanActivity : AppCompatActivity() {
             if (resolvedName != null) R.string.experimental_scan_identified
             else R.string.experimental_scan_adjust_and_retry
         )
-        AlertDialog.Builder(this)
+        val artSuggestions = if (resolvedName == null) {
+            visual?.artHash?.candidates.orEmpty()
+                .distinctBy { it.hit.name.lowercase(Locale.ROOT) }
+                .take(5)
+        } else emptyList()
+        val dialog = AlertDialog.Builder(this)
             .setTitle(
                 if (matches.size == 1) R.string.experimental_scan_result_identified
                 else R.string.rapid_scan_no_editions_title
             )
             .setMessage(resolved)
-            .setPositiveButton(R.string.experimental_scan_read_again, null)
             .setNeutralButton(R.string.experimental_scan_show_ocr) { _, _ ->
                 AlertDialog.Builder(this)
                     .setTitle(R.string.experimental_scan_result_title)
@@ -1666,7 +1714,32 @@ class RapidEditionScanActivity : AppCompatActivity() {
                     .show()
             }
             .setNegativeButton(R.string.edition_scan_retake_photo) { _, _ -> returnToCamera() }
-            .show()
+        if (artSuggestions.isEmpty()) {
+            dialog.setPositiveButton(R.string.experimental_scan_read_again, null)
+        } else {
+            dialog.setPositiveButton(R.string.scan_debug_art_hash_choose) { _, _ ->
+                val labels = artSuggestions.map { candidate ->
+                    getString(
+                        R.string.scan_debug_art_hash_candidate,
+                        candidate.hit.name,
+                        candidate.hit.phashDistance,
+                        candidate.hit.dhashDistance
+                    )
+                }.toTypedArray()
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.scan_debug_art_hash_choose_title)
+                    .setItems(labels) { _, index ->
+                        val name = artSuggestions[index].hit.name
+                        loadEditionCandidates(
+                            name, name, ocr, title, effectiveLanguage, language,
+                            visual, guess, emptyList()
+                        )
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+        dialog.show()
     }
 
     private fun resultSummary(
@@ -1927,6 +2000,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         liveGuide.showDetection(null, 0f)
         correctionMode = false
         debug.visibility = View.GONE
+        artHashStatus.visibility = View.GONE
         replaceDebugBitmap(null)
         stability.reset()
         quadHistory.clear()
@@ -2029,6 +2103,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
 
     companion object {
         private const val PERF_TAG = "RapidScanPerf"
+        private const val ART_HASH_BRANCH = "codex/art-hash-identification"
         private const val LIVE_TIMING_SAMPLE_SIZE = 20
         const val EXTRA_SESSION_CARD_IDS = "rapid_session_card_ids"
         const val RC_CAMERA = 902

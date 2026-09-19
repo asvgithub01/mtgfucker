@@ -485,6 +485,12 @@
     <string name="open_experimental_scanner">Abrir nuevo escáner de edición</string>
     <string name="experimental_scan_title">Nuevo escáner de edición</string>
     <string name="rapid_scan_title">Escáner rápido de edición · revisión 2</string>
+    <string name="scan_debug_art_hash_running" translatable="false">Buscando candidatos por arte local…</string>
+    <string name="scan_debug_art_hash_result" translatable="false">Arte local: %1$d referencias · %2$d ms · edición no verificada\n%3$s</string>
+    <string name="scan_debug_art_hash_candidate" translatable="false">%1$s (p%2$d/d%3$d)</string>
+    <string name="scan_debug_art_hash_unavailable" translatable="false">Arte local: índice no disponible</string>
+    <string name="scan_debug_art_hash_choose" translatable="false">Ver sugerencias por arte</string>
+    <string name="scan_debug_art_hash_choose_title" translatable="false">Sugerencias por arte · confirma la carta</string>
     <string name="open_rapid_edition_scanner">Abrir escáner rápido de edición</string>
     <string name="rapid_scan_name_pending">✓ %1$s reconocida · buscando precio…</string>
     <string name="rapid_scan_name_found">✓ %1$s reconocida · verificando la impresión…</string>

@@ -37,7 +37,7 @@
 | --- | --- |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
-| PoC de identificación por arte | `ArtHashSampleStore.kt`, `scripts/download_art_crops.py`, `scripts/art_hash_poc.py`, `scripts/pull_sony_art_samples.py`; corpus y muestras fuera del repositorio en `../mtgfucker-art-hash-data/` |
+| Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtHashSampleStore.kt`, `RapidEditionScanActivity.kt`; índice APK `app/src/main/assets/art_hash_index.bin`, generador `scripts/build_art_hash_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
 | Detalle de carta y ediciones | `Main2Activity.kt` (incluye `EditionAdapter`); layouts `activity_main2.xml`, `edition_item.xml` |
@@ -110,17 +110,27 @@ git diff --check
 # Corpus de artes Scryfall (descarga reanudable, fuera de Git):
 python scripts/download_art_crops.py --data-dir ../mtgfucker-art-hash-data --workers 12
 python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data build
+python scripts/build_art_hash_asset.py --input ../mtgfucker-art-hash-data/hashes.jsonl --output app/src/main/assets/art_hash_index.bin
 python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data match RUTA_AL_ART_CROP.jpg
 python scripts/pull_sony_art_samples.py --output ../mtgfucker-art-hash-data/evaluation/sony-live
+# Prueba instrumental (solo si el Sony tiene capturas privadas retenidas):
+.\gradlew.bat :app:assembleDebugAndroidTest --console=plain
+adb -s QV770HG2JD install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb -s QV770HG2JD shell am instrument -w -r -e class io.asv.mtgocr.ocrreader.ArtHashDeviceEvaluationTest io.asv.mtgocr.ocrreader.test/androidx.test.runner.AndroidJUnitRunner
 # Prueba concreta cuando el cambio sea acotado:
 bash gradlew :app:testDebugUnitTest --tests '*EditionSearchTest'
 ```
 
-El PoC de hashes requiere Python con `cv2` y `numpy`; el corpus y los índices
-generados no se versionan ni se incluyen en la APK.
+El PoC de hashes requiere Python con `cv2` y `numpy`; los JPEG y el JSONL del PC
+no se versionan. El índice binario compacto **sí** se versiona y se incluye en
+la APK. En esta rama debug el escáner rápido muestra candidatos de arte y, si
+falla el nombre OCR, deja elegir manualmente uno; nunca identifica automáticamente
+la impresión por hash. Ver `ART_HASH_EVALUATION.md`.
 Solo el debug de `codex/art-hash-identification` conserva en `files/art_hash_samples`
 las últimas 30 fotos JPEG de los escáneres rápido y experimental. Son privadas
 de la app y se copian con `run-as` mediante el script anterior; no subirlas a Git.
+Los JPEG CameraX llevan EXIF orientación 6 en el Sony; la prueba instrumental
+debe reproducir `decodePhoto` antes de detectar bordes.
 
 - Usar `bash gradlew`: el wrapper puede no tener permiso de ejecución.
 - En este worktree Windows, `bash gradlew` falla por CRLF; usar `gradlew.bat`.

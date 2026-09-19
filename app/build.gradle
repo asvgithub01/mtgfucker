@@ -122,6 +122,8 @@ dependencies {
     implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
 
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
 }
 
 // Room's verifier loads a native SQLite DLL during kapt. Gradle workers launched by the

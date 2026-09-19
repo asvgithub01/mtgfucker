@@ -44,10 +44,15 @@ def build(data_dir: Path) -> int:
     manifest = data_dir / "manifest.jsonl"
     output = data_dir / "hashes.jsonl"
     temp = data_dir / "hashes.jsonl.part"
-    count = missing = 0
+    count = missing = excluded = 0
     with manifest.open(encoding="utf-8") as source, temp.open("w", encoding="utf-8", newline="\n") as target:
         for line in source:
             item = json.loads(line)
+            # Art Series cards share generic backs and their fronts are not
+            # playable printings. They introduce thousands of false ties.
+            if item.get("layout") == "art_series":
+                excluded += 1
+                continue
             path = data_dir / item["path"]
             if not path.exists():
                 missing += 1
@@ -68,7 +73,7 @@ def build(data_dir: Path) -> int:
             if count % 5000 == 0:
                 print(f"Hashes: {count:,}", flush=True)
     temp.replace(output)
-    print(f"Índice: {count:,} imágenes, faltan {missing:,}; {output.stat().st_size:,} bytes ({output})")
+    print(f"Índice: {count:,} imágenes, excluidas {excluded:,} Art Series, faltan {missing:,}; {output.stat().st_size:,} bytes ({output})")
     return 0 if missing == 0 else 1
 
 

@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import gzip
 import http.client
 import json
-import os
 from pathlib import Path
 import shutil
 import sys
@@ -101,6 +100,7 @@ def manifest_entries(bulk_path: Path):
                     "face": face_number,
                     "illustration_id": face.get("illustration_id"),
                     "name": face.get("name", card["name"]),
+                    "layout": card["layout"],
                     "set": card["set"],
                     "collector_number": card["collector_number"],
                     "image_status": card["image_status"],
@@ -157,8 +157,8 @@ def main() -> int:
     parser.add_argument("--limit", type=int, help="Solo las primeras N imágenes, para probar")
     parser.add_argument("--metadata-only", action="store_true")
     args = parser.parse_args()
-    if not 1 <= args.workers <= 16:
-        parser.error("--workers debe estar entre 1 y 16")
+    if not 1 <= args.workers <= 48:
+        parser.error("--workers debe estar entre 1 y 48")
     data_dir = args.data_dir.resolve()
     data_dir.mkdir(parents=True, exist_ok=True)
     info = fetch_bulk_info()

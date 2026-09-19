@@ -37,6 +37,7 @@
 | --- | --- |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
+| PoC de identificación por arte | `scripts/download_art_crops.py`, `scripts/art_hash_poc.py`; corpus local fuera del repositorio en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
 | Detalle de carta y ediciones | `Main2Activity.kt` (incluye `EditionAdapter`); layouts `activity_main2.xml`, `edition_item.xml` |
@@ -104,6 +105,10 @@ Desde la raíz, con Java 17 y `sdk.dir` válido en `local.properties`:
 ```sh
 bash gradlew :app:testDebugUnitTest :app:assembleDebug --console=plain
 git diff --check
+# Corpus de artes Scryfall (descarga reanudable, fuera de Git):
+python scripts/download_art_crops.py --data-dir ../mtgfucker-art-hash-data --workers 12
+python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data build
+python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data match RUTA_AL_ART_CROP.jpg
 # Prueba concreta cuando el cambio sea acotado:
 bash gradlew :app:testDebugUnitTest --tests '*EditionSearchTest'
 ```

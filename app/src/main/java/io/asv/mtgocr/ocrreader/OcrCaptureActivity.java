@@ -208,7 +208,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private ImageButton speakCardNameButton;
   private ImageButton addTypedCardButton;
   private TextView scanSessionTotalText;
-  FloatingActionButton fabOcr, fabOcrMlKit, fabRapidEditionScanner;
+  FloatingActionButton fabOcr, fabOcrMlKit, fabRapidEditionScanner, fabHashOnlyScanner;
   EditText txtSearch;
   RelativeLayout lytSearch;
   LinearLayout lytRecycler, topLayout;
@@ -371,6 +371,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcrMlKit = (FloatingActionButton) findViewById(R.id.fabOcrMlKit);
     fabRapidEditionScanner =
         (FloatingActionButton) findViewById(R.id.fabRapidEditionScanner);
+    fabHashOnlyScanner = (FloatingActionButton) findViewById(R.id.fabHashOnlyScanner);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
     lytSearch = (RelativeLayout) findViewById(R.id.lytSearch);
@@ -488,6 +489,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcr.setOnClickListener(this);
     fabOcrMlKit.setOnClickListener(this);
     fabRapidEditionScanner.setOnClickListener(this);
+    fabHashOnlyScanner.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
 
@@ -1600,6 +1602,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
     fabRapidEditionScanner.setVisibility(
+        settings || catalog || photos ? View.GONE : View.VISIBLE);
+    fabHashOnlyScanner.setVisibility(
         settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
@@ -3212,8 +3216,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     } else if (viewId == R.id.fabOcrMlKit) {
       openScannerWithEngine(true);
     } else if (viewId == R.id.fabRapidEditionScanner) {
-      startActivityForResult(
-          new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
+        startActivityForResult(
+            new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
+    } else if (viewId == R.id.fabHashOnlyScanner) {
+      startActivity(new Intent(this, HashOnlyScanActivity.class));
     }
   }
 
@@ -4449,6 +4455,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(View.GONE);
     fabRapidEditionScanner.setVisibility(View.GONE);
+    fabHashOnlyScanner.setVisibility(View.GONE);
     topLayout.setVisibility(View.VISIBLE);
     lytSearch.setVisibility(View.VISIBLE);
     lytSearch.bringToFront();

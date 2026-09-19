@@ -101,7 +101,8 @@ private enum class RapidLiveScanPhase {
 }
 
 /** CameraX/OpenCV laboratory kept separate from the maintained scanner. */
-class RapidEditionScanActivity : AppCompatActivity() {
+open class RapidEditionScanActivity : AppCompatActivity() {
+    protected open val hashOnlyMode: Boolean = false
     private lateinit var root: View
     private lateinit var preview: PreviewView
     private lateinit var liveGuide: ExperimentalCardGuideView
@@ -120,10 +121,14 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var undoLastButton: Button
 
     private val repository by lazy { CardRepository.get(this) }
-    private val printingLineOcr = PrintingLineOcr()
-    private val cardTitleOcr = CardTitleOcr()
-    private val liveCardNameOcr = LiveCardNameOcr()
-    private val cardLanguageDetector = CardTextLanguageDetector()
+    private val printingLineOcrLazy = lazy { PrintingLineOcr() }
+    private val cardTitleOcrLazy = lazy { CardTitleOcr() }
+    private val liveCardNameOcrLazy = lazy { LiveCardNameOcr() }
+    private val cardLanguageDetectorLazy = lazy { CardTextLanguageDetector() }
+    private val printingLineOcr by printingLineOcrLazy
+    private val cardTitleOcr by cardTitleOcrLazy
+    private val liveCardNameOcr by liveCardNameOcrLazy
+    private val cardLanguageDetector by cardLanguageDetectorLazy
     private val openCvDetector = OpenCvCardDetector(guideAssisted = true)
     private val stability = AutoCaptureStability(
         requiredFrames = 8,
@@ -133,6 +138,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
     private val analysisExecutor = Executors.newSingleThreadExecutor()
     private val photoExecutor = Executors.newSingleThreadExecutor()
     private var artHashMatcher: ArtHashMatcher? = null // Only accessed on photoExecutor.
+    private var lastCaptureStartedAtMs = 0L
     private val metadataExecutor = Executors.newSingleThreadExecutor()
     private val captureGate = AtomicBoolean(false)
     private val liveNameOcrGate = AtomicBoolean(false)
@@ -191,6 +197,12 @@ class RapidEditionScanActivity : AppCompatActivity() {
         earlyResult = findViewById(R.id.rapidScanEarlyResult)
         sessionButton = findViewById(R.id.rapidScanSession)
         undoLastButton = findViewById(R.id.rapidScanUndoLast)
+        if (hashOnlyMode) {
+            liveScanPhase = RapidLiveScanPhase.EDGES
+            findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
+            crop.visibility = View.GONE
+            status.textSize = 16f
+        }
         toneGenerator = runCatching {
             ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90)
         }.getOrNull()
@@ -222,7 +234,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
                 capturePhoto(lastDetected, automatic = false)
             }
         }
-        metadataExecutor.execute {
+        if (!hashOnlyMode) metadataExecutor.execute {
             knownSetCodes = CardDatabase.get(this).cardDao().magicSets()
                 .mapTo(LinkedHashSet()) { it.code.uppercase(Locale.US) }
         }
@@ -522,6 +534,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         replaceDebugBitmap(null)
         val output = File.createTempFile("experimental-card-", ".jpg", cacheDir)
         val captureStartedAt = SystemClock.elapsedRealtime()
+        lastCaptureStartedAtMs = captureStartedAt
         stillCapture.takePicture(
             ImageCapture.OutputFileOptions.Builder(output).build(),
             photoExecutor,
@@ -616,7 +629,10 @@ class RapidEditionScanActivity : AppCompatActivity() {
         )
         if (automatic) {
             autoAnalysisScheduled = true
-            correction.postDelayed(autoAnalyzeRunnable, AUTO_ANALYZE_DELAY_MS)
+            correction.postDelayed(
+                autoAnalyzeRunnable,
+                if (hashOnlyMode) HASH_ONLY_AUTO_ANALYZE_DELAY_MS else AUTO_ANALYZE_DELAY_MS
+            )
         }
     }
 
@@ -646,6 +662,10 @@ class RapidEditionScanActivity : AppCompatActivity() {
         analysisInFlight = true
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
+        if (hashOnlyMode) {
+            analyzeHashOnly(corrected)
+            return
+        }
         if (BuildConfig.DEBUG && BuildConfig.GIT_BRANCH == ART_HASH_BRANCH) {
             artHashStatus.visibility = View.VISIBLE
             artHashStatus.setText(R.string.scan_debug_art_hash_running)
@@ -752,6 +772,51 @@ class RapidEditionScanActivity : AppCompatActivity() {
             }
             Log.d(PERF_TAG, "analisis_visual=${SystemClock.elapsedRealtime() - visualStartedAt}ms")
             if (completeIfReady()) finishCombinedOcr(corrected, pending)
+        }
+    }
+
+    private fun analyzeHashOnly(card: Bitmap) {
+        val analysisStartedAt = SystemClock.elapsedRealtime()
+        status.setText(R.string.hash_only_scan_matching)
+        showLoading(getString(R.string.hash_only_scan_matching))
+        photoExecutor.execute {
+            val loadStartedAt = SystemClock.elapsedRealtime()
+            val result = runCatching {
+                val matcher = artHashMatcher ?: ArtHashMatcher(
+                    ArtHashIndex.read(assets.open(ArtHashIndex.ASSET))
+                ).also { artHashMatcher = it }
+                val indexLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
+                Triple(matcher.match(card), indexLoadMs, SystemClock.elapsedRealtime())
+            }
+            card.recycle()
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                finishAnalysis()
+                val (match, indexLoadMs, finishedAt) = result.getOrElse { error ->
+                    showError(error.message ?: getString(R.string.hash_only_scan_error))
+                    return@runOnUiThread
+                }
+                val fromCaptureMs = (finishedAt - lastCaptureStartedAtMs).coerceAtLeast(0L)
+                status.text = buildString {
+                    append(getString(R.string.hash_only_scan_timings, match.elapsedMs,
+                        finishedAt - analysisStartedAt, fromCaptureMs, indexLoadMs))
+                    append('\n')
+                    append(getString(R.string.hash_only_scan_not_edition))
+                    match.candidates.forEachIndexed { index, candidate ->
+                        append('\n')
+                        append(index + 1)
+                        append(". ")
+                        append(getString(R.string.scan_debug_art_hash_candidate,
+                            candidate.hit.name, candidate.hit.phashDistance,
+                            candidate.hit.dhashDistance))
+                    }
+                }
+                instruction.setText(R.string.hash_only_scan_result_instruction)
+                capture.setText(R.string.hash_only_scan_repeat)
+                Log.d(PERF_TAG, "solo_hash busqueda=${match.elapsedMs}ms " +
+                    "analisis=${finishedAt - analysisStartedAt}ms " +
+                    "captura_resultado=${fromCaptureMs}ms indice=${indexLoadMs}ms")
+            }
         }
     }
 
@@ -2004,15 +2069,18 @@ class RapidEditionScanActivity : AppCompatActivity() {
         replaceDebugBitmap(null)
         stability.reset()
         quadHistory.clear()
-        liveScanPhase = RapidLiveScanPhase.NAME
+        liveScanPhase = if (hashOnlyMode) RapidLiveScanPhase.EDGES else RapidLiveScanPhase.NAME
         recognizedNameMatch = null
         missedFrames = 0
         lastDetected = null
         captureGate.set(false)
         cancel.setText(android.R.string.cancel)
         capture.setText(R.string.experimental_scan_manual_capture)
-        capture.isEnabled = false
-        instruction.setText(R.string.experimental_scan_live_reading_name)
+        capture.isEnabled = hashOnlyMode
+        instruction.setText(
+            if (hashOnlyMode) R.string.experimental_scan_finding_edges
+            else R.string.experimental_scan_live_reading_name
+        )
         ensureCamera()
     }
 
@@ -2042,10 +2110,10 @@ class RapidEditionScanActivity : AppCompatActivity() {
         toneGenerator = null
         replaceDebugBitmap(null)
         correction.clearPhoto()
-        printingLineOcr.close()
-        cardTitleOcr.close()
-        liveCardNameOcr.close()
-        cardLanguageDetector.close()
+        if (printingLineOcrLazy.isInitialized()) printingLineOcr.close()
+        if (cardTitleOcrLazy.isInitialized()) cardTitleOcr.close()
+        if (liveCardNameOcrLazy.isInitialized()) liveCardNameOcr.close()
+        if (cardLanguageDetectorLazy.isInitialized()) cardLanguageDetector.close()
         analysisExecutor.shutdownNow()
         photoExecutor.shutdownNow()
         metadataExecutor.shutdownNow()
@@ -2110,6 +2178,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
         const val ANALYSIS_INTERVAL_MS = 70L
         const val NAME_ANALYSIS_INTERVAL_MS = 180L
         const val AUTO_ANALYZE_DELAY_MS = 1_150L
+        private const val HASH_ONLY_AUTO_ANALYZE_DELAY_MS = 200L
         const val MISSES_BEFORE_RESET = 3
         const val MAX_PHOTO_SIDE = 1_800
         const val MAX_SET_CANDIDATES = 4

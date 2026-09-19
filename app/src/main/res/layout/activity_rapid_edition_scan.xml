@@ -37,6 +37,7 @@
         android:padding="12dp">
 
         <TextView
+            android:id="@+id/rapidScanTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/rapid_scan_title"

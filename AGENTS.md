@@ -113,6 +113,9 @@ python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data match RUTA_
 bash gradlew :app:testDebugUnitTest --tests '*EditionSearchTest'
 ```
 
+El PoC de hashes requiere Python con `cv2` y `numpy`; el corpus y los índices
+generados no se versionan ni se incluyen en la APK.
+
 - Usar `bash gradlew`: el wrapper puede no tener permiso de ejecución.
 - La primera compilación puede descargar Gradle, dependencias y SDK 34.
 - Sin `app/google-services.json`, la compilación local funciona pero Firebase queda

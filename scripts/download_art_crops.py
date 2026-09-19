@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cache Scryfall's paper-card art crops for offline hash experiments.
 
-Only the metadata manifest belongs in this repository; keep --data-dir outside Git.
+Keep the corpus and generated metadata in --data-dir outside Git.
 The image download is resumable: valid JPEGs are never requested twice.
 """
 

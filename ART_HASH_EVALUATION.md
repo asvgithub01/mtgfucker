@@ -1,5 +1,45 @@
 # Prueba de identificación por arte (Sony, 2026-09-19)
 
+## Segunda tanda: capturas nuevas del Sony
+
+El 19 de septiembre se copiaron **24 JPEG nuevos** del Sony, aunque el usuario
+contó 23 cartas (podría haber una captura repetida). La app conservaba 30 JPEG
+en total por su límite circular; los originales copiados, las hojas de contacto
+y `sony-30-device-eval.log` están en
+`../mtgfucker-art-hash-data/evaluation/`, fuera de Git. Se volvió a ejecutar
+`ArtHashDeviceEvaluationTest` en el Sony, con el índice empaquetado y el flujo
+automático de detección, rectificación y cuatro recortes. El nombre verdadero se
+leyó de las cartas fotografiadas, no del resultado del matcher.
+
+| Medida sobre las 24 capturas nuevas | Resultado |
+| --- | ---: |
+| Nombre correcto en primera sugerencia de arte | 19/24 (79 %) |
+| Nombre correcto entre las tres primeras | 21/24 (88 %) |
+| Tiempo solo de cuatro hashes y búsqueda, índice cargado | mediana 8 ms; rango 7–13 ms |
+| Primera carga del índice en esta ejecución | 194 ms |
+
+Los cinco fallos en primer puesto fueron **Giant Growth** con arte de ardilla
+(fuera del top 3), **Prey Upon** (puesto 2), **Chandra's Fury** (fuera del top 3),
+**Wildcall** (puesto 3) y un **Eidolon of Blossoms** alemán (fuera del top 3).
+Las referencias correctas de Giant Growth y Chandra's Fury sí existen en el
+corpus; son fallos de recorte/comparación, no de cobertura del índice. El
+Eidolon italiano con el mismo arte sí quedó primero, indicio de sensibilidad
+a la foto, la iluminación o la rectificación. En esta tanda, las 15 primeras
+sugerencias con distancia pHash ≤10 fueron correctas, pero **no** es un umbral
+validado para aceptación automática: la muestra es pequeña y el OCR/símbolo
+deben corroborarlo.
+
+Estas cifras no miden el tiempo total de escaneo. En la APK actual, el hash
+solo informa candidatos de **nombre/arte**; cuando el OCR ya encontró nombre,
+el flujo de decisión de edición sigue siendo el anterior. En particular,
+`CardRepository.identifyCardArtwork` puede comparar hasta 48 imágenes de
+referencia mediante `CardArtworkIdentifier` y obtener los SVG de los símbolos
+de set; los recursos no cacheados implican red. Es una fuente plausible de
+esperas ocasionales, todavía no cuantificada por fase con estas 24 capturas.
+La siguiente iteración debe medir ese tiempo y utilizar el hash, corroborado
+con OCR y metadatos de impresión, para reducir candidatos **antes** de descargar
+imágenes, sin confundir una ilustración compartida con la edición exacta.
+
 Evaluación exploratoria con siete JPEG originales capturados por el escáner rápido
 en el Sony XQ-DQ54. Las fotos y los recortes permanecen **fuera de Git** en
 `../mtgfucker-art-hash-data/evaluation/sony-live/`. No se modificaron datos del

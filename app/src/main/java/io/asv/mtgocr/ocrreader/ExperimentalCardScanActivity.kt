@@ -342,6 +342,7 @@ class ExperimentalCardScanActivity : AppCompatActivity() {
             photoExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(result: ImageCapture.OutputFileResults) {
+                    ArtHashSampleStore.retain(this@ExperimentalCardScanActivity, output)
                     val bitmap = decodePhoto(output)
                     output.delete()
                     if (bitmap == null) {

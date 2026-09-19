@@ -524,6 +524,7 @@ class RapidEditionScanActivity : AppCompatActivity() {
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(result: ImageCapture.OutputFileResults) {
                     Log.d(PERF_TAG, "captura_jpeg=${SystemClock.elapsedRealtime() - captureStartedAt}ms")
+                    ArtHashSampleStore.retain(this@RapidEditionScanActivity, output)
                     val decodeStartedAt = SystemClock.elapsedRealtime()
                     val bitmap = decodePhoto(output)
                     output.delete()

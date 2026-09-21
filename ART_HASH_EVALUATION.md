@@ -129,3 +129,58 @@ El mismo arte se reutiliza en distintas impresiones e idiomas: el hash **no
 identifica por sí solo la impresión exacta**. Antes de permitir identificación
 automática, validar con más cartas, marcos antiguos, full art, mala luz, fundas
 y arte repetido; conservar confirmación humana cuando las señales discrepen.
+
+## Laboratorio `feature/improbe-hash-scanner`
+
+El tercer FAB abre `HashOnlyScanActivity`: **sin checks**, solo usa el índice local
+para proponer nombres/artes. No ejecuta OCR, consulta el catálogo, compara símbolos
+ni descarga imágenes. No confundir este flujo con el escáner rápido normal descrito
+arriba. Se precarga el índice al entrar, con loading; tocar dentro de la guía hace
+lo mismo que **Capturar ahora**. Se conserva el botón y la corrección de esquinas.
+
+- **OCR: nombre y año**: prepara el índice de nombres locales al entrar/al activar
+  el check. Ejecuta `CardTitleOcr` y `PrintingLineOcr`, y contrasta los nombres con
+  los alias existentes. Sin catálogo local, avisa y permite desactivar OCR/reintentar.
+- **Comparar símbolo**: compara la imagen de la banda de símbolo con los SVG de
+  las ediciones locales de los candidatos de arte (más la referencia del índice).
+  No hace OCR del dibujo. Los SVG no cacheados requieren internet; cada descarga
+  tiene timeout. La cobertura depende de las impresiones guardadas localmente.
+- El hash y las dos pasadas OCR arrancan en tres workers. La comparación de símbolos
+  depende únicamente de obtener los candidatos del hash, **no espera al OCR**.
+  Se publica un único resultado cuando todos los trabajos habilitados terminan,
+  incluidos errores parciales; el bitmap no se recicla antes. Los checks quedan
+  bloqueados durante el análisis y se conservan entre sesiones.
+- Cada fila muestra el candidato hash, texto OCR, nombres canónicos encontrados,
+  año/código leído, ediciones locales compatibles con ese año y, si se activó,
+  sugerencia visual del símbolo con nombre, icono y distancia. `?` significa que
+  no hay corroboración/confianza suficiente, no que la carta esté descartada.
+- El año de copyright es solo orientativo. Un símbolo compartido o una ilustración
+  reutilizada tampoco identifica una impresión exacta. No hay aceptación automática,
+  cambios de colección ni nueva decisión basada en el color del borde.
+
+Los tiempos visibles separan hash, OCR (incluye búsqueda local), símbolo, análisis
+completo y tiempo desde captura. El OCR actual procesa varias variantes (10 de
+nombre y 7 de impresión): puede dominar la latencia con los checks activados.
+
+### Validación del 20/09/2026
+
+166 tests JVM y dos tests instrumentales iniciales pasan en el Sony: barrera de
+finalización, toque dentro/fuera de guía (sin confundir arrastre con click), liberación
+del bitmap y las cuatro combinaciones de checks. La prueba del pipeline usa una
+carta **sintética** con «Giant Growth» y año 2014; comprueba OCR/contraste local,
+no mide precisión de identificación ni de símbolos en cartas reales.
+
+| Checks (prueba sintética) | Hash | OCR + catálogo | Símbolo | Análisis total |
+| --- | ---: | ---: | ---: | ---: |
+| Ninguno, primera llamada | 189 ms | — | — | 191 ms |
+| Símbolo | 23 ms | — | 4.968 ms | 5.106 ms |
+| OCR | 14 ms | 2.503 ms | — | 2.507 ms |
+| Ambos | 15 ms | 3.372 ms | 3.965 ms | 4.077 ms |
+
+Son cuatro ejecuciones de humo, no un benchmark. Confirman el solapamiento de
+OCR/símbolo y que las comprobaciones opcionales dominan el coste frente al hash
+caliente. No incluyen captura/rectificación. Falta medirlas con cartas físicas.
+
+También pasa `HashScanActivityDeviceTest`: arranque real del laboratorio, fin de
+loading y visibilidad de los dos checks y del botón. Se revisó el layout renderizado
+en el Sony; el área de cámara queda libre entre controles y botones.

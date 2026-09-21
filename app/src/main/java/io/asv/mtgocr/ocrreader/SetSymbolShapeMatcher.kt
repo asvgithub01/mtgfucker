@@ -89,6 +89,9 @@ class SetSymbolShapeMatcher(
         return SetSymbolShapeMatch(distances, distances.size, reliable)
     }
 
+    /** Release the owned reference workers after the last match has completed. */
+    fun close() { referenceExecutor.shutdown() }
+
     private fun cropSearchBand(bitmap: Bitmap, card: Rect): Bitmap {
         val left = (card.left + card.width() * .58f).roundToInt().coerceIn(0, bitmap.width - 1)
         val top = (card.top + card.height() * .40f).roundToInt().coerceIn(0, bitmap.height - 1)

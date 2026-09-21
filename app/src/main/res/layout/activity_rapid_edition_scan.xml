@@ -45,6 +45,30 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <LinearLayout
+            android:id="@+id/hashScanOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <CheckBox
+                android:id="@+id/hashScanOcr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/hash_scan_ocr"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
+                android:id="@+id/hashScanSymbol"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/hash_scan_symbol"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/experimentalScanInstruction"
             android:layout_width="match_parent"
@@ -165,6 +189,18 @@
                 android:textColor="#FFFFFF"
                 android:textIsSelectable="true"
                 android:textSize="13sp" />
+
+            <ScrollView
+                android:id="@+id/hashScanResultsScroll"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:visibility="gone">
+                <LinearLayout
+                    android:id="@+id/hashScanResults"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
 
             <TextView
                 android:id="@+id/rapidScanArtHashStatus"

@@ -544,4 +544,8 @@
     <string name="experimental_scan_saving_card">Enregistrer la carte dans votre Biblio…</string>
     <string name="experimental_scan_card_added">%1$s · %2$s ajouté. Vous avez maintenant %3$d.</string>
     <string name="experimental_scan_no_language_printings">Il n’y a aucune impression physique confirmée dans %1$s parmi ces éditions.</string>
+    <string name="hash_scan_ocr">OCR : nom et année</string>
+    <string name="hash_scan_symbol">Comparer le symbole (Internet possible)</string>
+    <string name="hash_scan_preparing">Préparation des index des illustrations et des noms…</string>
+    <string name="hash_scan_prepare_error">Impossible de préparer l’index. Changez l’option OCR pour réessayer.</string>
 </resources>

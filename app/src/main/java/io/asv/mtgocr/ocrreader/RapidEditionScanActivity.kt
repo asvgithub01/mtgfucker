@@ -20,6 +20,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
+import android.widget.CheckBox
+import android.widget.LinearLayout
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.ListView
@@ -120,6 +122,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var sessionButton: Button
     private lateinit var undoLastButton: Button
 
+    private var hashAnalysis: HashScanAnalysis? = null
+    @Volatile private var hashPreparing = false
+    private var hashPrepareGeneration = 0
+    private lateinit var hashOcr: CheckBox
+    private lateinit var hashSymbol: CheckBox
+
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
     private val cardTitleOcrLazy = lazy { CardTitleOcr() }
@@ -197,6 +205,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         earlyResult = findViewById(R.id.rapidScanEarlyResult)
         sessionButton = findViewById(R.id.rapidScanSession)
         undoLastButton = findViewById(R.id.rapidScanUndoLast)
+        hashOcr = findViewById(R.id.hashScanOcr)
+        hashSymbol = findViewById(R.id.hashScanSymbol)
         if (hashOnlyMode) {
             liveScanPhase = RapidLiveScanPhase.EDGES
             findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
@@ -226,6 +236,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (correctionMode) returnToCamera() else finish()
         }
         capture.setOnClickListener {
+            if (hashPreparing || analysisInFlight) return@setOnClickListener
             if (correctionMode) {
                 analyzeCorrectedPhoto()
             } else if (liveScanPhase == RapidLiveScanPhase.EDGES &&
@@ -233,6 +244,22 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             ) {
                 capturePhoto(lastDetected, automatic = false)
             }
+        }
+        if (hashOnlyMode) {
+            hashAnalysis = HashScanAnalysis(this)
+            findViewById<View>(R.id.hashScanOptions).visibility = View.VISIBLE
+            val preferences = getSharedPreferences("hash_scanner", MODE_PRIVATE)
+            hashOcr.isChecked = preferences.getBoolean("ocr", false)
+            hashSymbol.isChecked = preferences.getBoolean("symbol", false)
+            hashOcr.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("ocr", checked).apply()
+                prepareHashAnalysis()
+            }
+            hashSymbol.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("symbol", checked).apply()
+            }
+            liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
+            prepareHashAnalysis()
         }
         if (!hashOnlyMode) metadataExecutor.execute {
             knownSetCodes = CardDatabase.get(this).cardDao().magicSets()
@@ -310,7 +337,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
             ).setAutoCancelDuration(2, TimeUnit.SECONDS).build()
         )
-        capture.isEnabled = liveScanPhase == RapidLiveScanPhase.EDGES
+        capture.isEnabled = liveScanPhase == RapidLiveScanPhase.EDGES && !hashPreparing
         instruction.setText(
             if (liveScanPhase == RapidLiveScanPhase.NAME) R.string.experimental_scan_live_reading_name
             else R.string.experimental_scan_finding_edges
@@ -318,7 +345,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun analyzeLiveFrame(image: ImageProxy) {
-        if (captureGate.get() || correctionMode) {
+        if (captureGate.get() || correctionMode || hashPreparing) {
             image.close()
             return
         }
@@ -519,12 +546,15 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun capturePhoto(detected: OpenCvDetectedQuad?, automatic: Boolean) {
+        if (hashPreparing) { captureGate.set(false); return }
+
         val stillCapture = imageCapture
         if (stillCapture == null) {
             captureGate.set(false)
             return
         }
         capture.isEnabled = false
+        if (hashOnlyMode) { hashOcr.isEnabled = false; hashSymbol.isEnabled = false }
         showLoading(getString(R.string.rapid_scan_loading_capture))
         instruction.setText(
             if (automatic) R.string.experimental_scan_auto_capture
@@ -620,6 +650,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         correction.visibility = View.VISIBLE
         liveGuide.visibility = View.GONE
         correctionMode = true
+        if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
         cancel.setText(R.string.edition_scan_retake_photo)
         capture.setText(R.string.experimental_scan_read_printing)
         capture.isEnabled = true
@@ -638,11 +669,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
 
     private fun cameraFailure(message: String = getString(R.string.experimental_scan_camera_error)) {
         runOnUiThread {
+            if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
             hideLoading()
             captureGate.set(false)
             stability.reset()
             quadHistory.clear()
-            capture.isEnabled = liveScanPhase == RapidLiveScanPhase.EDGES
+            capture.isEnabled = liveScanPhase == RapidLiveScanPhase.EDGES && !hashPreparing
             instruction.setText(
                 if (liveScanPhase == RapidLiveScanPhase.NAME) R.string.experimental_scan_live_reading_name
                 else R.string.experimental_scan_finding_edges
@@ -652,7 +684,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun analyzeCorrectedPhoto() {
-        if (analysisInFlight) return
+        if (analysisInFlight || hashPreparing) return
         correction.removeCallbacks(autoAnalyzeRunnable)
         autoAnalysisScheduled = false
         val corrected = correction.extractCardBitmap() ?: run {
@@ -775,49 +807,105 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun analyzeHashOnly(card: Bitmap) {
-        val analysisStartedAt = SystemClock.elapsedRealtime()
-        status.setText(R.string.hash_only_scan_matching)
-        showLoading(getString(R.string.hash_only_scan_matching))
-        photoExecutor.execute {
-            val loadStartedAt = SystemClock.elapsedRealtime()
-            val result = runCatching {
-                val matcher = artHashMatcher ?: ArtHashMatcher(
-                    ArtHashIndex.read(assets.open(ArtHashIndex.ASSET))
-                ).also { artHashMatcher = it }
-                val indexLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
-                Triple(matcher.match(card), indexLoadMs, SystemClock.elapsedRealtime())
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun prepareHashAnalysis() {
+        val generation = ++hashPrepareGeneration
+        hashPreparing = true
+        capture.isEnabled = false
+        showLoading(getString(R.string.hash_scan_preparing))
+        hashAnalysis?.prepare(hashOcr.isChecked) { ready -> runOnUiThread {
+            if (isFinishing || isDestroyed || generation != hashPrepareGeneration) return@runOnUiThread
+            hashPreparing = false
+            hideLoading()
+            capture.isEnabled = ready && openCvReady
+            if (!ready) {
+                // Keep live auto-capture blocked as well. Toggling OCR retries preparation.
+                hashPreparing = true
+                instruction.setText(R.string.hash_scan_prepare_error)
             }
-            card.recycle()
-            runOnUiThread {
-                if (isFinishing || isDestroyed) return@runOnUiThread
-                finishAnalysis()
-                val (match, indexLoadMs, finishedAt) = result.getOrElse { error ->
-                    showError(error.message ?: getString(R.string.hash_only_scan_error))
-                    return@runOnUiThread
+        } }
+    }
+
+    private fun analyzeHashOnly(card: Bitmap) {
+        val options = HashScanAnalysis.Options(hashOcr.isChecked, hashSymbol.isChecked)
+        hashOcr.isEnabled = false
+        hashSymbol.isEnabled = false
+        status.setText(R.string.hash_only_scan_matching)
+        findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
+        showLoading(getString(R.string.hash_only_scan_matching))
+        hashAnalysis!!.analyze(card, options) { result -> runOnUiThread {
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            finishAnalysis()
+            hashOcr.isEnabled = true
+            hashSymbol.isEnabled = true
+            val fromCapture = (SystemClock.elapsedRealtime() - lastCaptureStartedAtMs).coerceAtLeast(0)
+            status.text = getString(R.string.scan_debug_hash_checks_timing,
+                result.hash?.elapsedMs ?: 0, result.ocrMs, result.symbolMs, result.elapsedMs, fromCapture)
+            val rows = findViewById<LinearLayout>(R.id.hashScanResults)
+            rows.removeAllViews()
+            result.rows.forEachIndexed { index, row ->
+                val container = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, dp(8), 0, dp(8))
                 }
-                val fromCaptureMs = (finishedAt - lastCaptureStartedAtMs).coerceAtLeast(0L)
-                status.text = buildString {
-                    append(getString(R.string.hash_only_scan_timings, match.elapsedMs,
-                        finishedAt - analysisStartedAt, fromCaptureMs, indexLoadMs))
-                    append('\n')
-                    append(getString(R.string.hash_only_scan_not_edition))
-                    match.candidates.forEachIndexed { index, candidate ->
-                        append('\n')
-                        append(index + 1)
-                        append(". ")
-                        append(getString(R.string.scan_debug_art_hash_candidate,
-                            candidate.hit.name, candidate.hit.phashDistance,
-                            candidate.hit.dhashDistance))
+                val symbolCode = row.editions.filter { result.symbols?.distanceBySetCode?.containsKey(it.code) == true }
+                    .minByOrNull { result.symbols!!.distanceBySetCode.getValue(it.code) }
+                if (options.symbol && symbolCode != null) {
+                    container.addView(ImageView(this).apply {
+                        contentDescription = symbolCode.name
+                        SetSymbolLoader.display(this@RapidEditionScanActivity, symbolCode.code, this)
+                    }, LinearLayout.LayoutParams(dp(32), dp(32)))
+                }
+                val text = TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    textSize = 13f
+                    setTextIsSelectable(true)
+                    text = buildString {
+                        append("${index + 1}. ")
+                        append(getString(R.string.scan_debug_art_hash_candidate, row.candidate.hit.name,
+                            row.candidate.hit.phashDistance, row.candidate.hit.dhashDistance))
+                        append("\n")
+                        append(getString(R.string.hash_only_scan_not_edition))
+                        if (options.ocr) {
+                            append("\n")
+                            append(getString(R.string.scan_debug_hash_ocr_row,
+                                result.rawTitle.joinToString(" / ").ifBlank { "—" },
+                                result.names.joinToString().ifBlank { "—" },
+                                if (HashScanEvidence.nameMatches(row.candidate.hit.name, result.names)) "✓" else "?",
+                                result.printing?.printingYear?.toString() ?: "—",
+                                result.printing?.setCodeCandidates?.joinToString { code ->
+                                    row.editions.firstOrNull { it.code == code }?.let { "${it.name} (${it.code})" } ?: code
+                                }.orEmpty().ifBlank { "—" }))
+                            val yearSets = row.editions.filter { result.printing?.printingYear != null && it.year == result.printing.printingYear }
+                            append("\n")
+                            append(getString(R.string.scan_debug_hash_year_sets,
+                                yearSets.joinToString { "${it.name} (${it.code})" }.ifBlank { "—" }))
+                        }
+                        if (options.symbol) {
+                            append("\n")
+                            append(getString(R.string.scan_debug_hash_symbol_row,
+                                symbolCode?.let { "${it.name} (${it.code})" } ?: "—",
+                                symbolCode?.let { String.format(Locale.US, "%.3f", result.symbols!!.distanceBySetCode[it.code]) } ?: "—",
+                                if (result.symbols?.reliable == true && symbolCode?.code == result.symbols.distanceBySetCode.minByOrNull { it.value }?.key) "✓" else "?"))
+                        }
                     }
                 }
-                instruction.setText(R.string.hash_only_scan_result_instruction)
-                capture.setText(R.string.hash_only_scan_repeat)
-                Log.d(PERF_TAG, "solo_hash busqueda=${match.elapsedMs}ms " +
-                    "analisis=${finishedAt - analysisStartedAt}ms " +
-                    "captura_resultado=${fromCaptureMs}ms indice=${indexLoadMs}ms")
+                container.addView(text, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                rows.addView(container)
             }
-        }
+            if (result.errors.isNotEmpty() || result.rows.isEmpty()) {
+                rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.hash_only_scan_error) + "\n" + result.errors.joinToString("\n")
+                })
+            }
+            findViewById<View>(R.id.hashScanResultsScroll).visibility = View.VISIBLE
+            instruction.setText(R.string.hash_only_scan_result_instruction)
+            capture.setText(R.string.hash_only_scan_repeat)
+            Log.d(PERF_TAG, "hash_checks hash=${result.hash?.elapsedMs} ocr=${result.ocrMs} " +
+                "symbol=${result.symbolMs} total=${result.elapsedMs} capture=$fromCapture")
+        } }
     }
 
     private fun finishCombinedOcr(card: Bitmap, pending: RapidPendingCardOcr) {
@@ -1390,6 +1478,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         correction.visibility = View.VISIBLE
         liveGuide.visibility = View.GONE
         correctionMode = true
+        if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
         cancel.setText(R.string.edition_scan_retake_photo)
         capture.setText(R.string.rapid_scan_reanalyze)
         capture.isEnabled = true
@@ -2076,7 +2165,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         captureGate.set(false)
         cancel.setText(android.R.string.cancel)
         capture.setText(R.string.experimental_scan_manual_capture)
-        capture.isEnabled = hashOnlyMode
+        capture.isEnabled = hashOnlyMode && !hashPreparing
         instruction.setText(
             if (hashOnlyMode) R.string.experimental_scan_finding_edges
             else R.string.experimental_scan_live_reading_name
@@ -2103,6 +2192,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        hashPrepareGeneration++
+        hashAnalysis?.close()
         correction.removeCallbacks(autoAnalyzeRunnable)
         feedbackSnackbar?.dismiss()
         feedbackSnackbar = null

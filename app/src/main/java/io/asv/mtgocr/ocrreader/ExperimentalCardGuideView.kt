@@ -8,6 +8,8 @@ import android.graphics.Path
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.view.ViewConfiguration
+import android.view.MotionEvent
 import android.view.View
 import kotlin.math.max
 
@@ -38,20 +40,61 @@ class ExperimentalCardGuideView @JvmOverloads constructor(
         postInvalidateOnAnimation()
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
+    private fun expectedCard(): RectF {
         var cardHeight = height * .72f
         var cardWidth = cardHeight * (63f / 88f)
         if (cardWidth > width * .90f) {
             cardWidth = width * .90f
             cardHeight = cardWidth * (88f / 63f)
         }
-        val expected = RectF(
+        return RectF(
             (width - cardWidth) / 2f,
             (height - cardHeight) / 2f,
             (width + cardWidth) / 2f,
             (height + cardHeight) / 2f
         )
+    }
+
+    var onCardTap: (() -> Unit)? = null
+    private var cardTapStarted = false
+    private var tapMoved = false
+    private var tapX = 0f
+    private var tapY = 0f
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (onCardTap == null) return super.onTouchEvent(event)
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                cardTapStarted = expectedCard().contains(event.x, event.y)
+                tapX = event.x
+                tapY = event.y
+                tapMoved = false
+                return cardTapStarted
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (kotlin.math.abs(event.x - tapX) > touchSlop ||
+                    kotlin.math.abs(event.y - tapY) > touchSlop) tapMoved = true
+            }
+            MotionEvent.ACTION_UP -> {
+                val tapped = cardTapStarted && !tapMoved && expectedCard().contains(event.x, event.y)
+                cardTapStarted = false
+                if (tapped) performClick()
+                return tapped
+            }
+            MotionEvent.ACTION_CANCEL -> cardTapStarted = false
+        }
+        return cardTapStarted
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        onCardTap?.invoke()
+        return true
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val expected = expectedCard()
         canvas.drawRect(0f, 0f, width.toFloat(), expected.top, shade)
         canvas.drawRect(0f, expected.bottom, width.toFloat(), height.toFloat(), shade)
         canvas.drawRect(0f, expected.top, expected.left, expected.bottom, shade)

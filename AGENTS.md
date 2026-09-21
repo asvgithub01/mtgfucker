@@ -37,6 +37,7 @@
 | --- | --- |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
+| Hash con OCR/símbolo opcionales | `HashScanAnalysis.kt`, `HashScanEvidence.kt`; controles y resultados en `RapidEditionScanActivity.kt`/`activity_rapid_edition_scan.xml`. Ver `ART_HASH_EVALUATION.md`; no atribuir al hash una edición exacta. |
 | Prueba de escáner solo por hash | `HashOnlyScanActivity.kt` reutiliza la captura/rectificación de `RapidEditionScanActivity.kt`, salta OCR/red y ejecuta `ArtHashMatcher.kt`/`ArtHashIndex.kt`; tercer FAB en `ocr_capture.xml` |
 | Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtHashSampleStore.kt`, `RapidEditionScanActivity.kt`; índice APK `app/src/main/assets/art_hash_index.bin`, generador `scripts/build_art_hash_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
@@ -162,13 +163,12 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - **No desinstalar ni borrar datos por una incompatibilidad futura sin nueva autorización.**
   La autorización anterior fue para esa reinstalación, no un permiso permanente.
 - Backup de recuperación más reciente (fuera del repositorio):
-  `~/.codex/backups/mtgfucker/sony-20260916-115903/`. Incluye TAR de `databases`, `files`
-  y `shared_prefs`, APK anterior y nueva, hashes originales/restaurados y README. Los 8.495
-  archivos restaurados coincidieron byte a byte antes de abrir la app; SQLite pasó
-  `quick_check`. La reinstalación cambió el UID de `u0_a866` a `u0_a867`; `tar -xof -`
-  conservó correctamente el propietario nuevo. Tras abrir la Biblio se verificó la
-  migración Room 4→5, las columnas `mcmId`/`mcmMetaId`, la colección visible y la sesión
-  Firebase restaurada.
+  `~/.codex/backups/mtgfucker/sony-20260920-105615-hash-scanner/`. Tras nueva
+  autorización explícita se reinstaló desde el Mac por diferencia de firma. Incluye
+  `data.tar`, APK anterior/nueva, manifiestos SHA-256 y marcadores de verificación.
+  Los **8.908 archivos** restaurados coincidieron byte a byte antes de abrir la app;
+  la copia SQLite pasó `quick_check`, esquema Room 5. `tar -xof -` conservó el nuevo
+  propietario. La autorización solo cubre esa reinstalación, no futuras pérdidas de firma.
 - Para backups consistentes, detener primero la app. Incluir WAL/SHM de SQLite y los archivos
   legacy, no solo `mtg_catalog.db`. No publicar backups ni credenciales en Git.
 - `run-as` permite copiar/restaurar en este debug. Al restaurar un TAR usar `tar -xof -`

@@ -985,7 +985,45 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             capture.setText(R.string.hash_only_scan_repeat)
             Log.d(PERF_TAG, "hash_checks hash=${result.hash?.elapsedMs} ocr=${result.ocrMs} " +
                 "symbol=${result.symbolMs} total=${result.elapsedMs} capture=$fromCapture")
+            autoAddResolvedHashResult(result)
         } }
+    }
+
+    private fun autoAddResolvedHashResult(result: HashScanAnalysis.Result) {
+        val target = HashAutoAddPolicy.uniqueTarget(result.rows.mapNotNull { row ->
+            row.resolvedEdition?.let {
+                HashAutoAddTarget(row.candidate.hit.name, it.printingUuid)
+            }
+        }) ?: return
+        capture.isEnabled = false
+        showLoading(getString(R.string.rapid_scan_loading_prices, target.cardName))
+        var delivered = false
+        repository.loadCard(
+            target.cardName,
+            forcePriceRefresh = false,
+            deliverEditionsBeforePrices = true
+        ) { options, error ->
+            if (isFinishing || isDestroyed || delivered) return@loadCard
+            val option = options.asSequence()
+                .filter { it.printingUuid == target.printingUuid }
+                .sortedWith(compareBy<CardEditionOption> { CardFinish.isFoil(it.finish) }
+                    .thenBy { it.finish })
+                .firstOrNull()
+            if (option != null) {
+                delivered = true
+                Log.d(PERF_TAG, "hash_auto_add=${option.printingUuid}:${option.finish}")
+                addSelectedEdition(option, result.printing?.languageCode.orEmpty())
+            } else if (error != null || options.isNotEmpty()) {
+                delivered = true
+                hideLoading()
+                capture.isEnabled = true
+                Toast.makeText(
+                    this,
+                    error?.message ?: getString(R.string.copy_add_error),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun finishCombinedOcr(card: Bitmap, pending: RapidPendingCardOcr) {
@@ -1641,6 +1679,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 if (card == null) {
+                    hideLoading()
                     capture.isEnabled = true
                     instruction.setText(R.string.experimental_scan_identified)
                     Toast.makeText(

@@ -410,7 +410,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                     capturePhoto(consensus, automatic = true)
                 }
             }
-        } catch (_: Throwable) {
+        } catch (error: Throwable) {
+            // If live rectification fails after taking the gate, allow the next frame to retry.
+            captureGate.set(false)
+            Log.w(PERF_TAG, "fallo_bordes_live", error)
             missedFrames++
         } finally {
             image.close()
@@ -429,6 +432,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         imageAnalysis = null
         imageCapture = null
         liveGuide.showDetection(lastDetected, 1f)
+        debug.visibility = View.VISIBLE
         capture.isEnabled = false
         instruction.setText(R.string.hash_only_scan_matching)
         analyzeHashOnly(card)

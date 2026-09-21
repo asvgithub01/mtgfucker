@@ -137,6 +137,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var hashBorderResult: TextView
     private lateinit var hashLanguage: CheckBox
     private lateinit var hashLanguageResult: TextView
+    private var hashOcrConflictState = HashOcrConflictState()
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
@@ -1091,6 +1092,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private fun autoAddFirstHashResult(result: HashScanAnalysis.Result) {
         val firstRow = result.rows.firstOrNull() ?: return
         val row = if (result.names.isEmpty()) {
+            hashOcrConflictState = HashOcrConflictState()
             firstRow
         } else {
             HashScanEvidence.firstMatchingCandidateIndex(
@@ -1101,7 +1103,26 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (row == null) {
             val ocrNames = result.names.joinToString(" / ")
             val artName = firstRow.candidate.hit.name
+            hashOcrConflictState = HashOcrFallbackPolicy.observe(
+                hashOcrConflictState,
+                result.names
+            )
+            val confirmedOcrName = HashOcrFallbackPolicy.confirmedName(hashOcrConflictState)
             Log.w(PERF_TAG, "hash_name_confusion ocr=$ocrNames art=$artName")
+            if (confirmedOcrName != null) {
+                hashOcrConflictState = HashOcrConflictState()
+                Toast.makeText(
+                    this,
+                    getString(R.string.hash_scan_ocr_consensus, confirmedOcrName),
+                    Toast.LENGTH_LONG
+                ).show()
+                if (hashAutoAdd.isChecked) {
+                    autoAddConfirmedOcrResult(confirmedOcrName, result)
+                } else {
+                    returnToCamera()
+                }
+                return
+            }
             Toast.makeText(
                 this,
                 getString(R.string.hash_scan_name_confusion, ocrNames, artName),
@@ -1110,6 +1131,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             returnToCamera()
             return
         }
+        hashOcrConflictState = HashOcrConflictState()
         val hit = row.candidate.hit
         if (row !== firstRow) {
             Log.d(PERF_TAG, "hash_ocr_selected_rank=${result.rows.indexOf(row) + 1}:${hit.name}")
@@ -1166,6 +1188,41 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             } else {
                 if (localError != null) Log.w(PERF_TAG, "hash_auto_add_local", localError)
                 loadHashAutoAddFromCatalog(target, result)
+            }
+        }
+    }
+
+    private fun autoAddConfirmedOcrResult(
+        cardName: String,
+        result: HashScanAnalysis.Result
+    ) {
+        capture.isEnabled = false
+        showLoading(getString(R.string.rapid_scan_loading_prices, cardName))
+        var delivered = false
+        repository.loadCard(
+            cardName,
+            forcePriceRefresh = false,
+            deliverEditionsBeforePrices = true
+        ) { options, error ->
+            if (isFinishing || isDestroyed || delivered) return@loadCard
+            val option = HashOcrFallbackPolicy.preferredPrinting(options, result.printing)
+            if (option != null) {
+                delivered = true
+                Log.d(PERF_TAG, "hash_auto_add_ocr_consensus=${option.printingUuid}")
+                addSelectedEdition(
+                    option,
+                    result.effectiveLanguage,
+                    hashScanCapture(result, option)
+                )
+            } else if (error != null || options.isNotEmpty()) {
+                delivered = true
+                hideLoading()
+                Toast.makeText(
+                    this,
+                    error?.message ?: getString(R.string.copy_add_error),
+                    Toast.LENGTH_LONG
+                ).show()
+                returnToCamera()
             }
         }
     }

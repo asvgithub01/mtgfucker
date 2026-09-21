@@ -52,3 +52,10 @@ Puntos clave:
   captura.
 - Métricas de tiempo por carta, tasa de reconocimiento, correcciones y reintentos para poder ajustar
   OCR y umbrales con datos reales.
+
+## Pendientes inmediatos del escáner hash
+
+- Corregir la separación entre inserciones consecutivas para que una misma carta no se duplique y
+  la siguiente no herede el consenso de la anterior.
+- Añadir una validación explícita de presencia de carta antes de OCR/hash: una mano, el fondo u
+  otra forma sin carta no debe iniciar identificación ni producir una inserción.

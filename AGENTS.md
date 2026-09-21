@@ -93,6 +93,8 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
 - El autoañadido por hash usa el primer candidato de arte cuyo nombre coincida con OCR, aunque sea
   el resultado 2 o 3. Si ninguno coincide, muestra la confusión y reanuda el autoscan. Nunca
   preseleccionar automáticamente LEA, LEB, ARN, ATQ, LEG ni DRK; elegir otra impresión segura.
+- Dos conflictos consecutivos con el mismo nombre OCR confirman la identidad por OCR y permiten
+  autoañadirla con una impresión segura; un nombre distinto reinicia este consenso temporal.
 - El laboratorio hash inicia el matching desde un frame live rectificado antes del JPEG. No
   volver a introducir captura/decodificación/corrección en su camino normal; la foto queda como
   fallback. El hash solo identifica arte; la impresión local se resuelve después filtrando las

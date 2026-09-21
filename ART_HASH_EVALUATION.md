@@ -184,3 +184,21 @@ caliente. No incluyen captura/rectificación. Falta medirlas con cartas físicas
 También pasa `HashScanActivityDeviceTest`: arranque real del laboratorio, fin de
 loading y visibilidad de los dos checks y del botón. Se revisó el layout renderizado
 en el Sony; el área de cámara queda libre entre controles y botones.
+
+### Inicio desde preview, antes de la foto
+
+La siguiente iteración elimina del camino normal del laboratorio hash la captura
+JPEG. Cuando OpenCV lleva al menos tres detecciones coherentes y alcanza el 34 %
+de la estabilidad exigida para disparar la cámara, se rectifica directamente el
+plano Y del frame de `ImageAnalysis` a 630×880 y comienza el hash. Por tanto ya no
+espera `ImageCapture`, escritura/decodificación JPEG, segunda detección de bordes,
+pantalla de corrección ni los 200 ms del autoanálisis. El botón de captura conserva
+el flujo de foto y corrección como fallback manual.
+
+El primer resultado hash se publica en cuanto termina aunque estén activados OCR
+o símbolo; esas comprobaciones continúan en paralelo. Si OCR confirma a la vez el
+nombre, código de set y collector number y queda una única impresión local, la fila
+la marca como edición resuelta. Año, arte o símbolo aislados siguen sin aceptarse
+como prueba inequívoca. Falta validar la calidad del recorte live con cartas físicas;
+el JPEG tiene más detalle y puede seguir siendo preferible como fallback en casos
+difíciles.

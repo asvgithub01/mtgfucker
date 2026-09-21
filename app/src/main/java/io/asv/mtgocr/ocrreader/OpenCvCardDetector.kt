@@ -44,6 +44,56 @@ class OpenCvCardDetector(
         }
     }
 
+    /** Rectifies the current live Y frame without waiting for a JPEG still capture. */
+    fun rectify(
+        image: ImageProxy,
+        detected: OpenCvDetectedQuad,
+        width: Int = 630,
+        height: Int = 880
+    ): Bitmap? {
+        if (width <= 0 || height <= 0 || detected.normalizedCorners.size != 4) return null
+        val source = yPlane(image)
+        val upright = rotate(source, image.imageInfo.rotationDegrees)
+        if (upright !== source) source.release()
+        val sourceCorners = MatOfPoint2f(*detected.normalizedCorners.map {
+            Point(
+                it.x.coerceIn(0f, 1f).toDouble() * (upright.cols() - 1),
+                it.y.coerceIn(0f, 1f).toDouble() * (upright.rows() - 1)
+            )
+        }.toTypedArray())
+        val destinationCorners = MatOfPoint2f(
+            Point(0.0, 0.0),
+            Point((width - 1).toDouble(), 0.0),
+            Point((width - 1).toDouble(), (height - 1).toDouble()),
+            Point(0.0, (height - 1).toDouble())
+        )
+        val transform = Imgproc.getPerspectiveTransform(sourceCorners, destinationCorners)
+        val corrected = Mat()
+        val rgba = Mat()
+        return try {
+            Imgproc.warpPerspective(
+                upright,
+                corrected,
+                transform,
+                Size(width.toDouble(), height.toDouble()),
+                Imgproc.INTER_LINEAR,
+                Core.BORDER_REPLICATE
+            )
+            if (corrected.empty()) return null
+            Imgproc.cvtColor(corrected, rgba, Imgproc.COLOR_GRAY2RGBA)
+            Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also {
+                Utils.matToBitmap(rgba, it)
+            }
+        } finally {
+            upright.release()
+            sourceCorners.release()
+            destinationCorners.release()
+            transform.release()
+            corrected.release()
+            rgba.release()
+        }
+    }
+
     fun detect(bitmap: Bitmap): OpenCvDetectedQuad? {
         val rgba = Mat()
         val gray = Mat()

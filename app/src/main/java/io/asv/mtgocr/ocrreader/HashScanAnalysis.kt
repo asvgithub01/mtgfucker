@@ -15,8 +15,18 @@ import java.util.concurrent.TimeUnit
 /** Owns each rectified bitmap until every enabled analysis has completed. No collection writes. */
 internal class HashScanAnalysis(context: Context) {
     data class Options(val ocr: Boolean, val symbol: Boolean)
-    data class Edition(val code: String, val name: String, val year: Int?)
-    data class Row(val candidate: ArtHashMatcher.Candidate, val editions: List<Edition>)
+    data class Edition(
+        val code: String,
+        val name: String,
+        val year: Int?,
+        val collectorNumber: String,
+        val printingUuid: String
+    )
+    data class Row(
+        val candidate: ArtHashMatcher.Candidate,
+        val editions: List<Edition>,
+        val resolvedEdition: Edition? = null
+    )
     data class Result(
         val hash: ArtHashMatcher.Result?, val rows: List<Row>, val rawTitle: List<String>,
         val names: List<String>, val printing: PrintingMetadataGuess?,
@@ -45,7 +55,12 @@ internal class HashScanAnalysis(context: Context) {
         }
     }
 
-    fun analyze(card: Bitmap, options: Options, callback: (Result) -> Unit) {
+    fun analyze(
+        card: Bitmap,
+        options: Options,
+        onHashReady: (ArtHashMatcher.Result) -> Unit = {},
+        callback: (Result) -> Unit
+    ) {
         val started = SystemClock.elapsedRealtime()
         val lock = Any()
         var hash: ArtHashMatcher.Result? = null
@@ -63,7 +78,15 @@ internal class HashScanAnalysis(context: Context) {
         val completion = HashScanCompletion(options.ocr) {
             card.recycle()
             val result = synchronized(lock) {
-                Result(hash, rows, title, names, printing, shape, errors.toList(),
+                val resolvedRows = rows.map { row ->
+                    row.copy(resolvedEdition = HashScanEvidence.resolveEdition(
+                        row.candidate.hit.name,
+                        names,
+                        printing,
+                        row.editions
+                    ))
+                }
+                Result(hash, resolvedRows, title, names, printing, shape, errors.toList(),
                     SystemClock.elapsedRealtime() - started, ocrMs, symbolMs)
             }
             if (!closed) callback(result)
@@ -77,16 +100,24 @@ internal class HashScanAnalysis(context: Context) {
                     hash = matched
                     rows = matched.candidates.map { Row(it, emptyList()) }
                 }
+                if (!closed) onHashReady(matched)
                 val dao = if (options.ocr || options.symbol) CardDatabase.get(app).cardDao() else null
                 val sets = if (options.ocr || options.symbol) dao!!.magicSets().associateBy { it.code.uppercase(Locale.ROOT) }
                     else emptyMap()
                 val candidateRows = matched.candidates.map { candidate ->
-                    val codes = if (options.ocr || options.symbol) {
+                    val printings = if (options.ocr || options.symbol) {
                         dao!!.printingsByName(MtgJsonCatalogDataProvider.normalize(candidate.hit.name))
-                            .map { it.setCode.uppercase(Locale.ROOT) } + candidate.hit.setCode.uppercase(Locale.ROOT)
                     } else emptyList()
-                    Row(candidate, codes.distinct().map { code ->
-                        Edition(code, sets[code]?.name ?: code, sets[code]?.releaseDate?.take(4)?.toIntOrNull())
+                    Row(candidate, printings.distinctBy { it.uuid }.map { printing ->
+                        val code = printing.setCode.uppercase(Locale.ROOT)
+                        Edition(
+                            code,
+                            sets[code]?.name ?: printing.setName.ifBlank { code },
+                            printing.releaseDate.take(4).toIntOrNull()
+                                ?: sets[code]?.releaseDate?.take(4)?.toIntOrNull(),
+                            printing.collectorNumber,
+                            printing.uuid
+                        )
                     })
                 }
                 synchronized(lock) { rows = candidateRows }

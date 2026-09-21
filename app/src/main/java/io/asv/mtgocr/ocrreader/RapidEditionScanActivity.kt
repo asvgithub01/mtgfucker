@@ -157,6 +157,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private var debugBitmap: Bitmap? = null
     private var correctionMode = false
     private var analysisInFlight = false
+    private var hashLiveResultMode = false
     private var autoAnalysisScheduled = false
     private var earlyLookupGeneration = 0
     private var feedbackSnackbar: Snackbar? = null
@@ -237,7 +238,9 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
         capture.setOnClickListener {
             if (hashPreparing || analysisInFlight) return@setOnClickListener
-            if (correctionMode) {
+            if (hashOnlyMode && hashLiveResultMode) {
+                returnToCamera()
+            } else if (correctionMode) {
                 analyzeCorrectedPhoto()
             } else if (liveScanPhase == RapidLiveScanPhase.EDGES &&
                 captureGate.compareAndSet(false, true)
@@ -391,7 +394,17 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                     )
                 }
             }
-            if (decision.shouldCapture && captureGate.compareAndSet(false, true)) {
+            if (hashOnlyMode && HashLiveScanPolicy.shouldAnalyze(decision.progress, quadHistory.size) &&
+                captureGate.compareAndSet(false, true)
+            ) {
+                val rectified = openCvDetector.rectify(image, consensus)
+                if (rectified == null) {
+                    captureGate.set(false)
+                } else {
+                    lastCaptureStartedAtMs = now
+                    runOnUiThread { analyzeLiveHash(rectified) }
+                }
+            } else if (decision.shouldCapture && captureGate.compareAndSet(false, true)) {
                 runOnUiThread {
                     instruction.setText(R.string.experimental_scan_auto_capture)
                     capturePhoto(consensus, automatic = true)
@@ -402,6 +415,23 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         } finally {
             image.close()
         }
+    }
+
+    private fun analyzeLiveHash(card: Bitmap) {
+        if (isFinishing || isDestroyed || correctionMode || hashPreparing || analysisInFlight) {
+            card.recycle()
+            captureGate.set(false)
+            return
+        }
+        analysisInFlight = true
+        hashLiveResultMode = true
+        cameraProvider?.unbindAll()
+        imageAnalysis = null
+        imageCapture = null
+        liveGuide.showDetection(lastDetected, 1f)
+        capture.isEnabled = false
+        instruction.setText(R.string.hash_only_scan_matching)
+        analyzeHashOnly(card)
     }
 
     private fun analyzeLiveName(image: ImageProxy) {
@@ -650,6 +680,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         correction.visibility = View.VISIBLE
         liveGuide.visibility = View.GONE
         correctionMode = true
+        hashLiveResultMode = false
         if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
         cancel.setText(R.string.edition_scan_retake_photo)
         capture.setText(R.string.experimental_scan_read_printing)
@@ -834,7 +865,24 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         status.setText(R.string.hash_only_scan_matching)
         findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
         showLoading(getString(R.string.hash_only_scan_matching))
-        hashAnalysis!!.analyze(card, options) { result -> runOnUiThread {
+        hashAnalysis!!.analyze(card, options, onHashReady = { hash -> runOnUiThread {
+            if (isFinishing || isDestroyed || !analysisInFlight) return@runOnUiThread
+            artHashStatus.visibility = View.VISIBLE
+            val candidates = hash.candidates.take(3).joinToString(" · ") {
+                getString(
+                    R.string.scan_debug_art_hash_candidate,
+                    it.hit.name,
+                    it.hit.phashDistance,
+                    it.hit.dhashDistance
+                )
+            }
+            artHashStatus.text = getString(
+                R.string.scan_debug_art_hash_result,
+                hash.indexedArts,
+                hash.elapsedMs,
+                candidates
+            )
+        } }) { result -> runOnUiThread {
             if (isFinishing || isDestroyed) return@runOnUiThread
             finishAnalysis()
             hashOcr.isEnabled = true
@@ -881,6 +929,15 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                             append("\n")
                             append(getString(R.string.scan_debug_hash_year_sets,
                                 yearSets.joinToString { "${it.name} (${it.code})" }.ifBlank { "—" }))
+                            row.resolvedEdition?.let { edition ->
+                                append("\n")
+                                append(getString(
+                                    R.string.hash_scan_exact_edition,
+                                    edition.name,
+                                    edition.code,
+                                    edition.collectorNumber
+                                ))
+                            }
                         }
                         if (options.symbol) {
                             append("\n")
@@ -2153,6 +2210,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         liveGuide.visibility = View.VISIBLE
         liveGuide.showDetection(null, 0f)
         correctionMode = false
+        hashLiveResultMode = false
         debug.visibility = View.GONE
         artHashStatus.visibility = View.GONE
         replaceDebugBitmap(null)

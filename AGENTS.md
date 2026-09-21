@@ -90,6 +90,9 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
   cortas. No deducir idioma físico de la edición ni cambiar masivamente cartas PT existentes.
 - El modo lento devuelve UUID, acabado e idioma; no volver a elegir la primera carta del set,
   porque puede tener otro arte. Los submenús muestran miniaturas por impresión.
+- El laboratorio hash inicia el matching desde un frame live rectificado antes del JPEG. No
+  volver a introducir captura/decodificación/corrección en su camino normal; la foto queda como
+  fallback. Una edición solo se marca resuelta si coinciden nombre OCR, código y collector number.
 - Al cambiar URL/impresión, mostrar `CardLoadingDrawable` en lugar del arte anterior; conservar
   la imagen solo en rebinds de la misma URL. Mientras se resuelve imagen localizada, cancelar
   la carga vieja y proteger callbacks con generación+UUID. Un error termina el loading.

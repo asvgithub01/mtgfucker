@@ -496,7 +496,7 @@
     <string name="hash_only_scan_matching" translatable="false">Buscando arte en el índice local…</string>
     <string name="hash_only_scan_error" translatable="false">No se pudo comparar el arte.</string>
     <string name="hash_only_scan_timings" translatable="false">Hash: %1$d ms · análisis: %2$d ms · desde captura: %3$d ms · carga índice: %4$d ms</string>
-    <string name="hash_only_scan_not_edition" translatable="false">Sugerencias no verificadas. Solo arte local, sin OCR ni red; no identifica la edición.</string>
+    <string name="hash_only_scan_not_edition" translatable="false">El arte no verifica por sí solo la edición. Con OCR se exige nombre, código y número coincidentes.</string>
     <string name="hash_only_scan_result_instruction" translatable="false">Para otra carta, pulsa «Repetir foto».</string>
     <string name="hash_only_scan_repeat" translatable="false">Repetir hash</string>
     <string name="open_rapid_edition_scanner">Abrir escáner rápido de edición</string>
@@ -598,8 +598,9 @@
     <string name="hash_scan_symbol">Comparar símbolo (puede usar internet)</string>
     <string name="hash_scan_preparing">Preparando índices de arte y nombres…</string>
     <string name="hash_scan_prepare_error">No se pudo preparar el índice. Cambia el check OCR para reintentar.</string>
-    <string name="scan_debug_hash_checks_timing" translatable="false">Hash %1$d ms · OCR %2$d ms · Símbolo %3$d ms\nAnálisis %4$d ms · Desde captura %5$d ms</string>
+    <string name="scan_debug_hash_checks_timing" translatable="false">Hash %1$d ms · OCR %2$d ms · Símbolo %3$d ms\nAnálisis %4$d ms · Desde detección %5$d ms</string>
     <string name="scan_debug_hash_ocr_row" translatable="false">OCR: %1$s\nCatálogo: %2$s · Nombre %3$s\nAño leído: %4$s · Código OCR: %5$s</string>
     <string name="scan_debug_hash_year_sets" translatable="false">Ediciones locales del año (orientativo): %1$s</string>
     <string name="scan_debug_hash_symbol_row" translatable="false">Símbolo sugerido: %1$s · Distancia %2$s · Confianza %3$s</string>
+    <string name="hash_scan_exact_edition" translatable="false">Edición resuelta: %1$s (%2$s) #%3$s ✓</string>
 </resources>

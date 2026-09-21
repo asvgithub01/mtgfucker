@@ -128,6 +128,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var hashOcr: CheckBox
     private lateinit var hashSymbol: CheckBox
     private lateinit var hashAutoAdd: CheckBox
+    private lateinit var hashBorder: CheckBox
+    private lateinit var hashBorderResult: TextView
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
@@ -210,6 +212,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashOcr = findViewById(R.id.hashScanOcr)
         hashSymbol = findViewById(R.id.hashScanSymbol)
         hashAutoAdd = findViewById(R.id.hashScanAutoAdd)
+        hashBorder = findViewById(R.id.hashScanBorder)
+        hashBorderResult = findViewById(R.id.hashScanBorderResult)
         if (hashOnlyMode) {
             liveScanPhase = RapidLiveScanPhase.EDGES
             findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
@@ -257,6 +261,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             hashOcr.isChecked = preferences.getBoolean("ocr", false)
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
             hashAutoAdd.isChecked = preferences.getBoolean("auto_add_first", false)
+            hashBorder.isChecked = preferences.getBoolean("border", false)
             hashOcr.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("ocr", checked).apply()
                 prepareHashAnalysis()
@@ -266,6 +271,9 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             }
             hashAutoAdd.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("auto_add_first", checked).apply()
+            }
+            hashBorder.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("border", checked).apply()
             }
             liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
             prepareHashAnalysis()
@@ -900,10 +908,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun analyzeHashOnly(card: Bitmap) {
-        val options = HashScanAnalysis.Options(hashOcr.isChecked, hashSymbol.isChecked)
+        val options = HashScanAnalysis.Options(
+            ocr = hashOcr.isChecked,
+            symbol = hashSymbol.isChecked,
+            border = hashBorder.isChecked
+        )
         hashOcr.isEnabled = false
         hashSymbol.isEnabled = false
         hashAutoAdd.isEnabled = false
+        hashBorder.isEnabled = false
+        hashBorderResult.visibility = View.GONE
         status.setText(R.string.hash_only_scan_matching)
         findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
         showLoading(getString(R.string.hash_only_scan_matching))
@@ -930,11 +944,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             hashOcr.isEnabled = true
             hashSymbol.isEnabled = true
             hashAutoAdd.isEnabled = true
+            hashBorder.isEnabled = true
             val fromCapture = (SystemClock.elapsedRealtime() - lastCaptureStartedAtMs).coerceAtLeast(0)
             status.text = getString(R.string.scan_debug_hash_checks_timing,
                 result.hash?.elapsedMs ?: 0, result.ocrMs, result.symbolMs, result.elapsedMs, fromCapture)
             val rows = findViewById<LinearLayout>(R.id.hashScanResults)
             rows.removeAllViews()
+            if (options.border) {
+                hashBorderResult.text = hashBorderLabel(result.border?.borderColor)
+                hashBorderResult.visibility = View.VISIBLE
+            }
             result.rows.forEachIndexed { index, row ->
                 val container = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
@@ -1004,7 +1023,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             instruction.setText(R.string.hash_only_scan_result_instruction)
             capture.setText(R.string.hash_only_scan_repeat)
             Log.d(PERF_TAG, "hash_checks hash=${result.hash?.elapsedMs} ocr=${result.ocrMs} " +
-                "symbol=${result.symbolMs} total=${result.elapsedMs} capture=$fromCapture")
+                "symbol=${result.symbolMs} border=${result.border?.borderColor}:${result.borderMs}ms " +
+                "total=${result.elapsedMs} capture=$fromCapture")
             autoAddFirstHashResult(result)
         } }
     }
@@ -2223,6 +2243,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         CardBorderColor.UNKNOWN -> getString(R.string.edition_scan_border_unknown)
     }
 
+    private fun hashBorderLabel(border: CardBorderColor?): String = when (HashBorderPolicy.verdict(border)) {
+        HashBorderVerdict.WHITE -> getString(R.string.edition_scan_border_white)
+        HashBorderVerdict.BLACK -> getString(R.string.edition_scan_border_black)
+        HashBorderVerdict.UNRESOLVED -> getString(R.string.edition_scan_border_unknown)
+    }.uppercase(Locale.getDefault())
+
     private fun finishAnalysis() {
         analysisInFlight = false
         capture.isEnabled = true
@@ -2326,6 +2352,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashLiveResultMode = false
         debug.visibility = View.GONE
         artHashStatus.visibility = View.GONE
+        hashBorderResult.visibility = View.GONE
         replaceDebugBitmap(null)
         stability.reset()
         quadHistory.clear()

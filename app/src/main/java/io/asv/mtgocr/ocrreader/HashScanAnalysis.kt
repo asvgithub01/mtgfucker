@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 /** Owns each rectified bitmap until every enabled analysis has completed. No collection writes. */
 internal class HashScanAnalysis(context: Context) {
-    data class Options(val ocr: Boolean, val symbol: Boolean)
+    data class Options(val ocr: Boolean, val symbol: Boolean, val border: Boolean = false)
     data class Edition(
         val code: String,
         val name: String,
@@ -30,8 +30,8 @@ internal class HashScanAnalysis(context: Context) {
     data class Result(
         val hash: ArtHashMatcher.Result?, val rows: List<Row>, val rawTitle: List<String>,
         val names: List<String>, val printing: PrintingMetadataGuess?,
-        val symbols: SetSymbolShapeMatch?, val errors: List<String>,
-        val elapsedMs: Long, val ocrMs: Long, val symbolMs: Long
+        val symbols: SetSymbolShapeMatch?, val border: CardFrameAnalysis?, val errors: List<String>,
+        val elapsedMs: Long, val ocrMs: Long, val symbolMs: Long, val borderMs: Long
     )
 
     private val app = context.applicationContext
@@ -69,8 +69,10 @@ internal class HashScanAnalysis(context: Context) {
         var names = emptyList<String>()
         var printing: PrintingMetadataGuess? = null
         var shape: SetSymbolShapeMatch? = null
+        var border: CardFrameAnalysis? = null
         var ocrMs = 0L
         var symbolMs = 0L
+        var borderMs = 0L
         val errors = mutableListOf<String>()
         fun fail(stage: String, error: Throwable) = synchronized(lock) {
             errors.add("$stage: ${error.message ?: error.javaClass.simpleName}")
@@ -86,14 +88,26 @@ internal class HashScanAnalysis(context: Context) {
                         row.editions
                     ))
                 }
-                Result(hash, resolvedRows, title, names, printing, shape, errors.toList(),
-                    SystemClock.elapsedRealtime() - started, ocrMs, symbolMs)
+                Result(hash, resolvedRows, title, names, printing, shape, border, errors.toList(),
+                    SystemClock.elapsedRealtime() - started, ocrMs, symbolMs, borderMs)
             }
             if (!closed) callback(result)
         }
         // Hash and both OCR passes start independently. Symbol templates are restricted to the
         // hash candidates' cached printings, then compared while OCR is still running.
         workers.execute {
+            if (options.border) {
+                val borderStarted = SystemClock.elapsedRealtime()
+                runCatching { CardFrameAnalyzer.analyzeTightCard(card) }
+                    .onSuccess { analysis -> synchronized(lock) {
+                        border = analysis
+                        borderMs = SystemClock.elapsedRealtime() - borderStarted
+                    } }
+                    .onFailure { error ->
+                        synchronized(lock) { borderMs = SystemClock.elapsedRealtime() - borderStarted }
+                        fail("borde", error)
+                    }
+            }
             try {
                 val matched = checkNotNull(matcher).match(card)
                 synchronized(lock) {

@@ -14,6 +14,24 @@ class HashPrintingVariantPolicyTest {
         )
     }
 
+    @Test fun historicalPrintingIsNeverPreselectedWhenThereIsASaferAlternative() {
+        val alpha = variant("alpha", "LEA", "en", CardBorderColor.BLACK)
+        val fourth = variant("fourth", "4ED", "en", CardBorderColor.WHITE)
+
+        assertEquals(
+            "fourth",
+            HashPrintingVariantPolicy.preferred(listOf(alpha, fourth), "LEA", "1")?.printingUuid
+        )
+    }
+
+    @Test fun historicalPrintingAloneIsNotPreselected() {
+        listOf("LEA", "LEB", "ARN", "ATQ", "LEG", "DRK").forEach { code ->
+            assertNull(HashPrintingVariantPolicy.preferred(
+                listOf(variant(code, code, "en", CardBorderColor.BLACK)), code, "1"
+            ))
+        }
+    }
+
     @Test fun languageAndWhiteBorderResolveAnOldPrinting() {
         val black = variant("black", "3ED", "es", CardBorderColor.BLACK)
         val whiteEnglish = variant("white-en", "4ED", "en", CardBorderColor.WHITE)

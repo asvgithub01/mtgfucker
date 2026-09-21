@@ -4,11 +4,16 @@ import java.util.Locale
 
 /** Narrows reused artwork only with evidence read from this physical card. */
 internal object HashPrintingVariantPolicy {
+    private val NEVER_PRESELECTED_SETS = setOf("LEA", "LEB", "ARN", "ATQ", "LEG", "DRK")
+
+    fun canPreselect(setCode: String): Boolean =
+        setCode.uppercase(Locale.ROOT) !in NEVER_PRESELECTED_SETS
+
     fun preferred(
         variants: List<ArtPrintingIndex.Variant>,
         indexedSetCode: String,
         indexedCollector: String
-    ): ArtPrintingIndex.Variant? = variants.minWithOrNull(
+    ): ArtPrintingIndex.Variant? = variants.filter { canPreselect(it.set.code) }.minWithOrNull(
         compareByDescending<ArtPrintingIndex.Variant> {
             it.set.code.equals(indexedSetCode, ignoreCase = true) &&
                 PrintingMetadataParser.collectorKeysMatch(it.collectorNumber, indexedCollector)
@@ -27,9 +32,10 @@ internal object HashPrintingVariantPolicy {
         verifyBorder: Boolean,
         verifyLanguage: Boolean
     ): List<ArtPrintingIndex.Variant> {
-        var result = variants.filter { sameCardName(it.cardName, candidateName) }
+        var result = variants.filter { HashScanEvidence.namesEquivalent(it.cardName, candidateName) }
         val nameConfirmed = ocrNames.any { name ->
-            sameCardName(candidateName, name) || result.any { sameCardName(it.cardName, name) }
+            HashScanEvidence.namesEquivalent(candidateName, name) ||
+                result.any { HashScanEvidence.namesEquivalent(it.cardName, name) }
         }
         if (nameConfirmed && printing?.setCode != null && printing.collectorNumber != null) {
             val code = printing.setCode.uppercase(Locale.ROOT)
@@ -61,10 +67,4 @@ internal object HashPrintingVariantPolicy {
         verifyBorder, verifyLanguage
     ).singleOrNull()
 
-    private fun sameCardName(first: String, second: String): Boolean {
-        if (first.equals(second, ignoreCase = true)) return true
-        val firstFaces = first.split(" // ")
-        val secondFaces = second.split(" // ")
-        return firstFaces.any { face -> secondFaces.any { it.equals(face, ignoreCase = true) } }
-    }
 }

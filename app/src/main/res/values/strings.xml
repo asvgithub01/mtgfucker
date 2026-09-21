@@ -604,6 +604,8 @@
     <string name="hash_scan_ocr">OCR: nombre y año</string>
     <string name="hash_scan_symbol">Comparar símbolo (puede usar internet)</string>
     <string name="hash_scan_auto_add">Añadir automáticamente</string>
+    <string name="hash_scan_name_confusion">Confusión: OCR «%1$s» · arte «%2$s». No se añadió.</string>
+    <string name="hash_scan_name_confusion_instruction">El nombre OCR y el arte no coinciden. Repite la captura.</string>
     <string name="hash_scan_border">Verificar color de borde (blanco/negro)</string>
     <string name="hash_scan_language">Verificar idioma</string>
     <string name="hash_scan_language_unresolved">IDIOMA SIN RESOLVER</string>

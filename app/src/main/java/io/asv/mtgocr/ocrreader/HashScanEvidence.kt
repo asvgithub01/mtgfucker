@@ -5,7 +5,15 @@ import java.util.Locale
 /** Diagnostic evidence only: a copyright year or reused illustration never proves a printing. */
 internal object HashScanEvidence {
     fun nameMatches(candidate: String, names: List<String>): Boolean =
-        names.any { it.equals(candidate, ignoreCase = true) }
+        names.any { namesEquivalent(candidate, it) }
+
+    fun namesEquivalent(first: String, second: String): Boolean {
+        val firstFaces = first.split(" // ").map { it.trim() }
+        val secondFaces = second.split(" // ").map { it.trim() }
+        return firstFaces.any { face ->
+            secondFaces.any { it.equals(face, ignoreCase = true) }
+        }
+    }
 
     fun reliableSymbol(distances: Collection<Double>): Boolean {
         val ranked = distances.filter { it.isFinite() }.sorted()

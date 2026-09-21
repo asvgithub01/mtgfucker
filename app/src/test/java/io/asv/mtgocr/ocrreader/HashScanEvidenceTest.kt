@@ -6,6 +6,7 @@ import org.junit.Test
 class HashScanEvidenceTest {
     @Test fun nameRequiresCanonicalAgreement() {
         assertTrue(HashScanEvidence.nameMatches("Giant Growth", listOf("giant growth")))
+        assertTrue(HashScanEvidence.nameMatches("Fire // Ice", listOf("Fire")))
         assertFalse(HashScanEvidence.nameMatches("Giant Growth", listOf("Prey Upon")))
         assertFalse(HashScanEvidence.nameMatches("Giant Growth", emptyList()))
     }

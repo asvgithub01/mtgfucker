@@ -1089,14 +1089,32 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun autoAddFirstHashResult(result: HashScanAnalysis.Result) {
-        if (!hashAutoAdd.isChecked) return
         val row = result.rows.firstOrNull() ?: return
         val hit = row.candidate.hit
-        val cachedVariant = row.resolvedVariant ?: HashPrintingVariantPolicy.preferred(
-            row.compatibleVariants.ifEmpty { row.variants },
-            hit.setCode,
-            hit.collectorNumber
-        )
+        if (result.names.isNotEmpty() && !HashScanEvidence.nameMatches(hit.name, result.names)) {
+            val ocrNames = result.names.joinToString(" / ")
+            Log.w(PERF_TAG, "hash_name_confusion ocr=$ocrNames art=${hit.name}")
+            Toast.makeText(
+                this,
+                getString(R.string.hash_scan_name_confusion, ocrNames, hit.name),
+                Toast.LENGTH_LONG
+            ).show()
+            instruction.setText(R.string.hash_scan_name_confusion_instruction)
+            return
+        }
+        if (!hashAutoAdd.isChecked) return
+        val cachedVariant = row.resolvedVariant
+            ?.takeIf { HashPrintingVariantPolicy.canPreselect(it.set.code) }
+            ?: HashPrintingVariantPolicy.preferred(
+                row.compatibleVariants,
+                hit.setCode,
+                hit.collectorNumber
+            )
+            ?: HashPrintingVariantPolicy.preferred(
+                row.variants,
+                hit.setCode,
+                hit.collectorNumber
+            )
         if (!HashAutoAddPolicy.acceptsTopHit(
                 hit.phashDistance,
                 row.resolvedEdition != null,
@@ -1113,6 +1131,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             setCode = row.resolvedEdition?.code ?: hit.setCode,
             collectorNumber = row.resolvedEdition?.collectorNumber ?: hit.collectorNumber
         )
+        if (!HashPrintingVariantPolicy.canPreselect(target.setCode)) return
         capture.isEnabled = false
         var delivered = false
         repository.loadCachedPrinting(

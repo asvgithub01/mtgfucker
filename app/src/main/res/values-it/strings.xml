@@ -546,6 +546,7 @@
     <string name="experimental_scan_no_language_printings">Non esiste una stampa fisica confermata in %1$s tra queste edizioni.</string>
     <string name="hash_scan_ocr">OCR: nome e anno</string>
     <string name="hash_scan_symbol">Confronta simbolo (può usare Internet)</string>
+    <string name="hash_scan_auto_add">Aggiungi automaticamente</string>
     <string name="hash_scan_preparing">Preparazione degli indici di illustrazioni e nomi…</string>
     <string name="hash_scan_prepare_error">Impossibile preparare l’indice. Cambia l’opzione OCR per riprovare.</string>
 </resources>

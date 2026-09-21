@@ -546,6 +546,7 @@
     <string name="experimental_scan_no_language_printings">There is no confirmed physical printing in %1$s among these editions.</string>
     <string name="hash_scan_ocr">OCR: name and year</string>
     <string name="hash_scan_symbol">Compare symbol (may use internet)</string>
+    <string name="hash_scan_auto_add">Add automatically</string>
     <string name="hash_scan_preparing">Preparing artwork and name indexes…</string>
     <string name="hash_scan_prepare_error">Could not prepare the index. Toggle OCR to retry.</string>
 </resources>

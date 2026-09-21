@@ -52,6 +52,14 @@
             android:orientation="vertical"
             android:visibility="gone">
             <CheckBox
+                android:id="@+id/hashScanAutoAdd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/hash_scan_auto_add"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
                 android:id="@+id/hashScanOcr"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

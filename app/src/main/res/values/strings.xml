@@ -596,6 +596,7 @@
     <string name="experimental_scan_edition_detail" translatable="false">%1$s (%2$s)\nN.º %3$s · Año %4$s · %5$s\n\nCoincidencias: %6$s</string>
     <string name="hash_scan_ocr">OCR: nombre y año</string>
     <string name="hash_scan_symbol">Comparar símbolo (puede usar internet)</string>
+    <string name="hash_scan_auto_add">Añadir automáticamente</string>
     <string name="hash_scan_preparing">Preparando índices de arte y nombres…</string>
     <string name="hash_scan_prepare_error">No se pudo preparar el índice. Cambia el check OCR para reintentar.</string>
     <string name="scan_debug_hash_checks_timing" translatable="false">Hash %1$d ms · OCR %2$d ms · Símbolo %3$d ms\nAnálisis %4$d ms · Desde detección %5$d ms</string>

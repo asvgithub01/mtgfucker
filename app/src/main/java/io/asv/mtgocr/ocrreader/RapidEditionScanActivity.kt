@@ -127,6 +127,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private var hashPrepareGeneration = 0
     private lateinit var hashOcr: CheckBox
     private lateinit var hashSymbol: CheckBox
+    private lateinit var hashAutoAdd: CheckBox
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
@@ -208,6 +209,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         undoLastButton = findViewById(R.id.rapidScanUndoLast)
         hashOcr = findViewById(R.id.hashScanOcr)
         hashSymbol = findViewById(R.id.hashScanSymbol)
+        hashAutoAdd = findViewById(R.id.hashScanAutoAdd)
         if (hashOnlyMode) {
             liveScanPhase = RapidLiveScanPhase.EDGES
             findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
@@ -254,12 +256,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             val preferences = getSharedPreferences("hash_scanner", MODE_PRIVATE)
             hashOcr.isChecked = preferences.getBoolean("ocr", false)
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
+            hashAutoAdd.isChecked = preferences.getBoolean("auto_add", true)
             hashOcr.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("ocr", checked).apply()
                 prepareHashAnalysis()
             }
             hashSymbol.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("symbol", checked).apply()
+            }
+            hashAutoAdd.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("auto_add", checked).apply()
             }
             liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
             prepareHashAnalysis()
@@ -588,7 +594,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             return
         }
         capture.isEnabled = false
-        if (hashOnlyMode) { hashOcr.isEnabled = false; hashSymbol.isEnabled = false }
+        if (hashOnlyMode) {
+            hashOcr.isEnabled = false
+            hashSymbol.isEnabled = false
+            hashAutoAdd.isEnabled = false
+        }
         showLoading(getString(R.string.rapid_scan_loading_capture))
         instruction.setText(
             if (automatic) R.string.experimental_scan_auto_capture
@@ -704,7 +714,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         liveGuide.visibility = View.GONE
         correctionMode = true
         hashLiveResultMode = false
-        if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
+        if (hashOnlyMode) {
+            hashOcr.isEnabled = true
+            hashSymbol.isEnabled = true
+            hashAutoAdd.isEnabled = true
+        }
         cancel.setText(R.string.edition_scan_retake_photo)
         capture.setText(R.string.experimental_scan_read_printing)
         capture.isEnabled = true
@@ -723,7 +737,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
 
     private fun cameraFailure(message: String = getString(R.string.experimental_scan_camera_error)) {
         runOnUiThread {
-            if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
+            if (hashOnlyMode) {
+                hashOcr.isEnabled = true
+                hashSymbol.isEnabled = true
+                hashAutoAdd.isEnabled = true
+            }
             hideLoading()
             captureGate.set(false)
             stability.reset()
@@ -885,6 +903,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         val options = HashScanAnalysis.Options(hashOcr.isChecked, hashSymbol.isChecked)
         hashOcr.isEnabled = false
         hashSymbol.isEnabled = false
+        hashAutoAdd.isEnabled = false
         status.setText(R.string.hash_only_scan_matching)
         findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
         showLoading(getString(R.string.hash_only_scan_matching))
@@ -910,6 +929,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             finishAnalysis()
             hashOcr.isEnabled = true
             hashSymbol.isEnabled = true
+            hashAutoAdd.isEnabled = true
             val fromCapture = (SystemClock.elapsedRealtime() - lastCaptureStartedAtMs).coerceAtLeast(0)
             status.text = getString(R.string.scan_debug_hash_checks_timing,
                 result.hash?.elapsedMs ?: 0, result.ocrMs, result.symbolMs, result.elapsedMs, fromCapture)
@@ -985,16 +1005,20 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             capture.setText(R.string.hash_only_scan_repeat)
             Log.d(PERF_TAG, "hash_checks hash=${result.hash?.elapsedMs} ocr=${result.ocrMs} " +
                 "symbol=${result.symbolMs} total=${result.elapsedMs} capture=$fromCapture")
-            autoAddResolvedHashResult(result)
+            autoAddFirstHashResult(result)
         } }
     }
 
-    private fun autoAddResolvedHashResult(result: HashScanAnalysis.Result) {
-        val target = HashAutoAddPolicy.uniqueTarget(result.rows.mapNotNull { row ->
-            row.resolvedEdition?.let {
-                HashAutoAddTarget(row.candidate.hit.name, it.printingUuid)
-            }
-        }) ?: return
+    private fun autoAddFirstHashResult(result: HashScanAnalysis.Result) {
+        if (!hashAutoAdd.isChecked) return
+        val row = result.rows.firstOrNull() ?: return
+        val hit = row.candidate.hit
+        val target = HashAutoAddTarget(
+            cardName = hit.name,
+            printingUuid = row.resolvedEdition?.printingUuid,
+            setCode = row.resolvedEdition?.code ?: hit.setCode,
+            collectorNumber = row.resolvedEdition?.collectorNumber ?: hit.collectorNumber
+        )
         capture.isEnabled = false
         showLoading(getString(R.string.rapid_scan_loading_prices, target.cardName))
         var delivered = false
@@ -1004,11 +1028,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             deliverEditionsBeforePrices = true
         ) { options, error ->
             if (isFinishing || isDestroyed || delivered) return@loadCard
-            val option = options.asSequence()
-                .filter { it.printingUuid == target.printingUuid }
-                .sortedWith(compareBy<CardEditionOption> { CardFinish.isFoil(it.finish) }
-                    .thenBy { it.finish })
-                .firstOrNull()
+            val option = HashAutoAddPolicy.preferredOption(target, options)
             if (option != null) {
                 delivered = true
                 Log.d(PERF_TAG, "hash_auto_add=${option.printingUuid}:${option.finish}")
@@ -1596,7 +1616,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         correction.visibility = View.VISIBLE
         liveGuide.visibility = View.GONE
         correctionMode = true
-        if (hashOnlyMode) { hashOcr.isEnabled = true; hashSymbol.isEnabled = true }
+        if (hashOnlyMode) {
+            hashOcr.isEnabled = true
+            hashSymbol.isEnabled = true
+            hashAutoAdd.isEnabled = true
+        }
         cancel.setText(R.string.edition_scan_retake_photo)
         capture.setText(R.string.rapid_scan_reanalyze)
         capture.isEnabled = true

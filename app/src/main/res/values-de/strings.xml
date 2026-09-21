@@ -546,6 +546,7 @@
     <string name="experimental_scan_no_language_printings">Unter diesen Editionen gibt es keinen bestätigten physischen Druck in %1$s.</string>
     <string name="hash_scan_ocr">OCR: Name und Jahr</string>
     <string name="hash_scan_symbol">Symbol vergleichen (ggf. Internet)</string>
+    <string name="hash_scan_auto_add">Automatisch hinzufügen</string>
     <string name="hash_scan_preparing">Bild- und Namensindizes werden vorbereitet…</string>
     <string name="hash_scan_prepare_error">Index konnte nicht geladen werden. OCR umschalten, um es erneut zu versuchen.</string>
 </resources>

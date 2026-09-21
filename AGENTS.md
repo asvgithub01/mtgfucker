@@ -90,7 +90,8 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
   cortas. No deducir idioma físico de la edición ni cambiar masivamente cartas PT existentes.
 - El modo lento devuelve UUID, acabado e idioma; no volver a elegir la primera carta del set,
   porque puede tener otro arte. Los submenús muestran miniaturas por impresión.
-- El autoañadido por hash se bloquea si el nombre OCR no coincide con el nombre del arte. Nunca
+- El autoañadido por hash usa el primer candidato de arte cuyo nombre coincida con OCR, aunque sea
+  el resultado 2 o 3. Si ninguno coincide, muestra la confusión y reanuda el autoscan. Nunca
   preseleccionar automáticamente LEA, LEB, ARN, ATQ, LEG ni DRK; elegir otra impresión segura.
 - El laboratorio hash inicia el matching desde un frame live rectificado antes del JPEG. No
   volver a introducir captura/decodificación/corrección en su camino normal; la foto queda como

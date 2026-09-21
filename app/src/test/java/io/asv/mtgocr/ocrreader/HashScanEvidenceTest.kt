@@ -10,6 +10,18 @@ class HashScanEvidenceTest {
         assertFalse(HashScanEvidence.nameMatches("Giant Growth", listOf("Prey Upon")))
         assertFalse(HashScanEvidence.nameMatches("Giant Growth", emptyList()))
     }
+    @Test fun ocrCanSelectALowerRankedHashCandidate() {
+        assertEquals(
+            1,
+            HashScanEvidence.firstMatchingCandidateIndex(
+                listOf("Prey Upon", "Giant Growth", "Titanic Growth"),
+                listOf("Giant Growth")
+            )
+        )
+        assertNull(HashScanEvidence.firstMatchingCandidateIndex(
+            listOf("Prey Upon", "Titanic Growth"), listOf("Giant Growth")
+        ))
+    }
     @Test fun missingOrSingleSymbolIsNotReliable() {
         assertFalse(HashScanEvidence.reliableSymbol(emptyList()))
         assertFalse(HashScanEvidence.reliableSymbol(listOf(.1)))

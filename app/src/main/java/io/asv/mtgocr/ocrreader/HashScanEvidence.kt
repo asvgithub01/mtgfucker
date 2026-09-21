@@ -7,6 +7,9 @@ internal object HashScanEvidence {
     fun nameMatches(candidate: String, names: List<String>): Boolean =
         names.any { namesEquivalent(candidate, it) }
 
+    fun firstMatchingCandidateIndex(candidates: List<String>, names: List<String>): Int? =
+        candidates.indexOfFirst { nameMatches(it, names) }.takeIf { it >= 0 }
+
     fun namesEquivalent(first: String, second: String): Boolean {
         val firstFaces = first.split(" // ").map { it.trim() }
         val secondFaces = second.split(" // ").map { it.trim() }

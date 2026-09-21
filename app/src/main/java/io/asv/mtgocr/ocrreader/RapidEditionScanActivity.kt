@@ -1089,18 +1089,30 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun autoAddFirstHashResult(result: HashScanAnalysis.Result) {
-        val row = result.rows.firstOrNull() ?: return
-        val hit = row.candidate.hit
-        if (result.names.isNotEmpty() && !HashScanEvidence.nameMatches(hit.name, result.names)) {
+        val firstRow = result.rows.firstOrNull() ?: return
+        val row = if (result.names.isEmpty()) {
+            firstRow
+        } else {
+            HashScanEvidence.firstMatchingCandidateIndex(
+                result.rows.map { it.candidate.hit.name },
+                result.names
+            )?.let(result.rows::get)
+        }
+        if (row == null) {
             val ocrNames = result.names.joinToString(" / ")
-            Log.w(PERF_TAG, "hash_name_confusion ocr=$ocrNames art=${hit.name}")
+            val artName = firstRow.candidate.hit.name
+            Log.w(PERF_TAG, "hash_name_confusion ocr=$ocrNames art=$artName")
             Toast.makeText(
                 this,
-                getString(R.string.hash_scan_name_confusion, ocrNames, hit.name),
+                getString(R.string.hash_scan_name_confusion, ocrNames, artName),
                 Toast.LENGTH_LONG
             ).show()
-            instruction.setText(R.string.hash_scan_name_confusion_instruction)
+            returnToCamera()
             return
+        }
+        val hit = row.candidate.hit
+        if (row !== firstRow) {
+            Log.d(PERF_TAG, "hash_ocr_selected_rank=${result.rows.indexOf(row) + 1}:${hit.name}")
         }
         if (!hashAutoAdd.isChecked) return
         val cachedVariant = row.resolvedVariant

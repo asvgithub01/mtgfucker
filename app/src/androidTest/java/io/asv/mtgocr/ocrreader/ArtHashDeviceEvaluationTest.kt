@@ -23,7 +23,10 @@ import java.io.File
 class ArtHashDeviceEvaluationTest {
     @Test fun compareRetainedPhotos() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        assumeTrue(BuildConfig.DEBUG && BuildConfig.GIT_BRANCH == "codex/art-hash-identification")
+        assumeTrue(BuildConfig.DEBUG && BuildConfig.GIT_BRANCH in setOf(
+            "codex/art-hash-identification",
+            "feature/improbe-hash-scanner"
+        ))
         val samples = File(context.filesDir, "art_hash_samples")
             .listFiles { file -> file.isFile && file.extension == "jpg" }
             ?.sortedBy { it.name }.orEmpty()

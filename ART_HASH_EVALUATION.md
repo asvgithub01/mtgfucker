@@ -202,3 +202,25 @@ la marca como edición resuelta. Año, arte o símbolo aislados siguen sin acept
 como prueba inequívoca. Falta validar la calidad del recorte live con cartas físicas;
 el JPEG tiene más detalle y puede seguir siendo preferible como fallback en casos
 difíciles.
+
+### Geometría 63:88 antes del hash
+
+Una captura posterior de Twilight Shepherd mostró el fallo dominante: el detector
+colocó las dos esquinas superiores bastante por encima del borde físico, produjo un
+quad demasiado alto y el hash devolvió Banding Sliver. El detector anterior admitía
+ratios entre 0,54 y 0,85 pese a que una carta MTG mide 63:88 (0,716).
+
+Ahora se rechazan quads que se alejen más de un 12 % del aspect ratio físico o tengan
+lados opuestos excesivamente desequilibrados. La búsqueda asistida amplía el rango
+horizontal del 10 al 20 %, conserva hasta cinco líneas superiores/inferiores distintas
+y evalúa conjuntamente sus pares; solo los cuatro pares geométricos mejores pasan por
+la comparación cara de bordes. Si las detecciones live y JPEG discrepan, se elige la
+de mejor geometría+confianza en vez de preferir siempre el JPEG.
+
+Como comprobación regresiva, la nueva política geométrica aplicada a las esquinas
+guardadas en `sony-30-device-eval.log` rechaza 3/30 recortes antiguos. Eran precisamente
+los tres ratios anómalos (0,562, 0,593 y 0,619) y sus top-1 habían sido Torrent of Lava,
+Gravecrawler y Enigma Eidolon, no identificaciones válidas conocidas. Los otros 27
+quedan dentro del umbral. Falta repetir la detección completa en dispositivo para
+comprobar que la búsqueda ampliada encuentra el borde correcto en vez de limitarse a
+rechazar el encuadre.

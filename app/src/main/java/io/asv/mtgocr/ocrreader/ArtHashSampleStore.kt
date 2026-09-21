@@ -8,12 +8,15 @@ import java.util.UUID
 /** Keeps a small, private set of raw scanner photos for this branch's art-hash trial. */
 internal object ArtHashSampleStore {
     private const val TAG = "ArtHashSampleStore"
-    private const val BRANCH = "codex/art-hash-identification"
+    private val BRANCHES = setOf(
+        "codex/art-hash-identification",
+        "feature/improbe-hash-scanner"
+    )
     private const val DIRECTORY = "art_hash_samples"
     private const val MAX_SAMPLES = 30
 
     fun retain(context: Context, source: File) {
-        if (!BuildConfig.DEBUG || BuildConfig.GIT_BRANCH != BRANCH || !source.isFile) return
+        if (!BuildConfig.DEBUG || BuildConfig.GIT_BRANCH !in BRANCHES || !source.isFile) return
         runCatching {
             val directory = File(context.filesDir, DIRECTORY)
             check(directory.isDirectory || directory.mkdirs()) { "No se pudo crear $directory" }

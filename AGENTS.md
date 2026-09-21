@@ -93,6 +93,9 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
 - El laboratorio hash inicia el matching desde un frame live rectificado antes del JPEG. No
   volver a introducir captura/decodificación/corrección en su camino normal; la foto queda como
   fallback. Una edición solo se marca resuelta si coinciden nombre OCR, código y collector number.
+- Antes del hash, el quad debe respetar aproximadamente el aspect ratio físico 63:88. No volver
+  a ampliar el antiguo rango 0,54–0,85: los recortes demasiado altos desplazan el arte y generan
+  falsos candidatos aunque pHash/dHash funcionen correctamente.
 - Al cambiar URL/impresión, mostrar `CardLoadingDrawable` en lugar del arte anterior; conservar
   la imagen solo en rebinds de la misma URL. Mientras se resuelve imagen localizada, cancelar
   la carga vieja y proteger callbacks con generación+UUID. Un error termina el loading.

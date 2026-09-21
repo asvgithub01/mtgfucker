@@ -248,10 +248,10 @@ class OpenCvCardDetector(
         gray.get(0, 0, pixels)
 
         var cardHeight = height * .72
-        var cardWidth = cardHeight * CARD_ASPECT
+        var cardWidth = cardHeight * CardAspectPolicy.EXPECTED
         if (cardWidth > width * .90) {
             cardWidth = width * .90
-            cardHeight = cardWidth / CARD_ASPECT
+            cardHeight = cardWidth / CardAspectPolicy.EXPECTED
         }
         val leftExpected = (width - cardWidth) / 2.0
         val rightExpected = (width + cardWidth) / 2.0
@@ -269,36 +269,45 @@ class OpenCvCardDetector(
             pixels, width, height, rightExpected, centerY, topExpected, bottomExpected,
             max(10, (cardWidth * GUIDE_VERTICAL_SEARCH_FRACTION).toInt()), offset, vertical = true
         )
-        val top = searchGuideLine(
+        val tops = searchGuideLines(
             pixels, width, height, topExpected, centerX, leftExpected, rightExpected,
             max(12, (cardHeight * GUIDE_HORIZONTAL_SEARCH_FRACTION).toInt()), offset, vertical = false
         )
-        val bottom = searchGuideLine(
+        val bottoms = searchGuideLines(
             pixels, width, height, bottomExpected, centerX, leftExpected, rightExpected,
             max(12, (cardHeight * GUIDE_HORIZONTAL_SEARCH_FRACTION).toInt()), offset, vertical = false
         )
-        val edgeConfidence = (left.confidence + right.confidence) * .20 +
-            (top.confidence + bottom.confidence) * .30
-        if (edgeConfidence < GUIDE_MIN_CONFIDENCE ||
-            minOf(left.confidence, right.confidence) < GUIDE_MIN_VERTICAL_CONFIDENCE ||
-            minOf(top.confidence, bottom.confidence) < GUIDE_MIN_HORIZONTAL_CONFIDENCE
-        ) return null
-
-        val corners = arrayOf(
-            guideIntersection(left, top) ?: return null,
-            guideIntersection(right, top) ?: return null,
-            guideIntersection(right, bottom) ?: return null,
-            guideIntersection(left, bottom) ?: return null
-        )
-        if (corners.any { it.x !in 0.0..width.toDouble() || it.y !in 0.0..height.toDouble() }) {
-            return null
-        }
-        val geometry = score(corners, width, height, width.toDouble() * height) ?: return null
-        val lineCandidate = Candidate(
-            corners,
-            (geometry.score * .32 + edgeConfidence * .68).coerceIn(0.0, 1.0)
-        )
-        return withEdgeEvidence(lineCandidate, edgeMaps)
+        if (minOf(left.confidence, right.confidence) < GUIDE_MIN_VERTICAL_CONFIDENCE) return null
+        return tops.asSequence().flatMap { top ->
+            bottoms.asSequence().mapNotNull { bottom ->
+                val edgeConfidence = (left.confidence + right.confidence) * .20 +
+                    (top.confidence + bottom.confidence) * .30
+                if (edgeConfidence < GUIDE_MIN_CONFIDENCE ||
+                    minOf(top.confidence, bottom.confidence) < GUIDE_MIN_HORIZONTAL_CONFIDENCE
+                ) return@mapNotNull null
+                val corners = arrayOf(
+                    guideIntersection(left, top) ?: return@mapNotNull null,
+                    guideIntersection(right, top) ?: return@mapNotNull null,
+                    guideIntersection(right, bottom) ?: return@mapNotNull null,
+                    guideIntersection(left, bottom) ?: return@mapNotNull null
+                )
+                if (corners.any { it.x !in 0.0..width.toDouble() || it.y !in 0.0..height.toDouble() }) {
+                    return@mapNotNull null
+                }
+                if ((corners[0].y + corners[1].y) >= (corners[2].y + corners[3].y)) {
+                    return@mapNotNull null
+                }
+                val geometry = score(corners, width, height, width.toDouble() * height)
+                    ?: return@mapNotNull null
+                Candidate(
+                    corners,
+                    (geometry.score * .32 + edgeConfidence * .68).coerceIn(0.0, 1.0)
+                )
+            }
+        }.sortedByDescending(Candidate::score)
+            .take(GUIDE_PAIR_CANDIDATES)
+            .mapNotNull { withEdgeEvidence(it, edgeMaps) }
+            .maxByOrNull(Candidate::score)
     }
 
     private fun searchGuideLine(
@@ -312,12 +321,30 @@ class OpenCvCardDetector(
         radius: Int,
         offset: Int,
         vertical: Boolean
-    ): GuideLine {
-        var best = GuideLine(expectedPosition, 0.0, axisCenter, 0.0, vertical)
+    ): GuideLine = searchGuideLines(
+        pixels, width, height, expectedPosition, axisCenter, rangeStart, rangeEnd,
+        radius, offset, vertical, limit = 1
+    ).first()
+
+    private fun searchGuideLines(
+        pixels: ByteArray,
+        width: Int,
+        height: Int,
+        expectedPosition: Double,
+        axisCenter: Double,
+        rangeStart: Double,
+        rangeEnd: Double,
+        radius: Int,
+        offset: Int,
+        vertical: Boolean,
+        limit: Int = GUIDE_LINE_CANDIDATES
+    ): List<GuideLine> {
+        val candidates = ArrayList<GuideLine>()
         val positionStep = max(1, (if (vertical) width else height) / 420)
         var position = (expectedPosition - radius).toInt()
         val last = (expectedPosition + radius).toInt()
         while (position <= last) {
+            var bestAtPosition = GuideLine(position.toDouble(), 0.0, axisCenter, 0.0, vertical)
             var slope = -GUIDE_MAX_SLOPE
             while (slope <= GUIDE_MAX_SLOPE + .001) {
                 val strength = guideLineStrength(
@@ -328,14 +355,27 @@ class OpenCvCardDetector(
                     abs(position - expectedPosition) / radius.coerceAtLeast(1)
                 val confidence = (strength * proximity / GUIDE_EDGE_NORMALIZER)
                     .coerceIn(0.0, 1.0)
-                if (confidence > best.confidence) {
-                    best = GuideLine(position.toDouble(), slope, axisCenter, confidence, vertical)
+                if (confidence > bestAtPosition.confidence) {
+                    bestAtPosition = GuideLine(
+                        position.toDouble(), slope, axisCenter, confidence, vertical
+                    )
                 }
                 slope += GUIDE_SLOPE_STEP
             }
+            candidates += bestAtPosition
             position += positionStep
         }
-        return best
+        val minimumSeparation = max(positionStep * 3, radius / 9)
+        val selected = ArrayList<GuideLine>(limit)
+        for (candidate in candidates.sortedByDescending(GuideLine::confidence)) {
+            if (selected.size >= limit) break
+            if (selected.none { abs(it.position - candidate.position) < minimumSeparation }) {
+                selected += candidate
+            }
+        }
+        return selected.ifEmpty {
+            listOf(GuideLine(expectedPosition, 0.0, axisCenter, 0.0, vertical))
+        }
     }
 
     private fun guideLineStrength(
@@ -624,11 +664,7 @@ class OpenCvCardDetector(
         val right = distance(corners[1], corners[2])
         val bottom = distance(corners[2], corners[3])
         val left = distance(corners[3], corners[0])
-        val cardWidth = (top + bottom) / 2.0
-        val cardHeight = (left + right) / 2.0
-        if (cardHeight <= cardWidth || cardHeight <= 1.0) return null
-        val ratio = cardWidth / cardHeight
-        if (ratio !in .54..0.85) return null
+        val aspect = CardAspectPolicy.measure(top, right, bottom, left) ?: return null
         val area = polygonArea(corners)
         val areaFraction = area / frameArea
         if (areaFraction !in MIN_AREA_FRACTION..MAX_AREA_FRACTION) return null
@@ -648,10 +684,9 @@ class OpenCvCardDetector(
                 (hypot(firstX, firstY) * hypot(secondX, secondY)).coerceAtLeast(1.0)
         }
         if (rectangularity < .62) return null
-        val aspectFit = (1.0 - abs(ratio - CARD_ASPECT) / .20).coerceIn(0.0, 1.0)
         val areaFit = (areaFraction / .42).coerceIn(0.0, 1.0)
         val centerFit = (1.0 - centerDistance / .28).coerceIn(0.0, 1.0)
-        val score = aspectFit * .42 + rectangularity * .28 + areaFit * .20 + centerFit * .10
+        val score = aspect.fit * .42 + rectangularity * .28 + areaFit * .20 + centerFit * .10
         return Candidate(corners, score.coerceIn(0.0, 1.0))
     }
 
@@ -744,7 +779,6 @@ class OpenCvCardDetector(
         const val MAX_SIDE = 720.0
         const val MIN_AREA_FRACTION = .16
         const val MAX_AREA_FRACTION = .92
-        const val CARD_ASPECT = 63.0 / 88.0
         const val GUIDE_MAX_SLOPE = .30
         const val GUIDE_SLOPE_STEP = .04
         const val GUIDE_POSITION_PENALTY = .62
@@ -754,7 +788,9 @@ class OpenCvCardDetector(
         const val GUIDE_MIN_VERTICAL_CONFIDENCE = .18
         const val GUIDE_MIN_HORIZONTAL_CONFIDENCE = .21
         const val GUIDE_VERTICAL_SEARCH_FRACTION = .14
-        const val GUIDE_HORIZONTAL_SEARCH_FRACTION = .10
+        const val GUIDE_HORIZONTAL_SEARCH_FRACTION = .20
+        const val GUIDE_LINE_CANDIDATES = 5
+        const val GUIDE_PAIR_CANDIDATES = 4
         const val MIN_AVERAGE_EDGE_SUPPORT = .42
         const val MIN_SIDE_EDGE_SUPPORT = .16
         const val MIN_HORIZONTAL_EDGE_SUPPORT = .23

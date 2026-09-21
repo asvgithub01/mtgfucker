@@ -666,9 +666,28 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                             liveCorners[index].y * (1f - STILL_WEIGHT)
                     )
                 }
-            } else stillCorners
+            } else {
+                val stillQuality = detectionQuality(still, bitmap.width, bitmap.height)
+                val liveQuality = detectionQuality(live, bitmap.width, bitmap.height)
+                if (liveQuality > stillQuality) liveCorners else stillCorners
+            }
         } else stillCorners
         return normalized.map { PointF(it.x * bitmap.width, it.y * bitmap.height) }.toTypedArray()
+    }
+
+    private fun detectionQuality(detection: OpenCvDetectedQuad, width: Int, height: Int): Double {
+        val corners = detection.cornersFor(width, height)
+        val lengths = DoubleArray(4) { index ->
+            val next = corners[(index + 1) % corners.size]
+            kotlin.math.hypot(
+                (corners[index].x - next.x).toDouble(),
+                (corners[index].y - next.y).toDouble()
+            )
+        }
+        val aspect = CardAspectPolicy.measure(
+            lengths[0], lengths[1], lengths[2], lengths[3]
+        ) ?: return Double.NEGATIVE_INFINITY
+        return aspect.fit * .70 + detection.confidence * .30
     }
 
     private fun showCapturedPhoto(bitmap: Bitmap, corners: Array<PointF>, automatic: Boolean) {

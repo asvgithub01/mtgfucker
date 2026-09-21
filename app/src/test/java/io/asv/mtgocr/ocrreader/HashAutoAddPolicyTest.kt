@@ -6,6 +6,12 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HashAutoAddPolicyTest {
+    @Test fun onlyStrongUnverifiedHitsCanAutoAdd() {
+        assertEquals(true, HashAutoAddPolicy.acceptsTopHit(10, false))
+        assertEquals(false, HashAutoAddPolicy.acceptsTopHit(11, false))
+        assertEquals(true, HashAutoAddPolicy.acceptsTopHit(20, true))
+    }
+
     @Test fun exactResolutionUsesItsUuid() {
         val target = HashAutoAddTarget("Card", "exact", "SET", "12")
         val exact = option("exact", "OTHER", "99", "foil")

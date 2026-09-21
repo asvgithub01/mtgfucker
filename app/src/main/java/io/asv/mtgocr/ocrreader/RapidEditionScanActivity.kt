@@ -256,7 +256,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             val preferences = getSharedPreferences("hash_scanner", MODE_PRIVATE)
             hashOcr.isChecked = preferences.getBoolean("ocr", false)
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
-            hashAutoAdd.isChecked = preferences.getBoolean("auto_add", true)
+            hashAutoAdd.isChecked = preferences.getBoolean("auto_add_first", false)
             hashOcr.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("ocr", checked).apply()
                 prepareHashAnalysis()
@@ -265,7 +265,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 preferences.edit().putBoolean("symbol", checked).apply()
             }
             hashAutoAdd.setOnCheckedChangeListener { _, checked ->
-                preferences.edit().putBoolean("auto_add", checked).apply()
+                preferences.edit().putBoolean("auto_add_first", checked).apply()
             }
             liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
             prepareHashAnalysis()
@@ -1013,6 +1013,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (!hashAutoAdd.isChecked) return
         val row = result.rows.firstOrNull() ?: return
         val hit = row.candidate.hit
+        if (!HashAutoAddPolicy.acceptsTopHit(hit.phashDistance, row.resolvedEdition != null)) return
         val target = HashAutoAddTarget(
             cardName = hit.name,
             printingUuid = row.resolvedEdition?.printingUuid,

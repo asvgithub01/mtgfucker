@@ -11,6 +11,9 @@ internal data class HashAutoAddTarget(
 
 /** Resolves the top hash hit to the exact indexed printing selected by the opt-in checkbox. */
 internal object HashAutoAddPolicy {
+    fun acceptsTopHit(phashDistance: Int, hasExactEdition: Boolean): Boolean =
+        hasExactEdition || phashDistance <= MAX_UNVERIFIED_PHASH_DISTANCE
+
     fun preferredOption(
         target: HashAutoAddTarget,
         options: List<CardEditionOption>
@@ -31,4 +34,6 @@ internal object HashAutoAddPolicy {
                 .thenBy { it.finish }
         ).firstOrNull()
     }
+
+    private const val MAX_UNVERIFIED_PHASH_DISTANCE = 10
 }

@@ -14,7 +14,12 @@ import java.util.concurrent.TimeUnit
 
 /** Owns each rectified bitmap until every enabled analysis has completed. No collection writes. */
 internal class HashScanAnalysis(context: Context) {
-    data class Options(val ocr: Boolean, val symbol: Boolean, val border: Boolean = false)
+    data class Options(
+        val ocr: Boolean,
+        val symbol: Boolean,
+        val border: Boolean = false,
+        val language: Boolean = false
+    )
     data class Edition(
         val code: String,
         val name: String,
@@ -30,8 +35,10 @@ internal class HashScanAnalysis(context: Context) {
     data class Result(
         val hash: ArtHashMatcher.Result?, val rows: List<Row>, val rawTitle: List<String>,
         val names: List<String>, val printing: PrintingMetadataGuess?,
-        val symbols: SetSymbolShapeMatch?, val border: CardFrameAnalysis?, val errors: List<String>,
-        val elapsedMs: Long, val ocrMs: Long, val symbolMs: Long, val borderMs: Long
+        val symbols: SetSymbolShapeMatch?, val border: CardFrameAnalysis?,
+        val language: CardTextLanguageResult?, val effectiveLanguage: String,
+        val errors: List<String>, val elapsedMs: Long, val ocrMs: Long,
+        val symbolMs: Long, val borderMs: Long, val languageMs: Long
     )
 
     private val app = context.applicationContext
@@ -70,14 +77,16 @@ internal class HashScanAnalysis(context: Context) {
         var printing: PrintingMetadataGuess? = null
         var shape: SetSymbolShapeMatch? = null
         var border: CardFrameAnalysis? = null
+        var language: CardTextLanguageResult? = null
         var ocrMs = 0L
         var symbolMs = 0L
         var borderMs = 0L
+        var languageMs = 0L
         val errors = mutableListOf<String>()
         fun fail(stage: String, error: Throwable) = synchronized(lock) {
             errors.add("$stage: ${error.message ?: error.javaClass.simpleName}")
         }
-        val completion = HashScanCompletion(options.ocr) {
+        val completion = HashScanCompletion(options.ocr, options.language) {
             card.recycle()
             val result = synchronized(lock) {
                 val resolvedRows = rows.map { row ->
@@ -88,8 +97,17 @@ internal class HashScanAnalysis(context: Context) {
                         row.editions
                     ))
                 }
-                Result(hash, resolvedRows, title, names, printing, shape, border, errors.toList(),
-                    SystemClock.elapsedRealtime() - started, ocrMs, symbolMs, borderMs)
+                val effectiveLanguage = CardLanguageEvidenceResolver.resolve(
+                    footerLanguage = printing?.languageCode,
+                    detectedRulesLanguage = language?.languageCode,
+                    detectedRulesConfidence = language?.confidence ?: 0f
+                )
+                Result(
+                    hash, resolvedRows, title, names, printing, shape, border,
+                    language, effectiveLanguage, errors.toList(),
+                    SystemClock.elapsedRealtime() - started, ocrMs, symbolMs,
+                    borderMs, languageMs
+                )
             }
             if (!closed) callback(result)
         }
@@ -190,6 +208,28 @@ internal class HashScanAnalysis(context: Context) {
                         }
                     }
                 } catch (error: Throwable) { reader?.close(); fail("OCR impresión", error); completion.finish("printing") }
+            }
+        }
+        if (options.language) {
+            workers.execute {
+                var detector: CardTextLanguageDetector? = null
+                val languageStarted = SystemClock.elapsedRealtime()
+                try {
+                    val activeDetector = CardTextLanguageDetector().also { detector = it }
+                    activeDetector.detect(card, "") { detected ->
+                        activeDetector.close()
+                        synchronized(lock) {
+                            language = detected
+                            languageMs = SystemClock.elapsedRealtime() - languageStarted
+                        }
+                        completion.finish("language")
+                    }
+                } catch (error: Throwable) {
+                    detector?.close()
+                    synchronized(lock) { languageMs = SystemClock.elapsedRealtime() - languageStarted }
+                    fail("idioma", error)
+                    completion.finish("language")
+                }
             }
         }
     }

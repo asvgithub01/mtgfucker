@@ -28,6 +28,14 @@ class HashScanCompletionTest {
             assertEquals(1, calls)
         }
     }
+    @Test fun languageCheckDelaysPublicationUntilItsCallback() {
+        var calls = 0
+        val barrier = HashScanCompletion(ocr = false, language = true) { calls++ }
+        barrier.finish("visual")
+        assertEquals(0, calls)
+        barrier.finish("language")
+        assertEquals(1, calls)
+    }
     @Test fun concurrentCallbacksCompleteExactlyOnce() {
         val count = AtomicInteger()
         val barrier = HashScanCompletion(true) { count.incrementAndGet() }

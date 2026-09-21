@@ -47,6 +47,7 @@ import androidx.lifecycle.Lifecycle
 import io.asv.mtgocr.ocrreader.data.CardDatabase
 import io.asv.mtgocr.ocrreader.data.CardEditionOption
 import io.asv.mtgocr.ocrreader.data.CardIdentificationResult
+import io.asv.mtgocr.ocrreader.data.CardLanguage
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.LocalCardNameMatch
@@ -130,6 +131,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var hashAutoAdd: CheckBox
     private lateinit var hashBorder: CheckBox
     private lateinit var hashBorderResult: TextView
+    private lateinit var hashLanguage: CheckBox
+    private lateinit var hashLanguageResult: TextView
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
@@ -214,6 +217,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashAutoAdd = findViewById(R.id.hashScanAutoAdd)
         hashBorder = findViewById(R.id.hashScanBorder)
         hashBorderResult = findViewById(R.id.hashScanBorderResult)
+        hashLanguage = findViewById(R.id.hashScanLanguage)
+        hashLanguageResult = findViewById(R.id.hashScanLanguageResult)
         if (hashOnlyMode) {
             liveScanPhase = RapidLiveScanPhase.EDGES
             findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
@@ -262,6 +267,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
             hashAutoAdd.isChecked = preferences.getBoolean("auto_add_first", false)
             hashBorder.isChecked = preferences.getBoolean("border", false)
+            hashLanguage.isChecked = preferences.getBoolean("language", false)
             hashOcr.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("ocr", checked).apply()
                 prepareHashAnalysis()
@@ -274,6 +280,9 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             }
             hashBorder.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("border", checked).apply()
+            }
+            hashLanguage.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("language", checked).apply()
             }
             liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
             prepareHashAnalysis()
@@ -911,13 +920,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         val options = HashScanAnalysis.Options(
             ocr = hashOcr.isChecked,
             symbol = hashSymbol.isChecked,
-            border = hashBorder.isChecked
+            border = hashBorder.isChecked,
+            language = hashLanguage.isChecked
         )
         hashOcr.isEnabled = false
         hashSymbol.isEnabled = false
         hashAutoAdd.isEnabled = false
         hashBorder.isEnabled = false
+        hashLanguage.isEnabled = false
         hashBorderResult.visibility = View.GONE
+        hashLanguageResult.visibility = View.GONE
         status.setText(R.string.hash_only_scan_matching)
         findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
         showLoading(getString(R.string.hash_only_scan_matching))
@@ -945,6 +957,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             hashSymbol.isEnabled = true
             hashAutoAdd.isEnabled = true
             hashBorder.isEnabled = true
+            hashLanguage.isEnabled = true
             val fromCapture = (SystemClock.elapsedRealtime() - lastCaptureStartedAtMs).coerceAtLeast(0)
             status.text = getString(R.string.scan_debug_hash_checks_timing,
                 result.hash?.elapsedMs ?: 0, result.ocrMs, result.symbolMs, result.elapsedMs, fromCapture)
@@ -953,6 +966,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (options.border) {
                 hashBorderResult.text = hashBorderLabel(result.border?.borderColor)
                 hashBorderResult.visibility = View.VISIBLE
+            }
+            if (options.language) {
+                hashLanguageResult.text = hashLanguageLabel(result)
+                hashLanguageResult.visibility = View.VISIBLE
             }
             result.rows.forEachIndexed { index, row ->
                 val container = LinearLayout(this).apply {
@@ -1024,6 +1041,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             capture.setText(R.string.hash_only_scan_repeat)
             Log.d(PERF_TAG, "hash_checks hash=${result.hash?.elapsedMs} ocr=${result.ocrMs} " +
                 "symbol=${result.symbolMs} border=${result.border?.borderColor}:${result.borderMs}ms " +
+                "language=${result.effectiveLanguage}:${result.languageMs}ms " +
                 "total=${result.elapsedMs} capture=$fromCapture")
             autoAddFirstHashResult(result)
         } }
@@ -1055,10 +1073,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (option != null) {
                 delivered = true
                 Log.d(PERF_TAG, "hash_auto_add_local=${option.printingUuid}:${option.finish}")
-                addSelectedEdition(option, result.printing?.languageCode.orEmpty())
+                addSelectedEdition(option, result.effectiveLanguage)
             } else {
                 if (localError != null) Log.w(PERF_TAG, "hash_auto_add_local", localError)
-                loadHashAutoAddFromCatalog(target, result.printing?.languageCode.orEmpty())
+                loadHashAutoAddFromCatalog(target, result.effectiveLanguage)
             }
         }
     }
@@ -2249,6 +2267,24 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         HashBorderVerdict.UNRESOLVED -> getString(R.string.edition_scan_border_unknown)
     }.uppercase(Locale.getDefault())
 
+    private fun hashLanguageLabel(result: HashScanAnalysis.Result): String {
+        val code = CardLanguage.toCode(result.effectiveLanguage)
+        if (code.isBlank()) return getString(R.string.hash_scan_language_unresolved)
+        val label = when (code) {
+            "zhs" -> getString(R.string.language_chinese_simplified)
+            "zht" -> getString(R.string.language_chinese_traditional)
+            else -> Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault())
+                .ifBlank { code }
+        }.uppercase(Locale.getDefault())
+        val confidence = result.language
+            ?.takeIf { CardLanguage.toCode(it.languageCode) == code }
+            ?.confidence
+            ?: 0f
+        return if (confidence > 0f) {
+            "$label · ${(confidence * 100).toInt().coerceIn(0, 100)}%"
+        } else label
+    }
+
     private fun finishAnalysis() {
         analysisInFlight = false
         capture.isEnabled = true
@@ -2353,6 +2389,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         debug.visibility = View.GONE
         artHashStatus.visibility = View.GONE
         hashBorderResult.visibility = View.GONE
+        hashLanguageResult.visibility = View.GONE
         replaceDebugBitmap(null)
         stability.reset()
         quadHistory.clear()

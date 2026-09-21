@@ -548,6 +548,8 @@
     <string name="hash_scan_symbol">Comparer le symbole (Internet possible)</string>
     <string name="hash_scan_auto_add">Ajouter automatiquement</string>
     <string name="hash_scan_border">Vérifier la bordure (blanc/noir)</string>
+    <string name="hash_scan_language">Vérifier la langue</string>
+    <string name="hash_scan_language_unresolved">LANGUE NON DÉTERMINÉE</string>
     <string name="hash_scan_preparing">Préparation des index des illustrations et des noms…</string>
     <string name="hash_scan_prepare_error">Impossible de préparer l’index. Changez l’option OCR pour réessayer.</string>
 </resources>

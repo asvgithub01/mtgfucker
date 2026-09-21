@@ -548,6 +548,8 @@
     <string name="hash_scan_symbol">Symbol vergleichen (ggf. Internet)</string>
     <string name="hash_scan_auto_add">Automatisch hinzufügen</string>
     <string name="hash_scan_border">Randfarbe prüfen (weiß/schwarz)</string>
+    <string name="hash_scan_language">Sprache prüfen</string>
+    <string name="hash_scan_language_unresolved">SPRACHE NICHT ERKANNT</string>
     <string name="hash_scan_preparing">Bild- und Namensindizes werden vorbereitet…</string>
     <string name="hash_scan_prepare_error">Index konnte nicht geladen werden. OCR umschalten, um es erneut zu versuchen.</string>
 </resources>

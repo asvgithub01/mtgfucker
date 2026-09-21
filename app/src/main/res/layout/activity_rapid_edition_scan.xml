@@ -68,6 +68,14 @@
                 android:textColor="#FFFFFF"
                 android:buttonTint="#FFFFFF" />
             <CheckBox
+                android:id="@+id/hashScanLanguage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/hash_scan_language"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
                 android:id="@+id/hashScanOcr"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -216,6 +224,19 @@
                 android:padding="8dp"
                 android:textColor="?attr/colorSecondary"
                 android:textSize="24sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/hashScanLanguageResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/bg_scan_debug_status"
+                android:gravity="center"
+                android:padding="8dp"
+                android:textColor="?attr/colorSecondary"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 

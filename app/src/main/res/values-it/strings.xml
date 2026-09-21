@@ -548,6 +548,8 @@
     <string name="hash_scan_symbol">Confronta simbolo (può usare Internet)</string>
     <string name="hash_scan_auto_add">Aggiungi automaticamente</string>
     <string name="hash_scan_border">Verifica bordo (bianco/nero)</string>
+    <string name="hash_scan_language">Verifica lingua</string>
+    <string name="hash_scan_language_unresolved">LINGUA NON RISOLTA</string>
     <string name="hash_scan_preparing">Preparazione degli indici di illustrazioni e nomi…</string>
     <string name="hash_scan_prepare_error">Impossibile preparare l’indice. Cambia l’opzione OCR per riprovare.</string>
 </resources>

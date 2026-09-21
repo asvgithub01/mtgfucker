@@ -598,6 +598,8 @@
     <string name="hash_scan_symbol">Comparar símbolo (puede usar internet)</string>
     <string name="hash_scan_auto_add">Añadir automáticamente</string>
     <string name="hash_scan_border">Verificar color de borde (blanco/negro)</string>
+    <string name="hash_scan_language">Verificar idioma</string>
+    <string name="hash_scan_language_unresolved">IDIOMA SIN RESOLVER</string>
     <string name="hash_scan_preparing">Preparando índices de arte y nombres…</string>
     <string name="hash_scan_prepare_error">No se pudo preparar el índice. Cambia el check OCR para reintentar.</string>
     <string name="scan_debug_hash_checks_timing" translatable="false">Hash %1$d ms · OCR %2$d ms · Símbolo %3$d ms\nAnálisis %4$d ms · Desde detección %5$d ms</string>

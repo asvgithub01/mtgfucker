@@ -39,7 +39,7 @@
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
 | Hash con OCR/símbolo opcionales | `HashScanAnalysis.kt`, `HashScanEvidence.kt`; controles y resultados en `RapidEditionScanActivity.kt`/`activity_rapid_edition_scan.xml`. Ver `ART_HASH_EVALUATION.md`; no atribuir al hash una edición exacta. |
 | Prueba de escáner solo por hash | `HashOnlyScanActivity.kt` reutiliza la captura/rectificación de `RapidEditionScanActivity.kt`, salta OCR/red y ejecuta `ArtHashMatcher.kt`/`ArtHashIndex.kt`; tercer FAB en `ocr_capture.xml` |
-| Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtHashSampleStore.kt`, `RapidEditionScanActivity.kt`; índice APK `app/src/main/assets/art_hash_index.bin`, generador `scripts/build_art_hash_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
+| Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtPrintingIndex.kt`, `RapidEditionScanActivity.kt`; índices APK `art_hash_index.bin`/`art_printing_index.bin`, generadores `scripts/build_art_hash_asset.py`/`scripts/build_art_printing_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
 | Detalle de carta y ediciones | `Main2Activity.kt` (incluye `EditionAdapter`); layouts `activity_main2.xml`, `edition_item.xml` |
@@ -92,7 +92,8 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
   porque puede tener otro arte. Los submenús muestran miniaturas por impresión.
 - El laboratorio hash inicia el matching desde un frame live rectificado antes del JPEG. No
   volver a introducir captura/decodificación/corrección en su camino normal; la foto queda como
-  fallback. Una edición solo se marca resuelta si coinciden nombre OCR, código y collector number.
+  fallback. El hash solo identifica arte; la impresión local se resuelve después filtrando las
+  variantes por idioma/borde o por nombre OCR+código+collector. Ante conflicto no autoañadir.
 - Antes del hash, el quad debe respetar aproximadamente el aspect ratio físico 63:88. No volver
   a ampliar el antiguo rango 0,54–0,85: los recortes demasiado altos desplazan el arte y generan
   falsos candidatos aunque pHash/dHash funcionen correctamente.
@@ -119,6 +120,7 @@ git diff --check
 python scripts/download_art_crops.py --data-dir ../mtgfucker-art-hash-data --workers 12
 python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data build
 python scripts/build_art_hash_asset.py --input ../mtgfucker-art-hash-data/hashes.jsonl --output app/src/main/assets/art_hash_index.bin
+python scripts/build_art_printing_asset.py --input ../mtgfucker-art-hash-data/AllPrintings.json.gz --art-hashes ../mtgfucker-art-hash-data/hashes.jsonl --output app/src/main/assets/art_printing_index.bin
 python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data match RUTA_AL_ART_CROP.jpg
 python scripts/pull_sony_art_samples.py --output ../mtgfucker-art-hash-data/evaluation/sony-live
 # Prueba instrumental (solo si el Sony tiene capturas privadas retenidas):
@@ -130,10 +132,9 @@ bash gradlew :app:testDebugUnitTest --tests '*EditionSearchTest'
 ```
 
 El PoC de hashes requiere Python con `cv2` y `numpy`; los JPEG y el JSONL del PC
-no se versionan. El índice binario compacto **sí** se versiona y se incluye en
-la APK. En esta rama debug el escáner rápido muestra candidatos de arte y, si
-falla el nombre OCR, deja elegir manualmente uno; nunca identifica automáticamente
-la impresión por hash. Ver `ART_HASH_EVALUATION.md`.
+no se versionan. Los índices binarios compactos **sí** se versionan y se incluyen en
+la APK. El de impresiones contiene metadatos MTGJSON, no imágenes ni precios, y solo
+autoriza una impresión cuando queda una variante compatible. Ver `ART_HASH_EVALUATION.md`.
 Solo el debug de `codex/art-hash-identification` conserva en `files/art_hash_samples`
 las últimas 30 fotos JPEG de los escáneres rápido y experimental. Son privadas
 de la app y se copian con `run-as` mediante el script anterior; no subirlas a Git.

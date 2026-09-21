@@ -12,6 +12,15 @@ internal data class HashAutoAddTarget(
 
 /** Resolves the top hash hit to the exact indexed printing selected by the opt-in checkbox. */
 internal object HashAutoAddPolicy {
+    fun hasResolvedPrinting(
+        indexedVariants: Int,
+        compatibleVariants: Int,
+        hasResolvedVariant: Boolean,
+        hasExactOcrEdition: Boolean
+    ): Boolean = indexedVariants == 0 || (
+        compatibleVariants > 0 && (hasResolvedVariant || hasExactOcrEdition)
+    )
+
     fun acceptsTopHit(phashDistance: Int, hasExactEdition: Boolean): Boolean =
         hasExactEdition || phashDistance <= MAX_UNVERIFIED_PHASH_DISTANCE
 

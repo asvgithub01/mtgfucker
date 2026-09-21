@@ -30,7 +30,10 @@ internal class HashScanAnalysis(context: Context) {
     data class Row(
         val candidate: ArtHashMatcher.Candidate,
         val editions: List<Edition>,
-        val resolvedEdition: Edition? = null
+        val variants: List<ArtPrintingIndex.Variant> = emptyList(),
+        val resolvedEdition: Edition? = null,
+        val compatibleVariants: List<ArtPrintingIndex.Variant> = emptyList(),
+        val resolvedVariant: ArtPrintingIndex.Variant? = null
     )
     data class Result(
         val hash: ArtHashMatcher.Result?, val rows: List<Row>, val rawTitle: List<String>,
@@ -47,12 +50,16 @@ internal class HashScanAnalysis(context: Context) {
     private val client = OkHttpClient.Builder().callTimeout(8, TimeUnit.SECONDS).build()
     private val symbols = SetSymbolShapeMatcher(app, client)
     @Volatile private var matcher: ArtHashMatcher? = null
+    @Volatile private var printingIndex: ArtPrintingIndex? = null
     @Volatile private var closed = false
 
     fun prepare(ocr: Boolean, callback: (Boolean) -> Unit) {
         workers.execute {
             val ready = runCatching {
                 if (matcher == null) matcher = ArtHashMatcher(ArtHashIndex.read(app.assets.open(ArtHashIndex.ASSET)))
+                if (printingIndex == null) {
+                    printingIndex = ArtPrintingIndex.read(app.assets.open(ArtPrintingIndex.ASSET))
+                }
             }.isSuccess
             if (closed) return@execute
             if (ocr && ready) {
@@ -89,19 +96,29 @@ internal class HashScanAnalysis(context: Context) {
         val completion = HashScanCompletion(options.ocr, options.language) {
             card.recycle()
             val result = synchronized(lock) {
-                val resolvedRows = rows.map { row ->
-                    row.copy(resolvedEdition = HashScanEvidence.resolveEdition(
-                        row.candidate.hit.name,
-                        names,
-                        printing,
-                        row.editions
-                    ))
-                }
                 val effectiveLanguage = CardLanguageEvidenceResolver.resolve(
                     footerLanguage = printing?.languageCode,
                     detectedRulesLanguage = language?.languageCode,
                     detectedRulesConfidence = language?.confidence ?: 0f
                 )
+                val resolvedRows = rows.map { row ->
+                    val compatible = HashPrintingVariantPolicy.compatible(
+                        row.candidate.hit.name, row.variants, names, printing,
+                        border?.borderColor, effectiveLanguage,
+                        verifyBorder = options.border,
+                        verifyLanguage = options.language || printing?.languageCode != null
+                    )
+                    row.copy(
+                        resolvedEdition = HashScanEvidence.resolveEdition(
+                            row.candidate.hit.name,
+                            names,
+                            printing,
+                            row.editions
+                        ),
+                        compatibleVariants = compatible,
+                        resolvedVariant = compatible.singleOrNull()
+                    )
+                }
                 Result(
                     hash, resolvedRows, title, names, printing, shape, border,
                     language, effectiveLanguage, errors.toList(),
@@ -130,17 +147,29 @@ internal class HashScanAnalysis(context: Context) {
                 val matched = checkNotNull(matcher).match(card)
                 synchronized(lock) {
                     hash = matched
-                    rows = matched.candidates.map { Row(it, emptyList()) }
+                    rows = matched.candidates.map { candidate ->
+                        Row(candidate, emptyList(), printingIndex!!.variants(candidate.hit.illustrationId))
+                    }
                 }
                 if (!closed) onHashReady(matched)
                 val dao = if (options.ocr || options.symbol) CardDatabase.get(app).cardDao() else null
                 val sets = if (options.ocr || options.symbol) dao!!.magicSets().associateBy { it.code.uppercase(Locale.ROOT) }
                     else emptyMap()
                 val candidateRows = matched.candidates.map { candidate ->
-                    val printings = if (options.ocr || options.symbol) {
+                    val variants = printingIndex!!.variants(candidate.hit.illustrationId)
+                    val cachedEditions = variants.distinctBy { it.printingUuid }.map { variant ->
+                        Edition(
+                            variant.set.code,
+                            variant.set.name,
+                            variant.set.releaseDate.take(4).toIntOrNull(),
+                            variant.collectorNumber,
+                            variant.printingUuid
+                        )
+                    }
+                    val printings = if (cachedEditions.isEmpty() && (options.ocr || options.symbol)) {
                         dao!!.printingsByName(MtgJsonCatalogDataProvider.normalize(candidate.hit.name))
                     } else emptyList()
-                    Row(candidate, printings.distinctBy { it.uuid }.map { printing ->
+                    val fallbackEditions = printings.distinctBy { it.uuid }.map { printing ->
                         val code = printing.setCode.uppercase(Locale.ROOT)
                         Edition(
                             code,
@@ -150,7 +179,8 @@ internal class HashScanAnalysis(context: Context) {
                             printing.collectorNumber,
                             printing.uuid
                         )
-                    })
+                    }
+                    Row(candidate, cachedEditions.ifEmpty { fallbackEditions }, variants)
                 }
                 synchronized(lock) { rows = candidateRows }
                 if (options.symbol && !closed) {

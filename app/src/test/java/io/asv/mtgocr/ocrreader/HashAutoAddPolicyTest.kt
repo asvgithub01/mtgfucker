@@ -6,6 +6,14 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HashAutoAddPolicyTest {
+    @Test fun cacheMustResolveOnePrintingBeforeAutoAdd() {
+        assertEquals(false, HashAutoAddPolicy.hasResolvedPrinting(8, 8, false, false))
+        assertEquals(false, HashAutoAddPolicy.hasResolvedPrinting(8, 0, false, true))
+        assertEquals(true, HashAutoAddPolicy.hasResolvedPrinting(8, 1, true, false))
+        assertEquals(true, HashAutoAddPolicy.hasResolvedPrinting(8, 3, false, true))
+        assertEquals(true, HashAutoAddPolicy.hasResolvedPrinting(0, 0, false, false))
+    }
+
     @Test fun onlyStrongUnverifiedHitsCanAutoAdd() {
         assertEquals(true, HashAutoAddPolicy.acceptsTopHit(10, false))
         assertEquals(false, HashAutoAddPolicy.acceptsTopHit(11, false))

@@ -994,6 +994,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                             row.candidate.hit.phashDistance, row.candidate.hit.dhashDistance))
                         append("\n")
                         append(getString(R.string.hash_only_scan_not_edition))
+                        append("\n")
+                        append(getString(
+                            R.string.hash_scan_cached_variants,
+                            row.variants.size,
+                            row.compatibleVariants.size
+                        ))
                         if (options.ocr) {
                             append("\n")
                             append(getString(R.string.scan_debug_hash_ocr_row,
@@ -1017,6 +1023,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                                     edition.collectorNumber
                                 ))
                             }
+                        }
+                        row.resolvedVariant?.let { variant ->
+                            append("\n")
+                            append(getString(
+                                R.string.hash_scan_exact_cached_printing,
+                                variant.set.name,
+                                variant.set.code,
+                                variant.collectorNumber,
+                                variant.languageCode.uppercase(Locale.US)
+                            ))
                         }
                         if (options.symbol) {
                             append("\n")
@@ -1051,7 +1067,19 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (!hashAutoAdd.isChecked) return
         val row = result.rows.firstOrNull() ?: return
         val hit = row.candidate.hit
+        if (!HashAutoAddPolicy.hasResolvedPrinting(
+                row.variants.size,
+                row.compatibleVariants.size,
+                row.resolvedVariant != null,
+                row.resolvedEdition != null
+            )) return
+        // A unique cache row proves the printing only after the art hit itself is trusted.
+        // Preserve the relaxed threshold exclusively for the existing exact OCR resolution.
         if (!HashAutoAddPolicy.acceptsTopHit(hit.phashDistance, row.resolvedEdition != null)) return
+        row.resolvedVariant?.let { variant ->
+            addResolvedHashVariant(variant, result.effectiveLanguage)
+            return
+        }
         val target = HashAutoAddTarget(
             cardName = hit.name,
             printingUuid = row.resolvedEdition?.printingUuid,
@@ -1078,6 +1106,37 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 if (localError != null) Log.w(PERF_TAG, "hash_auto_add_local", localError)
                 loadHashAutoAddFromCatalog(target, result.effectiveLanguage)
             }
+        }
+    }
+
+    private fun addResolvedHashVariant(
+        variant: ArtPrintingIndex.Variant,
+        detectedLanguage: String
+    ) {
+        capture.isEnabled = false
+        val local = variant.toEditionOption()
+        repository.loadCachedPrinting(
+            local.cardName,
+            local.printingUuid,
+            variant.scryfallId,
+            local.setCode,
+            local.collectorNumber
+        ) { options, error ->
+            if (isFinishing || isDestroyed) return@loadCachedPrinting
+            if (error != null) Log.w(PERF_TAG, "hash_auto_add_asset_local", error)
+            val target = HashAutoAddTarget(
+                local.cardName, local.printingUuid, local.setCode,
+                local.collectorNumber, variant.scryfallId
+            )
+            val option = HashAutoAddPolicy.preferredOption(target, options)?.copy(
+                displayName = local.displayName,
+                imageUrl = local.imageUrl
+            ) ?: local
+            Log.d(PERF_TAG, "hash_auto_add_asset=${option.printingUuid}:${variant.languageCode}")
+            addSelectedEdition(
+                option,
+                variant.languageCode.ifBlank { detectedLanguage }
+            )
         }
     }
 

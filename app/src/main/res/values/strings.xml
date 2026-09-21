@@ -600,11 +600,13 @@
     <string name="hash_scan_border">Verificar color de borde (blanco/negro)</string>
     <string name="hash_scan_language">Verificar idioma</string>
     <string name="hash_scan_language_unresolved">IDIOMA SIN RESOLVER</string>
-    <string name="hash_scan_preparing">Preparando índices de arte y nombres…</string>
+    <string name="hash_scan_preparing">Preparando arte y ediciones locales…</string>
     <string name="hash_scan_prepare_error">No se pudo preparar el índice. Cambia el check OCR para reintentar.</string>
     <string name="scan_debug_hash_checks_timing" translatable="false">Hash %1$d ms · OCR %2$d ms · Símbolo %3$d ms\nAnálisis %4$d ms · Desde detección %5$d ms</string>
     <string name="scan_debug_hash_ocr_row" translatable="false">OCR: %1$s\nCatálogo: %2$s · Nombre %3$s\nAño leído: %4$s · Código OCR: %5$s</string>
     <string name="scan_debug_hash_year_sets" translatable="false">Ediciones locales del año (orientativo): %1$s</string>
     <string name="scan_debug_hash_symbol_row" translatable="false">Símbolo sugerido: %1$s · Distancia %2$s · Confianza %3$s</string>
     <string name="hash_scan_exact_edition" translatable="false">Edición resuelta: %1$s (%2$s) #%3$s ✓</string>
+    <string name="hash_scan_cached_variants" translatable="false">Caché local: %1$d variantes · %2$d compatibles</string>
+    <string name="hash_scan_exact_cached_printing" translatable="false">Impresión local: %1$s (%2$s) #%3$s · %4$s ✓</string>
 </resources>

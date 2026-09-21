@@ -1017,10 +1017,36 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         val target = HashAutoAddTarget(
             cardName = hit.name,
             printingUuid = row.resolvedEdition?.printingUuid,
+            scryfallId = hit.scryfallId,
             setCode = row.resolvedEdition?.code ?: hit.setCode,
             collectorNumber = row.resolvedEdition?.collectorNumber ?: hit.collectorNumber
         )
         capture.isEnabled = false
+        var delivered = false
+        repository.loadCachedPrinting(
+            target.cardName,
+            target.printingUuid,
+            target.scryfallId,
+            target.setCode,
+            target.collectorNumber
+        ) { options, localError ->
+            if (isFinishing || isDestroyed || delivered) return@loadCachedPrinting
+            val option = HashAutoAddPolicy.preferredOption(target, options)
+            if (option != null) {
+                delivered = true
+                Log.d(PERF_TAG, "hash_auto_add_local=${option.printingUuid}:${option.finish}")
+                addSelectedEdition(option, result.printing?.languageCode.orEmpty())
+            } else {
+                if (localError != null) Log.w(PERF_TAG, "hash_auto_add_local", localError)
+                loadHashAutoAddFromCatalog(target, result.printing?.languageCode.orEmpty())
+            }
+        }
+    }
+
+    private fun loadHashAutoAddFromCatalog(
+        target: HashAutoAddTarget,
+        languageCode: String
+    ) {
         showLoading(getString(R.string.rapid_scan_loading_prices, target.cardName))
         var delivered = false
         repository.loadCard(
@@ -1032,8 +1058,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             val option = HashAutoAddPolicy.preferredOption(target, options)
             if (option != null) {
                 delivered = true
-                Log.d(PERF_TAG, "hash_auto_add=${option.printingUuid}:${option.finish}")
-                addSelectedEdition(option, result.printing?.languageCode.orEmpty())
+                Log.d(PERF_TAG, "hash_auto_add_catalog=${option.printingUuid}:${option.finish}")
+                addSelectedEdition(option, languageCode)
             } else if (error != null || options.isNotEmpty()) {
                 delivered = true
                 hideLoading()

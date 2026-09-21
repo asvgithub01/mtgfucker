@@ -25,6 +25,7 @@ class ArtHashIndexTest {
         assertEquals(3, index.size)
         assertEquals(listOf("C", "B", "A"), hits.map { it.name })
         assertEquals("00000000-0000-0000-0000-000000000002-1", hits[0].key)
+        assertEquals("00000000-0000-0000-0000-000000000002", hits[0].scryfallId)
         assertEquals(0, hits[0].phashDistance)
         assertEquals(1, hits[0].dhashDistance)
         assertNull(hits[1].illustrationId)

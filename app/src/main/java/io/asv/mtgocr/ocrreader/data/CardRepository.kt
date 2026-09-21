@@ -671,6 +671,55 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /**
+     * Resolves one hash hit using Room only. This deliberately avoids the serial catalog executor
+     * and every network/cache-refresh path so automatic scanning can persist an already indexed
+     * printing without showing the editions-and-prices loader.
+     */
+    fun loadCachedPrinting(
+        cardName: String,
+        printingUuid: String?,
+        scryfallId: String?,
+        setCode: String,
+        collectorNumber: String,
+        callback: (List<CardEditionOption>, Throwable?) -> Unit
+    ): Future<*> = quickScanExecutor.submit {
+        try {
+            val exactPrintings = when {
+                !printingUuid.isNullOrBlank() -> dao.printingsByUuids(listOf(printingUuid))
+                !scryfallId.isNullOrBlank() -> listOfNotNull(dao.printingByScryfallId(scryfallId))
+                else -> emptyList()
+            }
+            val printings = exactPrintings.ifEmpty {
+                dao.printingsByName(MtgJsonCatalogDataProvider.normalize(cardName))
+                    .filter { printing ->
+                        printing.setCode.equals(setCode, ignoreCase = true) &&
+                            PrintingMetadataParser.collectorKeysMatch(
+                                printing.collectorNumber,
+                                collectorNumber
+                            )
+                    }
+            }
+            val prices = priceProvider.cachedPrices(
+                printings.mapTo(LinkedHashSet()) { it.uuid },
+                PriceSourcePreferences.priorityIds(appContext)
+                    .filter { it != PriceSourcePreferences.SCRYFALL }
+            )
+            val displayName = nameResolver.cached(cardName)?.displayName
+                ?: printings.firstOrNull()?.name
+                ?: cardName
+            val options = combine(printings, prices, displayName)
+            if (!Thread.currentThread().isInterrupted) {
+                mainHandler.post { callback(options, null) }
+            }
+        } catch (error: Throwable) {
+            Log.w(TAG, "Falló el lookup local de la impresión hash '$cardName'", error)
+            if (!Thread.currentThread().isInterrupted) {
+                mainHandler.post { callback(emptyList(), error) }
+            }
+        }
+    }
+
     fun prepareCardNamePredictor(callback: (Boolean) -> Unit = {}) {
         nameExecutor.execute {
             val ready = runCatching { nameResolver.preparePredictionIndex() }.getOrDefault(false)

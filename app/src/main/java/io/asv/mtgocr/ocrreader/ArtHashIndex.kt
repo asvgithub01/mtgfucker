@@ -30,7 +30,10 @@ internal class ArtHashIndex private constructor(
         val collectorNumber: String,
         val phashDistance: Int,
         val dhashDistance: Int
-    )
+    ) {
+        /** Scryfall card id; face-specific index keys append `-0` or `-1`. */
+        val scryfallId: String get() = key.take(UUID_TEXT_LENGTH)
+    }
 
     private data class Score(val index: Int, val p: Int, val d: Int)
 
@@ -72,6 +75,7 @@ internal class ArtHashIndex private constructor(
 
     companion object {
         const val ASSET = "art_hash_index.bin"
+        private const val UUID_TEXT_LENGTH = 36
         private const val NO_FACE = -1 // 255 read as a signed Byte.
         private const val MAX_ROWS = 100_000
 

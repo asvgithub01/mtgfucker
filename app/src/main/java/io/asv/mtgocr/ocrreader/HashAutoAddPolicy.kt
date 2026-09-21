@@ -6,7 +6,8 @@ internal data class HashAutoAddTarget(
     val cardName: String,
     val printingUuid: String?,
     val setCode: String,
-    val collectorNumber: String
+    val collectorNumber: String,
+    val scryfallId: String? = null
 )
 
 /** Resolves the top hash hit to the exact indexed printing selected by the opt-in checkbox. */

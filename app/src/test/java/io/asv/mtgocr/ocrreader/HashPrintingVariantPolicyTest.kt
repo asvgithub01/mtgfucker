@@ -5,6 +5,15 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HashPrintingVariantPolicyTest {
+    @Test fun firstAutomaticChoicePrefersTheIndexedPrinting() {
+        val other = variant("other", "5ED", "en", CardBorderColor.BLACK, "7")
+        val indexed = variant("indexed", "4ED", "en", CardBorderColor.WHITE, "98")
+        assertEquals(
+            "indexed",
+            HashPrintingVariantPolicy.preferred(listOf(other, indexed), "4ed", "098")?.printingUuid
+        )
+    }
+
     @Test fun languageAndWhiteBorderResolveAnOldPrinting() {
         val black = variant("black", "3ED", "es", CardBorderColor.BLACK)
         val whiteEnglish = variant("white-en", "4ED", "en", CardBorderColor.WHITE)

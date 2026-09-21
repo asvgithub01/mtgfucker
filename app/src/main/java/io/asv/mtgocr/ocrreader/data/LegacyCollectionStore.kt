@@ -7,9 +7,16 @@ import io.asv.mtgocr.ocrreader.OcrCaptureActivity
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardInfo
 import io.asv.mtgocr.ocrreader.model.CardCondition
+import java.io.File
 import java.util.Locale
+import java.util.UUID
 
 object LegacyCollectionStore {
+    data class ScanCaptureEvidence(
+        val metadataJson: String,
+        val photoJpeg: ByteArray
+    )
+
     data class CardmarketPrintingMetadata(
         val mcmId: String,
         val mcmMetaId: String? = null,
@@ -68,26 +75,57 @@ object LegacyCollectionStore {
     fun addCopy(
         context: Context,
         option: CardEditionOption,
-        languageCode: String = ""
+        languageCode: String = "",
+        scanEvidence: ScanCaptureEvidence? = null
     ): CardInfo {
         val activeLibrary = LibraryCatalog.active(context)
         val collection = DataUtils.readSerializable<Biblio>(context, activeLibrary.fileName)
             ?: Biblio(activeLibrary.fileName, activeLibrary.name)
         val result = addCopyToCollection(collection, option, languageCode)
+        var evidenceFile: File? = null
+        if (scanEvidence != null) {
+            evidenceFile = saveScanPhoto(context, result.collectionItemId, scanEvidence.photoJpeg)
+            result.addScanEvidence(
+                scanEvidence.metadataJson,
+                evidenceFile.relativeTo(context.filesDir).invariantSeparatorsPath
+            )
+        }
         val expectedQuantity = result.quantityCount
-        DataUtils.saveSerializable(context, collection, collection.nameFile)
+        try {
+            DataUtils.saveSerializable(context, collection, collection.nameFile)
+        } catch (error: Throwable) {
+            evidenceFile?.delete()
+            throw error
+        }
 
         // Re-read the file before reporting success. This also makes the object exposed to the
         // still-running collection Activity exactly the same object that will survive a restart.
-        val persisted = DataUtils.readSerializable<Biblio>(context, collection.nameFile)
-            ?: throw IllegalStateException("No se pudo guardar la copia en la colección")
+        val persisted = DataUtils.readSerializable<Biblio>(context, collection.nameFile) ?: run {
+            evidenceFile?.delete()
+            throw IllegalStateException("No se pudo guardar la copia en la colección")
+        }
         OcrCaptureActivity.mBiblio = persisted
-        val saved = persisted.cards.firstOrNull { it.collectionItemId == result.collectionItemId }
-            ?: throw IllegalStateException("La copia guardada no se pudo verificar")
+        val saved = persisted.cards.firstOrNull { it.collectionItemId == result.collectionItemId } ?: run {
+            evidenceFile?.delete()
+            throw IllegalStateException("La copia guardada no se pudo verificar")
+        }
         if (saved.quantityCount < expectedQuantity) {
+            evidenceFile?.delete()
             throw IllegalStateException("La cantidad guardada no se pudo verificar")
         }
+        if (scanEvidence != null && saved.scanMetadataHistory.lastOrNull() != scanEvidence.metadataJson) {
+            evidenceFile?.delete()
+            throw IllegalStateException("Los datos del escaneo no se pudieron verificar")
+        }
         return saved
+    }
+
+    private fun saveScanPhoto(context: Context, collectionItemId: String, jpeg: ByteArray): File {
+        require(jpeg.isNotEmpty()) { "La foto del escaneo está vacía" }
+        val directory = File(context.filesDir, "scan_evidence/$collectionItemId").apply { mkdirs() }
+        val file = File(directory, "${System.currentTimeMillis()}-${UUID.randomUUID()}.jpg")
+        file.writeBytes(jpeg)
+        return file
     }
 
     internal fun addCopyToCollection(
@@ -179,7 +217,8 @@ object LegacyCollectionStore {
     fun removeCopy(
         context: Context,
         option: CardEditionOption,
-        preferredCollectionItemId: String? = null
+        preferredCollectionItemId: String? = null,
+        removeLatestScanEvidence: Boolean = false
     ): CopyRemovalResult? {
         val collection = DataUtils.readSerializable<Biblio>(context, fileName(context))
             ?: activeInMemory(context)
@@ -188,8 +227,16 @@ object LegacyCollectionStore {
             it.collectionItemId == preferredCollectionItemId && samePrinting(it, option)
         } ?: collection.cards.firstOrNull { samePrinting(it, option) } ?: return null
         val remaining = card.quantityCount - 1
+        val removedEvidencePaths = when {
+            remaining <= 0 -> card.scanPhotoPaths.toList()
+            removeLatestScanEvidence -> listOf(card.removeLastScanEvidence())
+            else -> emptyList()
+        }
         if (remaining > 0) card.quantityCount = remaining else collection.cards.remove(card)
         DataUtils.saveSerializable(context, collection, collection.nameFile)
+        removedEvidencePaths.filter(String::isNotBlank).forEach { relative ->
+            File(context.filesDir, relative).delete()
+        }
         OcrCaptureActivity.mBiblio = collection
         return CopyRemovalResult(remaining.coerceAtLeast(0), card.collectionItemId)
     }

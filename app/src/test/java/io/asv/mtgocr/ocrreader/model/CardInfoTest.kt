@@ -18,6 +18,7 @@ class CardInfoTest {
             setName = "Modern Masters 2015"
             collectorNumber = "223"
             finish = "foil"
+            addScanEvidence("{\"source\":\"hash_scanner\"}", "scan_evidence/card/photo.jpg")
             addGroup("Favoritas")
             setDeckZone("Affinity", true)
         }
@@ -35,10 +36,26 @@ class CardInfoTest {
         assertEquals("Modern Masters 2015", restored.setName)
         assertEquals("223", restored.collectorNumber)
         assertEquals("foil", restored.finish)
+        assertEquals(listOf("{\"source\":\"hash_scanner\"}"), restored.scanMetadataHistory)
+        assertEquals(listOf("scan_evidence/card/photo.jpg"), restored.scanPhotoPaths)
         assertEquals(listOf("Favoritas"), restored.groups)
         assertEquals(listOf("Affinity"), restored.decks)
         assertTrue(restored.isSideboardForDeck("Affinity"))
         assertTrue(restored.addedAt > 0L)
+    }
+
+    @Test
+    fun scanEvidenceSurvivesPersistenceSnapshotAndCanRemoveTheLastPair() {
+        val card = CardInfo("Mox Opal", "", "", "", "2").apply {
+            addScanEvidence("first", "first.jpg")
+            addScanEvidence("second", "second.jpg")
+        }
+
+        val snapshot = card.snapshotForPersistence()
+        assertEquals("second.jpg", snapshot.removeLastScanEvidence())
+        assertEquals(listOf("first"), snapshot.scanMetadataHistory)
+        assertEquals(listOf("first.jpg"), snapshot.scanPhotoPaths)
+        assertEquals(2, card.scanMetadataHistory.size)
     }
 
     @Test

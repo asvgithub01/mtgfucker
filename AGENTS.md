@@ -37,7 +37,7 @@
 | --- | --- |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
-| Hash con OCR/símbolo opcionales | `HashScanAnalysis.kt`, `HashScanEvidence.kt`; controles y resultados en `RapidEditionScanActivity.kt`/`activity_rapid_edition_scan.xml`. Ver `ART_HASH_EVALUATION.md`; no atribuir al hash una edición exacta. |
+| Hash con OCR/símbolo opcionales | `HashScanAnalysis.kt`, `HashScanEvidence.kt`, `HashPrintingVariantPolicy.kt`; controles, sesión y metadatos de captura en `RapidEditionScanActivity.kt`/`activity_rapid_edition_scan.xml`. Ver `ART_HASH_EVALUATION.md`; no atribuir al hash una edición exacta. |
 | Prueba de escáner solo por hash | `HashOnlyScanActivity.kt` reutiliza la captura/rectificación de `RapidEditionScanActivity.kt`, salta OCR/red y ejecuta `ArtHashMatcher.kt`/`ArtHashIndex.kt`; tercer FAB en `ocr_capture.xml` |
 | Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtPrintingIndex.kt`, `RapidEditionScanActivity.kt`; índices APK `art_hash_index.bin`/`art_printing_index.bin`, generadores `scripts/build_art_hash_asset.py`/`scripts/build_art_printing_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
@@ -104,6 +104,9 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
   Mantener sincronizada esta geometría con la cámara y el overlay; comprobar en pantalla
   pequeña/teclado visible. La sesión ocupa todo el ancho y conserva padding interno.
 - El borrado desde sesión, incluido reducir la última copia, requiere confirmación.
+- Cada autoañadido hash conserva JSON de evidencias y la foto rectificada en las listas emparejadas
+  de `CardInfo`; las fotos viven bajo `files/scan_evidence/`. Copiar las listas en
+  `snapshotForPersistence` y borrar la foto correspondiente al deshacer ese escaneo.
 - La capa de preparación del índice está en `scanIndexPreparation`, con fondo `#D9000000`
   (~85 % de opacidad). No aplicar alpha a todo el contenedor: también atenuaría el texto.
 

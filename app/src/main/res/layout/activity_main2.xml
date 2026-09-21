@@ -26,6 +26,45 @@
                     <Spinner android:id="@+id/detailConditionSpinner" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="6dp" android:background="@drawable/spinner_background" android:contentDescription="@string/card_condition" />
                     <TextView android:id="@+id/txtConditionPrice" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="?attr/colorSecondary" android:textSize="18sp" android:textStyle="bold" />
                 </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
+                <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
+                    android:id="@+id/scanEvidenceCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:visibility="gone">
+                    <TextView
+                        android:id="@+id/scanEvidenceHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:gravity="center_vertical"
+                        android:textColor="?attr/colorSecondary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                    <LinearLayout
+                        android:id="@+id/scanEvidenceContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+                        <ImageView
+                            android:id="@+id/scanEvidencePhoto"
+                            android:layout_width="match_parent"
+                            android:layout_height="240dp"
+                            android:adjustViewBounds="true"
+                            android:contentDescription="@string/hash_scan_saved_photo"
+                            android:scaleType="fitCenter" />
+                        <TextView
+                            android:id="@+id/scanEvidenceMetadata"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:textColor="#E8FFFFFF"
+                            android:textIsSelectable="true"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
                 <TextView android:id="@+id/txtCardType" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:textColor="?attr/colorSecondary" android:textSize="15sp" android:textStyle="bold" />
                 <TextView android:id="@+id/txtCardRules" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_arcane_rules" android:lineSpacingExtra="3dp" android:padding="16dp" android:textColor="#F4FFF9" android:textSize="16sp" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="@string/editions" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold" />

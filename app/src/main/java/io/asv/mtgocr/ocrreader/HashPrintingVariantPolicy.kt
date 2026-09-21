@@ -4,6 +4,19 @@ import java.util.Locale
 
 /** Narrows reused artwork only with evidence read from this physical card. */
 internal object HashPrintingVariantPolicy {
+    fun preferred(
+        variants: List<ArtPrintingIndex.Variant>,
+        indexedSetCode: String,
+        indexedCollector: String
+    ): ArtPrintingIndex.Variant? = variants.minWithOrNull(
+        compareByDescending<ArtPrintingIndex.Variant> {
+            it.set.code.equals(indexedSetCode, ignoreCase = true) &&
+                PrintingMetadataParser.collectorKeysMatch(it.collectorNumber, indexedCollector)
+        }.thenByDescending { it.finishes and ArtPrintingIndex.FINISH_NONFOIL != 0 }
+            .thenByDescending { it.set.releaseDate }
+            .thenBy { it.printingUuid }
+    )
+
     fun compatible(
         candidateName: String,
         variants: List<ArtPrintingIndex.Variant>,

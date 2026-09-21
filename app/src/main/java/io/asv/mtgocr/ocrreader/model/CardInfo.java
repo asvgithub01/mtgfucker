@@ -35,6 +35,10 @@ public class CardInfo implements Serializable {
     private ArrayList<String> personalCollections;
     private ArrayList<String> decks;
     private ArrayList<String> sideboardDecks;
+    /** JSON snapshots of the evidence used for each camera-added physical copy. */
+    private ArrayList<String> scanMetadataHistory;
+    /** Paths relative to filesDir for the rectified photos paired with scanMetadataHistory. */
+    private ArrayList<String> scanPhotoPaths;
     /**/
     public String getPriceL() {
         return priceL;
@@ -115,6 +119,10 @@ public class CardInfo implements Serializable {
         copy.decks = decks == null ? new ArrayList<String>() : new ArrayList<String>(decks);
         copy.sideboardDecks = sideboardDecks == null
                 ? new ArrayList<String>() : new ArrayList<String>(sideboardDecks);
+        copy.scanMetadataHistory = scanMetadataHistory == null
+                ? new ArrayList<String>() : new ArrayList<String>(scanMetadataHistory);
+        copy.scanPhotoPaths = scanPhotoPaths == null
+                ? new ArrayList<String>() : new ArrayList<String>(scanPhotoPaths);
         copy.lstDescription = new ArrayList<DescriptionMtgInfo>();
         if (lstDescription != null) {
             for (DescriptionMtgInfo descriptionItem : lstDescription) {
@@ -279,6 +287,29 @@ public class CardInfo implements Serializable {
     public ArrayList<String> getSideboardDecks() {
         if (sideboardDecks == null) sideboardDecks = new ArrayList<String>();
         return sideboardDecks;
+    }
+
+    public ArrayList<String> getScanMetadataHistory() {
+        if (scanMetadataHistory == null) scanMetadataHistory = new ArrayList<String>();
+        return scanMetadataHistory;
+    }
+
+    public ArrayList<String> getScanPhotoPaths() {
+        if (scanPhotoPaths == null) scanPhotoPaths = new ArrayList<String>();
+        return scanPhotoPaths;
+    }
+
+    public void addScanEvidence(String metadataJson, String relativePhotoPath) {
+        getScanMetadataHistory().add(metadataJson == null ? "" : metadataJson);
+        getScanPhotoPaths().add(relativePhotoPath == null ? "" : relativePhotoPath);
+    }
+
+    /** Removes and returns the photo paired with the most recently scanned physical copy. */
+    public String removeLastScanEvidence() {
+        ArrayList<String> metadata = getScanMetadataHistory();
+        ArrayList<String> photos = getScanPhotoPaths();
+        if (!metadata.isEmpty()) metadata.remove(metadata.size() - 1);
+        return photos.isEmpty() ? "" : photos.remove(photos.size() - 1);
     }
 
     public boolean isSideboardForDeck(String name) {

@@ -8,6 +8,7 @@ import io.asv.mtgocr.ocrreader.data.CardDatabase
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.MtgJsonCatalogDataProvider
 import okhttp3.OkHttpClient
+import java.io.ByteArrayOutputStream
 import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -18,7 +19,8 @@ internal class HashScanAnalysis(context: Context) {
         val ocr: Boolean,
         val symbol: Boolean,
         val border: Boolean = false,
-        val language: Boolean = false
+        val language: Boolean = false,
+        val captureEvidence: Boolean = false
     )
     data class Edition(
         val code: String,
@@ -41,7 +43,8 @@ internal class HashScanAnalysis(context: Context) {
         val symbols: SetSymbolShapeMatch?, val border: CardFrameAnalysis?,
         val language: CardTextLanguageResult?, val effectiveLanguage: String,
         val errors: List<String>, val elapsedMs: Long, val ocrMs: Long,
-        val symbolMs: Long, val borderMs: Long, val languageMs: Long
+        val symbolMs: Long, val borderMs: Long, val languageMs: Long,
+        val capturedJpeg: ByteArray?
     )
 
     private val app = context.applicationContext
@@ -94,6 +97,12 @@ internal class HashScanAnalysis(context: Context) {
             errors.add("$stage: ${error.message ?: error.javaClass.simpleName}")
         }
         val completion = HashScanCompletion(options.ocr, options.language) {
+            val capturedJpeg = if (options.captureEvidence) runCatching {
+                ByteArrayOutputStream().use { output ->
+                    check(card.compress(Bitmap.CompressFormat.JPEG, 86, output))
+                    output.toByteArray()
+                }
+            }.getOrNull() else null
             card.recycle()
             val result = synchronized(lock) {
                 val effectiveLanguage = CardLanguageEvidenceResolver.resolve(
@@ -123,7 +132,7 @@ internal class HashScanAnalysis(context: Context) {
                     hash, resolvedRows, title, names, printing, shape, border,
                     language, effectiveLanguage, errors.toList(),
                     SystemClock.elapsedRealtime() - started, ocrMs, symbolMs,
-                    borderMs, languageMs
+                    borderMs, languageMs, capturedJpeg
                 )
             }
             if (!closed) callback(result)

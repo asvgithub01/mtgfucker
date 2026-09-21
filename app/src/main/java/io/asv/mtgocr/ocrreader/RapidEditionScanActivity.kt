@@ -56,6 +56,8 @@ import io.asv.mtgocr.ocrreader.data.SetCardOption
 import io.asv.mtgocr.ocrreader.model.CardInfo
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
+import org.json.JSONArray
+import org.json.JSONObject
 import org.opencv.android.OpenCVLoader
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -122,6 +124,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private lateinit var earlyResult: TextView
     private lateinit var sessionButton: Button
     private lateinit var undoLastButton: Button
+    private lateinit var rapidTitle: TextView
+    private lateinit var hashOptions: View
 
     private var hashAnalysis: HashScanAnalysis? = null
     @Volatile private var hashPreparing = false
@@ -212,6 +216,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         earlyResult = findViewById(R.id.rapidScanEarlyResult)
         sessionButton = findViewById(R.id.rapidScanSession)
         undoLastButton = findViewById(R.id.rapidScanUndoLast)
+        rapidTitle = findViewById(R.id.rapidScanTitle)
+        hashOptions = findViewById(R.id.hashScanOptions)
         hashOcr = findViewById(R.id.hashScanOcr)
         hashSymbol = findViewById(R.id.hashScanSymbol)
         hashAutoAdd = findViewById(R.id.hashScanAutoAdd)
@@ -221,7 +227,6 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashLanguageResult = findViewById(R.id.hashScanLanguageResult)
         if (hashOnlyMode) {
             liveScanPhase = RapidLiveScanPhase.EDGES
-            findViewById<TextView>(R.id.rapidScanTitle).setText(R.string.hash_only_scan_title)
             crop.visibility = View.GONE
             status.textSize = 16f
         }
@@ -261,8 +266,27 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
         if (hashOnlyMode) {
             hashAnalysis = HashScanAnalysis(this)
-            findViewById<View>(R.id.hashScanOptions).visibility = View.VISIBLE
             val preferences = getSharedPreferences("hash_scanner", MODE_PRIVATE)
+            var optionsExpanded = preferences.getBoolean("options_expanded", true)
+            fun renderOptions() {
+                hashOptions.visibility = if (optionsExpanded) View.VISIBLE else View.GONE
+                rapidTitle.text = getString(
+                    if (optionsExpanded) R.string.hash_only_scan_title_expanded
+                    else R.string.hash_only_scan_title_collapsed
+                )
+                rapidTitle.contentDescription = getString(
+                    if (optionsExpanded) R.string.hash_scan_collapse_options
+                    else R.string.hash_scan_expand_options
+                )
+            }
+            rapidTitle.isClickable = true
+            rapidTitle.isFocusable = true
+            rapidTitle.setOnClickListener {
+                optionsExpanded = !optionsExpanded
+                preferences.edit().putBoolean("options_expanded", optionsExpanded).apply()
+                renderOptions()
+            }
+            renderOptions()
             hashOcr.isChecked = preferences.getBoolean("ocr", false)
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
             hashAutoAdd.isChecked = preferences.getBoolean("auto_add_first", false)
@@ -921,7 +945,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             ocr = hashOcr.isChecked,
             symbol = hashSymbol.isChecked,
             border = hashBorder.isChecked,
-            language = hashLanguage.isChecked
+            language = hashLanguage.isChecked,
+            captureEvidence = hashAutoAdd.isChecked
         )
         hashOcr.isEnabled = false
         hashSymbol.isEnabled = false
@@ -1067,17 +1092,18 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (!hashAutoAdd.isChecked) return
         val row = result.rows.firstOrNull() ?: return
         val hit = row.candidate.hit
-        if (!HashAutoAddPolicy.hasResolvedPrinting(
-                row.variants.size,
-                row.compatibleVariants.size,
-                row.resolvedVariant != null,
-                row.resolvedEdition != null
+        val cachedVariant = row.resolvedVariant ?: HashPrintingVariantPolicy.preferred(
+            row.compatibleVariants.ifEmpty { row.variants },
+            hit.setCode,
+            hit.collectorNumber
+        )
+        if (!HashAutoAddPolicy.acceptsTopHit(
+                hit.phashDistance,
+                row.resolvedEdition != null,
+                cachedVariant != null
             )) return
-        // A unique cache row proves the printing only after the art hit itself is trusted.
-        // Preserve the relaxed threshold exclusively for the existing exact OCR resolution.
-        if (!HashAutoAddPolicy.acceptsTopHit(hit.phashDistance, row.resolvedEdition != null)) return
-        row.resolvedVariant?.let { variant ->
-            addResolvedHashVariant(variant, result.effectiveLanguage)
+        cachedVariant?.let { variant ->
+            addResolvedHashVariant(variant, result)
             return
         }
         val target = HashAutoAddTarget(
@@ -1101,17 +1127,21 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (option != null) {
                 delivered = true
                 Log.d(PERF_TAG, "hash_auto_add_local=${option.printingUuid}:${option.finish}")
-                addSelectedEdition(option, result.effectiveLanguage)
+                addSelectedEdition(
+                    option,
+                    result.effectiveLanguage,
+                    hashScanCapture(result, option)
+                )
             } else {
                 if (localError != null) Log.w(PERF_TAG, "hash_auto_add_local", localError)
-                loadHashAutoAddFromCatalog(target, result.effectiveLanguage)
+                loadHashAutoAddFromCatalog(target, result)
             }
         }
     }
 
     private fun addResolvedHashVariant(
         variant: ArtPrintingIndex.Variant,
-        detectedLanguage: String
+        result: HashScanAnalysis.Result
     ) {
         capture.isEnabled = false
         val local = variant.toEditionOption()
@@ -1135,14 +1165,15 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             Log.d(PERF_TAG, "hash_auto_add_asset=${option.printingUuid}:${variant.languageCode}")
             addSelectedEdition(
                 option,
-                variant.languageCode.ifBlank { detectedLanguage }
+                variant.languageCode.ifBlank { result.effectiveLanguage },
+                hashScanCapture(result, option)
             )
         }
     }
 
     private fun loadHashAutoAddFromCatalog(
         target: HashAutoAddTarget,
-        languageCode: String
+        result: HashScanAnalysis.Result
     ) {
         showLoading(getString(R.string.rapid_scan_loading_prices, target.cardName))
         var delivered = false
@@ -1156,7 +1187,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (option != null) {
                 delivered = true
                 Log.d(PERF_TAG, "hash_auto_add_catalog=${option.printingUuid}:${option.finish}")
-                addSelectedEdition(option, languageCode)
+                addSelectedEdition(
+                    option,
+                    result.effectiveLanguage,
+                    hashScanCapture(result, option)
+                )
             } else if (error != null || options.isNotEmpty()) {
                 delivered = true
                 hideLoading()
@@ -1168,6 +1203,114 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 ).show()
             }
         }
+    }
+
+    private fun hashScanCapture(
+        result: HashScanAnalysis.Result,
+        selected: CardEditionOption
+    ): LegacyCollectionStore.ScanCaptureEvidence? {
+        val jpeg = result.capturedJpeg ?: return null
+        val metadata = JSONObject().apply {
+            put("schemaVersion", 1)
+            put("source", "hash_scanner")
+            put("capturedAt", System.currentTimeMillis())
+            put("selectedPrinting", JSONObject().apply {
+                put("uuid", selected.printingUuid)
+                put("name", selected.cardName)
+                put("displayName", selected.displayName)
+                put("setCode", selected.setCode)
+                put("setName", selected.setName)
+                put("collectorNumber", selected.collectorNumber)
+                put("finish", selected.finish)
+                put("imageUrl", selected.imageUrl.orEmpty())
+            })
+            put("checks", JSONObject().apply {
+                put("ocr", hashOcr.isChecked)
+                put("symbol", hashSymbol.isChecked)
+                put("border", hashBorder.isChecked)
+                put("language", hashLanguage.isChecked)
+                put("autoAdd", hashAutoAdd.isChecked)
+            })
+            put("timingsMs", JSONObject().apply {
+                put("hash", result.hash?.elapsedMs ?: 0L)
+                put("ocr", result.ocrMs)
+                put("symbol", result.symbolMs)
+                put("border", result.borderMs)
+                put("language", result.languageMs)
+                put("total", result.elapsedMs)
+            })
+            put("ocr", JSONObject().apply {
+                put("rawTitle", JSONArray(result.rawTitle))
+                put("matchedNames", JSONArray(result.names))
+                put("rawPrintingLine", result.printing?.rawText.orEmpty())
+                put("setCode", result.printing?.setCode.orEmpty())
+                put("setCandidates", JSONArray(result.printing?.setCodeCandidates.orEmpty()))
+                put("collectorNumber", result.printing?.collectorNumber.orEmpty())
+                put("languageCode", result.printing?.languageCode.orEmpty())
+                put("printingYear", result.printing?.printingYear ?: JSONObject.NULL)
+            })
+            put("effectiveLanguage", result.effectiveLanguage)
+            put("language", JSONObject().apply {
+                put("code", result.language?.languageCode.orEmpty())
+                put("confidence", result.language?.confidence ?: 0f)
+                put("recognizedText", result.language?.recognizedText.orEmpty())
+            })
+            put("border", JSONObject().apply {
+                put("color", result.border?.borderColor?.name.orEmpty())
+                put("confidence", result.border?.borderConfidence ?: 0.0)
+                put("boundaryConfidence", result.border?.boundaryConfidence ?: 0.0)
+                put("glareRatio", result.border?.glareRatio ?: 0.0)
+                put("sharpness", result.border?.sharpness ?: 0.0)
+                put("zones", JSONArray().also { zones ->
+                    result.border?.borderZones.orEmpty().forEach { zone ->
+                        zones.put(JSONObject().apply {
+                            put("side", zone.side.name)
+                            put("position", zone.position)
+                            put("x", zone.x)
+                            put("y", zone.y)
+                            put("rgb", JSONArray(listOf(zone.red, zone.green, zone.blue)))
+                            put("color", zone.color.name)
+                        })
+                    }
+                })
+            })
+            put("symbol", JSONObject().apply {
+                put("comparedSets", result.symbols?.comparedSets ?: 0)
+                put("reliable", result.symbols?.reliable ?: false)
+                put("distances", JSONObject().also { distances ->
+                    result.symbols?.distanceBySetCode.orEmpty().forEach { (code, distance) ->
+                        if (distance.isFinite()) distances.put(code, distance)
+                    }
+                })
+            })
+            put("candidates", JSONArray().also { candidates ->
+                result.rows.forEach { row ->
+                    val hit = row.candidate.hit
+                    candidates.put(JSONObject().apply {
+                        put("name", hit.name)
+                        put("scryfallId", hit.scryfallId)
+                        put("illustrationId", hit.illustrationId.orEmpty())
+                        put("indexedSetCode", hit.setCode)
+                        put("indexedCollectorNumber", hit.collectorNumber)
+                        put("phashDistance", hit.phashDistance)
+                        put("dhashDistance", hit.dhashDistance)
+                        put("cachedVariants", row.variants.size)
+                        put("compatibleVariants", row.compatibleVariants.size)
+                        put("resolvedPrintingUuid", row.resolvedVariant?.printingUuid.orEmpty())
+                        put("resolvedSetCode", row.resolvedVariant?.set?.code.orEmpty())
+                        put("resolvedCollectorNumber", row.resolvedVariant?.collectorNumber.orEmpty())
+                        put("resolvedLanguage", row.resolvedVariant?.languageCode.orEmpty())
+                    })
+                }
+            })
+            put("panel", JSONObject().apply {
+                put("timing", status.text?.toString().orEmpty())
+                put("border", hashBorderResult.text?.toString().orEmpty())
+                put("language", hashLanguageResult.text?.toString().orEmpty())
+            })
+            put("errors", JSONArray(result.errors))
+        }
+        return LegacyCollectionStore.ScanCaptureEvidence(metadata.toString(), jpeg)
     }
 
     private fun finishCombinedOcr(card: Bitmap, pending: RapidPendingCardOcr) {
@@ -1813,12 +1956,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun addSelectedEdition(option: CardEditionOption, languageCode: String) {
+    private fun addSelectedEdition(
+        option: CardEditionOption,
+        languageCode: String,
+        scanEvidence: LegacyCollectionStore.ScanCaptureEvidence? = null
+    ) {
         instruction.setText(R.string.experimental_scan_saving_card)
         capture.isEnabled = false
         metadataExecutor.execute {
             val added = runCatching {
-                LegacyCollectionStore.addCopy(this, option, languageCode)
+                LegacyCollectionStore.addCopy(this, option, languageCode, scanEvidence)
             }
             val card = added.getOrNull()
             if (card != null) {
@@ -1892,7 +2039,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         undoLastButton.isEnabled = false
         metadataExecutor.execute {
             val removed = runCatching {
-                LegacyCollectionStore.removeCopy(this, last.option, last.collectionItemId)
+                LegacyCollectionStore.removeCopy(
+                    this,
+                    last.option,
+                    last.collectionItemId,
+                    removeLatestScanEvidence = true
+                )
             }.getOrNull()
             if (removed == null) {
                 runOnUiThread { showUndoFailure() }

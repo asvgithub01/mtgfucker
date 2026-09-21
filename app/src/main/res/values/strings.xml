@@ -493,6 +493,13 @@
     <string name="scan_debug_art_hash_choose_title" translatable="false">Sugerencias por arte · confirma la carta</string>
     <string name="open_hash_only_scanner" translatable="false">Abrir escáner de prueba solo por hash de arte</string>
     <string name="hash_only_scan_title" translatable="false">Escáner solo hash · prueba</string>
+    <string name="hash_only_scan_title_expanded" translatable="false">Escáner solo hash · prueba  ▴</string>
+    <string name="hash_only_scan_title_collapsed" translatable="false">Escáner solo hash · prueba  ▾</string>
+    <string name="hash_scan_collapse_options">Ocultar opciones del escáner hash</string>
+    <string name="hash_scan_expand_options">Mostrar opciones del escáner hash</string>
+    <string name="hash_scan_saved_evidence">Datos del escaneo (%1$d)  ▾</string>
+    <string name="hash_scan_saved_evidence_expanded">Datos del escaneo (%1$d)  ▴</string>
+    <string name="hash_scan_saved_photo">Foto utilizada para añadir la carta</string>
     <string name="hash_only_scan_matching" translatable="false">Buscando arte en el índice local…</string>
     <string name="hash_only_scan_error" translatable="false">No se pudo comparar el arte.</string>
     <string name="hash_only_scan_timings" translatable="false">Hash: %1$d ms · análisis: %2$d ms · desde captura: %3$d ms · carga índice: %4$d ms</string>

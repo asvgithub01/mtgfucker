@@ -1,5 +1,12 @@
 # Próximos modos de escaneo
 
+## Incidencias pendientes de reconocimiento
+
+- **Idioma físico PT → EN (23/09/2026):** el usuario informa de una carta portuguesa
+  mostrada como inglesa. Revisar OCR de nombre/pie/reglas, confianza y fallback EN del
+  laboratorio hash. Reproducir con captura y opciones activas antes de atribuir la causa.
+  No modificar masivamente idiomas guardados ni deducir idioma físico de la edición.
+
 El siguiente objetivo de mejora es separar el escáner actual en dos flujos especializados. Ambos
 reutilizarán OCR, reconocimiento visual, caché local y feedback, pero no deben compartir las mismas
 reglas de sesión ni de guardado.

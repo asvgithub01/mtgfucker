@@ -108,6 +108,19 @@ private enum class RapidLiveScanPhase {
 /** CameraX/OpenCV laboratory kept separate from the maintained scanner. */
 open class RapidEditionScanActivity : AppCompatActivity() {
     protected open val hashOnlyMode: Boolean = false
+    @Volatile private var rulesFixedBounds = false
+    @Volatile private var rulesPreset: Array<PointF>? = null
+    @Volatile private var rulesPresetRotation = -1
+    @Volatile private var rulesPresetZoom = 1f
+    @Volatile private var rulesLiveRotation = -1
+    @Volatile private var rulesBoundaryOriginal: ByteArray? = null
+    @Volatile private var rulesBoundaryQuad = ""
+    private var rulesCalibrationPhoto = false
+    private val rulesCaptureGate = RulesCaptureGate()
+    protected open val rulesScannerMode: Boolean = false
+    private var rulesReview: RulesScanReview? = null
+    private var rulesGeneration = 0
+    private val rulesRetry = RulesRetryPolicy()
     private lateinit var root: View
     private lateinit var preview: PreviewView
     private lateinit var liveGuide: ExperimentalCardGuideView
@@ -132,12 +145,28 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private var hashPrepareGeneration = 0
     private lateinit var hashOcr: CheckBox
     private lateinit var hashSymbol: CheckBox
+    private lateinit var hashSymbolV2: CheckBox
+    private lateinit var hashSymbolRetry: CheckBox
+    private lateinit var hashProbableEdition: CheckBox
+    private lateinit var hashEditionPicker: CheckBox
+    private var editionDialog: AlertDialog? = null
+    private var editionSelectionInFlight = false
+    private val symbolRetry = SymbolRetryPolicy()
+    @Volatile private var symbolRetryEnabled = false
+    @Volatile private var symbolHighResolution = false
+    @Volatile private var cameraBoundAtMs = 0L
+    private var retryGeneration = 0
     private lateinit var hashAutoAdd: CheckBox
     private lateinit var hashBorder: CheckBox
     private lateinit var hashBorderResult: TextView
     private lateinit var hashLanguage: CheckBox
     private lateinit var hashLanguageResult: TextView
     private var hashOcrConflictState = HashOcrConflictState()
+    private var copiesEditionDialog: androidx.appcompat.app.AlertDialog? = null
+    private val repeatedCopies = RepeatedScanCopies()
+    private val consecutiveEdition = ConsecutiveArtworkEdition()
+    private var copiesDialog: AlertDialog? = null
+    private var collectionSaveInFlight = false
 
     private val repository by lazy { CardRepository.get(this) }
     private val printingLineOcrLazy = lazy { PrintingLineOcr() }
@@ -148,7 +177,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private val cardTitleOcr by cardTitleOcrLazy
     private val liveCardNameOcr by liveCardNameOcrLazy
     private val cardLanguageDetector by cardLanguageDetectorLazy
-    private val openCvDetector = OpenCvCardDetector(guideAssisted = true)
+    private val openCvDetector = OpenCvCardDetector(guideAssisted = true, preferOuter = rulesScannerMode)
     private val stability = AutoCaptureStability(
         requiredFrames = 8,
         requiredMillis = 650L,
@@ -169,6 +198,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private var correctionMode = false
     private var analysisInFlight = false
     private var hashLiveResultMode = false
+    private var hashHasSourcePhoto = false
     private var autoAnalysisScheduled = false
     private var earlyLookupGeneration = 0
     private var feedbackSnackbar: Snackbar? = null
@@ -177,6 +207,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private val addedCopies = ArrayList<RapidAddedCopy>()
     private val addedCollectionItemIds = LinkedHashSet<String>()
     private var sessionAdapter: RapidSessionAdapter? = null
+    private var sessionDialog: AlertDialog? = null
+    private var sessionEditionDialog: androidx.appcompat.app.AlertDialog? = null
     private var cameraStarting = false
     private var openCvReady = false
     private var missedFrames = 0
@@ -221,6 +253,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashOptions = findViewById(R.id.hashScanOptions)
         hashOcr = findViewById(R.id.hashScanOcr)
         hashSymbol = findViewById(R.id.hashScanSymbol)
+        hashSymbolV2 = findViewById(R.id.hashScanSymbolV2)
+        hashSymbolRetry = findViewById(R.id.hashScanSymbolRetry)
+        hashEditionPicker = findViewById(R.id.hashScanEditionPicker)
+        hashProbableEdition = findViewById(R.id.hashScanProbableEdition)
         hashAutoAdd = findViewById(R.id.hashScanAutoAdd)
         hashBorder = findViewById(R.id.hashScanBorder)
         hashBorderResult = findViewById(R.id.hashScanBorderResult)
@@ -254,7 +290,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (correctionMode) returnToCamera() else finish()
         }
         capture.setOnClickListener {
-            if (hashPreparing || analysisInFlight) return@setOnClickListener
+            if (zoomRestoreInFlight || zoomGestureInProgress || SystemClock.elapsedRealtime() < zoomSettlingUntilMs || hashPreparing || analysisInFlight || sessionDialog != null || editionDialog != null || editionSelectionInFlight) return@setOnClickListener
             if (hashOnlyMode && hashLiveResultMode) {
                 returnToCamera()
             } else if (correctionMode) {
@@ -267,6 +303,39 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
         if (hashOnlyMode) {
             hashAnalysis = HashScanAnalysis(this)
+            if (rulesScannerMode) {
+                rapidTitle.setText(R.string.rules_scan_title)
+                hashOptions.visibility = View.VISIBLE
+                listOf(hashOcr, hashLanguage, hashBorder, hashSymbol, hashSymbolV2,
+                    hashSymbolRetry, hashEditionPicker, hashProbableEdition).forEach { it.visibility = View.GONE }
+                val rulesPreferences = getSharedPreferences("rules_scanner", MODE_PRIVATE)
+                hashAutoAdd.text = getString(R.string.rules_scan_auto_unique, ScannerSettings.preferredFinish(this))
+                hashAutoAdd.isChecked = rulesPreferences.getBoolean("auto_unique_art", true)
+                hashAutoAdd.setOnCheckedChangeListener { _, checked ->
+                    rulesPreferences.edit().putBoolean("auto_unique_art", checked).apply()
+                }
+                rulesFixedBounds = rulesPreferences.getBoolean("fixed_bounds", false)
+                val boundaryMode = CheckBox(this).apply {
+                    text = getString(R.string.rules_fixed_bounds)
+                    isChecked = rulesFixedBounds
+                    setTextColor(android.graphics.Color.WHITE)
+                    setOnCheckedChangeListener { button, checked ->
+                        if (checked == rulesFixedBounds) return@setOnCheckedChangeListener
+                        if (analysisInFlight || correctionMode || captureGate.get()) {
+                            button.isChecked = rulesFixedBounds
+                            return@setOnCheckedChangeListener
+                        }
+                        rulesFixedBounds = checked
+                        rulesPreset = null
+                        rulesPreferences.edit().putBoolean("fixed_bounds", checked).apply()
+                        zoomResetRequested = true
+                    }
+                }
+                (hashAutoAdd.parent as? android.view.ViewGroup)?.addView(boundaryMode)
+                hashOcr.isChecked = true
+                hashLanguage.isChecked = true
+                hashBorder.isChecked = true
+            } else {
             val preferences = getSharedPreferences("hash_scanner", MODE_PRIVATE)
             var optionsExpanded = preferences.getBoolean("options_expanded", true)
             fun renderOptions() {
@@ -290,6 +359,24 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             renderOptions()
             hashOcr.isChecked = preferences.getBoolean("ocr", false)
             hashSymbol.isChecked = preferences.getBoolean("symbol", false)
+            hashSymbolV2.isChecked = preferences.getBoolean("symbol_v2", false)
+            hashEditionPicker.isChecked = preferences.getBoolean("edition_picker", false)
+            hashProbableEdition.isChecked = preferences.getBoolean("probable_edition", false)
+            hashProbableEdition.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("probable_edition", checked).apply()
+                symbolRetryEnabled = hashSymbolV2.isChecked && hashSymbolRetry.isChecked && !hashEditionPicker.isChecked && !checked
+                symbolRetry.reset()
+                retryGeneration++
+            }
+            symbolHighResolution = hashSymbolV2.isChecked && !hashEditionPicker.isChecked
+            hashSymbolRetry.isChecked = preferences.getBoolean("symbol_retry", false)
+            symbolRetryEnabled = hashSymbolV2.isChecked && hashSymbolRetry.isChecked && !hashEditionPicker.isChecked && !hashProbableEdition.isChecked
+            hashSymbolRetry.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("symbol_retry", checked).apply()
+                symbolRetryEnabled = checked && hashSymbolV2.isChecked && !hashEditionPicker.isChecked && !hashProbableEdition.isChecked
+                symbolRetry.reset()
+                retryGeneration++
+            }
             hashAutoAdd.isChecked = preferences.getBoolean("auto_add_first", false)
             hashBorder.isChecked = preferences.getBoolean("border", false)
             hashLanguage.isChecked = preferences.getBoolean("language", false)
@@ -300,6 +387,21 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             hashSymbol.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("symbol", checked).apply()
             }
+            hashSymbolV2.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("symbol_v2", checked).apply()
+                symbolHighResolution = checked && !hashEditionPicker.isChecked
+                symbolRetryEnabled = checked && hashSymbolRetry.isChecked && !hashEditionPicker.isChecked && !hashProbableEdition.isChecked
+                symbolRetry.reset()
+                retryGeneration++
+            }
+            hashEditionPicker.setOnCheckedChangeListener { _, checked ->
+                preferences.edit().putBoolean("edition_picker", checked).apply()
+                symbolHighResolution = hashSymbolV2.isChecked && !checked
+                symbolRetryEnabled = hashSymbolV2.isChecked && hashSymbolRetry.isChecked && !checked && !hashProbableEdition.isChecked
+                symbolRetry.reset()
+                retryGeneration++
+                prepareHashAnalysis()
+            }
             hashAutoAdd.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("auto_add_first", checked).apply()
             }
@@ -308,6 +410,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             }
             hashLanguage.setOnCheckedChangeListener { _, checked ->
                 preferences.edit().putBoolean("language", checked).apply()
+            }
             }
             liveGuide.onCardTap = { if (!correctionMode && capture.isEnabled) capture.performClick() }
             prepareHashAnalysis()
@@ -319,7 +422,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun ensureCamera() {
-        if (!openCvReady || correctionMode || isFinishing || isDestroyed) return
+        if (!openCvReady || correctionMode || hashLiveResultMode || collectionSaveInFlight || copiesDialog != null || sessionDialog != null || editionDialog != null || editionSelectionInFlight || isFinishing || isDestroyed) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
             PackageManager.PERMISSION_GRANTED
         ) {
@@ -331,13 +434,94 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         val providerFuture = ProcessCameraProvider.getInstance(this)
         providerFuture.addListener({
             cameraStarting = false
-            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) || correctionMode) return@addListener
+            if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) || correctionMode || hashLiveResultMode || collectionSaveInFlight || copiesDialog != null || sessionDialog != null) return@addListener
             try {
                 bindCamera(providerFuture.get())
             } catch (_: Throwable) {
                 showError(getString(R.string.experimental_scan_camera_error))
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private var zoomBindingGeneration = 0
+    private var zoomCamera: androidx.camera.core.Camera? = null
+    @Volatile private var zoomRestoreInFlight = false
+    private val zoomPreferences by lazy { getSharedPreferences("camera_zoom", MODE_PRIVATE) }
+    private val zoomPreferenceKey get() = javaClass.simpleName + "_rear_ratio"
+    @Volatile private var zoomGestureInProgress = false
+    @Volatile private var zoomSettlingUntilMs = 0L
+    @Volatile private var zoomResetRequested = false
+
+    private fun bindZoom(camera: androidx.camera.core.Camera) {
+        val zoomToken = ++zoomBindingGeneration
+        val slider = findViewById<android.widget.SeekBar>(R.id.scanZoom)
+        val label = findViewById<android.widget.TextView>(R.id.scanZoomLabel)
+        zoomCamera?.cameraInfo?.zoomState?.removeObservers(this)
+        zoomCamera?.cameraInfo?.cameraState?.removeObservers(this)
+        zoomCamera = camera
+        zoomGestureInProgress = false
+        zoomRestoreInFlight = true
+        zoomResetRequested = true
+        var restoring = false
+        fun restoreZoom(retries: Int) {
+            if (zoomToken != zoomBindingGeneration || isFinishing || isDestroyed) return
+            val bounds = camera.cameraInfo.zoomState.value ?: return
+            val target = ScannerZoomPolicy.clamp(zoomPreferences.getFloat(zoomPreferenceKey, 1f),
+                bounds.minZoomRatio, bounds.maxZoomRatio)
+            restoring = true
+            zoomRestoreInFlight = true
+            val future = camera.cameraControl.setZoomRatio(target)
+            future.addListener({
+                if (zoomToken != zoomBindingGeneration) return@addListener
+                val success = runCatching { future.get() }.isSuccess
+                // Rebind can briefly report OPEN while control is still being deactivated.
+                // Verify the effective zoom after that transition and retry canceled requests.
+                preview.postDelayed({
+                    if (zoomToken == zoomBindingGeneration && !isFinishing && !isDestroyed) {
+                        val actual = camera.cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                        if ((!success || kotlin.math.abs(actual - target) > .01f) && retries > 0 &&
+                            lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                            restoreZoom(retries - 1)
+                        } else {
+                            restoring = false
+                            zoomRestoreInFlight = false
+                            if (kotlin.math.abs(actual - rulesPresetZoom) > .01f) rulesPreset = null
+                            zoomSettlingUntilMs = SystemClock.elapsedRealtime() + 600
+                            if (!success) Log.d(PERF_TAG, "zoom restoration unavailable")
+                        }
+                    }
+                }, 200)
+            }, ContextCompat.getMainExecutor(this))
+        }
+        camera.cameraInfo.cameraState.observe(this) { state ->
+            if (zoomToken == zoomBindingGeneration && !restoring &&
+                state.type == androidx.camera.core.CameraState.Type.OPEN) restoreZoom(4)
+        }
+        camera.cameraInfo.zoomState.observe(this) { state ->
+            label.text = getString(R.string.scan_zoom) + " " + String.format(Locale.ROOT, "%.1f×", state.zoomRatio)
+            slider.isEnabled = state.maxZoomRatio > state.minZoomRatio
+            if (!slider.isPressed) slider.progress = (state.linearZoom * 1000).toInt()
+        }
+        slider.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onStartTrackingTouch(bar: android.widget.SeekBar) { zoomGestureInProgress = true }
+            override fun onStopTrackingTouch(bar: android.widget.SeekBar) {
+                zoomGestureInProgress = false
+                rulesPreset = null
+                zoomSettlingUntilMs = SystemClock.elapsedRealtime() + 600
+                zoomResetRequested = true
+            }
+            override fun onProgressChanged(bar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
+                if (!fromUser || zoomRestoreInFlight || captureGate.get()) return
+                rulesPreset = null
+                zoomSettlingUntilMs = SystemClock.elapsedRealtime() + 600
+                zoomResetRequested = true
+                val state = camera.cameraInfo.zoomState.value ?: return
+                val ratio = ScannerZoomPolicy.fromLinear(progress / 1000f, state.minZoomRatio, state.maxZoomRatio)
+                // Only a user gesture saves the preference; the camera default on bind must not overwrite it.
+                zoomPreferences.edit().putFloat(zoomPreferenceKey, ratio).apply()
+                camera.cameraControl.setZoomRatio(ratio)
+            }
+        })
     }
 
     private fun bindCamera(provider: ProcessCameraProvider) {
@@ -349,7 +533,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             .setTargetRotation(rotation)
             .build()
         val analysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(1280, 960))
+            // Use the OCR camera configuration for every flag combination. Changing the
+            // analysis resolution used to renegotiate the sensor crop and apparent zoom.
+            .setTargetResolution(if (rulesScannerMode) Size(1600, 1200) else
+                Size(SymbolResolutionPolicy.CAMERA_WIDTH, SymbolResolutionPolicy.CAMERA_HEIGHT))
             .setTargetRotation(rotation)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -379,9 +566,12 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 stillCapture
             )
         }
+        bindZoom(camera)
         imageAnalysis = analysis
         imageCapture = stillCapture
-        val center = preview.meteringPointFactory.createPoint(.5f, .5f)
+        cameraBoundAtMs = SystemClock.elapsedRealtime()
+        // PreviewView coordinates are pixels, not normalized sensor coordinates.
+        val center = preview.meteringPointFactory.createPoint(preview.width / 2f, preview.height / 2f)
         camera.cameraControl.startFocusAndMetering(
             FocusMeteringAction.Builder(
                 center,
@@ -389,13 +579,22 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             ).setAutoCancelDuration(2, TimeUnit.SECONDS).build()
         )
         capture.isEnabled = liveScanPhase == RapidLiveScanPhase.EDGES && !hashPreparing
-        instruction.setText(
+        if (rulesScannerMode && rulesRetry.attempts > 0) {
+            instruction.text = getString(R.string.rules_scan_attempt, rulesRetry.attempts + 1, RulesRetryPolicy.MAX_ATTEMPTS)
+        } else instruction.setText(
             if (liveScanPhase == RapidLiveScanPhase.NAME) R.string.experimental_scan_live_reading_name
             else R.string.experimental_scan_finding_edges
         )
     }
 
     private fun analyzeLiveFrame(image: ImageProxy) {
+        if (zoomRestoreInFlight || zoomGestureInProgress || SystemClock.elapsedRealtime() < zoomSettlingUntilMs) { image.close(); return }
+        if (zoomResetRequested) {
+            stability.reset()
+            quadHistory.clear()
+            zoomResetRequested = false
+        }
+
         if (captureGate.get() || correctionMode || hashPreparing) {
             image.close()
             return
@@ -409,7 +608,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (now - lastAnalyzedAt < ANALYSIS_INTERVAL_MS) return
             lastAnalyzedAt = now
             val detectionStartedAt = SystemClock.elapsedRealtime()
-            val detected = openCvDetector.detect(image)
+            rulesLiveRotation = image.imageInfo.rotationDegrees
+            if (rulesPresetRotation != rulesLiveRotation) rulesPreset = null
+            val fixed = if (rulesScannerMode && rulesFixedBounds) rulesPreset else null
+            val detected = if (fixed != null) OpenCvDetectedQuad(fixed.map { PointF(it.x, it.y) }.toTypedArray(),
+                1.0, image.width, image.height) else openCvDetector.detect(image)
             recordLiveDetectionTime(
                 SystemClock.elapsedRealtime() - detectionStartedAt,
                 detected != null
@@ -430,29 +633,76 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 return
             }
             missedFrames = 0
+            if (zoomRestoreInFlight || zoomGestureInProgress || SystemClock.elapsedRealtime() < zoomSettlingUntilMs) return
             val decision = stability.observe(detected.normalizedCorners, detected.confidence, now)
             val consensus = consensusDetection(detected)
             lastDetected = consensus
             runOnUiThread {
                 if (!correctionMode) {
                     liveGuide.showDetection(consensus, decision.progress)
-                    instruction.setText(
+                    if (symbolRetryEnabled) instruction.text = getString(
+                        R.string.scan_debug_symbol_retry_progress,
+                        (symbolRetry.attempts + 1).coerceAtMost(SymbolRetryPolicy.MAX_ATTEMPTS),
+                        SymbolRetryPolicy.MAX_ATTEMPTS)
+                    else instruction.setText(
                         if (decision.progress >= .72f) R.string.experimental_scan_hold_steady
                         else R.string.experimental_scan_card_detected
                     )
                 }
             }
-            if (hashOnlyMode && HashLiveScanPolicy.shouldAnalyze(decision.progress, quadHistory.size) &&
+            if (hashOnlyMode && (if (symbolRetryEnabled)
+                    SymbolRetryPolicy.frameReady(decision.progress, quadHistory.size, now - cameraBoundAtMs)
+                else HashLiveScanPolicy.shouldAnalyze(decision.progress, quadHistory.size)) &&
                 captureGate.compareAndSet(false, true)
             ) {
-                val rectified = openCvDetector.rectify(image, consensus)
+                val highResolution = symbolHighResolution
+                val rectified = openCvDetector.rectify(image, consensus,
+                    if (rulesScannerMode) 945 else SymbolResolutionPolicy.cardWidth(highResolution),
+                    if (rulesScannerMode) 1320 else SymbolResolutionPolicy.cardHeight(highResolution))
                 if (rectified == null) {
                     captureGate.set(false)
                 } else {
+                    if (rulesScannerMode && !rulesFixedBounds) {
+                        val quality = runCatching { OcrCaptureQuality.measure(rectified) }.getOrDefault(emptyMap())
+                        if (rulesCaptureGate.shouldRetry(quality)) {
+                            Log.d(PERF_TAG, "rules_capture_retry suspected_framing $quality")
+                            rectified.recycle()
+                            captureGate.set(false)
+                            stability.reset()
+                            quadHistory.clear()
+                            lastDetected = null
+                            runOnUiThread {
+                                if (!correctionMode && !analysisInFlight && !isFinishing && !isDestroyed) {
+                                    liveGuide.showDetection(null, 0f)
+                                    instruction.setText(R.string.rules_scan_check_framing)
+                                }
+                            }
+                            return
+                        }
+                    }
                     lastCaptureStartedAtMs = now
-                    runOnUiThread { analyzeLiveHash(rectified) }
+                    Log.d(PERF_TAG, "hash_frame source=${image.width}x${image.height} rectified=${rectified.width}x${rectified.height}")
+                    val sourcePhoto = runCatching { openCvDetector.snapshot(image) }.getOrNull()
+                    if (rulesScannerMode) {
+                        rulesBoundaryQuad = consensus.normalizedCorners.joinToString(";") { "${it.x},${it.y}" }
+                        rulesBoundaryOriginal = sourcePhoto?.let { photo -> runCatching {
+                            java.io.ByteArrayOutputStream().use { output ->
+                                photo.compress(Bitmap.CompressFormat.JPEG, 88, output)
+                                output.toByteArray()
+                            }
+                        }.getOrNull() }
+                    }
+                    runOnUiThread {
+                        if (rulesScannerMode && rulesFixedBounds && rulesPreset == null && sourcePhoto != null &&
+                            !isFinishing && !isDestroyed && !analysisInFlight && sessionDialog == null) {
+                            rectified.recycle()
+                            rulesCalibrationPhoto = true
+                            showCapturedPhoto(sourcePhoto, consensus.cornersFor(sourcePhoto.width, sourcePhoto.height), false)
+                            instruction.setText(R.string.rules_fixed_calibrate)
+                        } else analyzeLiveHash(rectified, sourcePhoto, consensus)
+                    }
                 }
-            } else if (decision.shouldCapture && captureGate.compareAndSet(false, true)) {
+            } else if (!hashOnlyMode && decision.shouldCapture && captureGate.compareAndSet(false, true)) {
                 runOnUiThread {
                     instruction.setText(R.string.experimental_scan_auto_capture)
                     capturePhoto(consensus, automatic = true)
@@ -468,11 +718,21 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun analyzeLiveHash(card: Bitmap) {
+    private fun analyzeLiveHash(card: Bitmap, sourcePhoto: Bitmap?, detection: OpenCvDetectedQuad) {
+        if (sessionDialog != null || collectionSaveInFlight) {
+            card.recycle()
+            sourcePhoto?.recycle()
+            return // A frame queued before the session opened must not scan behind its dialogs.
+        }
         if (isFinishing || isDestroyed || correctionMode || hashPreparing || analysisInFlight) {
             card.recycle()
+            sourcePhoto?.recycle()
             captureGate.set(false)
             return
+        }
+        if (sourcePhoto != null) {
+            correction.setPhoto(sourcePhoto, detection.cornersFor(sourcePhoto.width, sourcePhoto.height))
+            hashHasSourcePhoto = true
         }
         analysisInFlight = true
         hashLiveResultMode = true
@@ -639,6 +899,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (hashOnlyMode) {
             hashOcr.isEnabled = false
             hashSymbol.isEnabled = false
+            hashSymbolV2.isEnabled = false
+            hashSymbolRetry.isEnabled = false
             hashAutoAdd.isEnabled = false
         }
         showLoading(getString(R.string.rapid_scan_loading_capture))
@@ -747,6 +1009,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun showCapturedPhoto(bitmap: Bitmap, corners: Array<PointF>, automatic: Boolean) {
+        if (rulesScannerMode && !rulesCalibrationPhoto) {
+            rulesBoundaryOriginal = null // A still JPEG is not the previous live source frame.
+            rulesBoundaryQuad = ""
+        }
         hideLoading()
         cameraProvider?.unbindAll()
         imageAnalysis = null
@@ -759,6 +1025,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (hashOnlyMode) {
             hashOcr.isEnabled = true
             hashSymbol.isEnabled = true
+            hashSymbolV2.isEnabled = true
+            hashSymbolRetry.isEnabled = true
             hashAutoAdd.isEnabled = true
         }
         cancel.setText(R.string.edition_scan_retake_photo)
@@ -782,6 +1050,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             if (hashOnlyMode) {
                 hashOcr.isEnabled = true
                 hashSymbol.isEnabled = true
+                hashSymbolV2.isEnabled = true
+                hashSymbolRetry.isEnabled = true
                 hashAutoAdd.isEnabled = true
             }
             hideLoading()
@@ -801,10 +1071,22 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (analysisInFlight || hashPreparing) return
         correction.removeCallbacks(autoAnalyzeRunnable)
         autoAnalysisScheduled = false
-        val corrected = correction.extractCardBitmap() ?: run {
+        val highResolution = hashOnlyMode && symbolHighResolution
+        if (rulesScannerMode && rulesFixedBounds && rulesCalibrationPhoto) {
+            val points = correction.normalizedCorners() ?: return
+            rulesPreset = points
+            rulesPresetRotation = rulesLiveRotation
+            rulesPresetZoom = zoomCamera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1f
+            rulesCalibrationPhoto = false
+            rulesBoundaryQuad = points.joinToString(";") { "${it.x},${it.y}" }
+        }
+        val corrected = correction.extractCardBitmap(if (rulesScannerMode) 945 else SymbolResolutionPolicy.cardWidth(highResolution),
+            if (rulesScannerMode) 1320 else SymbolResolutionPolicy.cardHeight(highResolution)) ?: run {
             instruction.setText(R.string.edition_scan_invalid_crop)
             return
         }
+        if (rulesScannerMode) rulesBoundaryQuad = correction.normalizedCorners()
+            ?.joinToString(";") { "${it.x},${it.y}" }.orEmpty()
         analysisInFlight = true
         capture.isEnabled = false
         debug.visibility = View.VISIBLE
@@ -928,7 +1210,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashPreparing = true
         capture.isEnabled = false
         showLoading(getString(R.string.hash_scan_preparing))
-        hashAnalysis?.prepare(hashOcr.isChecked) { ready -> runOnUiThread {
+        hashAnalysis?.prepare(hashOcr.isChecked || hashEditionPicker.isChecked) { ready -> runOnUiThread {
             if (isFinishing || isDestroyed || generation != hashPrepareGeneration) return@runOnUiThread
             hashPreparing = false
             hideLoading()
@@ -942,15 +1224,33 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun analyzeHashOnly(card: Bitmap) {
-        val options = HashScanAnalysis.Options(
-            ocr = hashOcr.isChecked,
-            symbol = hashSymbol.isChecked,
+        val retryToken = retryGeneration
+        val retryAttempt = if (hashLiveResultMode && symbolRetryEnabled && !hashProbableEdition.isChecked) symbolRetry.beginAttempt() else 0
+        val rulesToken = ++rulesGeneration
+        val rulesAttempt = if (rulesScannerMode) rulesRetry.beginAttempt() else 0
+        val options = if (rulesScannerMode) HashScanAnalysis.Options(
+            ocr = true, symbol = false, border = true, language = true, captureEvidence = true, rulesScanner = true,
+            rulesAutoAdd = hashAutoAdd.isChecked, rulesPreferredFinish = ScannerSettings.preferredFinish(this),
+            rulesAttempt = rulesAttempt,
+            boundaryOriginal = rulesBoundaryOriginal, boundaryQuad = rulesBoundaryQuad,
+            boundaryMode = if (rulesFixedBounds) "USER_FIXED_SESSION" else "AUTO_OUTER_EXPERIMENT"
+        ) else HashScanAnalysis.Options(
+            ocr = hashOcr.isChecked || hashEditionPicker.isChecked,
+            symbol = hashSymbol.isChecked && !hashEditionPicker.isChecked,
             border = hashBorder.isChecked,
             language = hashLanguage.isChecked,
-            captureEvidence = hashAutoAdd.isChecked
+            captureEvidence = hashAutoAdd.isChecked || hashEditionPicker.isChecked || hashProbableEdition.isChecked,
+            symbolV2 = hashSymbolV2.isChecked,
+            symbolRetryAttempt = retryAttempt,
+            editionPicker = hashEditionPicker.isChecked,
+            probableEdition = hashProbableEdition.isChecked
         )
         hashOcr.isEnabled = false
         hashSymbol.isEnabled = false
+        hashSymbolV2.isEnabled = false
+        hashSymbolRetry.isEnabled = false
+        hashEditionPicker.isEnabled = false
+        hashProbableEdition.isEnabled = false
         hashAutoAdd.isEnabled = false
         hashBorder.isEnabled = false
         hashLanguage.isEnabled = false
@@ -958,7 +1258,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         hashLanguageResult.visibility = View.GONE
         status.setText(R.string.hash_only_scan_matching)
         findViewById<View>(R.id.hashScanResultsScroll).visibility = View.GONE
-        showLoading(getString(R.string.hash_only_scan_matching))
+        showLoading(if (rulesScannerMode) getString(R.string.rules_scan_attempt, rulesAttempt, RulesRetryPolicy.MAX_ATTEMPTS)
+            else getString(R.string.hash_only_scan_matching))
         hashAnalysis!!.analyze(card, options, onHashReady = { hash -> runOnUiThread {
             if (isFinishing || isDestroyed || !analysisInFlight) return@runOnUiThread
             artHashStatus.visibility = View.VISIBLE
@@ -976,11 +1277,55 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 hash.elapsedMs,
                 candidates
             )
-        } }) { result -> runOnUiThread {
+        } }) { incoming -> runOnUiThread {
             if (isFinishing || isDestroyed) return@runOnUiThread
+            if (rulesScannerMode) {
+                if (rulesToken != rulesGeneration) return@runOnUiThread
+                finishAnalysis()
+                hashAutoAdd.isEnabled = true
+                if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    rulesRetry.reset()
+                    hashLiveResultMode = false
+                    captureGate.set(false)
+                    return@runOnUiThread
+                }
+                rulesReview?.close()
+                rulesReview = null
+                val automatic = RulesScanReport.automatic(incoming)
+                val variant = automatic.variant
+                if (variant == null && rulesRetry.shouldRetry(automatic.reason, hashLiveResultMode, hashAutoAdd.isChecked)) {
+                    returnToCamera(preserveRulesRetry = true)
+                    return@runOnUiThread
+                }
+                rulesRetry.reset()
+                pauseForEditionChoice()
+                if (variant != null) {
+                    val option = variant.toEditionOption().copy(finish = automatic.finish,
+                        isFoil = CardFinish.isFoil(automatic.finish))
+                    addSelectedEdition(option, variant.languageCode,
+                        RulesScanReport.capture(incoming, option, variant.languageCode, automatic = true),
+                        automatic.artworkId)
+                    return@runOnUiThread
+                }
+                status.setText(R.string.rules_scan_title)
+                debug.visibility = View.VISIBLE
+                findViewById<View>(R.id.hashScanResultsScroll).visibility = View.VISIBLE
+                rulesReview = RulesScanReview(this, incoming,
+                    findViewById(R.id.hashScanResults)) { option, language ->
+                    if (rulesToken == rulesGeneration && !isFinishing && !isDestroyed) {
+                        addSelectedEdition(option, language, RulesScanReport.capture(incoming, option, language))
+                    }
+                }.also { it.show() }
+                return@runOnUiThread
+            }
+            val result = retainConsecutiveEdition(incoming)
             finishAnalysis()
             hashOcr.isEnabled = true
             hashSymbol.isEnabled = true
+            hashSymbolV2.isEnabled = true
+            hashSymbolRetry.isEnabled = true
+            hashEditionPicker.isEnabled = true
+            hashProbableEdition.isEnabled = true
             hashAutoAdd.isEnabled = true
             hashBorder.isEnabled = true
             hashLanguage.isEnabled = true
@@ -989,6 +1334,56 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 result.hash?.elapsedMs ?: 0, result.ocrMs, result.symbolMs, result.elapsedMs, fromCapture)
             val rows = findViewById<LinearLayout>(R.id.hashScanResults)
             rows.removeAllViews()
+            result.symbolV2?.let { symbol ->
+                if (symbol.selectedSet == null && (hashHasSourcePhoto || correctionMode)) {
+                    rows.addView(Button(this).apply {
+                        id = R.id.hashScanCorrectBorders
+                        setText(R.string.rapid_scan_correct_borders)
+                        setOnClickListener { resumeCropCorrection() }
+                    })
+                }
+                rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.scan_debug_hash_symbol_v2_result,
+                        symbol.selectedSet ?: symbol.scores.firstOrNull()?.setCode?.let {
+                            getString(R.string.scan_debug_hash_symbol_v2_candidate, it)
+                        } ?: "—", ScanEvidenceFormatter.symbolReason(this@RapidEditionScanActivity, symbol.reason),
+                        symbol.scores.firstOrNull()?.let { String.format(Locale.US, "%.3f", it.distance) } ?: "—",
+                        symbol.elapsedMs) + "\n" + getString(R.string.scan_debug_hash_symbol_v2_margin,
+                        symbol.scores.getOrNull(1)?.let { String.format(Locale.US, "%.3f", it.distance - symbol.scores[0].distance) } ?: "—",
+                        String.format(Locale.US, "%.3f", SetSymbolHashPolicy.MIN_MARGIN)) +
+                        if (symbol.missingSets.isNotEmpty()) "\n" + getString(R.string.scan_debug_hash_symbol_v2_missing,
+                            symbol.missingSets.joinToString()) else ""
+                })
+                rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.scan_debug_hash_symbol_v2_scope,
+                        symbol.cardName ?: "—", symbol.comparedSets.joinToString().ifBlank { "—" })
+                })
+                if (symbol.inputWidth > 0) rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.scan_debug_symbol_resolution, symbol.inputWidth, symbol.inputHeight,
+                        SymbolResolutionPolicy.segmentationWidth(symbol.inputWidth))
+                })
+                if (symbol.noSymbolSets.isNotEmpty()) rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.scan_debug_symbol_without_print, symbol.noSymbolSets.joinToString())
+                })
+                rows.addView(TextView(this).apply {
+                    setTextColor(Color.WHITE)
+                    text = getString(R.string.scan_debug_symbol_competitors, symbol.scores.take(3).joinToString(" · ") {
+                        "${it.setCode}: ${String.format(Locale.US, "%.3f", it.distance)}"
+                    }.ifBlank { "—" })
+                })
+                symbol.cropPng?.let { bytes ->
+                    rows.addView(ImageView(this).apply {
+                        setImageBitmap(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+                        adjustViewBounds = true
+                        contentDescription = getString(R.string.scan_debug_hash_symbol_v2_crop)
+                        layoutParams = LinearLayout.LayoutParams(dp(120), dp(72))
+                    })
+                }
+            }
             if (options.border) {
                 hashBorderResult.text = hashBorderLabel(result.border?.borderColor)
                 hashBorderResult.visibility = View.VISIBLE
@@ -1004,7 +1399,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 }
                 val symbolCode = row.editions.filter { result.symbols?.distanceBySetCode?.containsKey(it.code) == true }
                     .minByOrNull { result.symbols!!.distanceBySetCode.getValue(it.code) }
-                if (options.symbol && symbolCode != null) {
+                if (options.symbol && !options.symbolV2 && symbolCode != null) {
                     container.addView(ImageView(this).apply {
                         contentDescription = symbolCode.name
                         SetSymbolLoader.display(this@RapidEditionScanActivity, symbolCode.code, this)
@@ -1019,7 +1414,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                         append(getString(R.string.scan_debug_art_hash_candidate, row.candidate.hit.name,
                             row.candidate.hit.phashDistance, row.candidate.hit.dhashDistance))
                         append("\n")
-                        append(getString(R.string.hash_only_scan_not_edition))
+                        if (!row.resolvedByUniqueArtwork) append(getString(R.string.hash_only_scan_not_edition))
                         append("\n")
                         append(getString(
                             R.string.hash_scan_cached_variants,
@@ -1050,6 +1445,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                                 ))
                             }
                         }
+                        if (row.resolvedByUniqueArtwork) {
+                            append("\n")
+                            append(getString(R.string.scan_debug_hash_unique_artwork))
+                        }
                         row.resolvedVariant?.let { variant ->
                             append("\n")
                             append(getString(
@@ -1060,7 +1459,14 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                                 variant.languageCode.uppercase(Locale.US)
                             ))
                         }
-                        if (options.symbol) {
+                        row.retainedVariant?.let {
+                            append("\n").append(getString(R.string.scan_debug_retained_edition, it.set.code))
+                        }
+                        if (options.probableEdition && row.retainedVariant == null && row.resolvedVariant == null) row.probableVariant?.let {
+                            append("\n")
+                            append(getString(R.string.hash_probable_edition_selected, it.set.code))
+                        }
+                        if (options.symbol && !options.symbolV2) {
                             append("\n")
                             append(getString(R.string.scan_debug_hash_symbol_row,
                                 symbolCode?.let { "${it.name} (${it.code})" } ?: "—",
@@ -1085,8 +1491,163 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 "symbol=${result.symbolMs} border=${result.border?.borderColor}:${result.borderMs}ms " +
                 "language=${result.effectiveLanguage}:${result.languageMs}ms " +
                 "total=${result.elapsedMs} capture=$fromCapture")
-            autoAddFirstHashResult(result)
+            if (result.options.probableEdition) {
+                autoAddProbableEdition(result)
+                return@runOnUiThread
+            }
+            val editionResolved = result.rows.any { it.retainedVariant != null || it.resolvedVariant != null }
+            if (!editionResolved && retryAttempt > 0 && retryToken == retryGeneration &&
+                lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+                symbolRetry.shouldRetry(result.symbolV2?.reason, result.symbolV2?.selectedSet != null)) {
+                returnToCamera(preserveSymbolRetry = true)
+                return@runOnUiThread
+            }
+            if (result.options.editionPicker) resolveHashEdition(result) else autoAddFirstHashResult(result)
+            if (!editionResolved && retryAttempt >= SymbolRetryPolicy.MAX_ATTEMPTS && result.symbolV2?.selectedSet == null) {
+                status.text = getString(R.string.scan_debug_symbol_retry_exhausted, retryAttempt)
+            }
         } }
+    }
+
+    private fun retainConsecutiveEdition(result: HashScanAnalysis.Result): HashScanAnalysis.Result {
+        val index = if (result.options.editionPicker) HashEditionResolutionPolicy.identityIndex(
+            result.rows.map { it.candidate.hit.name }, result.names)
+        else SetSymbolHashPolicy.candidateIndex(result.rows.map { it.candidate.hit.name }, result.names, result.options.ocr)
+        val row = index?.let(result.rows::get) ?: return result
+        val hit = row.candidate.hit
+        val identityVariants = row.variants.filter { HashScanEvidence.namesEquivalent(it.cardName, hit.name) }
+        val uuid = consecutiveEdition.retainedPrinting(hit.illustrationId, identityVariants.map { it.printingUuid })
+        if (uuid == null) {
+            if (HashEditionResolutionPolicy.recognizedArtwork(hit.name, result.names, hit.phashDistance, hit.dhashDistance)) {
+                consecutiveEdition.observe(hit.illustrationId)
+            }
+            return result
+        }
+        val matches = identityVariants.filter { it.printingUuid == uuid }
+        val retained = matches.firstOrNull { it.languageCode.equals(result.effectiveLanguage, true) }
+            ?: matches.firstOrNull { it.languageCode == "en" } ?: matches.first()
+        return result.copy(rows = result.rows.mapIndexed { i, value ->
+            if (i == index) value.copy(retainedVariant = retained) else value
+        })
+    }
+
+    private fun autoAddProbableEdition(result: HashScanAnalysis.Result) {
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) || collectionSaveInFlight || editionSelectionInFlight) return
+        val row = result.rows.firstOrNull { it.retainedVariant != null || it.probableVariant != null }
+        if (row == null) {
+            status.setText(R.string.hash_probable_edition_pending)
+            return
+        }
+        val variant = row.retainedVariant ?: row.resolvedVariant ?: checkNotNull(row.probableVariant)
+        editionSelectionInFlight = true
+        if (row.retainedVariant == null && row.resolvedVariant == null) Toast.makeText(this,
+            getString(R.string.hash_probable_edition_selected, variant.set.code), Toast.LENGTH_SHORT).show()
+        addResolvedHashVariant(variant, result)
+    }
+
+    private fun resolveHashEdition(result: HashScanAnalysis.Result) {
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) || editionDialog != null || editionSelectionInFlight) return
+        hashOcrConflictState = HashOcrConflictState()
+        val index = HashEditionResolutionPolicy.identityIndex(result.rows.map { it.candidate.hit.name }, result.names)
+        if (index == null) {
+            status.setText(R.string.hash_edition_identity_pending)
+            return // Never fall through to the legacy first-hash or OCR-consensus auto-add.
+        }
+        val row = result.rows[index]
+        val variants = row.variants.filter { HashScanEvidence.namesEquivalent(it.cardName, row.candidate.hit.name) }
+        if (variants.isEmpty()) {
+            status.setText(R.string.hash_edition_no_candidates)
+            return
+        }
+        val automaticVariant = row.retainedVariant ?: row.resolvedVariant
+        if (hashAutoAdd.isChecked && automaticVariant != null) {
+            editionSelectionInFlight = true
+            addResolvedHashVariant(automaticVariant, result)
+            return
+        }
+        pauseForEditionChoice()
+        val sets = variants.map { it.set }.distinctBy { it.code }.sortedByDescending { it.releaseDate }
+        val panel = HashEditionGridPanel(this, sets, selected = { code ->
+            val choices = HashEditionResolutionPolicy.printings(variants, code, result.effectiveLanguage.ifBlank { "en" })
+            editionDialog?.dismiss()
+            editionDialog = null
+            if (choices.size == 1) commitEditionChoice(choices.single(), result)
+            else if (choices.isNotEmpty()) showHashPrintingChoices(choices, result)
+        })
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(TextView(this@RapidEditionScanActivity).apply {
+                setPadding(dp(16), dp(8), dp(16), dp(8))
+                setText(R.string.hash_edition_choose_help)
+            })
+            addView(panel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(340)))
+        }
+        showHashEditionDialog(AlertDialog.Builder(this)
+            .setTitle(getString(R.string.hash_edition_choose_title, row.candidate.hit.name))
+            .setView(body).setNegativeButton(android.R.string.cancel, null).create())
+    }
+
+    private fun pauseForEditionChoice() {
+        captureGate.set(true)
+        cameraProvider?.unbindAll()
+        imageAnalysis = null
+        imageCapture = null
+        symbolRetry.reset()
+        retryGeneration++
+        hashLiveResultMode = true
+        correctionMode = false
+        status.setText(R.string.hash_edition_pending)
+        capture.setText(R.string.rapid_scan_scan_another_card)
+    }
+
+    private fun showHashEditionDialog(dialog: AlertDialog) {
+        editionDialog = dialog
+        capture.isEnabled = false
+        dialog.setOnDismissListener {
+            if (editionDialog === dialog) {
+                editionDialog = null
+                capture.isEnabled = !editionSelectionInFlight && !collectionSaveInFlight
+            }
+        }
+        dialog.show()
+    }
+
+    private fun showHashPrintingChoices(choices: List<ArtPrintingIndex.Variant>, result: HashScanAnalysis.Result) {
+        var chosen = false
+        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        choices.forEach { variant ->
+            val option = variant.toEditionOption()
+            body.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(dp(16), dp(6), dp(16), dp(6))
+                addView(ImageView(this@RapidEditionScanActivity).apply {
+                    contentDescription = variant.displayName
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    CardImageCache.display(this@RapidEditionScanActivity, option.imageUrl, this)
+                }, LinearLayout.LayoutParams(dp(64), dp(90)))
+                addView(Button(this@RapidEditionScanActivity).apply {
+                    text = "${variant.set.code} #${variant.collectorNumber}\n${variant.displayName}"
+                    setOnClickListener {
+                        if (!chosen) {
+                            chosen = true
+                            editionDialog?.dismiss()
+                            editionDialog = null
+                            commitEditionChoice(variant, result)
+                        }
+                    }
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            })
+        }
+        val scroll = android.widget.ScrollView(this).apply { addView(body) }
+        showHashEditionDialog(AlertDialog.Builder(this)
+            .setTitle(R.string.hash_edition_choose_printing)
+            .setView(scroll).setNegativeButton(android.R.string.cancel, null).create())
+    }
+
+    private fun commitEditionChoice(variant: ArtPrintingIndex.Variant, result: HashScanAnalysis.Result) {
+        if (editionSelectionInFlight || collectionSaveInFlight || isFinishing || isDestroyed) return
+        editionSelectionInFlight = true
+        addResolvedHashVariant(variant, result.copy(manualSetCode = variant.set.code))
     }
 
     private fun autoAddFirstHashResult(result: HashScanAnalysis.Result) {
@@ -1099,6 +1660,18 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 result.rows.map { it.candidate.hit.name },
                 result.names
             )?.let(result.rows::get)
+        }
+        if (result.options.symbolV2 && (row == null || (row.retainedVariant == null && row.resolvedVariant == null))) {
+            // V2 accepts a confirmed symbol or unique recognized artwork, never a random indexed printing.
+            // The saved attempt contains the crop and rankings even when nothing is added.
+            hashOcrConflictState = HashOcrConflictState()
+            status.text = when {
+                result.symbolV2?.selectedSet != null -> getString(R.string.scan_debug_symbol_printing_blocked,
+                    result.symbolV2.selectedSet, row?.compatibleVariants?.size ?: 0)
+                result.symbolV2?.reason == "simbolo_no_aplicable" -> getString(R.string.scan_debug_symbol_no_printing_resolution)
+                else -> getString(R.string.scan_debug_hash_symbol_v2_unresolved)
+            }
+            return
         }
         if (row == null) {
             val ocrNames = result.names.joinToString(" / ")
@@ -1137,7 +1710,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             Log.d(PERF_TAG, "hash_ocr_selected_rank=${result.rows.indexOf(row) + 1}:${hit.name}")
         }
         if (!hashAutoAdd.isChecked) return
-        val cachedVariant = row.resolvedVariant
+        val cachedVariant = (row.retainedVariant ?: row.resolvedVariant)
             ?.takeIf { HashPrintingVariantPolicy.canPreselect(it.set.code) }
             ?: HashPrintingVariantPolicy.preferred(
                 row.compatibleVariants,
@@ -1233,6 +1806,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     ) {
         capture.isEnabled = false
         val local = variant.toEditionOption()
+        var delivered = false
         repository.loadCachedPrinting(
             local.cardName,
             local.printingUuid,
@@ -1240,21 +1814,27 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             local.setCode,
             local.collectorNumber
         ) { options, error ->
-            if (isFinishing || isDestroyed) return@loadCachedPrinting
+            if (isFinishing || isDestroyed || delivered) return@loadCachedPrinting
+            delivered = true
+            editionSelectionInFlight = false
             if (error != null) Log.w(PERF_TAG, "hash_auto_add_asset_local", error)
             val target = HashAutoAddTarget(
                 local.cardName, local.printingUuid, local.setCode,
                 local.collectorNumber, variant.scryfallId
             )
-            val option = HashAutoAddPolicy.preferredOption(target, options)?.copy(
+            val option = HashAutoAddPolicy.preferredOption(target,
+                if (result.options.symbolV2 || result.options.editionPicker || result.options.probableEdition) options.filter { it.finish == local.finish } else options)?.copy(
                 displayName = local.displayName,
                 imageUrl = local.imageUrl
             ) ?: local
             Log.d(PERF_TAG, "hash_auto_add_asset=${option.printingUuid}:${variant.languageCode}")
             addSelectedEdition(
                 option,
-                variant.languageCode.ifBlank { result.effectiveLanguage },
-                hashScanCapture(result, option)
+                if (result.options.symbolV2 && !result.options.ocr) "en"
+                else variant.languageCode.ifBlank { result.effectiveLanguage },
+                hashScanCapture(result, option),
+                artworkId = result.rows.firstOrNull { row -> row.variants.any { it.printingUuid == variant.printingUuid } }
+                    ?.candidate?.hit?.illustrationId
             )
         }
     }
@@ -1299,7 +1879,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     ): LegacyCollectionStore.ScanCaptureEvidence? {
         val jpeg = result.capturedJpeg ?: return null
         val metadata = JSONObject().apply {
-            put("schemaVersion", 1)
+            put("schemaVersion", 2)
             put("source", "hash_scanner")
             put("capturedAt", System.currentTimeMillis())
             put("selectedPrinting", JSONObject().apply {
@@ -1313,11 +1893,16 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 put("imageUrl", selected.imageUrl.orEmpty())
             })
             put("checks", JSONObject().apply {
-                put("ocr", hashOcr.isChecked)
-                put("symbol", hashSymbol.isChecked)
-                put("border", hashBorder.isChecked)
-                put("language", hashLanguage.isChecked)
-                put("autoAdd", hashAutoAdd.isChecked)
+                put("ocr", result.options.ocr)
+                put("symbol", result.options.symbol)
+                put("symbolV2", result.options.symbolV2)
+                put("editionPicker", result.options.editionPicker)
+                put("probableEdition", result.options.probableEdition)
+                put("manualSetCode", result.manualSetCode)
+                put("symbolRetryAttempt", result.options.symbolRetryAttempt)
+                put("border", result.options.border)
+                put("language", result.options.language)
+                put("autoAdd", hashAutoAdd.isChecked || result.options.probableEdition)
             })
             put("timingsMs", JSONObject().apply {
                 put("hash", result.hash?.elapsedMs ?: 0L)
@@ -1362,6 +1947,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                     }
                 })
             })
+            put("symbolV2", result.symbolV2?.json())
             put("symbol", JSONObject().apply {
                 put("comparedSets", result.symbols?.comparedSets ?: 0)
                 put("reliable", result.symbols?.reliable ?: false)
@@ -1384,6 +1970,10 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                         put("dhashDistance", hit.dhashDistance)
                         put("cachedVariants", row.variants.size)
                         put("compatibleVariants", row.compatibleVariants.size)
+                        put("probablePrintingUuid", row.probableVariant?.printingUuid.orEmpty())
+                        put("editionEstimated", result.options.probableEdition && row.retainedVariant == null && row.probableVariant != null && row.resolvedVariant == null)
+                        put("retainedPrintingUuid", row.retainedVariant?.printingUuid.orEmpty())
+                        put("resolvedByUniqueArtwork", row.resolvedByUniqueArtwork)
                         put("resolvedPrintingUuid", row.resolvedVariant?.printingUuid.orEmpty())
                         put("resolvedSetCode", row.resolvedVariant?.set?.code.orEmpty())
                         put("resolvedCollectorNumber", row.resolvedVariant?.collectorNumber.orEmpty())
@@ -1963,6 +2553,9 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun resumeCropCorrection() {
+        symbolRetry.reset()
+        retryGeneration++
+        hashLiveResultMode = false
         analysisInFlight = false
         hideLoading()
         debug.visibility = View.GONE
@@ -1974,6 +2567,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (hashOnlyMode) {
             hashOcr.isEnabled = true
             hashSymbol.isEnabled = true
+            hashSymbolV2.isEnabled = true
+            hashSymbolRetry.isEnabled = true
             hashAutoAdd.isEnabled = true
         }
         cancel.setText(R.string.edition_scan_retake_photo)
@@ -2047,20 +2642,108 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     private fun addSelectedEdition(
         option: CardEditionOption,
         languageCode: String,
-        scanEvidence: LegacyCollectionStore.ScanCaptureEvidence? = null
+        scanEvidence: LegacyCollectionStore.ScanCaptureEvidence? = null,
+        artworkId: String? = null
     ) {
+        if (collectionSaveInFlight || copiesDialog != null) return
+        val key = copyKey(option, languageCode)
+        if (hashOnlyMode && repeatedCopies.matches(key)) {
+            showRepeatedCopies(option, languageCode, scanEvidence, artworkId)
+            return
+        }
+        saveSelectedCopies(option, languageCode, scanEvidence, 1, artworkId)
+    }
+
+    private fun copyKey(option: CardEditionOption, language: String) = RepeatedScanCopies.Key(
+        option.printingUuid, option.finish.lowercase(Locale.ROOT), language.lowercase(Locale.ROOT))
+
+    private fun pauseAfterCopies() {
+        captureGate.set(true)
+        cameraProvider?.unbindAll()
+        imageAnalysis = null
+        imageCapture = null
+        symbolRetry.reset()
+        retryGeneration++
+        hashLiveResultMode = true
+        correctionMode = false
+        hideLoading()
+        debug.visibility = View.VISIBLE
+        status.text = getString(R.string.scan_copies_paused, repeatedCopies.saved)
+        instruction.setText(R.string.scan_copies_replace_card)
+        capture.setText(R.string.rapid_scan_scan_another_card)
+        capture.isEnabled = true
+    }
+
+    private fun showRepeatedCopies(option: CardEditionOption, language: String,
+        evidence: LegacyCollectionStore.ScanCaptureEvidence?, artworkId: String?) {
+        pauseAfterCopies()
+        val savedAtOpen = repeatedCopies.saved
+        val itemId = repeatedCopies.collectionItemId ?: return
+        var selectedEdition = option
+        val panel = ScanCopiesPanel(this, option.displayName,
+            "${option.setName} (${option.setCode.uppercase(Locale.ROOT)})", repeatedCopies.saved)
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.scan_copies_title)
+            .setView(panel)
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        panel.edition.setOnClickListener {
+            if (copiesEditionDialog?.isShowing == true || collectionSaveInFlight) return@setOnClickListener
+            copiesEditionDialog = EditionPicker.showGrid(this, option.cardName, selectedEdition.finish) { chosen ->
+                if (dialog.isShowing) {
+                    selectedEdition = chosen
+                    panel.showEdition("${chosen.setName} (${chosen.setCode}) · #${chosen.collectorNumber}")
+                }
+            }
+        }
+        copiesDialog = dialog
+        dialog.setOnDismissListener {
+            copiesDialog = null
+            copiesEditionDialog?.dismiss()
+            copiesEditionDialog = null
+            if (!collectionSaveInFlight && !isFinishing && !isDestroyed) returnToCamera()
+        }
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val extra = repeatedCopies.additional(panel.quantity.text.toString())
+                if (extra == null) {
+                    panel.quantity.error = getString(R.string.scan_copies_range,
+                        repeatedCopies.saved, RepeatedScanCopies.MAX_COPIES)
+                } else {
+                    // Mark saving before dismissal so the camera cannot restart mid-write.
+                    if (selectedEdition.printingUuid != option.printingUuid || selectedEdition.finish != option.finish) {
+                        saveCorrectedCopies(itemId, option, selectedEdition, language, evidence, savedAtOpen, savedAtOpen + extra, artworkId)
+                    } else if (extra > 0) saveSelectedCopies(option, language, evidence, extra, artworkId)
+                    dialog.dismiss()
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun saveSelectedCopies(option: CardEditionOption, languageCode: String,
+        scanEvidence: LegacyCollectionStore.ScanCaptureEvidence?, copies: Int, artworkId: String?) {
+        if (collectionSaveInFlight) return
+        collectionSaveInFlight = true
         instruction.setText(R.string.experimental_scan_saving_card)
         capture.isEnabled = false
+        sessionButton.isEnabled = false
+        undoLastButton.isEnabled = false
+        val preferredItemId = repeatedCopies.collectionItemId.takeIf { repeatedCopies.matches(copyKey(option, languageCode)) }
         metadataExecutor.execute {
             val added = runCatching {
-                LegacyCollectionStore.addCopy(this, option, languageCode, scanEvidence)
+                LegacyCollectionStore.addCopy(this, option, languageCode, scanEvidence, copies, preferredItemId)
             }
             val card = added.getOrNull()
             if (card != null) {
                 repository.selectEdition(card.collectionItemId, option) {}
             }
             runOnUiThread {
+                collectionSaveInFlight = false
                 if (isFinishing || isDestroyed) return@runOnUiThread
+                sessionButton.isEnabled = true
+                undoLastButton.isEnabled = addedCopies.isNotEmpty()
                 if (card == null) {
                     hideLoading()
                     capture.isEnabled = true
@@ -2071,7 +2754,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 } else {
-                    rememberRapidSession(card, option)
+                    if (hashOnlyMode) {
+                        repeatedCopies.added(copyKey(option, languageCode), card.collectionItemId, copies)
+                        consecutiveEdition.remember(artworkId, option.printingUuid, card.collectionItemId)
+                    }
+                    rememberRapidSession(card, option, copies)
                     returnToCamera()
                     showCardAddedNotification(option, card)
                 }
@@ -2079,17 +2766,66 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         }
     }
 
-    private fun rememberRapidSession(card: CardInfo, option: CardEditionOption) {
+    private fun saveCorrectedCopies(itemId: String, original: CardEditionOption, selected: CardEditionOption,
+        language: String, evidence: LegacyCollectionStore.ScanCaptureEvidence?, saved: Int, total: Int, artworkId: String?) {
+        if (collectionSaveInFlight) return
+        // Only the tail of this consecutive batch moves; earlier session and library copies stay put.
+        if (addedCopies.size < saved || addedCopies.takeLast(saved).any { it.collectionItemId != itemId }) {
+            Toast.makeText(this, R.string.copy_add_error, Toast.LENGTH_LONG).show()
+            return
+        }
+        collectionSaveInFlight = true
+        capture.isEnabled = false
+        sessionButton.isEnabled = false
+        undoLastButton.isEnabled = false
+        instruction.setText(R.string.experimental_scan_saving_card)
+        val correctedEvidence = evidence?.copy(metadataJson = runCatching {
+            JSONObject(evidence.metadataJson).put("manualBatchEdition", JSONObject().apply {
+                put("printingUuid", selected.printingUuid); put("setCode", selected.setCode); put("finish", selected.finish)
+            }).toString()
+        }.getOrDefault(evidence.metadataJson))
+        metadataExecutor.execute {
+            val result = runCatching { LegacyCollectionStore.correctScanBatch(
+                this, itemId, original, selected, saved, total, correctedEvidence) }.getOrNull()
+            fun finish() = runOnUiThread {
+                collectionSaveInFlight = false
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                sessionButton.isEnabled = true
+                if (result == null) {
+                    capture.isEnabled = true
+                    undoLastButton.isEnabled = addedCopies.isNotEmpty()
+                    Toast.makeText(this, R.string.copy_add_error, Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                addedCopies.subList(addedCopies.size - saved, addedCopies.size).clear()
+                sessionEntries.firstOrNull { it.card.collectionItemId == itemId }?.let { entry ->
+                    entry.scannedCopies -= saved
+                    if (entry.scannedCopies <= 0) sessionEntries.remove(entry)
+                    else result.originalRemaining?.let { entry.card = it }
+                }
+                if (sessionEntries.none { it.card.collectionItemId == itemId }) addedCollectionItemIds.remove(itemId)
+                repeatedCopies.replaceBatch(copyKey(selected, language), result.card.collectionItemId, total)
+                consecutiveEdition.remember(artworkId, selected.printingUuid, result.card.collectionItemId)
+                rememberRapidSession(result.card, selected, total)
+                returnToCamera()
+                showCardAddedNotification(selected, result.card)
+            }
+            if (result == null) finish()
+            else repository.selectEdition(result.card.collectionItemId, selected) { finish() }
+        }
+    }
+
+    private fun rememberRapidSession(card: CardInfo, option: CardEditionOption, copies: Int = 1) {
         val existing = sessionEntries.firstOrNull {
             it.card.collectionItemId == card.collectionItemId
         }
         if (existing == null) {
-            sessionEntries += RapidSessionEntry(card)
+            sessionEntries += RapidSessionEntry(card, copies)
         } else {
             existing.card = card
-            existing.scannedCopies++
+            existing.scannedCopies += copies
         }
-        addedCopies += RapidAddedCopy(option, card.collectionItemId)
+        repeat(copies) { addedCopies += RapidAddedCopy(option, card.collectionItemId) }
         addedCollectionItemIds += card.collectionItemId
         updateSessionControls()
         sessionAdapter?.notifyDataSetChanged()
@@ -2148,6 +2884,8 @@ open class RapidEditionScanActivity : AppCompatActivity() {
 
     private fun applyUndoResult(last: RapidAddedCopy, remainingQuantity: Int) {
         if (isFinishing || isDestroyed) return
+        repeatedCopies.removed(last.collectionItemId)
+        consecutiveEdition.removed(last.collectionItemId, remainingQuantity)
         if (addedCopies.lastOrNull() == last) addedCopies.removeAt(addedCopies.lastIndex)
         val entry = sessionEntries.firstOrNull {
             it.card.collectionItemId == last.collectionItemId
@@ -2194,17 +2932,74 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     private fun showRapidSession() {
-        if (sessionEntries.isEmpty()) return
+        if (sessionEntries.isEmpty() || analysisInFlight || collectionSaveInFlight || sessionDialog != null) return
+        if (captureGate.get() && !hashLiveResultMode && !correctionMode) return
+        captureGate.set(true)
+        cameraProvider?.unbindAll()
+        imageAnalysis = null
+        imageCapture = null
         val list = ListView(this).apply {
             dividerHeight = 1
             adapter = RapidSessionAdapter().also { sessionAdapter = it }
         }
         val count = sessionEntries.sumOf(RapidSessionEntry::scannedCopies)
-        AlertDialog.Builder(this)
+        sessionDialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.rapid_scan_session_title, count))
             .setView(list)
             .setPositiveButton(android.R.string.ok, null)
-            .show()
+            .create().also { dialog ->
+                dialog.setOnDismissListener {
+                    sessionDialog = null
+                    sessionEditionDialog?.dismiss()
+                    sessionEditionDialog = null
+                    if (!collectionSaveInFlight) {
+                        captureGate.set(false)
+                        stability.reset()
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) ensureCamera()
+                    }
+                }
+                dialog.show()
+            }
+    }
+
+    private fun showSessionEditionGrid(itemId: String) {
+        if (collectionSaveInFlight || sessionEditionDialog?.isShowing == true) return
+        val card = sessionEntries.firstOrNull { it.card.collectionItemId == itemId }?.card ?: return
+        sessionEditionDialog = EditionPicker.showGrid(this, card.name, card.finish.orEmpty()) { option ->
+            if (collectionSaveInFlight || isFinishing || isDestroyed) return@showGrid
+            collectionSaveInFlight = true
+            sessionDialog?.setCancelable(false)
+            undoLastButton.isEnabled = false
+            metadataExecutor.execute {
+                val updated = runCatching {
+                    check(LegacyCollectionStore.updateSelectedEdition(this, itemId, option))
+                    LegacyCollectionStore.cards(this).firstOrNull { it.collectionItemId == itemId }
+                }.getOrNull()
+                fun finish() = runOnUiThread {
+                    collectionSaveInFlight = false
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    sessionDialog?.setCancelable(true)
+                    if (updated == null) Toast.makeText(this, R.string.editions_error, Toast.LENGTH_LONG).show()
+                    else {
+                        sessionEntries.firstOrNull { it.card.collectionItemId == itemId }?.card = updated
+                        // Undo must follow the corrected printing, not the originally scanned one.
+                        addedCopies.indices.forEach { i ->
+                            if (addedCopies[i].collectionItemId == itemId) addedCopies[i] = RapidAddedCopy(option, itemId)
+                        }
+                        repeatedCopies.editionChanged(itemId)
+                        consecutiveEdition.corrected(itemId, option.printingUuid)
+                        sessionAdapter?.notifyDataSetChanged()
+                    }
+                    updateSessionControls()
+                    if (sessionDialog == null) {
+                        captureGate.set(false)
+                        stability.reset()
+                        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) ensureCamera()
+                    }
+                }
+                if (updated != null) repository.selectEdition(itemId, option) { finish() } else finish()
+            }
+        }
     }
 
     private inner class RapidSessionAdapter : BaseAdapter() {
@@ -2220,6 +3015,11 @@ open class RapidEditionScanActivity : AppCompatActivity() {
                 .inflate(R.layout.rapid_scan_session_item, parent, false)
             val entry = getItem(position)
             val card = entry.card
+            view.findViewById<ImageView>(R.id.rapidSessionSetSymbol).apply {
+                SetSymbolLoader.display(this@RapidEditionScanActivity, card.setCode.orEmpty(), this)
+                setOnClickListener { showSessionEditionGrid(card.collectionItemId) }
+            }
+            view.findViewById<View>(R.id.rapidSessionEdition).setOnClickListener { showSessionEditionGrid(card.collectionItemId) }
             view.findViewById<TextView>(R.id.rapidSessionName).text = card.name
             view.findViewById<TextView>(R.id.rapidSessionEdition).text = buildString {
                 append(card.setName.orEmpty().ifBlank { card.setCode.orEmpty().uppercase(Locale.US) })
@@ -2237,7 +3037,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
             )
             view.findViewById<TextView>(R.id.rapidSessionPrice).text =
                 PriceCurrency.format(view.context, card).ifBlank { getString(R.string.no_price) }
-            CardImageCache.displayKeepingCurrent(
+            CardImageCache.display(
                 view.context,
                 card.imgPath.orEmpty(),
                 view.findViewById(R.id.rapidSessionImage)
@@ -2670,8 +3470,14 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         if (!isFinishing) Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
-    private fun returnToCamera() {
-        if (analysisInFlight) return
+    private fun returnToCamera(preserveSymbolRetry: Boolean = false, preserveRulesRetry: Boolean = false) {
+        rulesCalibrationPhoto = false
+        if (analysisInFlight || collectionSaveInFlight || copiesDialog != null || sessionDialog != null || editionDialog != null || editionSelectionInFlight) return
+        rulesGeneration++
+        rulesReview?.close()
+        rulesReview = null
+        if (!preserveRulesRetry) rulesRetry.reset()
+        if (!preserveSymbolRetry) { symbolRetry.reset(); retryGeneration++ }
         correction.removeCallbacks(autoAnalyzeRunnable)
         autoAnalysisScheduled = false
         hideLoading()
@@ -2680,6 +3486,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         feedbackSnackbar = null
         earlyResult.visibility = View.GONE
         correction.clearPhoto()
+        hashHasSourcePhoto = false
         correction.visibility = View.GONE
         liveGuide.visibility = View.VISIBLE
         liveGuide.showDetection(null, 0f)
@@ -2715,10 +3522,13 @@ open class RapidEditionScanActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!correctionMode) ensureCamera()
+        if (!correctionMode && !hashLiveResultMode && !analysisInFlight) ensureCamera()
     }
 
     override fun onPause() {
+        retryGeneration++
+        rulesRetry.reset()
+        symbolRetry.reset()
         cameraProvider?.unbindAll()
         imageAnalysis = null
         imageCapture = null
@@ -2726,6 +3536,21 @@ open class RapidEditionScanActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        rulesGeneration++
+        rulesReview?.close()
+        rulesReview = null
+        sessionDialog?.setOnDismissListener(null)
+        sessionEditionDialog?.dismiss()
+        sessionDialog?.dismiss()
+        sessionDialog = null
+        editionDialog?.dismiss()
+        editionDialog = null
+        editionSelectionInFlight = false
+        copiesEditionDialog?.dismiss()
+        copiesEditionDialog = null
+        copiesDialog?.setOnDismissListener(null)
+        copiesDialog?.dismiss()
+        copiesDialog = null
         hashPrepareGeneration++
         hashAnalysis?.close()
         correction.removeCallbacks(autoAnalyzeRunnable)
@@ -2735,6 +3560,7 @@ open class RapidEditionScanActivity : AppCompatActivity() {
         toneGenerator = null
         replaceDebugBitmap(null)
         correction.clearPhoto()
+        hashHasSourcePhoto = false
         if (printingLineOcrLazy.isInitialized()) printingLineOcr.close()
         if (cardTitleOcrLazy.isInitialized()) cardTitleOcr.close()
         if (liveCardNameOcrLazy.isInitialized()) liveCardNameOcr.close()

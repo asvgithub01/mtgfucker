@@ -85,7 +85,12 @@ class RoundedCardFrameLayout @JvmOverloads constructor(
         }
         // A Magic card is roughly 63 × 88 mm. Deriving height from the actual column width avoids
         // fixed dp heights that leave unused gutters on wider phones and tablets.
-        val cardHeight = (width * CARD_HEIGHT_RATIO).roundToInt()
+        val naturalHeight = (width * CARD_HEIGHT_RATIO).roundToInt()
+        val cardHeight = when (View.MeasureSpec.getMode(heightMeasureSpec)) {
+            View.MeasureSpec.EXACTLY -> View.MeasureSpec.getSize(heightMeasureSpec)
+            View.MeasureSpec.AT_MOST -> minOf(naturalHeight, View.MeasureSpec.getSize(heightMeasureSpec))
+            else -> naturalHeight
+        }
         super.onMeasure(
             widthMeasureSpec,
             View.MeasureSpec.makeMeasureSpec(cardHeight, View.MeasureSpec.EXACTLY)

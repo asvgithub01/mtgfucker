@@ -6,6 +6,30 @@ import io.asv.mtgocr.ocrreader.OcrTitleRegion;
 final class OcrLumaEnhancer {
     private OcrLumaEnhancer() { }
 
+    static void enhanceExperimental(byte[] nv21, int width, int height, int rotation) {
+        int uw = (rotation & 1) == 1 ? height : width;
+        int uh = (rotation & 1) == 1 ? width : height;
+        OcrTitleRegion.Bounds title = OcrTitleRegion.forFrame(uw, uh);
+        int left = width, top = height, right = -1, bottom = -1;
+        for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+            if (isInsideTitle(x, y, width, height, rotation, title)) {
+                left = Math.min(left, x); right = Math.max(right, x);
+                top = Math.min(top, y); bottom = Math.max(bottom, y);
+            }
+        }
+        if (right < left || bottom < top) { enhance(nv21, width, height, rotation); return; }
+        int w = right - left + 1, h = bottom - top + 1;
+        byte[] roi = new byte[w * h];
+        for (int y = 0; y < h; y++) System.arraycopy(nv21, (top + y) * width + left, roi, y * w, w);
+        byte[] result;
+        try { result = io.asv.mtgocr.ocrreader.OcrImageEnhancement.claheBytes(roi, w, h); }
+        catch (RuntimeException | LinkageError error) { result = null; }
+        // Preserve the old mask/rules-region behavior, replacing ONLY title preprocessing.
+        enhance(nv21, width, height, rotation);
+        if (result != null) for (int y = 0; y < h; y++)
+            System.arraycopy(result, y * w, nv21, (top + y) * width + left, w);
+    }
+
     static void enhance(byte[] nv21, int width, int height, int rotation) {
         int pixels = Math.min(nv21.length, width * height);
         if (pixels <= 0) return;

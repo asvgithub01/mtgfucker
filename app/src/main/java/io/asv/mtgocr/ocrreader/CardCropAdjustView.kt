@@ -115,6 +115,12 @@ class CardCropAdjustView @JvmOverloads constructor(
         invalidate()
     }
 
+    fun normalizedCorners(): Array<PointF>? {
+        val bitmap = photo ?: return null
+        if (!validQuad(corners, bitmap.width.toFloat(), bitmap.height.toFloat())) return null
+        return corners.map { PointF(it.x / bitmap.width, it.y / bitmap.height) }.toTypedArray()
+    }
+
     fun extractCardBitmap(width: Int = 630, height: Int = 880): Bitmap? {
         val bitmap = photo ?: return null
         if (!validQuad(corners, bitmap.width.toFloat(), bitmap.height.toFloat())) return null

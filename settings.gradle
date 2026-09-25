@@ -1,1 +1,1 @@
-include ':app', ':liquid-glass'
+include ':app', ':liquid-glass', ':collectorvision-native'

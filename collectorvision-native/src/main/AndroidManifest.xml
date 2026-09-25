@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <application>
+        <activity android:name="io.asv.collectorvision.NativeCollectorVisionActivity"
+            android:exported="false" android:screenOrientation="portrait"
+            android:theme="@style/CvNativeTheme" />
+    </application>
+</manifest>

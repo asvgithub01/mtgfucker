@@ -69,8 +69,9 @@ class SetCollectionActivity : AppCompatActivity() {
             }
         )
         galleryMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_SET_GALLERY, true)
+        adapter.gallery = galleryMode
         recycler = findViewById<RecyclerView>(R.id.setCollectionRecycler).apply {
-            layoutManager = GridLayoutManager(this@SetCollectionActivity, if (galleryMode) 2 else 1)
+            layoutManager = if (galleryMode) FourCardLayoutManager(this@SetCollectionActivity) else GridLayoutManager(this@SetCollectionActivity, 1)
             adapter = this@SetCollectionActivity.adapter
         }
         findViewById<ImageButton>(R.id.btnSetViewMode).apply {
@@ -82,7 +83,8 @@ class SetCollectionActivity : AppCompatActivity() {
             setOnClickListener {
                 galleryMode = !galleryMode
                 getPreferences(MODE_PRIVATE).edit().putBoolean(PREF_SET_GALLERY, galleryMode).apply()
-                recycler.layoutManager = GridLayoutManager(this@SetCollectionActivity, if (galleryMode) 2 else 1)
+                recycler.layoutManager = if (galleryMode) FourCardLayoutManager(this@SetCollectionActivity) else GridLayoutManager(this@SetCollectionActivity, 1)
+                adapter.gallery = galleryMode
                 adapter.notifyDataSetChanged()
                 render()
             }
@@ -281,8 +283,10 @@ private class SetCardAdapter(
 
     private fun newSelectionCount(): Int = selectedUuids.count { it !in ownedUuids }
 
+    var gallery = true
+    override fun getItemViewType(position: Int) = if (gallery) 1 else 0
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder = Holder(
-        LayoutInflater.from(parent.context).inflate(R.layout.set_card_item, parent, false)
+        LayoutInflater.from(parent.context).inflate(if (viewType == 1) R.layout.set_card_grid_item else R.layout.set_card_item, parent, false)
     )
 
     override fun getItemCount(): Int = items.size

@@ -1,7 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -36,8 +35,6 @@ import io.asv.mtgocr.ocrreader.data.PriceCurrency
 import io.asv.mtgocr.ocrreader.model.Biblio
 import io.asv.mtgocr.ocrreader.model.CardCondition
 import io.asv.mtgocr.ocrreader.model.CardInfo
-import org.json.JSONObject
-import java.io.File
 import java.util.Locale
 import java.util.concurrent.Future
 
@@ -492,36 +489,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun showScanEvidence(card: CardInfo) {
-        val metadata = card.scanMetadataHistory
-        if (metadata.isEmpty()) return
-        val container = findViewById<View>(R.id.scanEvidenceCard)
-        val header = findViewById<TextView>(R.id.scanEvidenceHeader)
-        val content = findViewById<View>(R.id.scanEvidenceContent)
-        val photo = findViewById<ImageView>(R.id.scanEvidencePhoto)
-        val details = findViewById<TextView>(R.id.scanEvidenceMetadata)
-        val lastMetadata = metadata.last()
-        details.text = runCatching { JSONObject(lastMetadata).toString(2) }.getOrDefault(lastMetadata)
-        val relativePhoto = card.scanPhotoPaths.lastOrNull().orEmpty()
-        val bitmap = relativePhoto.takeIf(String::isNotBlank)?.let { path ->
-            BitmapFactory.decodeFile(File(filesDir, path).absolutePath)
-        }
-        photo.visibility = if (bitmap == null) View.GONE else View.VISIBLE
-        photo.setImageBitmap(bitmap)
-        var expanded = false
-        fun render() {
-            content.visibility = if (expanded) View.VISIBLE else View.GONE
-            header.text = getString(
-                if (expanded) R.string.hash_scan_saved_evidence_expanded
-                else R.string.hash_scan_saved_evidence,
-                metadata.size
-            )
-        }
-        header.setOnClickListener {
-            expanded = !expanded
-            render()
-        }
-        render()
-        container.visibility = View.VISIBLE
+        ScanEvidencePanel.bind(findViewById(R.id.cardDetailRoot), card.scanMetadataHistory, card.scanPhotoPaths)
     }
 
     companion object {

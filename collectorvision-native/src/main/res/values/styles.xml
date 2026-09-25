@@ -1,0 +1,3 @@
+<resources>
+    <style name="CvNativeTheme" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>

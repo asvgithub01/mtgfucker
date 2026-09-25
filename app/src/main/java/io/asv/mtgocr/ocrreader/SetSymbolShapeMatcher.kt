@@ -7,9 +7,7 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.util.LruCache
 import com.caverock.androidsvg.SVG
-import io.asv.mtgocr.ocrreader.data.ScryfallImageDataProvider
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.CvType
@@ -217,7 +215,8 @@ class SetSymbolShapeMatcher(
         return best.coerceIn(0.0, 1.0)
     }
 
-    private fun referenceMask(code: String): Bitmap? {
+    // Shared read-only masks: V2 must not recycle or mutate these cached bitmaps.
+    internal fun referenceMask(code: String): Bitmap? {
         synchronized(masks) { masks.get(code)?.let { return it } }
         synchronized(locks.getOrPut(code) { Any() }) {
             synchronized(masks) { masks.get(code)?.let { return it } }
@@ -238,17 +237,7 @@ class SetSymbolShapeMatcher(
 
     private fun download(code: String, destination: File) {
         val temporary = File(symbolDirectory, "$code.matcher.part")
-        val request = Request.Builder()
-            .url("https://svgs.scryfall.io/sets/$code.svg")
-            .header("User-Agent", ScryfallImageDataProvider.USER_AGENT)
-            .header("Accept", "image/svg+xml")
-            .build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) error("HTTP ${response.code}")
-            response.body?.byteStream()?.use { input ->
-                temporary.outputStream().buffered().use(input::copyTo)
-            } ?: error("SVG vacío")
-        }
+        temporary.writeBytes(SetSymbolSvgSource.fetch(client, code))
         check(temporary.renameTo(destination) || runCatching {
             temporary.copyTo(destination, overwrite = true)
             temporary.delete()

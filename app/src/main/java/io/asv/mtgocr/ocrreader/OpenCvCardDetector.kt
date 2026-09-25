@@ -31,7 +31,8 @@ data class OpenCvDetectedQuad(
 
 /** OpenCV document-style detector operating directly on CameraX's Y plane. */
 class OpenCvCardDetector(
-    private val guideAssisted: Boolean = false
+    private val guideAssisted: Boolean = false,
+    private val preferOuter: Boolean = false
 ) {
     fun detect(image: ImageProxy): OpenCvDetectedQuad? {
         val source = yPlane(image)
@@ -42,6 +43,20 @@ class OpenCvCardDetector(
         } finally {
             upright.release()
         }
+    }
+
+    /** Full live frame retained only for manual corner correction; no JPEG/network work. */
+    fun snapshot(image: ImageProxy): Bitmap? {
+        val source = yPlane(image)
+        val upright = rotate(source, image.imageInfo.rotationDegrees)
+        if (upright !== source) source.release()
+        val rgba = Mat()
+        return try {
+            Imgproc.cvtColor(upright, rgba, Imgproc.COLOR_GRAY2RGBA)
+            Bitmap.createBitmap(rgba.cols(), rgba.rows(), Bitmap.Config.ARGB_8888).also {
+                Utils.matToBitmap(rgba, it)
+            }
+        } finally { upright.release(); rgba.release() }
     }
 
     /** Rectifies the current live Y frame without waiting for a JPEG still capture. */
@@ -220,14 +235,27 @@ class OpenCvCardDetector(
                 contourInput,
                 contours,
                 hierarchy,
-                Imgproc.RETR_EXTERNAL,
+                if (preferOuter) Imgproc.RETR_LIST else Imgproc.RETR_EXTERNAL,
                 Imgproc.CHAIN_APPROX_SIMPLE
             )
             val frameArea = width.toDouble() * height
-            contours.asSequence()
+            val candidates = contours.asSequence()
                 .filter { Imgproc.contourArea(it) / frameArea in MIN_AREA_FRACTION..MAX_AREA_FRACTION }
                 .mapNotNull { contour -> candidate(contour, binary, width, height, frameArea) }
-                .maxByOrNull(Candidate::score)
+                .toList()
+            val best = candidates.maxByOrNull(Candidate::score) ?: return null
+            if (!preferOuter) best else {
+                run {
+                    candidates.filter { outer ->
+                        val ratio = polygonArea(outer.corners) / polygonArea(best.corners)
+                        if (ratio !in 1.02..1.30 || outer.score < best.score - .06) false else {
+                            val polygon = MatOfPoint2f(*outer.corners)
+                            try { best.corners.all { Imgproc.pointPolygonTest(polygon, it, false) >= 0.0 } }
+                            finally { polygon.release() }
+                        }
+                    }.maxByOrNull { polygonArea(it.corners) } ?: best
+                }
+            }
         } finally {
             contourInput.release()
             hierarchy.release()
@@ -468,6 +496,8 @@ class OpenCvCardDetector(
             if (maximumShift > MAX_REFINEMENT_SHIFT ||
                 corners.any { it.x !in 0.0..width.toDouble() || it.y !in 0.0..height.toDouble() }
             ) return null
+            // The experimental exterior hypothesis must not snap back to an inner printed frame.
+            if (preferOuter && polygonArea(corners) < polygonArea(candidate.corners) * .99) return null
             val geometry = score(corners, width, height, width.toDouble() * height) ?: return null
             withEdgeEvidence(
                 Candidate(corners, max(candidate.score, geometry.score)),

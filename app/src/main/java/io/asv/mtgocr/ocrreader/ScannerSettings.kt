@@ -14,6 +14,11 @@ object ScannerSettings {
     @JvmStatic
     fun flash(context: Context): Boolean = preferences(context).getBoolean(KEY_FLASH, false)
 
+    /** Same preference as OcrCaptureActivity's existing Foil checkbox; not visual evidence. */
+    @JvmStatic
+    fun preferredFinish(context: Context): String =
+        if (preferences(context).getBoolean("scan_foil", false)) "foil" else "nonfoil"
+
     @JvmStatic
     fun setAutoFocus(context: Context, enabled: Boolean) {
         preferences(context).edit().putBoolean(KEY_AUTO_FOCUS, enabled).apply()
@@ -22,6 +27,14 @@ object ScannerSettings {
     @JvmStatic
     fun setFlash(context: Context, enabled: Boolean) {
         preferences(context).edit().putBoolean(KEY_FLASH, enabled).apply()
+    }
+
+    @JvmStatic
+    fun enhancedOcr(context: Context): Boolean = preferences(context).getBoolean("enhanced_ocr_experiment", false)
+
+    @JvmStatic
+    fun setEnhancedOcr(context: Context, enabled: Boolean) {
+        preferences(context).edit().putBoolean("enhanced_ocr_experiment", enabled).apply()
     }
 
     private fun preferences(context: Context) =

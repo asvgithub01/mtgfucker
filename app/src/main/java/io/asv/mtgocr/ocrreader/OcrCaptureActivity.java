@@ -208,7 +208,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private ImageButton speakCardNameButton;
   private ImageButton addTypedCardButton;
   private TextView scanSessionTotalText;
-  FloatingActionButton fabOcr, fabOcrMlKit, fabRapidEditionScanner, fabHashOnlyScanner;
+  FloatingActionButton fabOcr, fabOcrMlKit, fabRapidEditionScanner, fabHashOnlyScanner, fabRulesScanner;
+  View fabCollectorVision;
   EditText txtSearch;
   RelativeLayout lytSearch;
   LinearLayout lytRecycler, topLayout;
@@ -372,6 +373,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabRapidEditionScanner =
         (FloatingActionButton) findViewById(R.id.fabRapidEditionScanner);
     fabHashOnlyScanner = (FloatingActionButton) findViewById(R.id.fabHashOnlyScanner);
+    fabRulesScanner = (FloatingActionButton) findViewById(R.id.fabRulesScanner);
+    fabCollectorVision = findViewById(R.id.fabCollectorVision);
     txtSearch = (EditText) findViewById(R.id.txtSearch);
     cardNameSuggestions = (ListView) findViewById(R.id.cardNameSuggestions);
     lytSearch = (RelativeLayout) findViewById(R.id.lytSearch);
@@ -490,6 +493,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcrMlKit.setOnClickListener(this);
     fabRapidEditionScanner.setOnClickListener(this);
     fabHashOnlyScanner.setOnClickListener(this);
+    fabRulesScanner.setOnClickListener(this);
+    fabCollectorVision.setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
 
@@ -1103,6 +1108,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       collectionViewMode = getPreferences(MODE_PRIVATE).getBoolean(PREF_COLLECTION_GRID, false)
           ? CollectionViewMode.CARD_GRID : CollectionViewMode.LIST;
     }
+    if (!getPreferences(MODE_PRIVATE).getBoolean("collection_four_card_layout", false)) {
+      collectionViewMode = CollectionViewMode.CARD_GRID;
+      getPreferences(MODE_PRIVATE).edit().putBoolean("collection_four_card_layout", true)
+          .putInt(PREF_COLLECTION_VIEW_MODE, collectionViewMode).apply();
+    }
     applyCollectionLayoutMode();
 
     setUpItemTouchHelper();
@@ -1568,6 +1578,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void setUpScannerHardwareSettings() {
+    android.widget.CheckBox enhancedOcr = findViewById(R.id.checkEnhancedOcr);
+    enhancedOcr.setChecked(ScannerSettings.enhancedOcr(this));
+    enhancedOcr.setOnCheckedChangeListener((button, checked) -> {
+      ScannerSettings.setEnhancedOcr(this, checked);
+      recreateCameraSourceFromSettings();
+    });
     scannerAutoFocusCheck = findViewById(R.id.checkScannerAutoFocus);
     scannerFlashCheck = findViewById(R.id.checkScannerFlash);
     scannerAutoFocusCheck.setChecked(ScannerSettings.autoFocus(this));
@@ -1605,6 +1621,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         settings || catalog || photos ? View.GONE : View.VISIBLE);
     fabHashOnlyScanner.setVisibility(
         settings || catalog || photos ? View.GONE : View.VISIBLE);
+    fabRulesScanner.setVisibility(
+        settings || catalog || photos ? View.GONE : View.VISIBLE);
+    fabCollectorVision.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
     }
@@ -2033,7 +2052,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     //todo cambiar el tamaño de la preview para pillar mejor
     mCameraSource = new CameraSource.Builder(getApplicationContext(), textRecognizer).setFacing(
         CameraSource.CAMERA_FACING_BACK)
-        .setRequestedPreviewSize(1280, 1024)
+        .setRequestedPreviewSize(ScannerSettings.enhancedOcr(this) ? 1600 : 1280,
+            ScannerSettings.enhancedOcr(this) ? 1280 : 1024)
         .setRequestedFps(4.0f)
         .setFlashMode(useFlash ? Camera.Parameters.FLASH_MODE_TORCH : null)
         .setFocusMode(autoFocus ? Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE : null)
@@ -2080,8 +2100,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void applyCollectionLayoutMode() {
-    mLayoutManager = CollectionViewMode.usesTwoColumns(collectionViewMode) && "0".equals(mPersistorMode)
-        ? new GridLayoutManager(this, 2)
+    mLayoutManager = (CollectionViewMode.usesTwoColumns(collectionViewMode) || !"0".equals(mPersistorMode))
+        ? new FourCardLayoutManager(this)
         : new LinearLayoutManager(this);
     mRecyclerView.setLayoutManager(mLayoutManager);
   }
@@ -2507,12 +2527,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     if (mPersistorMode.equals("1"))//newdeck
     {
-      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.LIST);
+      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.CARD_GRID);
       mRecyclerView.setAdapter(mAdapter);
     }
     if (mPersistorMode.equals("2"))//Editdeck
     {
-      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.LIST);
+      mAdapter = new MyAdapter(mBiblio.cards, this, CollectionViewMode.CARD_GRID);
       mRecyclerView.setAdapter(mAdapter);
     }
   }
@@ -2717,6 +2737,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           + "|" + safe(card.getSetCode()).trim().toLowerCase(Locale.ROOT)
           + "|" + safe(card.getFinish()).trim().toLowerCase(Locale.ROOT)
           + "|" + card.getCondition();
+      // Cornelius sessions own physical copies, not labels for all historical copies.
+      // Their rows are already folded within the session by LegacyCollectionStore.
+      for (String group : card.getGroups()) {
+        if (group.matches("(?i)Cornelius \\d+")) {
+          key += "|cornelius:" + card.getCollectionItemId();
+          break;
+        }
+      }
       CardInfo representative = representatives.get(key);
       if (representative == null) {
         representatives.put(key, card);
@@ -3218,6 +3246,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     } else if (viewId == R.id.fabRapidEditionScanner) {
         startActivityForResult(
             new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
+    } else if (viewId == R.id.fabCollectorVision) {
+      startActivityForResult(new Intent(this, CorneliusScanActivity.class), RC_RAPID_EDITION_SCAN);
+    } else if (viewId == R.id.fabRulesScanner) {
+      startActivityForResult(new Intent(this, RulesScanActivity.class), RC_RAPID_EDITION_SCAN);
     } else if (viewId == R.id.fabHashOnlyScanner) {
       startActivity(new Intent(this, HashOnlyScanActivity.class));
     }
@@ -3794,7 +3826,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void showSessionEditionPicker(CardInfo sessionCard) {
     if (scanMetadataLoadingIds.contains(sessionCard.getCollectionItemId())) return;
-    EditionPicker.show(this, sessionCard.getName(), safe(sessionCard.getFinish()), option -> {
+    EditionPicker.showGrid(this, sessionCard.getName(), safe(sessionCard.getFinish()), option -> {
       CardInfo current = findCollectionCard(sessionCard.getCollectionItemId());
       if (current == null) return kotlin.Unit.INSTANCE;
       applyEditionMetadata(current, option);
@@ -4329,7 +4361,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     pendingDetailScrollItemId = anchor.getCollectionItemId();
     pendingDetailScrollOffset = anchorView == null
         ? 0
-        : layout.getDecoratedTop(anchorView) - mRecyclerView.getPaddingTop();
+        : (layout.canScrollHorizontally()
+            ? layout.getDecoratedLeft(anchorView) - mRecyclerView.getPaddingLeft()
+            : layout.getDecoratedTop(anchorView) - mRecyclerView.getPaddingTop());
   }
 
   private void restoreCollectionScrollAfterDetail() {
@@ -4456,6 +4490,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabOcrMlKit.setVisibility(View.GONE);
     fabRapidEditionScanner.setVisibility(View.GONE);
     fabHashOnlyScanner.setVisibility(View.GONE);
+    fabRulesScanner.setVisibility(View.GONE);
+    fabCollectorVision.setVisibility(View.GONE);
     topLayout.setVisibility(View.VISIBLE);
     lytSearch.setVisibility(View.VISIBLE);
     lytSearch.bringToFront();

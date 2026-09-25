@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="cv_native_title">CollectorVision · Nativo</string>
+  <string name="cv_native_intro">Motore CPU nativo sperimentale. Download iniziale di modelli e catalogo (~45 MB). Riconoscimento locale; nomi da Scryfall. Non aggiunge carte alla raccolta.</string>
+  <string name="cv_native_start">Prepara / avvia</string>
+  <string name="cv_native_close">Chiudi</string>
+  <string name="cv_native_idle">Modelli non ancora pronti</string>
+  <string name="cv_native_loading">Preparazione di modelli e catalogo…</string>
+  <string name="cv_native_permission">Consenti la fotocamera per scansionare.</string>
+  <string name="cv_native_running">Fotocamera nativa · CPU · senza WebView</string>
+  <string name="cv_native_no_card">Nessun candidato affidabile</string>
+  <string name="cv_native_candidate">Candidato visivo (edizione non garantita)\n%1$s · %2$.3f</string>
+  <string name="cv_native_checking">Verifica\n%1$s · %2$.3f</string>
+  <string name="cv_native_timings">Angoli %1$d ms · riconoscimento %2$d ms · confidenza %3$.4f</string>
+  <string name="cv_native_error">Errore: %1$s</string>
+  <string name="cv_native_auto_intro">Fotocamera fluida + riconoscimento nativo CPU. Seleziona la lingua manualmente; una corrispondenza visiva non garantisce finitura o edizione.</string>
+  <string name="cv_native_live_preview">Anteprima fotocamera in diretta</string>
+  <string name="cv_native_processed_snapshot">Ultima immagine analizzata e bordi rilevati. Questa miniatura si aggiorna più lentamente della fotocamera.</string>
+  <string name="cv_native_save_ready">Aggiunta automatica pronta. Rimuovi la carta prima di aggiungere un’altra copia.</string>
+  <string name="cv_native_saving">Riconosciuta. Recupero dati e salvataggio…</string>
+  <string name="cv_native_saved">Carta salvata ✓</string>
+  <string name="cv_native_save_failed">Salvataggio non confermato. Rimuovi la carta prima di riprovare.</string>
+  <string name="cv_native_safety_filters">Filtri di sicurezza</string>
+  <string name="cv_native_filtered_hint">Con filtri: 3 letture ≥0,70 e margine ≥0,08.</string>
+  <string name="cv_native_fast_hint">Rapido: primo candidato ≥0,50. Maggiore rischio di errore.</string>
+  <string name="cv_native_show_thumbnail">Mostra miniatura analizzata</string>
+  <string name="cv_native_price_idle">Prezzo dell’ultima carta riconosciuta</string>
+  <string name="cv_native_price_loading">Caricamento prezzo…</string>
+  <string name="cv_native_price_unavailable">Prezzo non disponibile</string>
+</resources>

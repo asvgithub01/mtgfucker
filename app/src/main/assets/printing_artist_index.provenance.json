@@ -1,0 +1,11 @@
+{
+  "schema": "PFR1",
+  "source": "MTGJSON AllPrintings",
+  "sourceSha256": "9e8eb6f0930cee9891ed60a4d759751b92188253ac0b2c5b9d0e56ef8c1fc01b",
+  "printingIndexSha256": "ec8840565abd7b7e94cc464023e9317170d948851e4e0eb4fa2260c4d7f8653f",
+  "artistCount": 2473,
+  "indexedPairs": 103345,
+  "resolvedPairs": 103323,
+  "missingOrConflicting": 22,
+  "bytes": 3757624
+}

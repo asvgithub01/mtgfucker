@@ -16,7 +16,8 @@ data class PrintingLineOcrResult(
     val fullCardText: String,
     val preview: Bitmap,
     val successfulVariants: Int,
-    val attemptedVariants: Int
+    val attemptedVariants: Int,
+    val spatialLines: List<PrintingOcrLine> = emptyList()
 )
 
 /** Multi-crop OCR pass over the tiny printing metadata in a normalized card. */
@@ -25,6 +26,7 @@ class PrintingLineOcr {
 
     fun recognize(
         card: Bitmap,
+        retainSpatialLines: Boolean = false,
         callback: (PrintingLineOcrResult?, Throwable?) -> Unit
     ) {
         val wideCrop = crop(card, .015f, .70f, .985f, .995f)
@@ -36,7 +38,7 @@ class PrintingLineOcr {
         val wideContrast = autoContrast(wide)
         val focusedContrast = autoContrast(focused)
         val fullCard = enlargeFullCard(card)
-        val variants = listOf(
+        val variants = mutableListOf(
             OcrVariant(wide, yearOnly = false),
             OcrVariant(wideContrast, yearOnly = false),
             OcrVariant(otsuThreshold(wideContrast), yearOnly = false),
@@ -48,14 +50,54 @@ class PrintingLineOcr {
             // otherwise rules text would pollute the printing-token parser.
             OcrVariant(fullCard, yearOnly = true)
         )
+        if (retainSpatialLines) {
+            variants += OcrVariant(OcrImageEnhancement.clahe(wide), yearOnly = false)
+            variants += OcrVariant(OcrImageEnhancement.clahe(focused), yearOnly = false)
+            val tightCrop = crop(card, .015f, .90f, .24f, .995f)
+            val tight = enlarge(tightCrop)
+            tightCrop.recycle()
+            variants += OcrVariant(tight, yearOnly = false)
+            variants += OcrVariant(OcrImageEnhancement.clahe(tight), yearOnly = false)
+        }
         val tasks = variants.map { recognizer.process(InputImage.fromBitmap(it.bitmap, 0)) }
         Tasks.whenAllComplete(tasks).addOnCompleteListener {
             val lines = LinkedHashSet<String>()
+            val spatialLines = ArrayList<PrintingOcrLine>()
             var fullCardText = ""
             var successful = 0
             tasks.forEachIndexed { index, task ->
                 if (task.isSuccessful) {
                     successful++
+                    if (retainSpatialLines) {
+                        val region = when (index) {
+                            0, 1, 2, 7 -> floatArrayOf(.015f, .70f, .985f, .995f)
+                            3, 4, 5, 8 -> floatArrayOf(.015f, .82f, .78f, .995f)
+                            9, 10 -> floatArrayOf(.015f, .90f, .24f, .995f)
+                            else -> floatArrayOf(0f, 0f, 1f, 1f)
+                        }
+                        // Match the actual integer-rounded crop, not its idealized ratios.
+                        if (index != 6) {
+                            val left = (card.width * region[0]).toInt().coerceIn(0, card.width - 1)
+                            val top = (card.height * region[1]).toInt().coerceIn(0, card.height - 1)
+                            val right = (card.width * region[2]).toInt().coerceIn(left + 1, card.width)
+                            val bottom = (card.height * region[3]).toInt().coerceIn(top + 1, card.height)
+                            region[0] = left.toFloat() / card.width
+                            region[1] = top.toFloat() / card.height
+                            region[2] = right.toFloat() / card.width
+                            region[3] = bottom.toFloat() / card.height
+                        }
+                        val bitmap = variants[index].bitmap
+                        task.result?.textBlocks?.flatMap { it.lines }?.forEach { line ->
+                            line.boundingBox?.let { box ->
+                                fun x(value: Int) = region[0] + value.toFloat() / bitmap.width * (region[2] - region[0])
+                                fun y(value: Int) = region[1] + value.toFloat() / bitmap.height * (region[3] - region[1])
+                                val elements = line.elements.mapNotNull { element -> element.boundingBox?.let { bounds ->
+                                    PrintingOcrElement(element.text, x(bounds.left), y(bounds.top), x(bounds.right), y(bounds.bottom))
+                                } }
+                                spatialLines += PrintingOcrLine(index, line.text, x(box.left), y(box.top), x(box.right), y(box.bottom), elements)
+                            }
+                        }
+                    }
                     if (variants[index].yearOnly) {
                         fullCardText = task.result?.text.orEmpty()
                     }
@@ -81,7 +123,8 @@ class PrintingLineOcr {
                         fullCardText = fullCardText,
                         preview = wide,
                         successfulVariants = successful,
-                        attemptedVariants = variants.size
+                        attemptedVariants = variants.size,
+                        spatialLines = spatialLines
                     ),
                     null
                 )

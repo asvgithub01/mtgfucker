@@ -82,6 +82,19 @@ class MtgJsonCardNameResolver(
             .toList()
     }
 
+    /** Single-card fallback, full local dictionary, each OCR variant is a separate query.
+     * Never join alternative contrast passes into a fictitious title or constrain by guessed art.
+     */
+    fun resolveLocalTitleLines(lines: List<String>): List<Pair<String, Resolution>> {
+        val queries = lines.map(String::trim).distinct().filter {
+            it.length in 4..42 && it.count { c -> c == ' ' } <= 7
+        }.take(16)
+        if (queries.isEmpty()) return emptyList()
+        prepareOcrNameIndex()
+        val index = ocrNameIndex ?: return emptyList()
+        return queries.mapNotNull { raw -> index.match(listOf(raw))?.let { raw to it.toResolution() } }
+    }
+
     /** Builds the Room prefix index only from the already downloaded local JSON. */
     fun preparePredictionIndex(): Boolean {
         if (!atomicCardsFile.exists()) {

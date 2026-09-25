@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="8dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/collector_vision_title" android:textStyle="bold" android:textSize="20sp" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/collector_vision_intro" android:textSize="12sp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+        <Button android:id="@+id/collectorVisionStart" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="@string/collector_vision_start" />
+        <Button android:id="@+id/collectorVisionBrowser" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="@string/collector_vision_browser" />
+        <Button android:id="@+id/collectorVisionClose" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="@string/collector_vision_close" />
+    </LinearLayout>
+    <TextView android:id="@+id/collectorVisionStatus" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/collector_vision_runtime_note"
+        android:accessibilityLiveRegion="polite" android:textSize="12sp" />
+    <WebView android:id="@+id/collectorVisionWeb" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" />
+</LinearLayout>

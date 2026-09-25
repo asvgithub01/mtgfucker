@@ -618,4 +618,160 @@
     <string name="hash_scan_exact_edition" translatable="false">Edición resuelta: %1$s (%2$s) #%3$s ✓</string>
     <string name="hash_scan_cached_variants" translatable="false">Caché local: %1$d variantes · %2$d compatibles</string>
     <string name="hash_scan_exact_cached_printing" translatable="false">Impresión local: %1$s (%2$s) #%3$s · %4$s ✓</string>
+    <string name="scan_debug_hash_symbol_v2" translatable="false">Símbolo V2: resolver colección (sustituye V1)</string>
+    <string name="scan_debug_hash_symbol_v2_result" translatable="false">Símbolo V2: %1$s · %2$s · Distancia %3$s · %4$d ms</string>
+    <string name="scan_debug_hash_symbol_v2_crop" translatable="false">Recorte del símbolo comparado por V2</string>
+    <string name="scan_debug_hash_symbol_v2_unresolved" translatable="false">V2: edición no confirmada. No se añade la carta; revisa el recorte y vuelve a capturar.</string>
+    <string name="scan_debug_evidence_invalid" translatable="false">No hay metadatos legibles para este escaneo. Puedes consultar el registro original si está disponible.</string>
+    <string name="scan_debug_evidence_selected" translatable="false">Impresión guardada</string>
+    <string name="scan_debug_evidence_finish" translatable="false">Acabado</string>
+    <string name="scan_debug_evidence_date" translatable="false">Fecha</string>
+    <string name="scan_debug_evidence_checks" translatable="false">Comprobaciones activadas</string>
+    <string name="scan_debug_evidence_border" translatable="false">Borde</string>
+    <string name="scan_debug_evidence_language" translatable="false">Idioma</string>
+    <string name="scan_debug_evidence_auto_add" translatable="false">Autoañadir</string>
+    <string name="scan_debug_evidence_ocr" translatable="false">OCR</string>
+    <string name="scan_debug_evidence_title" translatable="false">Título leído</string>
+    <string name="scan_debug_evidence_names" translatable="false">Nombres del catálogo</string>
+    <string name="scan_debug_evidence_footer" translatable="false">Línea inferior</string>
+    <string name="scan_debug_evidence_printing" translatable="false">Set OCR: %1$s · Número: %2$s · Año: %3$s</string>
+    <string name="scan_debug_evidence_codes" translatable="false">Códigos candidatos</string>
+    <string name="scan_debug_evidence_art" translatable="false">Candidatos de arte</string>
+    <string name="scan_debug_evidence_hash" translatable="false">%1$s · pHash %2$s / dHash %3$s</string>
+    <string name="scan_debug_evidence_variants" translatable="false">Caché local: %1$s variantes · %2$s compatibles</string>
+    <string name="scan_debug_evidence_resolved" translatable="false">Impresión local: %1$s #%2$s · %3$s ✓</string>
+    <string name="scan_debug_evidence_symbol_v2" translatable="false">Símbolo V2</string>
+    <string name="scan_debug_evidence_symbol_v1" translatable="false">Símbolo V1</string>
+    <string name="scan_debug_evidence_confidence" translatable="false">Confianza</string>
+    <string name="scan_debug_evidence_thresholds" translatable="false">Distancia máxima: %1$s · Margen mínimo: %2$s</string>
+    <string name="scan_debug_evidence_missing_sets" translatable="false">Referencias ausentes</string>
+    <string name="scan_debug_evidence_symbol_score" translatable="false">%1$s · Distancia %2$s · pHash %3$s · Silueta %4$s</string>
+    <string name="scan_debug_evidence_crop" translatable="false">Recorte (x/y/ancho/alto)</string>
+    <string name="scan_debug_evidence_hashes" translatable="false">Hash de captura / referencia</string>
+    <string name="scan_debug_evidence_sharpness" translatable="false">Nitidez</string>
+    <string name="scan_debug_evidence_glare" translatable="false">Reflejos</string>
+    <string name="scan_debug_evidence_timing" translatable="false">Tiempos</string>
+    <string name="scan_debug_evidence_times" translatable="false">Hash %1$s ms · OCR %2$s ms · Símbolo %3$s ms\nBorde %4$s ms · Idioma %5$s ms · Total %6$s ms</string>
+    <string name="scan_debug_evidence_errors" translatable="false">Errores</string>
+    <string name="scan_debug_evidence_confirmed" translatable="false">Símbolo confirmado</string>
+    <string name="scan_debug_evidence_no_crop" translatable="false">No se detectó el recorte del símbolo</string>
+    <string name="scan_debug_evidence_no_identity" translatable="false">Identidad de carta no confirmada</string>
+    <string name="scan_debug_evidence_reused" translatable="false">Símbolo reutilizado por Chronicles</string>
+    <string name="scan_debug_evidence_ambiguous" translatable="false">Símbolo ambiguo</string>
+    <string name="scan_debug_evidence_show_json" translatable="false">Ver JSON completo ▾</string>
+    <string name="scan_debug_evidence_hide_json" translatable="false">Ocultar JSON completo ▴</string>
+    <string name="scan_debug_evidence_record" translatable="false">Escaneo %1$d · %2$s</string>
+    <string name="scan_debug_evidence_history" translatable="false">Historial de escaneos guardados</string>
+    <string name="scan_debug_evidence_photo_unavailable" translatable="false">Foto no disponible en este dispositivo. Los metadatos se conservan.</string>
+    <string name="scan_debug_evidence_uuid" translatable="false">UUID</string>
+    <string name="scan_debug_hash_symbol_v2_candidate" translatable="false">%1$s (candidato, sin confirmar)</string>
+    <string name="scan_debug_hash_symbol_v2_margin" translatable="false">Margen: %1$s · Mínimo: %2$s</string>
+    <string name="scan_debug_hash_symbol_v2_missing" translatable="false">No se pudieron cargar las referencias: %1$s</string>
+    <string name="scan_debug_hash_symbol_v2_scope" translatable="false">Carta: %1$s\nSolo se comparan estas ediciones: %2$s</string>
+    <string name="scan_debug_symbol_detail_contrast" translatable="false">Correlación de detalles interiores: %1$s</string>
+    <string name="scan_debug_symbol_retry_flag" translatable="false">Autocomprobar símbolo V2 (hasta 5 capturas)</string>
+    <string name="scan_debug_symbol_retry_progress" translatable="false">Comprobación %1$d/%2$d · Mantén la misma carta quieta; esperando estabilidad.</string>
+    <string name="scan_debug_symbol_retry_exhausted" translatable="false">No se ha identificado la edición en %1$d intentos. Revisa el recorte o corrige los bordes.</string>
+    <string name="scan_debug_symbol_without_print" translatable="false">Ediciones posibles sin símbolo impreso: %1$s. No encontrar un símbolo no demuestra su ausencia.</string>
+    <string name="scan_debug_symbol_not_applicable" translatable="false">Estas ediciones no imprimen símbolo: se omite la comparación</string>
+    <string name="scan_debug_symbol_absence_possible" translatable="false">Sin glifo legible; hay ediciones sin símbolo, pero la ausencia no está confirmada</string>
+    <string name="scan_debug_symbol_no_printing_resolution" translatable="false">Carta identificada; símbolo no aplicable. La edición necesita otras evidencias o selección manual; no se añade automáticamente.</string>
+    <string name="scan_debug_symbol_distance_failed" translatable="false">Distancia por encima del máximo</string>
+    <string name="scan_debug_symbol_margin_failed" translatable="false">Distancia aceptable, pero otra edición se parece demasiado</string>
+    <string name="scan_debug_symbol_competitors" translatable="false">Mejores coincidencias: %1$s</string>
+    <string name="scan_debug_symbol_printing_blocked" translatable="false">Símbolo %1$s confirmado. La impresión sigue sin resolver (%2$d variantes compatibles): revisa los filtros OCR, borde e idioma o elige la edición manualmente.</string>
+    <string name="scan_debug_symbol_retry_record" translatable="false">Autocomprobación: intento %1$d/5</string>
+    <string name="scan_debug_symbol_resolution" translatable="false">Carta: %1$d×%2$d px · Símbolo: búsqueda a %3$d px de ancho</string>
+    <string name="scan_copies_title">Carta repetida</string>
+    <string name="scan_copies_number">Número de copias</string>
+    <string name="scan_copies_help">Total de este lote, incluida la primera copia. Ya guardadas: %1$d. Cancelar no borra copias.</string>
+    <string name="scan_copies_range">Introduce un total entre %1$d y %2$d.</string>
+    <string name="scan_copies_paused">Lote: %1$d copias guardadas. Cámara pausada.</string>
+    <string name="scan_copies_replace_card">Retira la carta y pulsa «Escanear otra carta» para continuar.</string>
+    <string name="hash_scan_edition_picker">OCR primero + selector de edición (prueba)</string>
+    <string name="hash_edition_choose_title">Elige la colección de %1$s</string>
+    <string name="hash_edition_choose_help">Toca una colección para añadir la carta. Si hay varias impresiones, elige también la impresión.</string>
+    <string name="hash_edition_pending">Carta reconocida. Edición pendiente; la cámara está pausada.</string>
+    <string name="hash_edition_identity_pending">Nombre no confirmado por OCR. No se ha añadido ninguna carta.</string>
+    <string name="hash_edition_no_candidates">No hay impresiones locales para esta carta. No se ha añadido.</string>
+    <string name="hash_edition_choose_printing">Elige la impresión</string>
+    <string name="scan_debug_hash_unique_artwork" translatable="false">Edición única del arte: no requiere confirmar el símbolo.</string>
+    <string name="hash_probable_edition_check">Estimar edición y añadir automáticamente (puede fallar)</string>
+    <string name="hash_probable_edition_selected">Edición estimada: %1$s. Puedes corregirla desde la sesión.</string>
+    <string name="hash_probable_edition_pending">No se puede estimar: identidad dudosa o datos incompatibles.</string>
+    <string name="scan_debug_retained_edition" translatable="false">Mismo arte consecutivo: se mantiene la edición %1$s.</string>
+    <string name="scan_copies_edition_help">La edición se aplicará a todo el lote al pulsar OK. Cancelar descarta el cambio de edición.</string>
+    <string name="rules_scan_title">Scanner por reglas · laboratorio</string>
+    <string name="rules_scan_help">Arte fuerte + edición resuelta por arte exclusivo o pie completo corroborado. El acabado usa el check Foil de la sesión, no detección visual. Las reimpresiones dudosas requieren revisión. Se conservan 30 capturas locales para diagnóstico.</string>
+    <string name="rules_scan_review_name">Revisar: %1$s</string>
+    <string name="rules_scan_search">Buscar otra carta</string>
+    <string name="rules_scan_name_hint">Nombre canónico de la carta</string>
+    <string name="rules_scan_evidence">Ver evidencias</string>
+    <string name="rules_scan_language">Confirma el idioma impreso</string>
+    <string name="rules_scan_confirm">Confirmar impresión y acabado</string>
+    <string name="scan_debug_rules_summary" translatable="false">Estado: %1$s\nPie: %2$s · Idioma: %3$s\nImpresiones candidatas: %4$d (índice parcial)\nReglas: %5$s</string>
+    <string name="rules_scan_auto_unique">Autoañadir por reglas · %1$s</string>
+    <string name="scan_debug_rules_auto_reason" translatable="false">Autoañadido: %1$s</string>
+    <string name="enhanced_ocr_experiment">OCR experimental: CLAHE y mayor resolución</string>
+    <string name="scan_debug_legacy_footer" translatable="false">Pie antiguo parcial: %1$s. No contiene código de edición/idioma; falta contrastar símbolo y catálogo.</string>
+    <string name="scan_zoom">Zoom</string>
+    <string name="rules_scan_attempt">Leyendo carta · intento %1$d/%2$d</string>
+    <string name="scan_debug_historical_fields" translatable="false">Año/copyright: %1$s\nArtista (hipótesis OCR): %2$s\nNúmero/total: %3$s\nEvidencia parcial: no determina la edición. Sin lectura no significa ausente.</string>
+    <string name="scan_debug_table_data" translatable="false">Dato</string>
+    <string name="scan_debug_table_value" translatable="false">Valor</string>
+    <string name="scan_debug_table_state" translatable="false">Estado</string>
+    <string name="scan_debug_table_read" translatable="false">✅ Leído</string>
+    <string name="scan_debug_table_conflict" translatable="false">⚠️ Conflicto</string>
+    <string name="scan_debug_table_partial" translatable="false">⚠️ Parcial</string>
+    <string name="scan_debug_table_unreadable" translatable="false">❌ Sin lectura</string>
+    <string name="scan_debug_table_name" translatable="false">Nombre OCR</string>
+    <string name="scan_debug_table_art" translatable="false">Arte candidato</string>
+    <string name="scan_debug_table_year" translatable="false">Año / copyright</string>
+    <string name="scan_debug_table_artist" translatable="false">Artista OCR</string>
+    <string name="scan_debug_table_number" translatable="false">Número / total</string>
+    <string name="scan_debug_table_modern_number" translatable="false">Número moderno</string>
+    <string name="scan_debug_table_set" translatable="false">Código de edición</string>
+    <string name="scan_debug_table_language" translatable="false">Idioma</string>
+    <string name="scan_debug_table_note" translatable="false">✅ Lectura sin conflicto o arte fuerte; no confirma la edición. ⚠️ Parcial o contradictorio. ❌ Sin lectura no significa ausente. Detalle técnico en Evidencias.</string>
+    <string name="scan_debug_table_art_strong" translatable="false">✅ Fuerte</string>
+    <string name="scan_debug_table_art_weak" translatable="false">⚠️ Débil</string>
+    <string name="scan_debug_table_art_margin" translatable="false">⚠️ Sin margen</string>
+    <string name="scan_debug_table_unresolved" translatable="false">⚠️ Sin resolver</string>
+    <string name="scan_debug_historical_compare_title" translatable="false">Ediciones candidatas · cruce del pie</string>
+    <string name="scan_debug_historical_compare_empty" translatable="false">Sin comparación disponible (%1$s). El índice visual es parcial; puedes buscar la carta manualmente.</string>
+    <string name="scan_debug_historical_compare_count" translatable="false">%1$d impresiones en la lista visual. Coincidencias primero, sin descartar las demás.</string>
+    <string name="scan_debug_compare_match" translatable="false">✅ Coincide</string>
+    <string name="scan_debug_compare_different" translatable="false">⚠️ Difiere</string>
+    <string name="scan_debug_compare_unknown" translatable="false">— Sin contrastar</string>
+    <string name="scan_debug_historical_compare_row" translatable="false">%1$s · %2$s\nNúmero catálogo: %3$s · %4$s\nAño lanzamiento: %5$s · año leído: %6$s</string>
+    <string name="scan_debug_historical_compare_retained" translatable="false">⚠️ Reimpresión o perfil no validado: puede conservar un pie anterior.</string>
+    <string name="scan_debug_historical_compare_limit" translatable="false">Hasta 8 impresiones visibles; todas en Ver evidencias. El año de lanzamiento es solo una pista, no prueba del copyright. Artista contrastado solo si hay referencia exacta; total impreso pendiente. No selecciona ni autoañade edición.</string>
+    <string name="scan_debug_historical_compare_artist" translatable="false">Artista catálogo: %1$s · %2$s</string>
+    <string name="scan_debug_table_title_language" translatable="false">Idioma título</string>
+    <string name="scan_debug_historical_compare_language" translatable="false">Idiomas indexados: %1$s · %2$s (ausencia no excluye)</string>
+    <string name="rules_language_loading">Consultando idiomas de esta impresión…</string>
+    <string name="rules_language_catalog_status">%1$s #%2$s · Idioma leído: %3$s</string>
+    <string name="rules_language_unavailable">No se pudieron verificar los idiomas. Lista manual sin filtrar.</string>
+    <string name="scan_debug_table_historical_number" translatable="false">Número antiguo</string>
+    <string name="scan_debug_table_printed_total" translatable="false">Total impreso</string>
+    <string name="scan_debug_artist_normalized" translatable="false">Artista OCR → normalizado</string>
+    <string name="scan_debug_artist_dictionary" translatable="false">Diccionario</string>
+    <string name="rules_scan_check_framing">Comprueba que la carta completa esté dentro del marco. Reintentando…</string>
+    <string name="rules_fixed_bounds">Bordes fijos (desmarcado: automático experimental)</string>
+    <string name="rules_fixed_calibrate">Ajusta las 4 esquinas al borde exterior y pulsa Leer. Mantén teléfono, zoom y posición de las cartas fijos. Para recalibrar, desmarca y marca Bordes fijos.</string>
+    <string name="collector_vision_title">CollectorVision · Nativo</string>
+    <string name="collector_vision_intro">Demo web oficial, no port nativo. Necesita red y descarga modelos/datos. No guarda cartas en tu biblioteca. El contenido y las peticiones de red dependen del sitio externo.</string>
+    <string name="collector_vision_start">Cargar</string>
+    <string name="collector_vision_browser">Navegador</string>
+    <string name="collector_vision_close">Cerrar</string>
+    <string name="collector_vision_runtime_note">Empieza con CPU/WASM. WebGPU puede dar errores en Android. Si falla aquí, compara en Chrome con Navegador.</string>
+    <string name="collector_vision_camera_denied">Cámara no autorizada. Concede permiso y vuelve a cargar.</string>
+    <string name="collector_vision_load_error">No se pudo cargar la demo. Comprueba la red o abre en el navegador.</string>
+    <string name="collector_vision_loading">Cargando demo externa…</string>
+    <string name="collector_vision_browser_missing">No hay navegador disponible.</string>
+    <string name="collector_vision_navigation_blocked">Enlace bloqueado: solo se permite la demo oficial.</string>
+    <string name="collector_vision_resume">Cámara detenida al salir. Pulsa Cargar para reiniciar.</string>
+    <string name="cornelius_manual_attributes">Idioma y acabado manuales (sin OCR de idioma).</string>
+    <string name="cornelius_unknown_language">Idioma sin determinar</string>
+    <string name="cornelius_save_error">No se pudo guardar la impresión/acabado exactos. Retira la carta para reintentar.</string>
 </resources>

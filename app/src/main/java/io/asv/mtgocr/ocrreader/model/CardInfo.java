@@ -89,6 +89,13 @@ public class CardInfo implements Serializable {
         this.sideboardDecks = new ArrayList<String>();
     }
 
+    /** Creates a detached batch without reusing the original inventory row identity. */
+    public CardInfo copyForNewCollectionItem() {
+        CardInfo copy = snapshotForPersistence();
+        copy.collectionItemId = UUID.randomUUID().toString();
+        return copy;
+    }
+
     /**
      * Creates an immutable-for-the-writer snapshot of this legacy serializable model.
      * Scanner metadata callbacks keep mutating the live instance on the main thread, so handing

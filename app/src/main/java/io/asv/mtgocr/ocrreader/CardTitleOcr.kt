@@ -24,14 +24,14 @@ class CardTitleOcr {
         JapaneseTextRecognizerOptions.Builder().build()
     )
 
-    fun recognize(card: Bitmap, callback: (CardTitleOcrResult?, Throwable?) -> Unit) {
+    fun recognize(card: Bitmap, enhanced: Boolean = false, callback: (CardTitleOcrResult?, Throwable?) -> Unit) {
         val titleCrop = crop(card, .025f, .012f, .91f, .145f)
         val headerCrop = crop(card, .012f, .005f, .985f, .175f)
         val title = enlarge(titleCrop)
         val header = enlarge(headerCrop)
         titleCrop.recycle()
         headerCrop.recycle()
-        val variants = listOf(
+        val variants = mutableListOf(
             title,
             autoContrast(title),
             adaptiveThreshold(title),
@@ -39,6 +39,7 @@ class CardTitleOcr {
             autoContrast(header),
             adaptiveThreshold(header)
         )
+        if (enhanced) variants += OcrImageEnhancement.clahe(title)
         val latinTasks = variants.map { latinRecognizer.process(InputImage.fromBitmap(it, 0)) }
         val japaneseTasks = listOf(title, variants[1], header, variants[4]).map {
             japaneseRecognizer.process(InputImage.fromBitmap(it, 0))

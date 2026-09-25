@@ -48,6 +48,13 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:visibility="gone">
+                        <Spinner
+                            android:id="@+id/scanEvidenceHistory"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/spinner_background"
+                            android:contentDescription="@string/scan_debug_evidence_history"
+                            android:visibility="gone" />
                         <ImageView
                             android:id="@+id/scanEvidencePhoto"
                             android:layout_width="match_parent"
@@ -56,13 +63,38 @@
                             android:contentDescription="@string/hash_scan_saved_photo"
                             android:scaleType="fitCenter" />
                         <TextView
+                            android:id="@+id/scanEvidencePhotoUnavailable"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/scan_debug_evidence_photo_unavailable"
+                            android:textColor="#E8FFFFFF"
+                            android:visibility="gone" />
+                        <TextView
                             android:id="@+id/scanEvidenceMetadata"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:textColor="#E8FFFFFF"
                             android:textIsSelectable="true"
-                            android:textSize="12sp" />
+                            android:lineSpacingExtra="3dp"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/scanEvidenceRawToggle"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:gravity="center_vertical"
+                            android:text="@string/scan_debug_evidence_show_json"
+                            android:textColor="?attr/colorSecondary"
+                            android:textSize="14sp" />
+                        <TextView
+                            android:id="@+id/scanEvidenceRaw"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="monospace"
+                            android:textColor="#E8FFFFFF"
+                            android:textIsSelectable="true"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
                     </LinearLayout>
                 </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
                 <TextView android:id="@+id/txtCardType" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp" android:textColor="?attr/colorSecondary" android:textSize="15sp" android:textStyle="bold" />

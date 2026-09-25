@@ -28,7 +28,8 @@ internal class ArtHashMatcher(private val index: ArtHashIndex) {
             Utils.bitmapToMat(card, rgba)
             Imgproc.cvtColor(rgba, gray, Imgproc.COLOR_RGBA2GRAY)
             val bestByArt = LinkedHashMap<String, Candidate>()
-            for (template in TEMPLATES) {
+            // Artwork geometry is independent of optional OCR/set-symbol recognition.
+            for (template in TEMPLATES + MODERN_FRAMES + FUTURE_FRAMES) {
                 val (phash, dhash) = hashes(gray, template)
                 for (hit in index.nearest(phash, dhash, limit)) {
                     val key = hit.illustrationId ?: hit.key
@@ -100,6 +101,16 @@ internal class ArtHashMatcher(private val index: ArtHashIndex) {
     private companion object {
         // Four common frame layouts. The old/white variants prevent an early art edge from
         // being missed; the reference corpus itself is not copied to the device.
+        // Photographed modern cards can include the outer border or be cropped
+        // almost to the frame. Preserve the full lower artwork in either geometry.
+        val MODERN_FRAMES = listOf(
+            Template("moderno completo", .08, .13, .92, .57),
+            Template("moderno ajustado", .06, .09, .94, .55),
+            Template("moderno con borde", .06, .11, .94, .59)
+        )
+        // Future-shifted frames put mana down the left, inside the standard crop.
+        // Their catalogue art_crop excludes that column, even when symbol matching is off.
+        val FUTURE_FRAMES = listOf(Template("futurista", .20, .13, .98, .55))
         val TEMPLATES = listOf(
             Template("normal", .10, .11, .90, .53),
             Template("antiguo", .14, .11, .86, .53),

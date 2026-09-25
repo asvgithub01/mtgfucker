@@ -51,6 +51,21 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Mtg" />
         <activity
+            android:name=".CorneliusScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
+        <activity
+            android:name=".CollectorVisionLabActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
+        <activity
+            android:name=".RulesScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Mtg" />
+        <activity
             android:name=".HashOnlyScanActivity"
             android:exported="false"
             android:screenOrientation="portrait"

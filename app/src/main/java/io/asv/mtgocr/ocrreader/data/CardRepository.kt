@@ -439,12 +439,17 @@ class CardRepository private constructor(context: Context) {
     }
 
     /** Matches every plausible title in a still image instead of stopping at the first card. */
+    @JvmOverloads
     fun matchLocalPhotoText(
         lines: List<String>,
+        fullTitleDictionary: Boolean = false,
         callback: (List<PhotoCardNameMatch>) -> Unit
     ) {
         nameExecutor.execute {
-            val matches = runCatching { nameResolver.resolveLocalOcrLines(lines) }
+            val matches = runCatching {
+                val fast = nameResolver.resolveLocalOcrLines(lines)
+                if (fullTitleDictionary && fast.isEmpty()) nameResolver.resolveLocalTitleLines(lines) else fast
+            }
                 .getOrDefault(emptyList())
                 .map { (detectedText, resolution) ->
                     PhotoCardNameMatch(
@@ -717,6 +722,32 @@ class CardRepository private constructor(context: Context) {
             if (!Thread.currentThread().isInterrupted) {
                 mainHandler.post { callback(emptyList(), error) }
             }
+        }
+    }
+
+    /** Resolve visual UUID exactly; never substitute first printing with the same name/set. */
+    fun loadCollectorVisionPrinting(scryfallId: String, callback: (List<CardEditionOption>, Throwable?) -> Unit) {
+        executor.execute {
+            try {
+                require(scryfallId.matches(Regex("[0-9a-fA-F-]{36}")))
+                var printing = dao.printingByScryfallId(scryfallId)
+                if (printing == null) {
+                    val request = okhttp3.Request.Builder().url("https://api.scryfall.com/cards/$scryfallId")
+                        .header("User-Agent", "MtgCollectorVisionNative/0.2")
+                        .header("Accept", "application/json").build()
+                    val set = client.newCall(request).execute().use { response ->
+                        check(response.isSuccessful) { "Scryfall HTTP ${response.code}" }
+                        val json = org.json.JSONObject(requireNotNull(response.body).string())
+                        check(json.getString("id").equals(scryfallId, true))
+                        json.getString("set")
+                    }
+                    catalog.setCards(set)
+                    printing = dao.printingByScryfallId(scryfallId)
+                }
+                val exact = requireNotNull(printing) { "No se encuentra la impresión exacta en el catálogo local" }
+                val options = combine(listOf(exact), emptyList(), exact.name)
+                mainHandler.post { callback(options, null) }
+            } catch (e: Exception) { mainHandler.post { callback(emptyList(), e) } }
         }
     }
 

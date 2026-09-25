@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="2dp">
+
+    <TextView
+        android:id="@+id/txtSetCardPrice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textStyle="bold" />
+
+    <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <io.asv.mtgocr.ocrreader.RoundedCardImageView
+            android:id="@+id/imgSetCard"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/card_image"
+            android:scaleType="centerInside" />
+        <ImageView
+            android:id="@+id/imgFoilBadge"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="8dp"
+            android:contentDescription="@string/foil_card_badge"
+            android:src="@drawable/ic_foil_badge"
+            android:visibility="gone" />
+        <ImageButton
+            android:id="@+id/btnSetCardGallery"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="6dp"
+            android:background="#DDFFFFFF"
+            android:contentDescription="@string/open_card_gallery"
+            android:padding="7dp"
+            android:src="@android:drawable/ic_menu_gallery" />
+        <ImageButton
+            android:id="@+id/btnSetCardDetails"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="6dp"
+            android:background="#DDFFFFFF"
+            android:contentDescription="@string/view_card_details"
+            android:padding="7dp"
+            android:src="@android:drawable/ic_menu_info_details" />
+    </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
+
+    <CheckBox
+        android:id="@+id/checkSetCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:minHeight="52dp" />
+</LinearLayout>

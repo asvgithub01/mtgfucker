@@ -46,6 +46,17 @@
             android:textSize="13sp" />
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/rapidSessionSetSymbol"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:padding="6dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/editions"
+        android:clickable="true"
+        android:focusable="true"
+        android:scaleType="fitCenter" />
+
     <TextView
         android:id="@+id/rapidSessionPrice"
         android:layout_width="wrap_content"

@@ -1215,8 +1215,11 @@ public class CameraSource {
                 // frame.
 
                 try {
-                    OcrLumaEnhancer.enhance(
-                            data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
+                    if (io.asv.mtgocr.ocrreader.ScannerSettings.enhancedOcr(mContext)) {
+                        OcrLumaEnhancer.enhanceExperimental(data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
+                    } else {
+                        OcrLumaEnhancer.enhance(data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
+                    }
                     mDetector.receiveFrame(outputFrame);
                 } catch (Throwable t) {
                     Log.e(TAG, "Exception thrown from receiver.", t);

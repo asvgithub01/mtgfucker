@@ -366,6 +366,7 @@
                     android:textColor="#FFFFFF"
                     android:textSize="22sp"
                     android:textStyle="bold" />
+
                 <CheckBox
                     android:id="@+id/checkScannerAutoFocus"
                     android:layout_width="match_parent"
@@ -693,6 +694,14 @@
             android:layout_alignParentBottom="true"
             android:gravity="center_horizontal"
             android:orientation="vertical">
+                <CheckBox
+                    android:id="@+id/checkEnhancedOcr"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/enhanced_ocr_experiment"
+                    android:textColor="#FFFFFF" />
+
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -794,6 +803,31 @@
         android:contentDescription="@string/scan_card_multilingual"
         app:backgroundTint="?attr/colorSecondary"
         app:srcCompat="@drawable/ic_translate"
+        app:tint="?attr/colorPrimaryVariant" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabCollectorVision"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fabOcrMlKit"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="7dp"
+        android:layout_marginBottom="10dp"
+        android:text="@string/collector_vision_title"
+        android:contentDescription="@string/collector_vision_title"
+        app:icon="@drawable/ic_experimental_scanner" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabRulesScanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottomNavigation"
+        android:layout_toStartOf="@id/fabHashOnlyScanner"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="56dp"
+        android:contentDescription="@string/rules_scan_title"
+        app:backgroundTint="?attr/colorSecondary"
+        app:srcCompat="@drawable/ic_rules_scanner"
         app:tint="?attr/colorPrimaryVariant" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

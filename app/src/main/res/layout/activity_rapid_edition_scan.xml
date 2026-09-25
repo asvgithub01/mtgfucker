@@ -45,6 +45,18 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/scanZoomLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:text="@string/scan_zoom" />
+        <SeekBar
+            android:id="@+id/scanZoom"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/scan_zoom"
+            android:max="1000" />
         <LinearLayout
             android:id="@+id/hashScanOptions"
             android:layout_width="match_parent"
@@ -89,6 +101,37 @@
                 android:layout_height="wrap_content"
                 android:minHeight="48dp"
                 android:text="@string/hash_scan_symbol"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
+                android:id="@+id/hashScanProbableEdition"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/hash_probable_edition_check"
+                android:textColor="#FFFFFF" />
+
+            <CheckBox
+                android:id="@+id/hashScanEditionPicker"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/hash_scan_edition_picker"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
+                android:id="@+id/hashScanSymbolV2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/scan_debug_hash_symbol_v2"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#FFFFFF" />
+            <CheckBox
+                android:id="@+id/hashScanSymbolRetry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/scan_debug_symbol_retry_flag"
                 android:textColor="#FFFFFF"
                 android:buttonTint="#FFFFFF" />
         </LinearLayout>

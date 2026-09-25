@@ -29,13 +29,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Native experimental scanner. Deliberately has no dependency on the app's library/database. */
 open class NativeCollectorVisionActivity : AppCompatActivity() {
     /** Host integration stays outside this module; callback confirms durable persistence. */
+    protected open val autoStartEnabled: Boolean get() = false
     protected open val autoSaveEnabled: Boolean get() = false
     protected open val sessionLabel: String? get() = null
     protected open fun addHostControls(container: LinearLayout) = Unit
+    protected open fun acceptedPhoto(key: String?) = Unit
     protected open fun persistCandidate(cardId: String, score: Float, callback: (Boolean) -> Unit) { callback(false) }
     protected open val priceFinish: String get() = "nonfoil"
     protected open val priceCurrency: String get() = "eur"
     private lateinit var priceView: TextView
+    @Volatile private var savePhotos = false
     @Volatile private var showThumbnail = true
     private var priceCardId: String? = null
     private var recognizedFinish = "nonfoil"
@@ -77,10 +80,6 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(16, 12, 16, 12) }
         root.addView(TextView(this).apply { setText(R.string.cv_native_title); textSize = 20f })
-        root.addView(TextView(this).apply {
-            setText(if (autoSaveEnabled) R.string.cv_native_auto_intro else R.string.cv_native_intro)
-            textSize = 12f
-        })
         sessionLabel?.let { label -> root.addView(TextView(this).apply { text = label; textSize = 16f }) }
         addHostControls(root)
         if (autoSaveEnabled) {
@@ -105,6 +104,8 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         }
         val controls = LinearLayout(this)
         start = Button(this).apply { setText(R.string.cv_native_start); setOnClickListener { prepare() } }
+        // Retain the button only as a recovery action after preparation fails.
+        start.visibility = View.GONE
         controls.addView(start, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(Button(this).apply { setText(R.string.cv_native_close); setOnClickListener { finish() } },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -119,6 +120,16 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         }
         root.addView(previewView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         val thumbnailPrefs = getSharedPreferences("cornelius_scanner", MODE_PRIVATE)
+        savePhotos = thumbnailPrefs.getBoolean("save_photos", false)
+        root.addView(CheckBox(this).apply {
+            tag = "edscan_save_photos"
+            setText(R.string.edscan_save_photos)
+            isChecked = savePhotos
+            setOnCheckedChangeListener { _, checked ->
+                savePhotos = checked
+                thumbnailPrefs.edit().putBoolean("save_photos", checked).apply()
+            }
+        })
         showThumbnail = thumbnailPrefs.getBoolean("show_thumbnail", true)
         root.addView(CheckBox(this).apply {
             tag = "cornelius_show_thumbnail"
@@ -150,6 +161,8 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         resultView = TextView(this).apply { setText(R.string.cv_native_no_card); textSize = 16f }
         root.addView(resultView)
         setContentView(root)
+        EdScanJobs.resume(applicationContext)
+        if (autoStartEnabled) prepare()
     }
 
     private fun prepare() {
@@ -165,7 +178,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
                 ready = true
                 runOnUiThread { if (!isDestroyed) { start.isEnabled = true; requestCamera() } }
             } catch (e: Exception) {
-                runOnUiThread { if (!isDestroyed) { start.isEnabled = true; status.text = getString(R.string.cv_native_error, e.message.orEmpty()) } }
+                runOnUiThread { if (!isDestroyed) { start.isEnabled = true; start.visibility = View.VISIBLE; status.text = getString(R.string.cv_native_error, e.message.orEmpty()) } }
             } finally { preparing.set(false) }
         }
     }
@@ -237,11 +250,12 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             }
                 snapshot
             } else null
+            val photo = if (savePhotos && autoSaveEnabled && id != null) bitmap.copy(Bitmap.Config.ARGB_8888, false) else null
             val timing = getString(R.string.cv_native_timings, result.detectionMs, result.recognitionMs, result.sharpness)
             val label = if (id == null) getString(R.string.cv_native_no_card) else
                 getString(if (stable) R.string.cv_native_candidate else R.string.cv_native_checking, id, top!!.score)
             runOnUiThread {
-                if (!active || token != generation || isDestroyed) { shown?.recycle(); return@runOnUiThread }
+                if (!active || token != generation || isDestroyed) { shown?.recycle(); photo?.recycle(); return@runOnUiThread }
                 if (showThumbnail) {
                     frameView.setImageBitmap(shown)
                     shownBitmap?.recycle(); shownBitmap = shown
@@ -253,8 +267,11 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
                 if (autoSaveEnabled) {
                     if (captureGap) acceptance.resetStability()
                     val attempt = acceptance.observe(result.present, result.hits)
-                    if (attempt != null) saveReliable(attempt)
-                }
+                    if (attempt != null) {
+                        acceptedPhoto(if (photo != null) EdScanJobs.capture(applicationContext, photo, result.corners, attempt.cardId, priceFinish) else null)
+                        saveReliable(attempt)
+                    } else photo?.recycle()
+                } else photo?.recycle()
             }
         } catch (e: Exception) {
             candidate = null; repetitions = 0
@@ -311,31 +328,34 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     private fun loadMetadata(id: String, token: Int) {
         if (metadataCache.containsKey(id) || !metadataPending.add(id)) return
         if (!id.matches(Regex("[0-9a-fA-F-]{36}"))) { metadataPending.remove(id); return }
-        metadataWorker.execute {
-            var connection: HttpURLConnection? = null
-            var prices: JSONObject? = null
-            val label = try {
-                connection = URL("https://api.scryfall.com/cards/$id").openConnection() as HttpURLConnection
-                connection.connectTimeout = 5000; connection.readTimeout = 5000
-                connection.setRequestProperty("User-Agent", "MtgCollectorVisionNative/0.1")
-                connection.setRequestProperty("Accept", "application/json")
-                val data = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-                check(data.optString("id").equals(id, true))
-                prices = data.optJSONObject("prices") ?: JSONObject()
-                "${data.optString("name")} · ${data.optString("set").uppercase()} #${data.optString("collector_number")}"
-            } catch (_: Exception) { null } finally { connection?.disconnect() }
-            runOnUiThread {
-                // Keep failed requests marked for this Activity to avoid one request per frame offline.
-                if (label != null) metadataPending.remove(id) else metadataFailed.add(id)
-                if (!isDestroyed && label == null && priceCardId == id) priceView.setText(R.string.cv_native_price_unavailable)
-                if (!isDestroyed && label != null) {
-                    metadataCache[id] = label
-                    priceCache[id] = prices ?: JSONObject()
-                    if (priceCardId == id) renderRecognizedPrice()
-                    if (active && token == generation && displayedId == id) resultView.append("\n$label")
+        val workName = EdScanJobs.price(applicationContext, id)
+        val live = androidx.work.WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(workName)
+        val observer = object : androidx.lifecycle.Observer<List<androidx.work.WorkInfo>> {
+            override fun onChanged(infos: List<androidx.work.WorkInfo>) {
+                if (infos.none { it.state.isFinished }) return
+                live.removeObserver(this)
+                metadataWorker.execute {
+                    val data = runCatching {
+                        JSONObject(java.io.File(EdScanJobs.directory(applicationContext), "price-$id.json").readText())
+                    }.getOrNull()
+                    runOnUiThread {
+                        if (isDestroyed) return@runOnUiThread
+                        if (data == null) {
+                            metadataFailed.add(id)
+                            if (priceCardId == id) priceView.setText(R.string.cv_native_price_unavailable)
+                        } else {
+                            metadataPending.remove(id)
+                            val label = "${data.optString("name")} · ${data.optString("set").uppercase()} #${data.optString("collector_number")}"
+                            metadataCache[id] = label
+                            priceCache[id] = data.optJSONObject("prices") ?: JSONObject()
+                            if (priceCardId == id) renderRecognizedPrice()
+                            if (active && token == generation && displayedId == id) resultView.append("\n$label")
+                        }
+                    }
                 }
             }
         }
+        live.observe(this, observer)
     }
 
     private fun renderRecognizedPrice() {

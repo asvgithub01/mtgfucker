@@ -587,7 +587,7 @@
     <string name="rules_scan_check_framing">Vérifiez que toute la carte est dans le cadre. Nouvel essai…</string>
     <string name="rules_fixed_bounds">Bords fixes (décoché : automatique expérimental)</string>
     <string name="rules_fixed_calibrate">Ajustez les 4 coins au bord extérieur puis appuyez sur Lire. Gardez téléphone, zoom et position fixes. Décochez puis cochez Bords fixes pour recalibrer.</string>
-    <string name="collector_vision_title">CollectorVision · Natif</string>
+    <string name="collector_vision_title">EdScan</string>
     <string name="collector_vision_intro">Démo web officielle, pas un portage natif. Nécessite le réseau et télécharge des modèles/données. Ne sauvegarde aucune carte dans votre bibliothèque. Le site externe contrôle le contenu et les requêtes réseau.</string>
     <string name="collector_vision_start">Charger</string>
     <string name="collector_vision_browser">Navigateur</string>
@@ -602,4 +602,5 @@
     <string name="cornelius_manual_attributes">Langue et finition manuelles (sans OCR de langue).</string>
     <string name="cornelius_unknown_language">Langue indéterminée</string>
     <string name="cornelius_save_error">Impossible de sauvegarder cette impression/finition exacte. Retirez la carte pour réessayer.</string>
+    <string name="hold_delete_card">Maintenir 1 seconde pour supprimer</string>
 </resources>

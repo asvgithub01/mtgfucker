@@ -1,13 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-  <string name="cv_native_title">CollectorVision · Nativo</string>
+  <string name="cv_native_title">EdScan</string>
   <string name="cv_native_intro">Motore CPU nativo sperimentale. Download iniziale di modelli e catalogo (~45 MB). Riconoscimento locale; nomi da Scryfall. Non aggiunge carte alla raccolta.</string>
   <string name="cv_native_start">Prepara / avvia</string>
   <string name="cv_native_close">Chiudi</string>
   <string name="cv_native_idle">Modelli non ancora pronti</string>
   <string name="cv_native_loading">Preparazione di modelli e catalogo…</string>
   <string name="cv_native_permission">Consenti la fotocamera per scansionare.</string>
-  <string name="cv_native_running">Fotocamera nativa · CPU · senza WebView</string>
+  <string name="cv_native_running">Scansione</string>
   <string name="cv_native_no_card">Nessun candidato affidabile</string>
   <string name="cv_native_candidate">Candidato visivo (edizione non garantita)\n%1$s · %2$.3f</string>
   <string name="cv_native_checking">Verifica\n%1$s · %2$.3f</string>
@@ -27,4 +27,5 @@
   <string name="cv_native_price_idle">Prezzo dell’ultima carta riconosciuta</string>
   <string name="cv_native_price_loading">Caricamento prezzo…</string>
   <string name="cv_native_price_unavailable">Prezzo non disponibile</string>
+  <string name="edscan_save_photos">Salva foto per OCR della lingua (sperimentale)</string>
 </resources>

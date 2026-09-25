@@ -1782,13 +1782,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
           @Override
           public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-            if (!(recyclerView.getAdapter() instanceof MyAdapter) || currentSection == SECTION_GROUPS) return 0;
-            int position = viewHolder.getAdapterPosition();
-            MyAdapter testAdapter = (MyAdapter) recyclerView.getAdapter();
-            if (testAdapter.isUndoOn() && testAdapter.isPendingRemoval(position)) {
-              return 0;
-            }
-            return super.getSwipeDirs(recyclerView, viewHolder);
+            return 0; // Horizontal scrolling never deletes cards.
+
           }
 
           @Override public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
@@ -2100,9 +2095,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void applyCollectionLayoutMode() {
-    mLayoutManager = (CollectionViewMode.usesTwoColumns(collectionViewMode) || !"0".equals(mPersistorMode))
-        ? new FourCardLayoutManager(this)
-        : new LinearLayoutManager(this);
+    mLayoutManager = new FourCardLayoutManager(this);
     mRecyclerView.setLayoutManager(mLayoutManager);
   }
 

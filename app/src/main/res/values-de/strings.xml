@@ -587,7 +587,7 @@
     <string name="rules_scan_check_framing">Prüfe, ob die ganze Karte im Rahmen liegt. Neuer Versuch…</string>
     <string name="rules_fixed_bounds">Feste Ränder (aus: experimentelle Automatik)</string>
     <string name="rules_fixed_calibrate">Passe alle 4 Ecken an den Außenrand an und tippe auf Lesen. Telefon, Zoom und Kartenposition beibehalten. Zum Kalibrieren feste Ränder aus- und einschalten.</string>
-    <string name="collector_vision_title">CollectorVision · Nativ</string>
+    <string name="collector_vision_title">EdScan</string>
     <string name="collector_vision_intro">Offizielle Web-Demo, keine native Portierung. Benötigt Netzwerk und lädt Modelle/Daten herunter. Speichert keine Karten in deiner Bibliothek. Inhalte und Netzwerkanfragen werden von der externen Website bestimmt.</string>
     <string name="collector_vision_start">Laden</string>
     <string name="collector_vision_browser">Browser</string>
@@ -602,4 +602,5 @@
     <string name="cornelius_manual_attributes">Sprache und Ausführung manuell (keine Sprach-OCR).</string>
     <string name="cornelius_unknown_language">Sprache unbekannt</string>
     <string name="cornelius_save_error">Exakte Ausgabe/Ausführung konnte nicht gespeichert werden. Karte zum Wiederholen entfernen.</string>
+    <string name="hold_delete_card">Zum Löschen 1 Sekunde gedrückt halten</string>
 </resources>

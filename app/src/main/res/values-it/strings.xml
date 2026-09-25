@@ -587,7 +587,7 @@
     <string name="rules_scan_check_framing">Verifica che tutta la carta sia dentro il riquadro. Nuovo tentativo…</string>
     <string name="rules_fixed_bounds">Bordi fissi (disattivato: automatico sperimentale)</string>
     <string name="rules_fixed_calibrate">Regola i 4 angoli sul bordo esterno e premi Leggi. Mantieni telefono, zoom e posizione fissi. Disattiva e riattiva Bordi fissi per ricalibrare.</string>
-    <string name="collector_vision_title">CollectorVision · Nativo</string>
+    <string name="collector_vision_title">EdScan</string>
     <string name="collector_vision_intro">Demo web ufficiale, non un port nativo. Richiede rete e scarica modelli/dati. Non salva carte nella tua biblioteca. Contenuti e richieste di rete dipendono dal sito esterno.</string>
     <string name="collector_vision_start">Carica</string>
     <string name="collector_vision_browser">Browser</string>
@@ -602,4 +602,5 @@
     <string name="cornelius_manual_attributes">Lingua e finitura manuali (senza OCR della lingua).</string>
     <string name="cornelius_unknown_language">Lingua sconosciuta</string>
     <string name="cornelius_save_error">Impossibile salvare la stampa/finitura esatta. Rimuovi la carta per riprovare.</string>
+    <string name="hold_delete_card">Tieni premuto per 1 secondo per eliminare</string>
 </resources>

@@ -17,6 +17,11 @@ class CollectorVisionNativeDeviceTest {
     @Test fun nativeCameraProcessesAFrameAndReopens() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         org.junit.Assume.assumeTrue(context.checkSelfPermission(android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+        val prefs = context.getSharedPreferences("cornelius_scanner", 0)
+        val existed = prefs.contains("show_thumbnail")
+        val previous = prefs.getBoolean("show_thumbnail", true)
+        prefs.edit().putBoolean("show_thumbnail", true).commit()
+        try {
         ActivityScenario.launch(NativeCollectorVisionActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val button = NativeCollectorVisionActivity::class.java.getDeclaredField("start").apply { isAccessible = true }.get(activity) as android.widget.Button
@@ -58,6 +63,11 @@ class CollectorVisionNativeDeviceTest {
             }
             scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
             waitForFrame()
+        }
+        } finally {
+            val edit = prefs.edit()
+            if (existed) edit.putBoolean("show_thumbnail", previous) else edit.remove("show_thumbnail")
+            edit.commit()
         }
     }
 

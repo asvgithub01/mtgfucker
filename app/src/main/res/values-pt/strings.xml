@@ -587,7 +587,7 @@
     <string name="rules_scan_check_framing">Verifica se a carta inteira está dentro da moldura. A tentar novamente…</string>
     <string name="rules_fixed_bounds">Bordas fixas (desmarcado: automático experimental)</string>
     <string name="rules_fixed_calibrate">Ajusta os 4 cantos à borda exterior e prime Ler. Mantém telefone, zoom e posição fixos. Desmarca e marca Bordas fixas para recalibrar.</string>
-    <string name="collector_vision_title">CollectorVision · Nativo</string>
+    <string name="collector_vision_title">EdScan</string>
     <string name="collector_vision_intro">Demonstração web oficial, não é uma versão nativa. Requer rede e descarrega modelos/dados. Não guarda cartas na tua biblioteca. O conteúdo e os pedidos de rede dependem do site externo.</string>
     <string name="collector_vision_start">Carregar</string>
     <string name="collector_vision_browser">Navegador</string>
@@ -602,4 +602,5 @@
     <string name="cornelius_manual_attributes">Idioma e acabamento manuais (sem OCR de idioma).</string>
     <string name="cornelius_unknown_language">Idioma por determinar</string>
     <string name="cornelius_save_error">Não foi possível guardar a impressão/acabamento exatos. Retira a carta para tentar novamente.</string>
+    <string name="hold_delete_card">Manter premido 1 segundo para eliminar</string>
 </resources>

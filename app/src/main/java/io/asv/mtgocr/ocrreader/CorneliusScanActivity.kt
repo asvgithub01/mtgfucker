@@ -14,6 +14,8 @@ import java.util.concurrent.Executors
 
 /** Host-only persistence bridge; the native engine remains independent of the collection. */
 class CorneliusScanActivity : NativeCollectorVisionActivity() {
+    private var photoKey: String? = null
+    override fun acceptedPhoto(key: String?) { photoKey = key }
     private val saves = Executors.newSingleThreadExecutor()
     private lateinit var language: Spinner
     private lateinit var finish: Spinner
@@ -24,6 +26,7 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
     private val finishes = listOf("nonfoil", "foil", "etched")
     override val priceFinish: String get() = finishes[finish.selectedItemPosition]
     override val priceCurrency: String get() = io.asv.mtgocr.ocrreader.data.PriceCurrency.preferred(this).lowercase()
+    override val autoStartEnabled: Boolean get() = intent.getBooleanExtra("edscan_autostart", true)
     override val autoSaveEnabled = true
     override val sessionLabel: String? get() = group
 
@@ -51,6 +54,7 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
     }
 
     override fun persistCandidate(cardId: String, score: Float, callback: (Boolean) -> Unit) {
+        val acceptedPhotoKey = photoKey
         val selectedLanguage = languages[language.selectedItemPosition]
         val selectedFinish = finishes[finish.selectedItemPosition]
         val repository = CardRepository.get(this)
@@ -70,6 +74,7 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
                     val card = LegacyCollectionStore.addCopy(this, option, selectedLanguage,
                         groupName = sessionGroup, expectedLibraryFile = libraryFile)
                     repository.selectEdition(card.collectionItemId, option) {
+                        acceptedPhotoKey?.let { io.asv.collectorvision.EdScanJobs.link(applicationContext, it, libraryFile, card.collectionItemId, option.printingUuid) }
                         addedIds += card.collectionItemId
                         setResult(RESULT_OK, Intent().putStringArrayListExtra(RapidEditionScanActivity.EXTRA_SESSION_CARD_IDS, ArrayList(addedIds)))
                         callback(true)

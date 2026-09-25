@@ -587,7 +587,7 @@
     <string name="rules_scan_check_framing">Check that the entire card is inside the frame. Retrying…</string>
     <string name="rules_fixed_bounds">Fixed bounds (unchecked: experimental automatic)</string>
     <string name="rules_fixed_calibrate">Adjust all 4 corners to the outer edge and tap Read. Keep phone, zoom and card position fixed. Toggle Fixed bounds off and on to recalibrate.</string>
-    <string name="collector_vision_title">CollectorVision · Native</string>
+    <string name="collector_vision_title">EdScan</string>
     <string name="collector_vision_intro">Official web demo, not a native port. Requires network and downloads models/data. Does not save cards to your library. Content and network requests are controlled by the external site.</string>
     <string name="collector_vision_start">Load</string>
     <string name="collector_vision_browser">Browser</string>
@@ -602,4 +602,5 @@
     <string name="cornelius_manual_attributes">Manual language and finish (no language OCR).</string>
     <string name="cornelius_unknown_language">Language unknown</string>
     <string name="cornelius_save_error">Could not save the exact printing/finish. Remove the card to retry.</string>
+    <string name="hold_delete_card">Hold for 1 second to delete</string>
 </resources>

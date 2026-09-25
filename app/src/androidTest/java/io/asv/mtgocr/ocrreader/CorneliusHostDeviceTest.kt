@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 /** Read-only host checks: never insert test cards into the user's library. */
 class CorneliusHostDeviceTest {
     @Test fun hostStartsWithoutCreatingAGroupOrGuessingLanguage() {
-        ActivityScenario.launch(CorneliusScanActivity::class.java).use { scenario ->
+        ActivityScenario.launch<CorneliusScanActivity>(android.content.Intent(InstrumentationRegistry.getInstrumentation().targetContext, CorneliusScanActivity::class.java).putExtra("edscan_autostart", false)).use { scenario ->
             scenario.onActivity { activity ->
                 val language = CorneliusScanActivity::class.java.getDeclaredField("language").apply { isAccessible = true }.get(activity) as android.widget.Spinner
                 assertEquals(0, language.selectedItemPosition)
@@ -28,7 +28,7 @@ class CorneliusHostDeviceTest {
         val original = prefs.getBoolean("safety_filters", true)
         try {
             prefs.edit().remove("safety_filters").commit()
-            ActivityScenario.launch(CorneliusScanActivity::class.java).use { scenario ->
+            ActivityScenario.launch<CorneliusScanActivity>(android.content.Intent(InstrumentationRegistry.getInstrumentation().targetContext, CorneliusScanActivity::class.java).putExtra("edscan_autostart", false)).use { scenario ->
                 scenario.onActivity { activity ->
                     val check = activity.window.decorView.findViewWithTag<android.widget.CheckBox>("cornelius_safety_filters")
                     assertTrue(check.isChecked)
@@ -40,7 +40,7 @@ class CorneliusHostDeviceTest {
                     assertFalse(activity.window.decorView.findViewWithTag<android.widget.CheckBox>("cornelius_safety_filters").isChecked)
                 }
             }
-            ActivityScenario.launch(CorneliusScanActivity::class.java).use { scenario ->
+            ActivityScenario.launch<CorneliusScanActivity>(android.content.Intent(InstrumentationRegistry.getInstrumentation().targetContext, CorneliusScanActivity::class.java).putExtra("edscan_autostart", false)).use { scenario ->
                 scenario.onActivity { activity ->
                     assertFalse(activity.window.decorView.findViewWithTag<android.widget.CheckBox>("cornelius_safety_filters").isChecked)
                 }
@@ -58,7 +58,7 @@ class CorneliusHostDeviceTest {
         val original = prefs.getBoolean("show_thumbnail", true)
         try {
             prefs.edit().putBoolean("show_thumbnail", true).commit()
-            ActivityScenario.launch(CorneliusScanActivity::class.java).use { scenario ->
+            ActivityScenario.launch<CorneliusScanActivity>(android.content.Intent(InstrumentationRegistry.getInstrumentation().targetContext, CorneliusScanActivity::class.java).putExtra("edscan_autostart", false)).use { scenario ->
                 scenario.onActivity { activity ->
                     val cls = io.asv.collectorvision.NativeCollectorVisionActivity::class.java
                     fun field(name: String) = cls.getDeclaredField(name).apply { isAccessible = true }

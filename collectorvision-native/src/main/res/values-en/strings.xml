@@ -29,7 +29,7 @@
   <string name="cv_native_price_unavailable">Price unavailable</string>
   <string name="edscan_save_photos">Save photo for language OCR (experimental)</string>
   <string name="party_settings">Confetti</string>
-  <string name="party_threshold_value">Confetti above €%.2f</string>
+  <string name="party_threshold_value">Confetti from €%.2f</string>
   <string name="party_threshold_hint">From €0.50 to €20, in €0.50 steps. Shared by EdScan and OCR; uses the euro price.</string>
   <string name="edscan_tuning_title">Tune</string>
   <string name="edscan_tuning_values">Fast: ≥%1$.2f · margin ≥%2$.2f · %3$d readings</string>
@@ -43,8 +43,6 @@
   <string name="edscan_session_total">Session: %1$d copies · %4$s (min:s) · %2$s · %3$d unpriced</string>
   <string name="cv_native_ambiguous_margin">Not saved: candidates are too similar; printing is unconfirmed. Margin %1$.3f, minimum %2$.3f. Try another position or review the settings.</string>
   <string name="cv_native_saved_provisional">Saved with provisional printing. Review in postprocessing.</string>
-  <string name="party_balloons">Rising balloons</string>
-  <string name="party_trumpets">Side trumpets with confetti</string>
-  <string name="party_disco">Disco ball, lights and music (4 s)</string>
-  <string name="party_effects_hint">Confetti always appears above the threshold. Choose any extra effects.</string>
+  <string name="party_effects_hint">Effects accumulate automatically. Only the highest reached level plays its sound (4–5 s).</string>
+  <string name="party_levels">From €%1$.2f: confetti\nFrom €%2$.2f: + balloons\nFrom €%3$.2f: + trumpets\nFrom €%4$.2f: + disco ball\nFrom €%5$.2f: + dancer and reflection</string>
 </resources>

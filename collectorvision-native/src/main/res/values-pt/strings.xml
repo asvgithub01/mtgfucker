@@ -29,7 +29,7 @@
   <string name="cv_native_price_unavailable">Preço indisponível</string>
   <string name="edscan_save_photos">Guardar foto para OCR de idioma (experimental)</string>
   <string name="party_settings">Confetes</string>
-  <string name="party_threshold_value">Confetes acima de %.2f €</string>
+  <string name="party_threshold_value">Confetes a partir de %.2f €</string>
   <string name="party_threshold_hint">De 0,50 € a 20 €, em passos de 0,50 €. Partilhado por EdScan e OCR; usa o preço em euros.</string>
   <string name="edscan_tuning_title">Ajustar</string>
   <string name="edscan_tuning_values">Rápido: ≥%1$.2f · margem ≥%2$.2f · %3$d leituras</string>
@@ -43,8 +43,6 @@
   <string name="edscan_session_total">Sessão: %1$d cópias · %4$s (min:s) · %2$s · %3$d sem preço</string>
   <string name="cv_native_ambiguous_margin">Não guardada: candidatos muito semelhantes; impressão não confirmada. Margem %1$.3f, mínimo %2$.3f. Experimente outra posição ou reveja os ajustes.</string>
   <string name="cv_native_saved_provisional">Guardada com impressão provisória. Rever no pós-processamento.</string>
-  <string name="party_balloons">Bal�es a subir</string>
-  <string name="party_trumpets">Trompetes laterais com confetes</string>
-  <string name="party_disco">Bola de discoteca, luzes e m�sica (4 s)</string>
-  <string name="party_effects_hint">Os confetes aparecem sempre acima do limite. Escolha os efeitos adicionais.</string>
+  <string name="party_effects_hint">Os efeitos acumulam-se automaticamente. Apenas o nível mais alto atingido reproduz o som (4–5 s).</string>
+  <string name="party_levels">A partir de %1$.2f €: confetes\nA partir de %2$.2f €: + balões\nA partir de %3$.2f €: + trompetes\nA partir de %4$.2f €: + bola de discoteca\nA partir de %5$.2f €: + dançarino e reflexo</string>
 </resources>

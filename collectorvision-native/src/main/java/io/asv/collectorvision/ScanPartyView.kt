@@ -13,14 +13,6 @@ import androidx.lifecycle.LifecycleOwner
 import kotlin.math.*
 import kotlin.random.Random
 
-internal data class ScanPartyOptions(
-    val balloons: Boolean = false,
-    val trumpets: Boolean = false,
-    val disco: Boolean = false
-) {
-    val durationMillis: Long get() = if (balloons || trumpets || disco) 4000L else 1800L
-}
-
 /** One bounded, touch-through overlay; replacing it also releases its sound. */
 internal class ScanPartyView(
     private val activity: AppCompatActivity,
@@ -44,8 +36,14 @@ internal class ScanPartyView(
         super.onAttachedToWindow()
         startedAt = SystemClock.uptimeMillis()
         activity.lifecycle.addObserver(this)
-        // A bundled original groove, no network or synthesis on the camera/UI thread.
-        audio = runCatching { MediaPlayer.create(context, if (options.disco) R.raw.scan_disco else R.raw.edscan_wow) }.getOrNull()
+        // Bundled user-provided audio; play only the highest reached tier.
+        audio = runCatching { MediaPlayer.create(context, when (options.level) {
+            5 -> R.raw.party_dancer
+            4 -> R.raw.party_disco
+            3 -> R.raw.party_trumpets
+            2 -> R.raw.party_balloons
+            else -> R.raw.party_confetti
+        }) }.getOrNull()
         runCatching { audio?.start() }.onFailure { audio?.release(); audio = null }
     }
 
@@ -67,6 +65,7 @@ internal class ScanPartyView(
             canvas.drawRect(x, y, x + 8 * density, y + 4 * density, paint)
             canvas.restore()
         }
+        if (options.dancer) drawDancer(canvas, seconds, fade)
         postInvalidateOnAnimation()
     }
 
@@ -171,6 +170,64 @@ internal class ScanPartyView(
             paint.color = colors[i % colors.size]; paint.alpha = (90 * fade).toInt()
             canvas.drawCircle(x, y, (3 + p[2] * 5) * density, paint)
         }
+    }
+
+    /** Original vector disco dancer: articulated pose, flared trousers and floor reflection. */
+    private fun drawDancer(canvas: Canvas, seconds: Float, fade: Float) {
+        val scale = min(width / 340f, height / 540f)
+        val floor = height * .64f
+        val sway = sin(seconds * 6.28f) * 8
+        // Mirror around the feet; compressed and translucent like a polished dance floor.
+        canvas.save()
+        canvas.translate(width * .5f, floor + 5 * scale)
+        canvas.scale(scale, -scale * .42f)
+        dancerPose(canvas, seconds, sway, fade * .20f)
+        canvas.restore()
+        canvas.save()
+        canvas.translate(width * .5f, floor)
+        canvas.scale(scale, scale)
+        dancerPose(canvas, seconds, sway, fade)
+        canvas.restore()
+    }
+
+    private fun dancerPose(canvas: Canvas, seconds: Float, sway: Float, opacity: Float) {
+        val beat = sin(seconds * 6.28f)
+        fun color(value: Long) { paint.color = value.toInt(); paint.alpha = (255 * opacity).toInt() }
+        fun limb(x1: Float, y1: Float, x2: Float, y2: Float, width: Float) {
+            paint.strokeWidth = width; paint.strokeCap = Paint.Cap.ROUND
+            canvas.drawLine(x1, y1, x2, y2, paint)
+        }
+        color(0xFFF4F0DF)
+        // White flared trouser legs swing in opposite directions.
+        path.reset(); path.moveTo(sway - 18, -95f); path.lineTo(sway + 1, -90f)
+        path.lineTo(-15 + beat * 8, -5f); path.lineTo(-48 + beat * 8, -5f); path.close()
+        canvas.drawPath(path, paint)
+        path.reset(); path.moveTo(sway, -90f); path.lineTo(sway + 18, -95f)
+        path.lineTo(49 - beat * 8, -5f); path.lineTo(18 - beat * 8, -5f); path.close()
+        canvas.drawPath(path, paint)
+        canvas.drawRoundRect(sway - 23, -166f, sway + 23, -87f, 12f, 12f, paint)
+        // One arm points up diagonally, the other rests at the hip.
+        val handX = sway + 67 + beat * 14
+        val handY = -227 + beat * 14
+        limb(sway + 17, -155f, sway + 45, -187f, 16f)
+        limb(sway + 45, -187f, handX, handY, 14f)
+        limb(sway - 17, -155f, sway - 48, -124f, 16f)
+        limb(sway - 48, -124f, sway - 18, -106f, 13f)
+        color(0xFF292036)
+        path.reset(); path.moveTo(sway - 13, -166f); path.lineTo(sway + 13, -166f)
+        path.lineTo(sway, -120f); path.close(); canvas.drawPath(path, paint)
+        limb(sway - 19, -94f, sway + 19, -94f, 6f)
+        limb(-46 + beat * 8, -3f, -18 + beat * 8, -3f, 9f)
+        limb(20 - beat * 8, -3f, 50 - beat * 8, -3f, 9f)
+        color(0xFFE9AC80)
+        canvas.drawCircle(sway, -186f, 17f, paint)
+        canvas.drawRect(sway - 7, -175f, sway + 7, -158f, paint)
+        canvas.drawCircle(handX, handY, 7f, paint)
+        limb(handX, handY, handX + 5, handY - 15, 4f)
+        canvas.drawCircle(sway - 18, -106f, 7f, paint)
+        color(0xFF30252B)
+        canvas.drawArc(sway - 18, -205f, sway + 18, -173f, 165f, 210f, true, paint)
+        paint.strokeCap = Paint.Cap.BUTT
     }
 
     override fun onStop(owner: LifecycleOwner) { (parent as? ViewGroup)?.removeView(this) }

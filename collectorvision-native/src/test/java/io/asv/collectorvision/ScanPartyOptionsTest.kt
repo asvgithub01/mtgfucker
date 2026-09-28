@@ -4,21 +4,31 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ScanPartyOptionsTest {
-    @Test fun extrasAreOptInAndKeepOriginalDurationByDefault() {
-        val options = ScanPartyOptions()
-        assertFalse(options.balloons)
-        assertFalse(options.trumpets)
-        assertFalse(options.disco)
-        assertEquals(1800L, options.durationMillis)
-    }
-
-    @Test fun eachEffectAndEveryCombinationLastFourSeconds() {
-        for (bits in 1..7) {
-            val options = ScanPartyOptions(bits and 1 != 0, bits and 2 != 0, bits and 4 != 0)
-            assertEquals(4000L, options.durationMillis)
-            assertEquals(bits and 1 != 0, options.balloons)
-            assertEquals(bits and 2 != 0, options.trumpets)
-            assertEquals(bits and 4 != 0, options.disco)
+    @Test fun exactDoublingThresholdsAreInclusiveAndCumulative() {
+        for (base in listOf(.5, 1.0, 3.5, 20.0)) {
+            for (level in 1..5) {
+                val price = base * (1 shl (level - 1))
+                val options = ScanPartyOptions.forPrice(price, base)!!
+                assertEquals(level, options.level)
+                assertEquals(level >= 2, options.balloons)
+                assertEquals(level >= 3, options.trumpets)
+                assertEquals(level >= 4, options.disco)
+                assertEquals(level >= 5, options.dancer)
+                assertEquals(if (level == 5) 5000L else 4000L, options.durationMillis)
+                assertEquals(if (level == 1) null else level - 1,
+                    ScanPartyOptions.forPrice(price - .001, base)?.level)
+            }
         }
+    }
+    @Test fun invalidOrBelowThresholdPricesNeverCelebrate() {
+        for (price in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, -1.0, 0.0, .99)) {
+            assertNull(ScanPartyOptions.forPrice(price, 1.0))
+        }
+        for (base in listOf(Double.NaN, Double.POSITIVE_INFINITY, -1.0, 0.0, 20.01)) {
+            assertNull(ScanPartyOptions.forPrice(100.0, base))
+        }
+    }
+    @Test fun pricesAboveTopTierStayAtDancer() {
+        assertEquals(5, ScanPartyOptions.forPrice(10000.0, .5)!!.level)
     }
 }

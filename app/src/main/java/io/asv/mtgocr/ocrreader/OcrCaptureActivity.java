@@ -1675,29 +1675,23 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void updateSectionBackground() {
-    boolean library = currentSection == SECTION_LIBRARY;
     boolean expansions = currentSection == SECTION_SETS;
     CardInfo pinnedBackground = pinnedBackgroundCard();
-    boolean artworkBackground = pinnedBackground != null || library || expansions;
+    // All collection tabs share the artwork backdrop, including catalog, decks and settings.
     artBackgroundRequest++;
-    imgBgCard.setVisibility(artworkBackground ? View.VISIBLE : View.GONE);
-    mRecyclerView.setBackgroundColor(artworkBackground ? Color.TRANSPARENT : MagicPalette.backgroundColor(this));
-    settingsPlaceholder.setBackgroundColor(
-        artworkBackground ? Color.TRANSPARENT : MagicPalette.backgroundColor(this));
+    imgBgCard.setVisibility(View.VISIBLE);
+    mRecyclerView.setBackgroundColor(Color.TRANSPARENT);
+    settingsPlaceholder.setBackgroundColor(Color.TRANSPARENT);
     lytRecycler.setBackgroundColor(Color.TRANSPARENT);
     if (collectionControls != null) {
-      collectionControls.setGlassIntensity(artworkBackground ? .94f :
-          (mRecyclerView.canScrollVertically(-1) ? 1.12f : .82f));
+      collectionControls.setGlassIntensity(.94f);
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      imgBgCard.setRenderEffect(artworkBackground
-          ? RenderEffect.createBlurEffect(9f, 9f, Shader.TileMode.CLAMP)
-          : null);
+      imgBgCard.setRenderEffect(RenderEffect.createBlurEffect(9f, 9f, Shader.TileMode.CLAMP));
     }
     if (pinnedBackground != null) displayArtworkBackground(pinnedBackground.getImgPath());
-    else if (library) showRandomLibraryBackground();
     else if (expansions) showRandomExpansionBackground();
-    else imgBgCard.setImageDrawable(null);
+    else showRandomLibraryBackground();
   }
 
   private CardInfo pinnedBackgroundCard() {
@@ -1713,17 +1707,18 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void showRandomLibraryBackground() {
-    if (mBiblio == null || currentSection != SECTION_LIBRARY) return;
     ++artBackgroundRequest;
-    List<CardInfo> candidates = new ArrayList<>();
-    for (CardInfo card : mBiblio.cards) {
-      if (safe(card.getImgPath()).trim().length() > 0) candidates.add(card);
-    }
-    if (candidates.isEmpty()) {
-      imgBgCard.setImageDrawable(null);
+    CardInfo chosen = LaunchBackgroundPolicy.choose(
+        mBiblio == null ? java.util.Collections.emptyList() : mBiblio.cards,
+        LibraryCatalog.pinnedBackgroundId(this, LibraryCatalog.active(this).getId()),
+        PremiumAccess.isEnabled(this), size -> artBackgroundRandom.nextInt(size));
+    if (chosen == null) {
+      CardImageCache.display(this, null, imgBgCard);
+      imgBgCard.setArtworkOnly(false);
+      imgBgCard.setImageResource(R.drawable.mtgback);
+      imgBgCard.setAlpha(.78f);
       return;
     }
-    CardInfo chosen = candidates.get(artBackgroundRandom.nextInt(candidates.size()));
     displayArtworkBackground(chosen.getImgPath());
   }
 

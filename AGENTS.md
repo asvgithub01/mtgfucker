@@ -24,7 +24,7 @@
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.
 - CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,
-  Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral y checks de efectos con OCR; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; `scripts/generate_scan_disco.py` regenera la melodía original de 4 s; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
+  Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral con OCR; `ScanPartyOptions.kt` acumula niveles inclusivos x1/2/4/8/16 y selecciona un solo MP3; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; los MP3 `party_*` son aportados por el usuario; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
   `NOTICE.md` del módulo antes de distribuir. No conectar autoañadido sin validar
   impresión/idioma/acabado; no quitar los SHA de assets para resolver una descarga fallida.
@@ -322,3 +322,5 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Tira recientes compartida `RecentScansView` en OCR original y CorneliusScanActivity: últimas30filas, acciones por collectionItemId. `addHostRecentControls` es el hook inferior del módulo nativo. Confirmar borrado; no sustituir impresión/acabado/idioma por callbacks tardíos.
 
 - Índices FRA: `REALITY_FRACTURE_INDEX_UPDATE.md`, scripts `update_reality_fracture_indices.py` y `merge_reality_fracture_metadata.py`. EdScan conserva catálogo base y carga suplemento empaquetado SHA fijo; no cambiar modelo ni eliminar comprobaciones. Al ampliar hash regenerar APV1/PFR1/TLV1 juntos (PFR1 está ligado al SHA de APV1).
+
+- Fondos: `OcrCaptureActivity.updateSectionBackground` aplica arte a todas las pestañas. `CollectionScreenBackground` lo incorpora en detalle de colección/foto con carga IO y limpieza lifecycle. Respetar pin premium y fallback sin cartas.

@@ -29,7 +29,7 @@
   <string name="cv_native_price_unavailable">Precio no disponible</string>
   <string name="edscan_save_photos">Guardar foto para OCR de idioma (experimental)</string>
   <string name="party_settings">Confeti</string>
-  <string name="party_threshold_value">Confeti al superar %.2f €</string>
+  <string name="party_threshold_value">Confeti desde %.2f €</string>
   <string name="party_threshold_hint">De 0,50 € a 20 €, en pasos de 0,50 €. Ajuste compartido por EdScan y OCR; usa el precio en euros.</string>
   <string name="edscan_tuning_title">Ajustar</string>
   <string name="edscan_tuning_values">Rápido: ≥%1$.2f · margen ≥%2$.2f · %3$d lecturas</string>
@@ -43,8 +43,6 @@
   <string name="edscan_session_total">Sesión: %1$d copias · %4$s (min:s) · %2$s · %3$d sin precio</string>
   <string name="cv_native_ambiguous_margin">No guardada: candidatos muy parecidos; impresión sin confirmar. Margen %1$.3f, mínimo %2$.3f. Prueba otra posición o revisa los ajustes.</string>
   <string name="cv_native_saved_provisional">Guardada con edición provisional. Revisar en postprocesado.</string>
-  <string name="party_balloons">Globos de abajo hacia arriba</string>
-  <string name="party_trumpets">Trompetas laterales con confeti</string>
-  <string name="party_disco">Bola disco, luces y m�sica (4 s)</string>
-  <string name="party_effects_hint">El confeti siempre aparece al superar el umbral. A�ade los efectos que quieras.</string>
+  <string name="party_effects_hint">Los efectos se acumulan automáticamente. Suena solo el nivel más alto alcanzado (4–5 s).</string>
+  <string name="party_levels">Desde %1$.2f €: confeti\nDesde %2$.2f €: + globos\nDesde %3$.2f €: + trompetas\nDesde %4$.2f €: + bola disco\nDesde %5$.2f €: + bailarín y reflejo</string>
 </resources>

@@ -39,6 +39,7 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo_scan_detail)
+        CollectionScreenBackground.install(this)
         val id = intent.getStringExtra(EXTRA_PHOTO_SCAN_ID).orEmpty()
         entry = PhotoScanStore.find(this, id) ?: run { finish(); return }
         repository = CardRepository.get(this)

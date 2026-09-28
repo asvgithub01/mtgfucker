@@ -29,7 +29,7 @@
   <string name="cv_native_price_unavailable">Preis nicht verfügbar</string>
   <string name="edscan_save_photos">Foto für Sprach-OCR speichern (experimentell)</string>
   <string name="party_settings">Konfetti</string>
-  <string name="party_threshold_value">Konfetti über %.2f €</string>
+  <string name="party_threshold_value">Konfetti ab %.2f €</string>
   <string name="party_threshold_hint">Von 0,50 € bis 20 € in Schritten von 0,50 €. Gemeinsam für EdScan und OCR; verwendet den Europreis.</string>
   <string name="edscan_tuning_title">Anpassen</string>
   <string name="edscan_tuning_values">Schnell: ≥%1$.2f · Abstand ≥%2$.2f · %3$d Lesungen</string>
@@ -43,8 +43,6 @@
   <string name="edscan_session_total">Sitzung: %1$d Exemplare · %4$s (min:s) · %2$s · %3$d ohne Preis</string>
   <string name="cv_native_ambiguous_margin">Nicht gespeichert: Kandidaten zu ähnlich; Druckversion unbestätigt. Abstand %1$.3f, Minimum %2$.3f. Andere Position versuchen oder Einstellungen prüfen.</string>
   <string name="cv_native_saved_provisional">Mit vorläufiger Druckversion gespeichert. In der Nachbearbeitung prüfen.</string>
-  <string name="party_balloons">Aufsteigende Luftballons</string>
-  <string name="party_trumpets">Seitliche Trompeten mit Konfetti</string>
-  <string name="party_disco">Diskokugel, Licht und Musik (4 s)</string>
-  <string name="party_effects_hint">Konfetti erscheint immer �ber dem Grenzwert. W�hle zus�tzliche Effekte.</string>
+  <string name="party_effects_hint">Die Effekte werden automatisch kombiniert. Nur die höchste erreichte Stufe spielt ihren Ton ab (4–5 s).</string>
+  <string name="party_levels">Ab %1$.2f €: Konfetti\nAb %2$.2f €: + Ballons\nAb %3$.2f €: + Trompeten\nAb %4$.2f €: + Diskokugel\nAb %5$.2f €: + Tänzer und Spiegelung</string>
 </resources>

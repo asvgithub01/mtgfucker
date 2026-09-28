@@ -44,6 +44,7 @@ class SetCollectionActivity : AppCompatActivity() {
         MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_set_collection)
+        CollectionScreenBackground.install(this)
         setCode = intent.getStringExtra(EXTRA_SET_CODE).orEmpty()
         val setName = intent.getStringExtra(EXTRA_SET_NAME).orEmpty()
         if (setCode.isBlank()) {

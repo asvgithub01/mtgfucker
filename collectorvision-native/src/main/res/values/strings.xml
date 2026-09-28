@@ -43,4 +43,8 @@
   <string name="edscan_session_total">Sesi贸n: %1$d copias 路 %4$s (min:s) 路 %2$s 路 %3$d sin precio</string>
   <string name="cv_native_ambiguous_margin">No guardada: candidatos muy parecidos; impresi贸n sin confirmar. Margen %1$.3f, m铆nimo %2$.3f. Prueba otra posici贸n o revisa los ajustes.</string>
   <string name="cv_native_saved_provisional">Guardada con edici贸n provisional. Revisar en postprocesado.</string>
+  <string name="party_balloons">Globos de abajo hacia arriba</string>
+  <string name="party_trumpets">Trompetas laterales con confeti</string>
+  <string name="party_disco">Bola disco, luces y m鷖ica (4 s)</string>
+  <string name="party_effects_hint">El confeti siempre aparece al superar el umbral. A馻de los efectos que quieras.</string>
 </resources>

@@ -43,4 +43,8 @@
   <string name="edscan_session_total">Session : %1$d exemplaires · %4$s (min:s) · %2$s · %3$d sans prix</string>
   <string name="cv_native_ambiguous_margin">Non enregistrée : candidats trop proches ; impression non confirmée. Écart %1$.3f, minimum %2$.3f. Essayez une autre position ou vérifiez les réglages.</string>
   <string name="cv_native_saved_provisional">Enregistrée avec une impression provisoire. À vérifier en post-traitement.</string>
+  <string name="party_balloons">Ballons qui montent</string>
+  <string name="party_trumpets">Trompettes lat�rales avec confettis</string>
+  <string name="party_disco">Boule disco, lumi�res et musique (4 s)</string>
+  <string name="party_effects_hint">Les confettis apparaissent toujours au-dessus du seuil. Choisissez les effets suppl�mentaires.</string>
 </resources>

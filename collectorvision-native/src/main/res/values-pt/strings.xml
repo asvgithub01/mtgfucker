@@ -43,4 +43,8 @@
   <string name="edscan_session_total">Sess茫o: %1$d c贸pias 路 %4$s (min:s) 路 %2$s 路 %3$d sem pre莽o</string>
   <string name="cv_native_ambiguous_margin">N茫o guardada: candidatos muito semelhantes; impress茫o n茫o confirmada. Margem %1$.3f, m铆nimo %2$.3f. Experimente outra posi莽茫o ou reveja os ajustes.</string>
   <string name="cv_native_saved_provisional">Guardada com impress茫o provis贸ria. Rever no p贸s-processamento.</string>
+  <string name="party_balloons">Bal鮡s a subir</string>
+  <string name="party_trumpets">Trompetes laterais com confetes</string>
+  <string name="party_disco">Bola de discoteca, luzes e m鷖ica (4 s)</string>
+  <string name="party_effects_hint">Os confetes aparecem sempre acima do limite. Escolha os efeitos adicionais.</string>
 </resources>

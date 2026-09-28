@@ -24,7 +24,7 @@
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.
 - CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,
-  Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral configurable de confeti con OCR; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
+  Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral y checks de efectos con OCR; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; `scripts/generate_scan_disco.py` regenera la melodía original de 4 s; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
   `NOTICE.md` del módulo antes de distribuir. No conectar autoañadido sin validar
   impresión/idioma/acabado; no quitar los SHA de assets para resolver una descarga fallida.

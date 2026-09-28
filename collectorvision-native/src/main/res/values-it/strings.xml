@@ -43,4 +43,8 @@
   <string name="edscan_session_total">Sessione: %1$d copie · %4$s (min:s) · %2$s · %3$d senza prezzo</string>
   <string name="cv_native_ambiguous_margin">Non salvata: candidati troppo simili; stampa non confermata. Margine %1$.3f, minimo %2$.3f. Prova un’altra posizione o controlla le impostazioni.</string>
   <string name="cv_native_saved_provisional">Salvata con stampa provvisoria. Verificare nella post-elaborazione.</string>
+  <string name="party_balloons">Palloncini verso l�alto</string>
+  <string name="party_trumpets">Trombe laterali con coriandoli</string>
+  <string name="party_disco">Sfera disco, luci e musica (4 s)</string>
+  <string name="party_effects_hint">I coriandoli appaiono sempre oltre la soglia. Scegli gli effetti aggiuntivi.</string>
 </resources>

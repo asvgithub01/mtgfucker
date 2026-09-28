@@ -43,4 +43,8 @@
   <string name="edscan_session_total">Sitzung: %1$d Exemplare · %4$s (min:s) · %2$s · %3$d ohne Preis</string>
   <string name="cv_native_ambiguous_margin">Nicht gespeichert: Kandidaten zu ähnlich; Druckversion unbestätigt. Abstand %1$.3f, Minimum %2$.3f. Andere Position versuchen oder Einstellungen prüfen.</string>
   <string name="cv_native_saved_provisional">Mit vorläufiger Druckversion gespeichert. In der Nachbearbeitung prüfen.</string>
+  <string name="party_balloons">Aufsteigende Luftballons</string>
+  <string name="party_trumpets">Seitliche Trompeten mit Konfetti</string>
+  <string name="party_disco">Diskokugel, Licht und Musik (4 s)</string>
+  <string name="party_effects_hint">Konfetti erscheint immer �ber dem Grenzwert. W�hle zus�tzliche Effekte.</string>
 </resources>

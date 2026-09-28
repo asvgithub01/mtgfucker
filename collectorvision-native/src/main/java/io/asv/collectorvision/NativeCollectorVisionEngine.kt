@@ -17,7 +17,7 @@ import java.nio.FloatBuffer
 import kotlin.math.min
 
 /** Blocking CPU pipeline. Own on a single worker; never call on the camera/UI thread. */
-class NativeCollectorVisionEngine private constructor(private val directory: File) : AutoCloseable {
+class NativeCollectorVisionEngine private constructor(private val directory: File, includeFra: Boolean) : AutoCloseable {
     private val env = OrtEnvironment.getEnvironment()
     private val detector: OrtSession
     private val embedder: OrtSession
@@ -37,20 +37,31 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             catch (error: Throwable) { detector.close(); throw error }
         } finally { options.close() }
         try {
-            val bytes = File(directory,"scryfall-mtg-embeddings.f16.bin").readBytes()
-            require(bytes.size == 109711*128*2)
+            val baseBytes = File(directory,"scryfall-mtg-embeddings.f16.bin").readBytes()
+            val extraBytes = File(directory,CollectorVisionAssets.FRA_EMBEDDINGS).readBytes()
+            val baseIds=JSONArray(File(directory,"scryfall-mtg-card-ids.json").readText())
+            val extraIds=JSONArray(File(directory,CollectorVisionAssets.FRA_IDS).readText())
+            require(baseIds.length()==109711 && baseBytes.size==baseIds.length()*128*2)
+            require(extraIds.length()==CollectorVisionAssets.FRA_ROWS && extraBytes.size==extraIds.length()*128*2)
+            val collectorBytes = File(directory,CollectorVisionAssets.COLLECTOR_EMBEDDINGS).readBytes()
+            val collectorIds = JSONArray(File(directory,CollectorVisionAssets.COLLECTOR_IDS).readText())
+            require(collectorIds.length() == CollectorVisionAssets.COLLECTOR_ROWS && collectorBytes.size == collectorIds.length()*128*2)
+            val bytes=if(includeFra) baseBytes+extraBytes+collectorBytes else baseBytes
             val shorts=ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
             catalog=ShortArray(shorts.remaining()).also { shorts.get(it) }
-            val json=JSONArray(File(directory,"scryfall-mtg-card-ids.json").readText())
-            require(json.length()==109711)
-            ids=(0 until json.length()).map { json.getString(it) }
+            ids=(0 until baseIds.length()).map { baseIds.getString(it) } +
+                if(includeFra) (0 until extraIds.length()).map { extraIds.getString(it) } +
+                    (0 until collectorIds.length()).map { collectorIds.getString(it) } else emptyList()
+            require(ids.size==ids.toSet().size) { "Duplicate visual catalog identifiers" }
         } catch (error: Throwable) { detector.close(); embedder.close(); throw error }
     }
     companion object {
+        fun prepareCatalogComparison(context: Context, includeFra: Boolean): NativeCollectorVisionEngine =
+            NativeCollectorVisionEngine(CollectorVisionAssets.prepare(context) {},includeFra)
         fun prepare(context: Context, onProgress: (String)->Unit = {}): NativeCollectorVisionEngine {
             val directory=CollectorVisionAssets.prepare(context,onProgress)
             onProgress("ONNX · CPU")
-            return NativeCollectorVisionEngine(directory)
+            return NativeCollectorVisionEngine(directory,true)
         }
     }
     @Synchronized
@@ -65,6 +76,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         if (!present) return ScanResult(corners,false,sharpness,emptyList(),detectionMs,0)
         val recStart=SystemClock.elapsedRealtime()
         val crop=warp(bitmap,corners)
+        var photoRotated = false
         val hits=try {
             val normal=search(CollectorVisionMath.normalize(run(embedder,crop,448,listOf("embedding"))[0]))
             // Shortest-edge canonicalization can reverse the card. Test both orientations.
@@ -72,11 +84,12 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             val rotated=Bitmap.createBitmap(crop,0,0,crop.width,crop.height,matrix,true)
             try {
                 val upsideDown=search(CollectorVisionMath.normalize(run(embedder,rotated,448,listOf("embedding"))[0]))
+                photoRotated = CollectorVisionMath.prefersRotated(normal, upsideDown)
                 (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
-                    .sortedByDescending { it.score }.take(3)
+                    .sortedByDescending { it.score }.take(8)
             } finally { if (rotated !== crop) rotated.recycle() }
         } finally { crop.recycle() }
-        return ScanResult(corners,true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart)
+        return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0)
     }
     private fun run(session: OrtSession, bitmap: Bitmap, size: Int, names: List<String>): List<FloatArray> {
         val scaled=Bitmap.createScaledBitmap(bitmap,size,size,true)
@@ -112,12 +125,12 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     }
     private fun search(query: FloatArray): List<Hit> {
         require(query.size==128)
-        val bestScores=FloatArray(3) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(3) { -1 }
+        val bestScores=FloatArray(8) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(8) { -1 }
         for (row in ids.indices) {
             var sum=0f; val offset=row*128
             for (col in 0 until 128) sum+=halfLookup[catalog[offset+col].toInt() and 65535]*query[col]
-            for (k in 0..2) if (sum>bestScores[k]) {
-                for (j in 2 downTo k+1) { bestScores[j]=bestScores[j-1];bestIds[j]=bestIds[j-1] }
+            for (k in bestScores.indices) if (sum>bestScores[k]) {
+                for (j in bestScores.lastIndex downTo k+1) { bestScores[j]=bestScores[j-1];bestIds[j]=bestIds[j-1] }
                 bestScores[k]=sum;bestIds[k]=row;break
             }
         }

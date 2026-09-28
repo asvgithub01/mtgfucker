@@ -37,6 +37,11 @@ object ScannerSettings {
         preferences(context).edit().putBoolean("enhanced_ocr_experiment", enabled).apply()
     }
 
+    @JvmStatic fun saveOcrPhotos(context: Context): Boolean = preferences(context).getBoolean("save_ocr_photos", false)
+    @JvmStatic fun setSaveOcrPhotos(context: Context, enabled: Boolean) {
+        preferences(context).edit().putBoolean("save_ocr_photos", enabled).apply()
+    }
+
     private fun preferences(context: Context) =
         context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 }

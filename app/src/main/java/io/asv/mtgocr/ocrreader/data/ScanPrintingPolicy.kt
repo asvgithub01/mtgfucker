@@ -16,6 +16,22 @@ object ScanPrintingPolicy {
             ?: options.firstOrNull()
     }
 
+    /** Cheapest known price among the five newest sets, never an expensive historical default. */
+    fun recentAffordable(options: List<CardEditionOption>, preferFoil: Boolean,
+        amount: (CardEditionOption) -> Double? = { it.price }): CardEditionOption? {
+        val finish = if (preferFoil) "foil" else "nonfoil"
+        val eligible = options.filter { it.finish == finish }
+        if (eligible.isEmpty()) return null
+        val recentSets = eligible.sortedWith(compareByDescending<CardEditionOption> { it.releaseDate }
+            .thenBy { it.setCode }).map { it.setCode }.distinct().take(5).toSet()
+        val recent = eligible.filter { it.setCode in recentSets }
+        val priced = recent.filter { amount(it)?.let { value -> value.isFinite() && value >= 0 } == true }
+        return if (priced.isEmpty()) recent.sortedWith(compareByDescending<CardEditionOption> { it.releaseDate }
+            .thenBy { it.printingUuid }).firstOrNull()
+        else priced.sortedWith(compareBy<CardEditionOption> { amount(it) }
+            .thenByDescending { it.releaseDate }.thenBy { it.printingUuid }).firstOrNull()
+    }
+
     /** Returns immediately usable metadata only when the eligible catalog has one printing UUID. */
     fun singleEligible(
         options: List<CardEditionOption>,

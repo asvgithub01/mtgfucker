@@ -71,7 +71,8 @@ object LegacyCollectionStore {
         return added
     }
 
-    /** Adds physical copies in one save, folding into the matching name/printing/finish row. */
+    /** Adds copies in one save. EdScan opts out of merging to retain one identity per scan. */
+    @Synchronized
     fun addCopy(
         context: Context,
         option: CardEditionOption,
@@ -80,18 +81,20 @@ object LegacyCollectionStore {
         copies: Int = 1,
         preferredCollectionItemId: String? = null,
         groupName: String? = null,
-        expectedLibraryFile: String? = null
+        expectedLibraryFile: String? = null,
+        mergeExisting: Boolean = true
     ): CardInfo {
         require(copies in 1..99)
+        require(mergeExisting || copies == 1) { "Separate scan entries accept one copy per call" }
         val activeLibrary = LibraryCatalog.active(context)
         check(expectedLibraryFile == null || activeLibrary.fileName == expectedLibraryFile) { "La biblioteca activa ha cambiado" }
         val collection = DataUtils.readSerializable<Biblio>(context, activeLibrary.fileName)
             ?: Biblio(activeLibrary.fileName, activeLibrary.name)
-        val result = if (groupName == null) addCopiesToCollection(collection, option, languageCode, copies, preferredCollectionItemId)
+        val result = if (groupName == null && mergeExisting) addCopiesToCollection(collection, option, languageCode, copies, preferredCollectionItemId)
             else {
-                require(groupName.isNotBlank() && preferredCollectionItemId == null)
+                require((groupName == null || groupName.isNotBlank()) && preferredCollectionItemId == null)
                 var added: CardInfo? = null
-                repeat(copies) { added = addCopyToCollection(collection, option, languageCode, groupName) }
+                repeat(copies) { added = addCopyToCollection(collection, option, languageCode, groupName, mergeExisting) }
                 requireNotNull(added)
             }
         val evidenceFiles = ArrayList<File>()
@@ -211,10 +214,12 @@ object LegacyCollectionStore {
         collection: Biblio,
         option: CardEditionOption,
         languageCode: String = "",
-        groupName: String? = null
+        groupName: String? = null,
+        mergeExisting: Boolean = true
     ): CardInfo {
         val normalizedLanguage = CardLanguage.toCode(languageCode)
         val existing = collection.cards.firstOrNull { card ->
+            mergeExisting &&
             samePrinting(card, option) &&
                 card.condition == CardCondition.NEAR_MINT &&
                 (groupName == null || (card.groups == listOf(groupName) && card.decks.isEmpty() &&
@@ -324,6 +329,74 @@ object LegacyCollectionStore {
         return CopyRemovalResult(remaining.coerceAtLeast(0), card.collectionItemId)
     }
 
+    /** Edit one exact row only; never fall back to another copy/printing on stale UI input. */
+    fun editRecentQuantity(context: Context, library: String, itemId: String, delta: Int, delete: Boolean, expected: CardInfo? = null): Boolean {
+        if (fileName(context) != library) return false
+        val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return false
+        if (!editRecentQuantityInCollection(collection, itemId, delta, delete, expected)) return false
+        DataUtils.saveSerializable(context, collection, library)
+        OcrCaptureActivity.mBiblio = collection
+        return true
+    }
+
+    internal fun editRecentQuantityInCollection(collection: Biblio, itemId: String, delta: Int, delete: Boolean, expected: CardInfo? = null): Boolean {
+        val card = collection.cards.firstOrNull { it.collectionItemId == itemId } ?: return false
+        if (expected != null && (card.printingUuid != expected.printingUuid || card.finish != expected.finish ||
+            card.languageCode != expected.languageCode || card.quantity != expected.quantity)) return false
+        if (delete) collection.cards.remove(card)
+        else {
+            val next = card.quantityCount.toLong() + delta
+            if (next !in 1..Int.MAX_VALUE.toLong()) return false
+            card.quantityCount = next.toInt()
+        }
+        return true
+    }
+
+    /** Explicit visual-review correction can change card identity, not only its set. */
+    fun applyReviewedPrinting(context: Context, library: String, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null): CardInfo? {
+        if (fileName(context) != library) return null
+        val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return null
+        val current = applyReviewedPrintingInCollection(collection, expected, option, targetLanguage) ?: return null
+        DataUtils.saveSerializable(context,collection,library)
+        OcrCaptureActivity.mBiblio=collection
+        return current
+    }
+
+    internal fun applyReviewedPrintingInCollection(collection: Biblio, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null): CardInfo? {
+        val current = collection.cards.firstOrNull { it.collectionItemId == expected.collectionItemId } ?: return null
+        if (current.printingUuid != expected.printingUuid || current.finish != expected.finish ||
+            current.languageCode != expected.languageCode || option.finish != current.finish) return null
+        updateEditionInCollection(collection,current.collectionItemId,option)
+        if (targetLanguage != null) current.languageCode = CardLanguage.toCode(targetLanguage)
+        current.name = option.displayName
+        current.description = listOf(option.typeLine,option.rulesText).filter { it.isNotBlank() }.joinToString("\n")
+        return current
+    }
+
+    /** Price-only merge: never revert a later edition/finish change or alter quantities. */
+    @Synchronized fun applyScanPrice(context: Context, library: String, itemId: String,
+        uuid: String, finish: String, amount: Double, currency: String): Boolean = synchronized(DataUtils::class.java) {
+        val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return@synchronized false
+        val card = collection.cards.firstOrNull { it.collectionItemId == itemId } ?: return@synchronized false
+        if (!applyScanPriceToCard(card, uuid, finish, amount, currency)) return@synchronized false
+        DataUtils.saveSerializable(context, collection, library)
+        if (LibraryCatalog.activeFile(context) == library) {
+            OcrCaptureActivity.mBiblio?.takeIf { it.nameFile == library }?.cards
+                ?.firstOrNull { it.collectionItemId == itemId }
+                ?.let { applyScanPriceToCard(it, uuid, finish, amount, currency) }
+        }
+        val saved = DataUtils.readSerializable<Biblio>(context, library)?.cards?.firstOrNull { it.collectionItemId == itemId }
+        check(saved?.price == card.price) { "Could not persist scan price" }
+        true
+    }
+
+    internal fun applyScanPriceToCard(card: CardInfo, uuid: String, finish: String, amount: Double, currency: String): Boolean {
+        if (card.printingUuid != uuid || normalizeFinish(card.finish) != normalizeFinish(finish) || !amount.isFinite() || amount < 0) return false
+        card.price = "%.2f %s".format(Locale.US, amount, currency)
+        card.priceL = amount.toString(); card.priceM = amount.toString(); card.priceH = amount.toString()
+        return true
+    }
+
     fun updateSelectedEdition(
         context: Context,
         collectionItemId: String,
@@ -340,6 +413,7 @@ object LegacyCollectionStore {
 
     internal fun updateEditionInCollection(collection: Biblio, collectionItemId: String, option: CardEditionOption): CardInfo? {
         val card = collection.cards.firstOrNull { it.collectionItemId == collectionItemId } ?: return null
+        card.setProvisionalEdition(false)
         card.printingUuid = option.printingUuid
         card.mcmId = option.mcmId
         card.mcmMetaId = option.mcmMetaId

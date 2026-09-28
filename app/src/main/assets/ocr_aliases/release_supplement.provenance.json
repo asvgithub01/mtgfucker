@@ -1,0 +1,25 @@
+{
+  "generatedOn": "2026-09-28",
+  "sets": [
+    "FRA",
+    "FRC"
+  ],
+  "languages": [
+    "English"
+  ],
+  "aliases": 393,
+  "sources": [
+    {
+      "url": "https://mtgjson.com/api/v5/FRA.json",
+      "snapshot": "2026-09-27",
+      "sha256": "044dfb4f19564a8b796fb205759a64d0c22f59eea07ac58ea46e2e44b316eb8c"
+    },
+    {
+      "url": "https://api.scryfall.com/cards/search?q=set%3Afrc&unique=prints&include_multilingual=true",
+      "records": 103,
+      "sha256": "e13497ff80ff7e137c20a42b2a881ac73472aa0e246956707ab22dcf14f68b07"
+    }
+  ],
+  "assetSha256": "becdec1bf455878b41babe223d60d6dca1d3ef3bcf947617d07245e82e0a525c",
+  "scope": "OCR aliases only; does not add FRC visual embeddings or localized names unavailable from these snapshots."
+}

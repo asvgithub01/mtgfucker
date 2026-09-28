@@ -24,7 +24,7 @@
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.
 - CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,
-  Milo y catálogo ONNX CPU. EdScan y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
+  Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral configurable de confeti con OCR; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
   `NOTICE.md` del módulo antes de distribuir. No conectar autoañadido sin validar
   impresión/idioma/acabado; no quitar los SHA de assets para resolver una descarga fallida.
@@ -40,6 +40,7 @@
 
 | Área | Archivos de entrada |
 | --- | --- |
+| Vistas de colección y borrado | `FourCardLayoutManager.kt`: completas2×2, arte1×2/2×3 horizontal; `HoldToDelete.kt`: botón inline, mantener1s y confirmar porID. Lista clásica retirada. |
 | CollectorVision nativo aislado | Host `CorneliusScanActivity.kt` guarda en grupos Cornelius N mediante UUID exacta. Módulo `collectorvision-native/`: `NativeCollectorVisionActivity.kt`, `NativeCollectorVisionEngine.kt`, `CollectorVisionAssets.kt`, `CollectorVisionAcceptanceGate.kt`; preview separado del análisis, sonido solo al reconocer; flags persistentes de filtros/rápido y miniatura; precio Scryfall asíncrono por UUID/acabado. Demo WebView sin entrada activa |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
@@ -66,6 +67,8 @@
 | Idioma, acabado, condición y moneda | `data/CardLanguage.kt`, `CardFinish.kt`, `model/CardCondition.kt`, `data/PriceCurrency.kt` |
 | Sincronización cloud | `CloudLibrarySync.kt`, `CloudAccountActivity.kt`; el backfill Cardmarket vive en `data/CardRepository.kt`; consultar `FIREBASE_SETUP.md` |
 
+Estado consolidado del reconocimiento, reglas y pendientes: `RECOGNITION_RULES_HANDOFF.md`.
+
 Documentación adicional, solo cuando sea relevante: `DATA_PROVIDERS.md` para datos y
 `SCANNER_ROADMAP.md` para planes futuros. Contrastar con el código: el roadmap no implica
 funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactualizadas.
@@ -81,6 +84,10 @@ funcionalidad implementada y las notas antiguas sobre OCR pueden estar desactual
 
 - ZoomCameraX persiste ratio porActivity/trasera en `camera_zoom`; no guardar el1x inicial delobserver. Restaurar antes de analizar y descartar callbacks de binds anteriores.
 - `RulesRetryPolicy`: máximo3capturas live+auto recuperables, jamáscombinar evidencias entre fotos ni rebajar umbrales. Solo `returnToCamera(preserveRulesRetry=true)` conserva contador; no confundirconSymbolRetryPolicylegacy.
+
+Los alias OCR de novedades se incluyen en `app/src/main/assets/ocr_aliases/release_supplement.tsv`
+(procedencia JSON al lado), importados por `MtgJsonCardNameResolver` mediante `BundledOcrNames`.
+Actualizar índices visuales no actualiza este diccionario; comprobar también las colecciones Commander.
 
 ## Invariantes que no se deben romper
 
@@ -307,3 +314,11 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - `RulesCaptureGate` solo en captura live reglas, tras rectificar y antes snapshot/unbind/OCR: títuloLaplacian<10 con footer>100 pide nuevo encuadre, máximo2rechazos consecutivos y después deja analizar. No prueba ausencia/oclusión; datos no finitos/desconocidos pasan, blanco uniforme pasa. Rechazo recicla bitmap yreseteaestabilidad/historial, no cuenta intentoOCR ni escribe colección. Manual yotros scannerssin cambios. Umbralesexperimentales corpuslimitado, no generalizar a layouts sin título.
 
 - v18bordesA/B: flagrules_scanner.fixed_bounds,coordenadassoloActivity. AutoOpenCvCardDetector(preferOuter=true) solo reglas; otrosmodosfalse. Fijocalibra desdeframeYlive con4esquinasmanualmente,no reutilizarstillJPEGdedistintoFOV. Guardarzoom/rotación; conservarreferenciarebindmismozoom. Toggleinhibido durantecaptura/corrección. RulesScanReport retieneoriginal.jpg+boundaryQuad+boundaryMode juntocard.jpg,30carpetasprivadas. No confundir plantilla fijacon detecciónactualdepresenciacarta.
+
+## Galería y revisiones de escaneo
+- Galería compartida: `CardImageActivity.kt`, `activity_card_image.xml`; ViewPager2 horizontal y tira RecyclerView miniatura/precio. No condicionar el gesto a una imagen descargada. Zoom conserva interceptación propia.
+- OCR sin set: `ScanPrintingPolicy.recentAffordable`, mínimo precio conocido entre cinco sets recientes del mismo acabado. `CardInfo.provisionalEdition` también debe copiarse en snapshots; selección manual lo desmarca. No sustituir UUID/acabado elegidos en callbacks tardíos.
+- Postproceso: `ScanReviewActivity`/`ScanReviewStore` listan evidencia y revisión humana. EdScan analiza idioma; reanálisis visual manual conserva origen y usa intento UUID separado en `EdScanJobs`/`ScanReviewStore`, sin sustituir evidencia de idioma. No reutilizar archivos de resultados entre intentos. OCR original flag `save_ocr_photos` copia frame NV21 antes de filtros (`OcrFramePhoto`, callback por frameId) y encola matching visual con `EdScanVerificationWorker`. No atribuir una captura posterior a OCR anterior. Ver `SCAN_REVIEW_PLAN.md`.
+- Tira recientes compartida `RecentScansView` en OCR original y CorneliusScanActivity: últimas30filas, acciones por collectionItemId. `addHostRecentControls` es el hook inferior del módulo nativo. Confirmar borrado; no sustituir impresión/acabado/idioma por callbacks tardíos.
+
+- Índices FRA: `REALITY_FRACTURE_INDEX_UPDATE.md`, scripts `update_reality_fracture_indices.py` y `merge_reality_fracture_metadata.py`. EdScan conserva catálogo base y carga suplemento empaquetado SHA fijo; no cambiar modelo ni eliminar comprobaciones. Al ampliar hash regenerar APV1/PFR1/TLV1 juntos (PFR1 está ligado al SHA de APV1).

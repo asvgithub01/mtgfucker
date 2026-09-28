@@ -22,10 +22,25 @@
   <string name="cv_native_save_failed">Could not confirm the save. Remove the card before retrying.</string>
   <string name="cv_native_safety_filters">Safety filters</string>
   <string name="cv_native_filtered_hint">Filtered: 3 readings ≥0.70 and margin ≥0.08.</string>
-  <string name="cv_native_fast_hint">Fast: first candidate ≥0.50. Higher risk of errors.</string>
+  <string name="cv_native_fast_hint">Fast: 1 reading ≥0.80, margin ≥0.08; otherwise 2 readings ≥0.55, margin ≥0.04.</string>
   <string name="cv_native_show_thumbnail">Show analyzed thumbnail</string>
   <string name="cv_native_price_idle">Price of last recognized card</string>
   <string name="cv_native_price_loading">Loading price…</string>
   <string name="cv_native_price_unavailable">Price unavailable</string>
   <string name="edscan_save_photos">Save photo for language OCR (experimental)</string>
+  <string name="party_settings">Confetti</string>
+  <string name="party_threshold_value">Confetti above €%.2f</string>
+  <string name="party_threshold_hint">From €0.50 to €20, in €0.50 steps. Shared by EdScan and OCR; uses the euro price.</string>
+  <string name="edscan_tuning_title">Tune</string>
+  <string name="edscan_tuning_values">Fast: ≥%1$.2f · margin ≥%2$.2f · %3$d readings</string>
+  <string name="edscan_tuning_score">Minimum similarity: %.2f</string>
+  <string name="edscan_tuning_margin">Minimum margin: %.2f</string>
+  <string name="edscan_tuning_score_label">Minimum similarity</string>
+  <string name="edscan_tuning_margin_label">Minimum margin</string>
+  <string name="edscan_tuning_twice">Require two matching readings</string>
+  <string name="edscan_tuning_hint">Fast mode only. Strong candidates (≥0.80 and margin ≥0.08) remain immediate if they meet your minimums. Lower values or one reading increase mistakes.</string>
+  <string name="edscan_tuning_reset">Reset 0.55 / 0.04</string>
+  <string name="edscan_session_total">Session: %1$d copies · %4$s (min:s) · %2$s · %3$d unpriced</string>
+  <string name="cv_native_ambiguous_margin">Not saved: candidates are too similar; printing is unconfirmed. Margin %1$.3f, minimum %2$.3f. Try another position or review the settings.</string>
+  <string name="cv_native_saved_provisional">Saved with provisional printing. Review in postprocessing.</string>
 </resources>

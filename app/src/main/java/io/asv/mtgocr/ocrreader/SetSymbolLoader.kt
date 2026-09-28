@@ -31,13 +31,22 @@ object SetSymbolLoader {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
-    fun display(context: Context, setCode: String, target: ImageView) {
+    private val fallbacks = java.util.WeakHashMap<ImageView, Int>()
+
+    private fun showFallback(target: ImageView) {
+        val resource = fallbacks[target] ?: 0
+        if (resource != 0) target.setImageResource(resource) else target.setImageDrawable(null)
+        target.visibility = if (resource != 0) View.VISIBLE else View.GONE
+    }
+
+    @JvmOverloads
+    fun display(context: Context, setCode: String, target: ImageView, fallbackResource: Int = 0) {
+        fallbacks[target] = fallbackResource
         val appContext = context.applicationContext
         val code = setCode.trim().lowercase(Locale.ROOT)
         if (code.isBlank()) {
             target.tag = null
-            target.setImageDrawable(null)
-            target.visibility = View.GONE
+            showFallback(target)
             return
         }
         val url = "https://svgs.scryfall.io/sets/$code.svg"
@@ -48,12 +57,12 @@ object SetSymbolLoader {
             target.visibility = View.VISIBLE
             return
         }
-        target.setImageDrawable(CardLoadingDrawable())
+        if (fallbackResource != 0) target.setImageResource(fallbackResource)
+        else target.setImageDrawable(CardLoadingDrawable())
         target.visibility = View.VISIBLE
         synchronized(unavailable) {
             if (code in unavailable) {
-                target.setImageDrawable(null)
-                target.visibility = View.GONE
+                showFallback(target)
                 return
             }
             waitingTargets.getOrPut(code) { mutableListOf() }.add(WeakReference(target))
@@ -74,8 +83,7 @@ object SetSymbolLoader {
                     val waitingTarget = reference.get() ?: return@forEach
                     if (waitingTarget.tag != url) return@forEach
                     if (bitmap == null) {
-                        waitingTarget.setImageDrawable(null)
-                        waitingTarget.visibility = View.GONE
+                        showFallback(waitingTarget)
                     } else {
                         waitingTarget.setImageBitmap(bitmap)
                         waitingTarget.visibility = View.VISIBLE

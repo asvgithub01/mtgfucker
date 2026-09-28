@@ -10,7 +10,7 @@ public final class CollectionViewMode {
   private CollectionViewMode() { }
 
   public static int sanitize(int mode) {
-    return mode >= LIST && mode <= ARTWORK_GRID ? mode : LIST;
+    return mode >= CARD_GRID && mode <= ARTWORK_GRID ? mode : CARD_GRID;
   }
 
   public static boolean usesArtwork(int mode) {

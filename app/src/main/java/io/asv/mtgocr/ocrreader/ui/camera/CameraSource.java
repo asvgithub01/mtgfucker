@@ -356,6 +356,7 @@ public class CameraSource {
             mProcessingThread = new Thread(mFrameProcessor);
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
+            io.asv.collectorvision.EdScanInferencePriority.INSTANCE.acquire(this);
         }
         return this;
     }
@@ -381,6 +382,7 @@ public class CameraSource {
             mProcessingThread = new Thread(mFrameProcessor);
             mFrameProcessor.setActive(true);
             mProcessingThread.start();
+            io.asv.collectorvision.EdScanInferencePriority.INSTANCE.acquire(this);
         }
         return this;
     }
@@ -396,6 +398,7 @@ public class CameraSource {
      */
     public void stop() {
         synchronized (mCameraLock) {
+          try {
             mFrameProcessor.setActive(false);
             if (mProcessingThread != null) {
                 try {
@@ -434,6 +437,9 @@ public class CameraSource {
                 mCamera.release();
                 mCamera = null;
             }
+          } finally {
+            io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
+          }
         }
     }
 
@@ -1081,6 +1087,12 @@ public class CameraSource {
      * associated processing are done for the previous frame, detection on the mostly recently
      * received frame will immediately start on the same thread.
      */
+    private volatile io.asv.mtgocr.ocrreader.OcrFramePhoto.Frame evidenceFrame;
+    public io.asv.mtgocr.ocrreader.OcrFramePhoto.Frame evidenceFor(int frameId) {
+        io.asv.mtgocr.ocrreader.OcrFramePhoto.Frame frame = evidenceFrame;
+        return frame != null && frame.getId() == frameId ? frame : null;
+    }
+
     private class FrameProcessingRunnable implements Runnable {
         private Detector<?> mDetector;
         private long mStartTimeMillis = SystemClock.elapsedRealtime();
@@ -1215,6 +1227,9 @@ public class CameraSource {
                 // frame.
 
                 try {
+                    evidenceFrame = io.asv.mtgocr.ocrreader.ScannerSettings.saveOcrPhotos(mContext)
+                        ? io.asv.mtgocr.ocrreader.OcrFramePhoto.snapshot(outputFrame.getMetadata().getId(),
+                            data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation) : null;
                     if (io.asv.mtgocr.ocrreader.ScannerSettings.enhancedOcr(mContext)) {
                         OcrLumaEnhancer.enhanceExperimental(data.array(), mPreviewSize.getWidth(), mPreviewSize.getHeight(), mRotation);
                     } else {
@@ -1224,6 +1239,7 @@ public class CameraSource {
                 } catch (Throwable t) {
                     Log.e(TAG, "Exception thrown from receiver.", t);
                 } finally {
+                    evidenceFrame = null;
                     mCamera.addCallbackBuffer(data.array());
                 }
             }

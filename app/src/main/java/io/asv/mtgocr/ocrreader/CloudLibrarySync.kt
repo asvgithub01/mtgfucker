@@ -116,6 +116,8 @@ object CloudLibrarySync {
         val snapshot = collection.snapshotForPersistence()
         pendingUploads[key] = scope.launch {
             delay(UPLOAD_DELAY_MS)
+            // Automatic cloud encoding/upload must yield to the live scanner. Local save is already durable.
+            io.asv.collectorvision.EdScanInferencePriority.awaitIdle()
             runCatching {
                 syncMutex.withLock {
                     val current = DataUtils.readSerializable<Biblio>(context, library.fileName)

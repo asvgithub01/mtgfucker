@@ -1,230 +1,31 @@
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#000000">
-
-    <FrameLayout
-        android:id="@+id/cardPagerStage"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <io.asv.mtgocr.ocrreader.ZoomableImageView
-            android:id="@+id/previousCardImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0"
-            android:enabled="false"
-            android:paddingTop="52dp"
-            android:paddingBottom="74dp" />
-
-        <io.asv.mtgocr.ocrreader.ZoomableImageView
-            android:id="@+id/nextCardImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0"
-            android:enabled="false"
-            android:paddingTop="52dp"
-            android:paddingBottom="74dp" />
-
-        <io.asv.mtgocr.ocrreader.ZoomableImageView
-            android:id="@+id/fullscreenCardImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clickable="true"
-            android:contentDescription="@string/card_image"
-            android:paddingTop="52dp"
-            android:paddingBottom="74dp" />
-
-        <ImageView
-            android:id="@+id/imgFullscreenFoilBadge"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="24dp"
-            android:layout_marginBottom="82dp"
-            android:contentDescription="@string/foil_card_badge"
-            android:src="@drawable/ic_foil_badge"
-            android:visibility="gone" />
+<?xml version='1.0' encoding='utf-8'?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+    <FrameLayout android:id="@+id/cardPagerStage" android:layout_marginTop="120dp" android:layout_marginBottom="176dp" android:layout_width="match_parent" android:layout_height="match_parent">
+        <androidx.viewpager2.widget.ViewPager2 android:id="@+id/galleryPager" android:layout_width="match_parent" android:layout_height="match_parent" />
+        <ImageView android:id="@+id/imgFullscreenFoilBadge" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="bottom|end" android:layout_marginEnd="24dp" android:layout_marginBottom="8dp" android:contentDescription="@string/foil_card_badge" android:src="@drawable/ic_foil_badge" android:visibility="gone" />
     </FrameLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="14dp">
-
-        <TextView
-            android:id="@+id/txtCardImagePrice"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/gallery_price_badge"
-            android:gravity="center"
-            android:minWidth="112dp"
-            android:paddingStart="18dp"
-            android:paddingTop="9dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="9dp"
-            android:textColor="@color/scan_total_complete"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnCardImageDetails"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:text="@string/view_card_details"
-            android:visibility="gone" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:layout_marginBottom="110dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="16dp" android:paddingEnd="16dp" android:paddingBottom="14dp">
+        <TextView android:id="@+id/txtCardImagePrice" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:background="@drawable/gallery_price_badge" android:gravity="center" android:minWidth="112dp" android:paddingStart="18dp" android:paddingTop="9dp" android:paddingEnd="18dp" android:paddingBottom="9dp" android:textColor="@color/scan_total_complete" android:textSize="20sp" android:textStyle="bold" />
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        android:background="#AA000000"
-        android:orientation="vertical"
-        android:padding="6dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/txtCardImagePage"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp" />
-
-            <Button
-                android:id="@+id/btnCloseCardImage"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/close" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="top" android:background="#AA000000" android:orientation="vertical" android:padding="6dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:id="@+id/txtCardImagePage" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:ellipsize="end" android:maxLines="2" android:textColor="#FFFFFF" android:textSize="14sp" />
+            <ImageButton android:id="@+id/btnCardImageDetails" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="10dp" android:visibility="gone" android:contentDescription="@string/view_card_details" android:background="?attr/selectableItemBackgroundBorderless" android:padding="12dp" android:minWidth="0dp" android:minHeight="0dp" android:src="@android:drawable/ic_menu_info_details" android:tint="#FFFFFF" />
+            <Button android:id="@+id/btnCloseCardImage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/close" />
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ProgressBar
-                android:id="@+id/cardLanguageProgress"
-                style="?android:attr/progressBarStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <Spinner
-                android:id="@+id/cardLanguageSpinner"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:background="@drawable/gallery_language_background"
-                android:dropDownWidth="match_parent"
-                android:popupBackground="@drawable/gallery_language_background"
-                android:spinnerMode="dropdown"
-                android:visibility="gone" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+            <ProgressBar android:id="@+id/cardLanguageProgress" style="?android:attr/progressBarStyleSmall" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/cardLanguageSpinner" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:background="@drawable/gallery_language_background" android:dropDownWidth="match_parent" android:popupBackground="@drawable/gallery_language_background" android:spinnerMode="dropdown" android:visibility="gone" />
         </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/foilEffectControls"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingTop="2dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:text="@string/foil_effects"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/foilEffectToggleGroup"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                app:selectionRequired="false"
-                app:singleSelection="false">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggleFoilHolographic"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:checkable="true"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/foil_effect_holographic"
-                    android:textAllCaps="false"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggleFoilRainbow"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:checkable="true"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/foil_effect_rainbow"
-                    android:textAllCaps="false"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggleFoilRainbowAlt"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:checkable="true"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/foil_effect_rainbow_alt"
-                    android:textAllCaps="false"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/toggleFoilIridescent"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="38dp"
-                    android:checkable="true"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/foil_effect_iridescent"
-                    android:textAllCaps="false"
-                    android:textSize="11sp" />
+        <LinearLayout android:id="@+id/foilEffectControls" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:paddingTop="2dp" android:visibility="gone">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="6dp" android:text="@string/foil_effects" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButtonToggleGroup android:id="@+id/foilEffectToggleGroup" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" app:selectionRequired="false" app:singleSelection="false">
+                <com.google.android.material.button.MaterialButton android:id="@+id/toggleFoilHolographic" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="38dp" android:checkable="true" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/foil_effect_holographic" android:textAllCaps="false" android:textSize="11sp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/toggleFoilRainbow" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="38dp" android:checkable="true" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/foil_effect_rainbow" android:textAllCaps="false" android:textSize="11sp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/toggleFoilRainbowAlt" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="38dp" android:checkable="true" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/foil_effect_rainbow_alt" android:textAllCaps="false" android:textSize="11sp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/toggleFoilIridescent" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="38dp" android:checkable="true" android:insetTop="0dp" android:insetBottom="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" android:text="@string/foil_effect_iridescent" android:textAllCaps="false" android:textSize="11sp" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
         </LinearLayout>
     </LinearLayout>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/galleryThumbnails" android:layout_width="match_parent" android:layout_height="108dp" android:layout_gravity="bottom" android:background="#E0000000" />
 </FrameLayout>

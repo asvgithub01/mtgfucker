@@ -12,6 +12,7 @@ class MtgJsonRoomDataProvider(
     requestKey: Int,
     private val forcePriceRefresh: Boolean
 ) : DataProviderBase(), IDataProvider {
+    private val appContext = context.applicationContext
     private val repository = CardRepository.get(context)
 
     init {
@@ -21,14 +22,21 @@ class MtgJsonRoomDataProvider(
 
     override fun GetCardInfo(name_card: String, cardInfo: CardInfo) {
         val requestedName = Uri.decode(name_card).trim()
-        // Deliver the local catalog + indexed MTGJSON price immediately. A later Scryfall result
-        // may improve the price, but must not hold the session row or its notification hostage.
-        repository.loadCard(requestedName, forcePriceRefresh, true) { options, error ->
+        // Prices participate in the provisional choice. Existing exact identities are never substituted.
+        val originalPrinting = cardInfo.printingUuid.orEmpty()
+        val originalFinish = cardInfo.finish.orEmpty().ifBlank { "nonfoil" }
+        repository.loadCard(requestedName, forcePriceRefresh, false) { options, error ->
             if (error != null || options.isEmpty()) {
                 sendMessage(ERROR, cardInfo)
                 return@loadCard
             }
-            val representative = options.firstOrNull { !it.isFoil } ?: options.first()
+            val representative = if (originalPrinting.isNotBlank()) options.firstOrNull {
+                it.printingUuid == originalPrinting && it.finish == originalFinish
+            } else ScanPrintingPolicy.recentAffordable(options, originalFinish == "foil") {
+                option -> option.price?.let { PriceCurrency.convert(appContext, it, option.currency.orEmpty()) }
+            }
+            if (representative == null) { sendMessage(ERROR, cardInfo); return@loadCard }
+            if (originalPrinting.isBlank()) cardInfo.setProvisionalEdition(true)
             cardInfo.name = io.asv.mtgocr.ocrreader.ScanIdentity.displayName(
                 cardInfo.name, cardInfo.languageCode, representative.displayName)
             cardInfo.description = listOf(representative.typeLine, representative.rulesText)
@@ -46,13 +54,8 @@ class MtgJsonRoomDataProvider(
                 cardInfo.priceM = amount.toString()
                 cardInfo.priceH = amount.toString()
             }
-            repository.selectPrinting(
-                cardInfo.collectionItemId,
-                representative.cardName,
-                representative.printingUuid,
-                representative.finish
-            ) {
-                sendMessage(ALL_DATA_COMPLETE, cardInfo)
+            repository.initializePrinting(cardInfo.collectionItemId, representative) { accepted ->
+                sendMessage(if (accepted) ALL_DATA_COMPLETE else ERROR, cardInfo)
             }
         }
     }

@@ -136,12 +136,22 @@ class CardRepository private constructor(context: Context) {
     // must never wait behind them: the camera should accept the next card while previous cards are
     // still being enriched in the background.
     private val executor = Executors.newSingleThreadExecutor()
+    private val visualLookupExecutor = Executors.newSingleThreadExecutor()
     // Small Room reads/writes used to complete a scan must not wait behind Scryfall HTTP calls.
     private val selectionExecutor = Executors.newSingleThreadExecutor()
     // The tiny Room lookup that acknowledges an OCR hit must never sit behind artwork downloads
     // or language-image requests. Those can occupy imageExecutor for seconds on a slow network.
     private val quickScanExecutor = Executors.newFixedThreadPool(2)
-    private val priceIndexExecutor = Executors.newSingleThreadExecutor()
+    // Bulk maintenance must not queue ahead of a newly recognized card.
+    private val collectionPriceExecutor = Executors.newSingleThreadExecutor { task ->
+        Thread({
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            task.run()
+        }, "collection-prices")
+    }
+    private val priceIndexExecutor = Executors.newSingleThreadExecutor { task ->
+        Thread({ android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND); task.run() }, "price-index")
+    }
     private val nameExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newFixedThreadPool(2)
     private val localizedPrintingCache = ConcurrentHashMap<String, List<LocalizedPrintingVariant>>()
@@ -665,7 +675,9 @@ class CardRepository private constructor(context: Context) {
                 prices,
                 resolution?.displayName ?: eligible.first().name
             )
-            val representative = ScanPrintingPolicy.preferred(options, preferFoil)
+            val representative = if (locked.isEmpty()) ScanPrintingPolicy.recentAffordable(options, preferFoil) {
+                option -> option.price?.let { PriceCurrency.convert(appContext, it, option.currency.orEmpty()) }
+            } else ScanPrintingPolicy.preferred(options, preferFoil)
             if (preferFoil && representative?.isFoil != true) {
                 error("No hay una impresión foil disponible para '$cardName'")
             }
@@ -725,9 +737,11 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    private val exactSetRefreshAt = mutableMapOf<String, Long>()
+
     /** Resolve visual UUID exactly; never substitute first printing with the same name/set. */
     fun loadCollectorVisionPrinting(scryfallId: String, callback: (List<CardEditionOption>, Throwable?) -> Unit) {
-        executor.execute {
+        visualLookupExecutor.execute {
             try {
                 require(scryfallId.matches(Regex("[0-9a-fA-F-]{36}")))
                 var printing = dao.printingByScryfallId(scryfallId)
@@ -741,14 +755,38 @@ class CardRepository private constructor(context: Context) {
                         check(json.getString("id").equals(scryfallId, true))
                         json.getString("set")
                     }
-                    catalog.setCards(set)
+                    // Exact UUID missing: do not trust a still-fresh but incomplete set snapshot.
+                    val now = System.currentTimeMillis()
+                    val refresh = now - (exactSetRefreshAt[set] ?: 0L) >= java.util.concurrent.TimeUnit.MINUTES.toMillis(15)
+                    catalog.setCards(set, forceRefresh = refresh)
+                    if (refresh) exactSetRefreshAt[set] = now
                     printing = dao.printingByScryfallId(scryfallId)
                 }
                 val exact = requireNotNull(printing) { "No se encuentra la impresión exacta en el catálogo local" }
-                val options = combine(listOf(exact), emptyList(), exact.name)
+                // Indexed snapshot / Room only: never prepare or download the global price file here.
+                val cachedPrices = priceProvider.cachedPrices(setOf(exact.uuid), PriceSourcePreferences.priorityIds(appContext)) +
+                    dao.pricesFor(listOf(exact.uuid)) // fallback for finishes missing from the snapshot
+                val options = combine(listOf(exact), cachedPrices, exact.name)
                 mainHandler.post { callback(options, null) }
             } catch (e: Exception) { mainHandler.post { callback(emptyList(), e) } }
         }
+    }
+
+    /** Refresh the index once and fetch exact owned UUIDs in bounded batches, never choose editions. */
+    fun refreshCollectionPrices(uuids: List<String>, callback: (List<CardEditionOption>, Throwable?) -> Unit): Future<*> = collectionPriceExecutor.submit {
+        try {
+            kotlinx.coroutines.runBlocking { io.asv.collectorvision.EdScanInferencePriority.awaitIdle() }
+            priceProvider.prepare(true)
+            val result = mutableListOf<CardEditionOption>()
+            uuids.filter { it.isNotBlank() }.distinct().chunked(75).forEach { batch ->
+                if (Thread.currentThread().isInterrupted) return@submit
+                kotlinx.coroutines.runBlocking { io.asv.collectorvision.EdScanInferencePriority.awaitIdle() }
+                val printings = dao.printingsByUuids(batch)
+                val prices = preferredPrices(printings, false)
+                printings.forEach { printing -> result += combine(listOf(printing), prices.filter { it.printingUuid == printing.uuid }, printing.name) }
+            }
+            mainHandler.post { callback(result, null) }
+        } catch (e: Exception) { if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(emptyList(), e) } }
     }
 
     fun prepareCardNamePredictor(callback: (Boolean) -> Unit = {}) {
@@ -761,7 +799,10 @@ class CardRepository private constructor(context: Context) {
     /** Warms the complete daily price index without blocking OCR name recognition. */
     fun preparePriceIndex(callback: (Boolean) -> Unit = {}) {
         priceIndexExecutor.execute {
-            val ready = runCatching { priceProvider.prepare(false) }
+            val ready = runCatching {
+                kotlinx.coroutines.runBlocking { io.asv.collectorvision.EdScanInferencePriority.awaitIdle() }
+                priceProvider.prepare(false)
+            }
                 .onFailure { Log.w(TAG, "No se pudo preparar el índice local de precios", it) }
                 .isSuccess
             mainHandler.post { callback(ready) }
@@ -771,7 +812,10 @@ class CardRepository private constructor(context: Context) {
     /** Refreshes the global daily snapshot once before a multi-card session refresh. */
     fun refreshPriceIndex(callback: (Boolean) -> Unit = {}) {
         priceIndexExecutor.execute {
-            val ready = runCatching { priceProvider.prepare(true) }
+            val ready = runCatching {
+                kotlinx.coroutines.runBlocking { io.asv.collectorvision.EdScanInferencePriority.awaitIdle() }
+                priceProvider.prepare(true)
+            }
                 .onFailure { Log.w(TAG, "No se pudo actualizar el índice global de precios", it) }
                 .isSuccess
             if (ready) invalidatePriceSourceOrder()
@@ -801,7 +845,7 @@ class CardRepository private constructor(context: Context) {
                     val finishes = printing.finishes.split(',').filter { it.isNotBlank() }
                     val finish = if ("nonfoil" in finishes) "nonfoil" else finishes.firstOrNull() ?: "nonfoil"
                     val priceFinish = if (finish == "nonfoil") "normal" else finish
-                    val preferredPrice = availablePrices.firstOrNull { it.finish == priceFinish }
+                    val preferredPrice = availablePrices.firstOrNull { it.finish == priceFinish || (priceFinish == "normal" && it.finish == "nonfoil") }
                         ?: availablePrices.firstOrNull()
                     SetCardOption(
                         printing.uuid,
@@ -891,6 +935,17 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** Only initializes missing ownership; background enrichment must never replace a manual selection. */
+    fun initializePrinting(collectionItemId: String, option: CardEditionOption, callback: (Boolean) -> Unit) {
+        selectionExecutor.execute {
+            val existing = dao.ownedPrinting(collectionItemId)
+            val matches = existing == null || (existing.printingUuid == option.printingUuid && existing.finish == option.finish)
+            if (existing == null) dao.saveOwnedPrinting(OwnedPrintingEntity(collectionItemId,
+                option.cardName, option.printingUuid, option.finish, System.currentTimeMillis()))
+            mainHandler.post { callback(matches) }
+        }
+    }
+
     fun selectPrinting(
         collectionItemId: String,
         cardName: String,
@@ -938,7 +993,7 @@ class CardRepository private constructor(context: Context) {
             val finishes = printing.finishes.split(',').filter { it.isNotBlank() }.ifEmpty { listOf("nonfoil") }
             finishes.map { finish ->
                 val priceFinish = if (finish == "nonfoil") "normal" else finish
-                val price = pricesByPrinting[printing.uuid]?.firstOrNull { it.finish == priceFinish }
+                val price = pricesByPrinting[printing.uuid]?.firstOrNull { it.finish == priceFinish || (priceFinish == "normal" && it.finish == "nonfoil") }
                 CardEditionOption(
                     printingUuid = printing.uuid,
                     cardName = printing.name,
@@ -998,9 +1053,11 @@ class CardRepository private constructor(context: Context) {
                         options.first().cardName,
                         languageCode
                     )
-                    val selected = LocalizedEditionPolicy.select(
-                        options, localized, preferredFinish, lockedSetCodes
-                    )
+                    val eligible = LocalizedEditionPolicy.filter(options, localized)
+                    val selected = if (lockedSetCodes.isEmpty()) ScanPrintingPolicy.recentAffordable(
+                        eligible, preferredFinish == "foil") { option -> option.price?.let {
+                            PriceCurrency.convert(appContext, it, option.currency.orEmpty())
+                        } } else LocalizedEditionPolicy.select(options, localized, preferredFinish, lockedSetCodes)
                     mainHandler.post { callback(selected, null) }
                 } catch (error: Throwable) {
                     mainHandler.post { callback(null, error) }

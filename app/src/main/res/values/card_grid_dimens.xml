@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Overlay width: does not subtract space from the card. Buttons keep 48dp height. -->
+    <dimen name="card_grid_actions_width">40dp</dimen>
+</resources>

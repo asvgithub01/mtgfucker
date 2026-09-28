@@ -91,6 +91,7 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.Mtg" />
+        <activity android:name=".ScanReviewActivity" android:exported="false" android:theme="@style/Theme.Mtg" />
         <activity
             android:name=".CardImageActivity"
             android:exported="false"

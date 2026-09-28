@@ -35,24 +35,5 @@ class GalleryLanguageSpinnerAdapter(
         return view
     }
 
-    internal fun flagFor(code: String): String = when (code.lowercase()) {
-        "en" -> "🇬🇧"
-        "es" -> "🇪🇸"
-        "fr" -> "🇫🇷"
-        "de" -> "🇩🇪"
-        "it" -> "🇮🇹"
-        "pt" -> "🇵🇹"
-        "ja" -> "🇯🇵"
-        "ko" -> "🇰🇷"
-        "ru" -> "🇷🇺"
-        "zhs" -> "🇨🇳"
-        "zht" -> "🇹🇼"
-        "he" -> "🇮🇱"
-        "grc" -> "🇬🇷"
-        "ar" -> "🌐"
-        "sa" -> "🇮🇳"
-        "la" -> "🏛️"
-        "phyrexian" -> "Φ"
-        else -> "🌐"
-    }
+    internal fun flagFor(code: String): String = CardLanguageFlag.flagFor(code)
 }

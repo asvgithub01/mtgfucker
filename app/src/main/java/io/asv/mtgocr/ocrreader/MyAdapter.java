@@ -37,6 +37,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   private List<CardInfo> mDataset;
   private static OcrCaptureActivity mContext;
   private final int viewMode;
+  private final LibraryCaptureImages captureImages;
 
   // Provide a reference to the views for each data item
   // Complex data items may need more than one view per item, and
@@ -46,8 +47,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     public TextView mtxtPrice, mtxtName, mTxtUndo, mTxtGroups;
     View mLytViewHolder;
     RoundedCardImageView mImgCard;
-    ImageView mFoilBadge;
-    ImageButton btnOrganize, btnDetails, btnGallery;
+    ImageView mFoilBadge, setSymbol;
+    ImageButton btnOrganize, btnDetails, btnGallery, btnCapture;
     TextView txtQuantity;
 
     public ViewHolder(View v) {
@@ -61,6 +62,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       btnOrganize = (ImageButton) v.findViewById(R.id.btnOrganizeCard);
       btnDetails = (ImageButton) v.findViewById(R.id.btnCardDetails);
       btnGallery = (ImageButton) v.findViewById(R.id.btnCardGallery);
+      btnCapture = (ImageButton) v.findViewById(R.id.btnCardCapture);
+      setSymbol = (ImageView) v.findViewById(R.id.imgCardSetSymbol);
       txtQuantity = (TextView) v.findViewById(R.id.txtCardQuantity);
       mLytViewHolder = v.findViewById(R.id.lytViewHolder);
 
@@ -76,6 +79,10 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
     mContext = context;
     this.viewMode = CollectionViewMode.sanitize(viewMode);
     itemsPendingRemoval = new ArrayList<>();
+    captureImages = this.viewMode == CollectionViewMode.CARD_GRID
+        ? new LibraryCaptureImages(context, myDataset, LibraryCatalog.activeFile(context), () -> {
+            if (!context.isDestroyed() && !context.isFinishing()) notifyDataSetChanged();
+          }) : null;
   }
 
   View mLinearViewHolder;
@@ -87,7 +94,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
         ? R.layout.card_grid_item
         : CollectionViewMode.usesArtwork(viewMode) ? R.layout.card_art_item : R.layout.card_item;
     View v = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
-    v = HoldToDelete.wrap(v);
+    if (v.findViewById(R.id.btnDeleteCard) == null) v = HoldToDelete.wrap(v);
     // set the view's size, margins, paddings and layout parameters
     //v.setOnClickListener(this);
     ViewHolder vh = new ViewHolder(v);
@@ -172,7 +179,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   // Replace the contents of a view (invoked by the layout manager)
   @Override public void onBindViewHolder(ViewHolder holder, int position) {
     final CardInfo deleteTarget = mDataset.get(position);
-    HoldToDelete.bind(holder.itemView, () -> new android.app.AlertDialog.Builder(mContext)
+    HoldToDelete.bind(holder.itemView, deleteTarget.getCollectionItemId(), () -> new android.app.AlertDialog.Builder(mContext)
         .setMessage(mContext.getString(R.string.delete_session_card_confirm, deleteTarget.getName()))
         .setNegativeButton(android.R.string.cancel, null)
         .setPositiveButton(android.R.string.ok, (dialog, which) -> mContext.deleteCardFromCollection(deleteTarget))
@@ -203,10 +210,13 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mtxtPrice.setVisibility(View.VISIBLE);
 
       holder.mtxtName.setText(item.getName());
+      holder.mtxtName.setVisibility(viewMode == CollectionViewMode.CARD_GRID ? View.GONE : View.VISIBLE);
       holder.mtxtPrice.setText(PriceCurrency.format(mContext, item));
-      holder.txtQuantity.setText(String.valueOf(item.getQuantityCount()));
+      holder.txtQuantity.setText(viewMode == CollectionViewMode.CARD_GRID
+          ? mContext.getString(R.string.card_grid_quantity, item.getQuantityCount())
+          : String.valueOf(item.getQuantityCount()));
       boolean foil = CardFinish.isFoil(item.getFinish());
-      holder.mFoilBadge.setVisibility(foil ? View.VISIBLE : View.GONE);
+      if (holder.mFoilBadge != null) holder.mFoilBadge.setVisibility(foil ? View.VISIBLE : View.GONE);
       holder.mImgCard.setFoilEffect(foil);
       StringBuilder groups = new StringBuilder();
       if (item.getSetName() != null && item.getSetName().trim().length() > 0) {
@@ -223,7 +233,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       if (groups.length() > 0) groups.append(" · ");
       groups.append(mContext.getResources().getStringArray(R.array.card_condition_labels)[
           CardCondition.indexOf(item.getCondition())]);
-      if (!item.getDecks().isEmpty()) {
+      if (viewMode != CollectionViewMode.CARD_GRID && !item.getDecks().isEmpty()) {
         if (groups.length() > 0) groups.append(" · ");
         groups.append(mContext.getString(R.string.decks_prefix));
         for (int deckIndex = 0; deckIndex < item.getDecks().size(); deckIndex++) {
@@ -235,6 +245,8 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
           }
         }
       }
+      if (ScanReviewStatus.hasConflict(mContext, item)) groups.insert(0, mContext.getString(R.string.scan_review_conflict) + " · ");
+      if (item.isProvisionalEdition()) groups.insert(0, mContext.getString(R.string.edition_provisional) + " · ");
       holder.mTxtGroups.setText(groups.toString());
       holder.mTxtGroups.setVisibility(groups.length() > 0 ? View.VISIBLE : View.GONE);
       View.OnClickListener openEditions = new View.OnClickListener() {
@@ -244,11 +256,17 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       };
       holder.mLytViewHolder.setOnClickListener(openEditions);
       holder.mtxtName.setOnClickListener(openEditions);
-      holder.btnDetails.setOnClickListener(openEditions);
+      if (holder.btnDetails != null) holder.btnDetails.setOnClickListener(openEditions);
       holder.mImgCard.setContentDescription(mContext.getString(R.string.open_card_gallery));
       View.OnClickListener openGallery = view -> mContext.openCardGallery(item, mDataset);
       holder.mImgCard.setOnClickListener(openGallery);
-      holder.btnGallery.setOnClickListener(openGallery);
+      if (holder.btnGallery != null) holder.btnGallery.setOnClickListener(openGallery);
+      if (holder.setSymbol != null) {
+        holder.setSymbol.setContentDescription(mContext.getString(R.string.view_card_details) + " · " + (item.getSetName() == null ? "" : item.getSetName()));
+        holder.setSymbol.setOnClickListener(openEditions);
+        SetSymbolLoader.INSTANCE.display(mContext, item.getSetCode() == null ? "" : item.getSetCode(), holder.setSymbol, android.R.drawable.ic_menu_info_details);
+        holder.setSymbol.setColorFilter(android.graphics.Color.WHITE);
+      }
       holder.btnOrganize.setOnClickListener(new View.OnClickListener() {
         @Override public void onClick(View v) {
           mContext.showOrganizerDialog(item);
@@ -257,7 +275,28 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       String imageUrl = CollectionViewMode.usesArtwork(viewMode)
           ? LaunchArtworkUrl.resolve(item.getImgPath())
           : item.getImgPath();
-      CardImageCache.display(mContext, imageUrl == null ? item.getImgPath() : imageUrl, holder.mImgCard);
+      java.io.File capture = captureImages == null ? null : captureImages.selectedPhoto(item.getCollectionItemId());
+      if (holder.btnCapture != null) {
+        boolean available = captureImages != null && captureImages.available(item.getCollectionItemId());
+        holder.btnCapture.setEnabled(available);
+        holder.btnCapture.setAlpha(available ? 1f : .3f);
+        holder.btnCapture.setContentDescription(mContext.getString(!available ? R.string.card_capture_unavailable
+            : capture == null ? R.string.card_capture_show : R.string.card_capture_scryfall));
+        holder.btnCapture.setImageResource(capture == null ? android.R.drawable.ic_menu_camera : android.R.drawable.ic_menu_gallery);
+        holder.btnCapture.setOnClickListener(v -> {
+          captureImages.toggle(item.getCollectionItemId());
+          int current = indexOfCollectionItem(item.getCollectionItemId());
+          if (current >= 0) notifyItemChanged(current);
+        });
+      }
+      if (capture != null) {
+        CardImageCache.showLoading(holder.mImgCard);
+        com.bumptech.glide.Glide.with(mContext).load(capture).dontAnimate()
+            .placeholder(new CardLoadingDrawable()).error(R.drawable.backmtg).into(holder.mImgCard);
+        holder.mImgCard.setFoilEffect(false);
+      } else {
+        CardImageCache.display(mContext, imageUrl == null ? item.getImgPath() : imageUrl, holder.mImgCard);
+      }
       if (viewMode != CollectionViewMode.LIST) {
         holder.itemView.animate().cancel();
         // Never fade a recycled image from near-transparent: Glide may finish in the same frame,

@@ -22,10 +22,25 @@
   <string name="cv_native_save_failed">Sauvegarde non confirmée. Retirez la carte avant de réessayer.</string>
   <string name="cv_native_safety_filters">Filtres de sécurité</string>
   <string name="cv_native_filtered_hint">Avec filtres : 3 lectures ≥0,70 et écart ≥0,08.</string>
-  <string name="cv_native_fast_hint">Rapide : premier candidat ≥0,50. Risque accru d’erreur.</string>
+  <string name="cv_native_fast_hint">Rapide : 1 lecture ≥0,80, écart ≥0,08 ; sinon 2 lectures ≥0,55, écart ≥0,04.</string>
   <string name="cv_native_show_thumbnail">Afficher la miniature analysée</string>
   <string name="cv_native_price_idle">Prix de la dernière carte reconnue</string>
   <string name="cv_native_price_loading">Chargement du prix…</string>
   <string name="cv_native_price_unavailable">Prix indisponible</string>
   <string name="edscan_save_photos">Enregistrer la photo pour OCR de langue (expérimental)</string>
+  <string name="party_settings">Confettis</string>
+  <string name="party_threshold_value">Confettis au-dessus de %.2f €</string>
+  <string name="party_threshold_hint">De 0,50 € à 20 €, par pas de 0,50 €. Réglage commun à EdScan et OCR ; utilise le prix en euros.</string>
+  <string name="edscan_tuning_title">Régler</string>
+  <string name="edscan_tuning_values">Rapide : ≥%1$.2f · écart ≥%2$.2f · %3$d lectures</string>
+  <string name="edscan_tuning_score">Similarité minimale : %.2f</string>
+  <string name="edscan_tuning_margin">Écart minimal : %.2f</string>
+  <string name="edscan_tuning_score_label">Similarité minimale</string>
+  <string name="edscan_tuning_margin_label">Écart minimal</string>
+  <string name="edscan_tuning_twice">Exiger deux lectures identiques</string>
+  <string name="edscan_tuning_hint">Mode rapide uniquement. Les candidats forts (≥0,80 et écart ≥0,08) restent immédiats si vos minimums sont respectés. Des valeurs réduites ou une lecture augmentent les erreurs.</string>
+  <string name="edscan_tuning_reset">Réinitialiser 0,55 / 0,04</string>
+  <string name="edscan_session_total">Session : %1$d exemplaires · %4$s (min:s) · %2$s · %3$d sans prix</string>
+  <string name="cv_native_ambiguous_margin">Non enregistrée : candidats trop proches ; impression non confirmée. Écart %1$.3f, minimum %2$.3f. Essayez une autre position ou vérifiez les réglages.</string>
+  <string name="cv_native_saved_provisional">Enregistrée avec une impression provisoire. À vérifier en post-traitement.</string>
 </resources>

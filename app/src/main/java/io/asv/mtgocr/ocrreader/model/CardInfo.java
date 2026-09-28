@@ -19,6 +19,9 @@ public class CardInfo implements Serializable {
     private String collectionItemId;
     private long addedAt;
     private String printingUuid;
+    private boolean provisionalEdition;
+    public boolean isProvisionalEdition() { return provisionalEdition; }
+    public void setProvisionalEdition(boolean value) { provisionalEdition = value; }
     /** Exact Cardmarket identifiers supplied by MTGJSON for this physical printing. */
     private String mcmId;
     private String mcmMetaId;
@@ -107,6 +110,7 @@ public class CardInfo implements Serializable {
         copy.collectionItemId = collectionItemId;
         copy.addedAt = addedAt;
         copy.printingUuid = printingUuid;
+        copy.provisionalEdition = provisionalEdition;
         copy.mcmId = mcmId;
         copy.mcmMetaId = mcmMetaId;
         copy.mcmSetId = mcmSetId;

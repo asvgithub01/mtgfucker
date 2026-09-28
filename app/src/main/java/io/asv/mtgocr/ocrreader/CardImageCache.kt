@@ -44,10 +44,15 @@ object CardImageCache {
         displayInternal(context, imageUrl, target)
     }
 
+    fun displayWithPlaceholder(context: Context, imageUrl: String?, target: ImageView, placeholder: android.graphics.drawable.Drawable?) {
+        displayInternal(context, imageUrl, target, placeholder)
+    }
+
     private fun displayInternal(
         context: Context,
         imageUrl: String?,
-        target: ImageView
+        target: ImageView,
+        placeholder: android.graphics.drawable.Drawable? = null
     ) {
         val url = imageUrl?.trim().orEmpty()
         if (target.getTag(R.id.card_image_cache_url) == url && target.drawable != null) {
@@ -68,7 +73,8 @@ object CardImageCache {
             val request = Glide.with(context).load(cached)
                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                 .dontAnimate()
-            request.placeholder(CardLoadingDrawable()).error(R.drawable.backmtg)
+            request.placeholder(placeholder ?: CardLoadingDrawable())
+            if (placeholder != null) request.error(placeholder) else request.error(R.drawable.backmtg)
             request.into(target)
             return
         }
@@ -77,7 +83,8 @@ object CardImageCache {
         val request = Glide.with(context).load(url)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
             .dontAnimate()
-        request.placeholder(CardLoadingDrawable()).error(R.drawable.backmtg)
+        request.placeholder(placeholder ?: CardLoadingDrawable())
+            if (placeholder != null) request.error(placeholder) else request.error(R.drawable.backmtg)
         request.into(target)
 
         // The downloaded file is for subsequent/offline requests. Reloading the exact same bitmap

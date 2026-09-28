@@ -10,6 +10,16 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 
 class CardInfoTest {
+    @Test fun provisionalFlagSurvivesSnapshotAndSerialization() {
+        val card = CardInfo("Card", "", "", "", "1")
+        card.setProvisionalEdition(true)
+        assertEquals(true, card.snapshotForPersistence().isProvisionalEdition)
+        val bytes = java.io.ByteArrayOutputStream()
+        java.io.ObjectOutputStream(bytes).use { it.writeObject(card.snapshotForPersistence()) }
+        val restored = java.io.ObjectInputStream(java.io.ByteArrayInputStream(bytes.toByteArray())).use { it.readObject() as CardInfo }
+        assertEquals(true, restored.isProvisionalEdition)
+    }
+
     @Test
     fun organizationAndPrintingMetadataSurviveSerialization() {
         val card = CardInfo("Mox Opal", "42.00 EUR", "", "image", "1").apply {

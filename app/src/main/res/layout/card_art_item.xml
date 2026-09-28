@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="3dp">
 
     <LinearLayout
         android:id="@+id/lytViewHolder"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:background="@drawable/bg_arcane_card_row"
         android:orientation="vertical">
 
         <io.asv.mtgocr.ocrreader.RoundedArtworkFrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:background="#202020">
 
             <io.asv.mtgocr.ocrreader.RoundedCardImageView
@@ -88,10 +89,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
+            android:background="#D9000000"
             android:paddingStart="9dp"
             android:paddingTop="7dp"
             android:paddingEnd="9dp"
             android:paddingBottom="8dp">
+
+            <ImageButton
+                android:id="@+id/btnDeleteCard"
+                android:tag="hold_delete_card"
+                android:layout_width="48dp"
+                android:layout_height="40dp"
+                android:layout_gravity="end"
+                android:src="@android:drawable/ic_menu_delete"
+                android:tint="#FFFFFF"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/hold_delete_card" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -106,7 +119,7 @@
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:textColor="?attr/colorOnSurface"
+                    android:textColor="#FFFFFF"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
@@ -115,7 +128,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="0dp"
-                    android:textColor="?attr/colorPrimary"
+                    android:textColor="#FFFFFF"
                     android:textSize="15sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -125,8 +138,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:ellipsize="end"
-                android:maxLines="2"
-                android:textColor="?attr/appMutedColor"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>

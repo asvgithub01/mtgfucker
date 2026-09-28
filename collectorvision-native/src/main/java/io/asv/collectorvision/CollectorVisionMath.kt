@@ -8,9 +8,14 @@ import kotlin.math.*
 data class Corner(val x: Float, val y: Float)
 data class Hit(val cardId: String, val score: Float)
 data class ScanResult(val corners: List<Corner>, val present: Boolean, val sharpness: Float,
-    val hits: List<Hit>, val detectionMs: Long, val recognitionMs: Long)
+    val hits: List<Hit>, val detectionMs: Long, val recognitionMs: Long, val photoRotation: Int = 0)
 
 internal object CollectorVisionMath {
+    fun photoCorners(corners: List<Corner>, rotated: Boolean): List<Corner> =
+        if (rotated && corners.size == 4) corners.drop(2) + corners.take(2) else corners
+    fun prefersRotated(normal: List<Hit>, rotated: List<Hit>): Boolean =
+        (rotated.firstOrNull()?.score ?: Float.NEGATIVE_INFINITY) >
+            (normal.firstOrNull()?.score ?: Float.NEGATIVE_INFINITY)
     fun half(bits: Int): Float {
         val sign = if (bits and 0x8000 == 0) 1f else -1f
         val exponent = (bits ushr 10) and 31

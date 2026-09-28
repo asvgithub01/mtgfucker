@@ -26,6 +26,7 @@ import com.google.mlkit.nl.languageid.LanguageIdentification
 
 /** Files are the durable inputs/results; WorkManager stores independent, idempotent work requests. */
 object EdScanJobs {
+    internal val reviewMutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     fun directory(context: Context) = File(context.filesDir, "edscan").apply { mkdirs() }
     internal fun write(file: File, bytes: ByteArray) {
@@ -85,12 +86,56 @@ object EdScanJobs {
             .setInputData(workDataOf("key" to key)).build()
         WorkManager.getInstance(context).enqueueUniqueWork("edscan-ocr-$key", ExistingWorkPolicy.KEEP, request)
     }
+    /** New immutable attempt: old results and the original scanner identity remain untouched. Call off main. */
+    fun reanalyse(context: Context, key: String) {
+        require(key.matches(Regex("[0-9a-f-]{36}")))
+        val attempt = UUID.randomUUID().toString()
+        write(File(directory(context), "$key.visual-request.json"),
+            JSONObject().put("attempt",attempt).toString().toByteArray())
+        enqueueVisual(context,key,attempt)
+    }
+    private fun enqueueVisual(context: Context, key: String, attempt: String) {
+        if(!attempt.matches(Regex("[0-9a-f-]{36}"))) return
+        WorkManager.getInstance(context).enqueueUniqueWork("review-art-$key-$attempt",ExistingWorkPolicy.KEEP,
+            OneTimeWorkRequestBuilder<EdScanVerificationWorker>()
+                .setInputData(workDataOf("key" to key,"attempt" to attempt)).build())
+    }
+    /** Explicit user action. Existing jobs survive app/process shutdown; no collection writes. */
+    fun postprocess(context: Context, library: String) {
+        val app = context.applicationContext
+        scope.launch {
+            directory(app).listFiles()?.filter { it.name.endsWith(".link.json") }?.forEach { link ->
+                runCatching {
+                    if (JSONObject(link.readText()).optString("library") != library) return@runCatching
+                    val key = link.name.removeSuffix(".link.json")
+                    val input = File(link.parentFile, "$key.json")
+                    if (!input.exists()) return@runCatching
+                    val visualRequest = File(link.parentFile,"$key.visual-request.json")
+                    if(visualRequest.exists()) enqueueVisual(app,key,JSONObject(visualRequest.readText()).optString("attempt"))
+                    if (JSONObject(input.readText()).optString("source") == "ocr") {
+                        WorkManager.getInstance(app).enqueueUniqueWork("ocr-art-$key", ExistingWorkPolicy.KEEP,
+                            OneTimeWorkRequestBuilder<EdScanVerificationWorker>()
+                                .setInputData(workDataOf("key" to key)).build())
+                    } else language(app, key)
+                }
+            }
+        }
+    }
     fun resume(context: Context) {
         val app = context.applicationContext
         scope.launch {
+            EdScanInferencePriority.awaitIdle()
             directory(app).listFiles()?.filter { it.extension == "jpg" }?.forEach { photo ->
-                val result = File(photo.parentFile, "${photo.nameWithoutExtension}.ocr.json")
-                if (!result.exists()) language(app, photo.nameWithoutExtension)
+                EdScanInferencePriority.awaitIdle()
+                runCatching {
+                    val key = photo.nameWithoutExtension
+                    val input = File(photo.parentFile, "$key.json")
+                    if (input.exists() && JSONObject(input.readText()).optString("source") != "ocr") {
+                        // Old versions queued visual verification for EdScan; its purpose is now language only.
+                        WorkManager.getInstance(app).cancelUniqueWork("edscan-verify-$key")
+                        if (!File(photo.parentFile, "$key.ocr.json").exists()) language(app, key)
+                    }
+                }
             }
         }
     }
@@ -122,13 +167,13 @@ class EdScanPriceWorker(context: Context, params: WorkerParameters) : CoroutineW
 }
 
 class EdScanLanguageWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-    companion object { private val serial = Mutex() }
-    override suspend fun doWork(): Result = serial.withLock { withContext(Dispatchers.IO) {
+    override suspend fun doWork(): Result = EdScanJobs.reviewMutex.withLock { withContext(Dispatchers.IO) {
         val key = inputData.getString("key") ?: return@withContext Result.failure()
         if (!key.matches(Regex("[a-fA-F0-9-]{36}"))) return@withContext Result.failure()
         val dir = EdScanJobs.directory(applicationContext)
         val resultFile = File(dir, "$key.ocr.json")
         if (resultFile.exists()) return@withContext Result.success()
+        EdScanInferencePriority.awaitIdle()
         val bitmap = BitmapFactory.decodeFile(File(dir, "$key.jpg").path) ?: return@withContext Result.failure()
         val readers = listOf(
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS),
@@ -143,6 +188,7 @@ class EdScanLanguageWorker(context: Context, params: WorkerParameters) : Corouti
             // Sequential on purpose: four OCR models must not compete with camera inference in parallel.
             for ((index, reader) in readers.withIndex()) {
                 ensureActive()
+                EdScanInferencePriority.awaitIdle()
                 val text = reader.process(InputImage.fromBitmap(bitmap, 0)).await().text
                 val candidates = language.identifyPossibleLanguages(text).await()
                 val guesses = org.json.JSONArray()

@@ -7,6 +7,8 @@ import io.asv.mtgocr.ocrreader.model.CardInfo;
 import io.asv.mtgocr.ocrreader.model.Biblio;
 
 import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -53,7 +55,7 @@ public class DataUtils {
         File backup = new File(context.getFilesDir(), fileName + ".bak");
         try {
             FileOutputStream fileOutputStream = new FileOutputStream(temporary, false);
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(new BufferedOutputStream(fileOutputStream));
 
             objectOutputStream.writeObject(objectToSave);
 
@@ -108,7 +110,7 @@ public class DataUtils {
     private static <T extends Serializable> T readSerializableFile(File file) {
         if (file == null || !file.isFile() || file.length() == 0L) return null;
         try (FileInputStream input = new FileInputStream(file);
-             ObjectInputStream objects = new ObjectInputStream(input)) {
+             ObjectInputStream objects = new ObjectInputStream(new BufferedInputStream(input))) {
             return (T) objects.readObject();
         } catch (IOException | ClassNotFoundException | ClassCastException error) {
             Log.e("DataUtils", "No se pudo leer " + file.getAbsolutePath(), error);

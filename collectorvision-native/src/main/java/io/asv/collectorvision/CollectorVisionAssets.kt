@@ -9,7 +9,14 @@ import java.security.MessageDigest
 
 /** Pinned upstream stable release. Never silently mix a new model with an old catalog. */
 object CollectorVisionAssets {
-    const val VERSION = "milo1-scryfall-mtg-2026-07-09-cornelius2.12"
+    private const val BASE_VERSION = "milo1-scryfall-mtg-2026-07-09-cornelius2.12"
+    const val VERSION = "$BASE_VERSION-fra-frc-spg20260928"
+    const val FRA_EMBEDDINGS = "fra-20260928-embeddings.f16.bin"
+    const val FRA_IDS = "fra-20260928-card-ids.json"
+    const val FRA_ROWS = 454
+    const val COLLECTOR_EMBEDDINGS = "collector-20260928-embeddings.f16.bin"
+    const val COLLECTOR_IDS = "collector-20260928-card-ids.json"
+    const val COLLECTOR_ROWS = 113
     const val TOTAL_BYTES = 42092791L
     data class Asset(val path: String, val bytes: Long, val sha256: String) {
         val fileName: String get() = path.substringAfterLast('/')
@@ -20,7 +27,14 @@ object CollectorVisionAssets {
         Asset("catalog/scryfall-mtg-embeddings.f16.bin",28086016,"50db45bb77ca753357b48ae715edf3209016a0f28ab2f4506f302258c4fde800"),
         Asset("catalog/scryfall-mtg-card-ids.json",4408130,"48b26f73e6f65d0591e18ea0b335091eed28d219f26ae097428f9a3dc77d0f22")
     )
-    fun directory(context: Context) = File(context.noBackupFilesDir, "collectorvision-native/$VERSION")
+    val fraAssets = listOf(
+        Asset("edscan-fra/$FRA_EMBEDDINGS",116224,"88cce743f5a24ade240ce2b60cd18fd558a282213a66274f1cd8cc99a921e62b"),
+        Asset("edscan-fra/$FRA_IDS",17707,"9474bf61df3ce413dbd86e51ce43db1cec69983c5908bba8bd1f37b4244f485d"),
+        Asset("edscan-fra/$COLLECTOR_EMBEDDINGS",28928,"006244b0a6dd51cffd7d73c141bac7140978d471bac047cf43e41ec8454e913b"),
+        Asset("edscan-fra/$COLLECTOR_IDS",4408,"3281d65d4bf545c5ff323d432e40cf7de5c10d38c60e4407a633c354d4feeaee")
+    )
+    // Reuse the verified base models/catalog instead of downloading them again for a small supplement.
+    fun directory(context: Context) = File(context.noBackupFilesDir, "collectorvision-native/$BASE_VERSION")
     @Synchronized
     fun prepare(context: Context, onProgress: (String) -> Unit): File {
         val dir = directory(context).apply { check(isDirectory || mkdirs()) }
@@ -60,6 +74,18 @@ object CollectorVisionAssets {
                 connection.disconnect()
                 temporary.delete()
             }
+        }
+        for(asset in fraAssets) {
+            checkInterrupted()
+            val destination=File(dir,asset.fileName)
+            if(valid(destination,asset)) continue
+            val temporary=File(dir,asset.fileName+".part")
+            try {
+                context.assets.open(asset.path).use { input -> temporary.outputStream().use { input.copyTo(it) } }
+                check(valid(temporary,asset)) { "Invalid FRA supplement: ${asset.fileName}" }
+                check(!destination.exists() || destination.delete())
+                check(temporary.renameTo(destination))
+            } finally { temporary.delete() }
         }
         return dir
     }

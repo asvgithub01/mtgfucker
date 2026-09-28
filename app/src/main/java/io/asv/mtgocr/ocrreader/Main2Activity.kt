@@ -260,7 +260,9 @@ class Main2Activity : AppCompatActivity() {
             ?.firstOrNull { it.collectionItemId == collectionItemId }
         val value = card?.let { PriceCurrency.format(this, it) }?.takeIf { it.isNotBlank() }
             ?: getString(R.string.no_price)
-        conditionPrice.text = getString(R.string.card_condition_price, value)
+        conditionPrice.text = getString(R.string.card_condition_price, value) +
+            (if (card?.isProvisionalEdition == true) "\n" + getString(R.string.edition_provisional) else "") +
+            (if (card != null && ScanReviewStatus.hasConflict(this, card)) "\n" + getString(R.string.scan_review_conflict) else "")
     }
 
     private fun addCopy(option: CardEditionOption) {

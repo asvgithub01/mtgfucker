@@ -7,9 +7,95 @@ import org.junit.Assert.fail
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class LegacyCollectionStoreTest {
+    @Test fun edscanRepeatedCopiesHaveIndependentIdentityAndQuantity() {
+        val collection = Biblio("test", "Test")
+        val printing = option("nonfoil")
+        val first = LegacyCollectionStore.addCopyToCollection(collection, printing, "pt", "Cornelius 1", false)
+        val second = LegacyCollectionStore.addCopyToCollection(collection, printing, "pt", "Cornelius 1", false)
+        assertNotEquals(first.collectionItemId, second.collectionItemId)
+        assertEquals(2, collection.cards.size)
+        assertEquals(1, first.quantityCount); assertEquals(1, second.quantityCount)
+        assertEquals(first.groups, second.groups)
+        assertTrue(LegacyCollectionStore.editRecentQuantityInCollection(collection, second.collectionItemId, 0, true))
+        assertEquals(listOf(first), collection.cards)
+        assertEquals(1, first.quantityCount)
+    }
+
+    @Test fun scanPriceOnlyUpdatesMatchingPrintingAndFinish() {
+        val collection = Biblio("test", "Test")
+        val card = LegacyCollectionStore.addCopyToCollection(collection, option("foil"), "pt")
+        card.quantityCount = 4; card.addGroup("Cornelius 17")
+        val before = card.snapshotForPersistence()
+        assertFalse(LegacyCollectionStore.applyScanPriceToCard(card, "other", "foil", 5.0, "EUR"))
+        assertFalse(LegacyCollectionStore.applyScanPriceToCard(card, card.printingUuid, "nonfoil", 5.0, "EUR"))
+        assertFalse(LegacyCollectionStore.applyScanPriceToCard(card, card.printingUuid, "foil", Double.NaN, "EUR"))
+        assertTrue(LegacyCollectionStore.applyScanPriceToCard(card, card.printingUuid, "foil", 5.0, "EUR"))
+        assertEquals("5.00 EUR", card.price)
+        assertEquals(before.quantityCount, card.quantityCount)
+        assertEquals(before.groups, card.groups)
+        assertEquals(before.languageCode, card.languageCode)
+    }
+
+    @Test fun reviewedEditionCanExplicitlyReplaceUnsupportedLanguage() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")
+        val expected=card.snapshotForPersistence()
+        val changed=LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,
+            option("nonfoil").copy(printingUuid="english-only"),"en")
+        assertSame(card,changed); assertEquals("en",card.languageCode)
+        assertEquals(expected.collectionItemId,card.collectionItemId)
+        assertEquals(expected.quantityCount,card.quantityCount)
+    }
+
+    @Test fun visualReviewChangesIdentityButPreservesCopiesAndGroups() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("foil"),"pt")
+        card.quantityCount=4; card.addGroup("Keep")
+        val expected=card.snapshotForPersistence()
+        val replacement=option("foil").copy(printingUuid="new",displayName="Corrected title",price=null)
+        assertSame(card,LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,replacement))
+        assertEquals("Corrected title",card.name); assertEquals("new",card.printingUuid)
+        assertEquals(4,card.quantityCount); assertEquals("pt",card.languageCode)
+        assertEquals(listOf("Keep"),card.groups); assertEquals("",card.price)
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,replacement))
+    }
+    @Test fun visualReviewCannotChangeFinishOrCreateMissingRow() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")
+        val expected=card.snapshotForPersistence()
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,option("foil")))
+        card.languageCode="pt"
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,option("nonfoil")))
+        collection.cards.clear()
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,option("nonfoil")))
+    }
+
+    @Test fun recentEditsUseExactIdentityAndNeverChangeOtherRows() {
+        val library = io.asv.mtgocr.ocrreader.model.Biblio("test", "Test")
+        val first = io.asv.mtgocr.ocrreader.model.CardInfo("same", "1 EUR", "", "", "2")
+        val second = io.asv.mtgocr.ocrreader.model.CardInfo("same", "2 EUR", "", "", "3")
+        library.cards.addAll(listOf(first,second))
+        org.junit.Assert.assertFalse(LegacyCollectionStore.editRecentQuantityInCollection(library,"missing",-1,true))
+        org.junit.Assert.assertTrue(LegacyCollectionStore.editRecentQuantityInCollection(library,first.collectionItemId,1,false))
+        org.junit.Assert.assertEquals(3,first.quantityCount)
+        org.junit.Assert.assertTrue(LegacyCollectionStore.editRecentQuantityInCollection(library,first.collectionItemId,0,true))
+        org.junit.Assert.assertEquals(listOf(second),library.cards)
+        org.junit.Assert.assertEquals(3,second.quantityCount)
+    }
+    @Test fun recentQuantityCannotUnderflowOrOverflow() {
+        val library=io.asv.mtgocr.ocrreader.model.Biblio("test","Test")
+        val card=io.asv.mtgocr.ocrreader.model.CardInfo("card","","","","1")
+        library.cards.add(card)
+        org.junit.Assert.assertFalse(LegacyCollectionStore.editRecentQuantityInCollection(library,card.collectionItemId,-1,false))
+        card.quantityCount=Int.MAX_VALUE
+        org.junit.Assert.assertFalse(LegacyCollectionStore.editRecentQuantityInCollection(library,card.collectionItemId,1,false))
+    }
+
     @Test fun corneliusCopiesStayInOwnGroupAndDoNotGuessUnknownLanguage() {
         val collection = Biblio("test", "Test")
         val printing = option("nonfoil")
@@ -344,6 +430,18 @@ class LegacyCollectionStoreTest {
         assertEquals(2, portuguese.quantityCount)
         assertEquals(printing.printingUuid, portuguese.printingUuid)
         assertNotEquals(spanish.collectionItemId, portuguese.collectionItemId)
+    }
+
+    @Test fun reviewDeleteRefusesChangedRowAndKeepsOtherRows() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")
+        val other=LegacyCollectionStore.addCopyToCollection(collection,option("foil"),"es")
+        val expected=card.snapshotForPersistence()
+        card.quantityCount=2
+        assertFalse(LegacyCollectionStore.editRecentQuantityInCollection(collection,card.collectionItemId,0,true,expected))
+        assertEquals(2,collection.cards.size)
+        assertTrue(LegacyCollectionStore.editRecentQuantityInCollection(collection,card.collectionItemId,0,true,card.snapshotForPersistence()))
+        assertEquals(listOf(other),collection.cards)
     }
 
     private fun option(finish: String) = CardEditionOption(

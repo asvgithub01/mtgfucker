@@ -27,7 +27,11 @@ class RoundedArtworkFrameLayout @JvmOverloads constructor(
         }
         super.onMeasure(
             widthMeasureSpec,
-            View.MeasureSpec.makeMeasureSpec((width * ART_HEIGHT_RATIO).roundToInt(), View.MeasureSpec.EXACTLY)
+            View.MeasureSpec.makeMeasureSpec(when (View.MeasureSpec.getMode(heightMeasureSpec)) {
+                View.MeasureSpec.EXACTLY -> View.MeasureSpec.getSize(heightMeasureSpec)
+                View.MeasureSpec.AT_MOST -> minOf((width * ART_HEIGHT_RATIO).roundToInt(), View.MeasureSpec.getSize(heightMeasureSpec))
+                else -> (width * ART_HEIGHT_RATIO).roundToInt()
+            }, View.MeasureSpec.EXACTLY)
         )
     }
 

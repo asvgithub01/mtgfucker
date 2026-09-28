@@ -25,7 +25,7 @@ separate dependencies with their own notices/licenses.
 CPU only. This is an experimental native port, not upstream Android code or equivalent
 pixel-for-pixel browser preprocessing. Android Bitmap bilinear resizing and OpenCV warp
 can differ slightly from browser canvas/Python; compare identification results before
-claiming parity. Both 0 and 180 degree crops are embedded; top three candidates are
+claiming parity. Both 0 and 180 degree crops are embedded; up to eight candidates are
 returned. No edition/language/finish certainty or collection writes are implied.
 
 About 42.1 MB is fetched once into application no-backup private files. On reuse every file

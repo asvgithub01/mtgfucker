@@ -2,6 +2,12 @@ package io.asv.mtgocr.ocrreader
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.viewpager2.widget.ViewPager2
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.graphics.Color
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -18,19 +24,18 @@ import io.asv.mtgocr.ocrreader.data.CardRepository
 import java.util.Locale
 import java.util.IdentityHashMap
 import java.util.concurrent.Future
-import kotlin.math.abs
-import kotlin.math.sign
 
 class CardImageActivity : AppCompatActivity() {
     private lateinit var image: ZoomableImageView
-    private lateinit var previousImage: ZoomableImageView
-    private lateinit var nextImage: ZoomableImageView
+    private lateinit var pager: ViewPager2
+    private lateinit var thumbnails: RecyclerView
+    private lateinit var thumbnailsAdapter: ThumbnailAdapter
     private lateinit var pagerStage: FrameLayout
     private lateinit var languageSpinner: Spinner
     private lateinit var progress: ProgressBar
     private lateinit var pageStatus: TextView
     private lateinit var price: TextView
-    private lateinit var detailsButton: Button
+    private lateinit var detailsButton: android.widget.ImageButton
     private lateinit var foilBadge: ImageView
     private lateinit var foilEffectControls: View
     private lateinit var foilEffectToggleGroup: MaterialButtonToggleGroup
@@ -40,8 +45,6 @@ class CardImageActivity : AppCompatActivity() {
     private var currentPage = 0
     private var languageRequest = 0
     private var languageLoadTask: Future<*>? = null
-    private var pageTurnAnimating = false
-    private var activeDragDirection = 0
     private var foilEffectMask = FoilEffectMode.DEFAULT
     private val boundPages = IdentityHashMap<ZoomableImageView, Int>()
 
@@ -54,9 +57,9 @@ class CardImageActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         setContentView(R.layout.activity_card_image)
-        image = findViewById(R.id.fullscreenCardImage)
-        previousImage = findViewById(R.id.previousCardImage)
-        nextImage = findViewById(R.id.nextCardImage)
+        image = ZoomableImageView(this)
+        pager = findViewById(R.id.galleryPager)
+        thumbnails = findViewById(R.id.galleryThumbnails)
         pagerStage = findViewById(R.id.cardPagerStage)
         languageSpinner = findViewById(R.id.cardLanguageSpinner)
         progress = findViewById(R.id.cardLanguageProgress)
@@ -81,9 +84,8 @@ class CardImageActivity : AppCompatActivity() {
         currentPage = (savedInstanceState?.getInt(STATE_CURRENT_PAGE)
             ?: intent.getIntExtra(EXTRA_EDITION_INDEX, 0))
             .coerceIn(0, pages.lastIndex.coerceAtLeast(0))
-        configurePageGestures()
         if (pages.isNotEmpty()) {
-            showInitialPage()
+            setupPager()
         } else {
             progress.visibility = View.GONE
         }
@@ -155,223 +157,85 @@ class CardImageActivity : AppCompatActivity() {
         }.orEmpty()
     }
 
-    private fun configurePageGestures() {
-        image.onSwipe = null
-        image.onPageDrag = ::renderPageDrag
-        image.onPageDragEnd = ::finishPageDrag
-        image.onPageDragCancel = ::animateTurnBack
-        image.isEnabled = true
-        image.isClickable = true
-        image.contentDescription = getString(R.string.card_image)
-        image.bringToFront()
-        foilBadge.bringToFront()
-    }
-
-    private fun showInitialPage() {
-        val page = pages[currentPage]
-        image.resetZoom()
-        CardImageCache.display(this, page.imageUrl, image)
-        boundPages[image] = currentPage
-        resetView(image, 1f)
-        prepareAdjacentPages()
-        onPageSettled()
-    }
-
-    private fun renderPageDrag(fraction: Float) {
-        if (pageTurnAnimating || fraction == 0f) return
-        image.animate().cancel()
-        previousImage.animate().cancel()
-        nextImage.animate().cancel()
-        val direction = if (fraction < 0f) 1 else -1
-        if (activeDragDirection != 0 && activeDragDirection != direction) {
-            resetView(targetImage(activeDragDirection), 0f)
-        }
-        activeDragDirection = direction
-        val targetIndex = currentPage + direction
-        val target = targetImage(direction)
-        val progress = abs(fraction).coerceIn(0f, 1f)
-        val hasReadyTarget = targetIndex in pages.indices &&
-            boundPages[target] == targetIndex && target.drawable != null
-        val cameraDistance = resources.displayMetrics.density * 12_000f
-        image.cameraDistance = cameraDistance
-
-        if (!hasReadyTarget) {
-            resetView(previousImage, 0f)
-            resetView(nextImage, 0f)
-            val resistance = fraction * .16f
-            image.alpha = 1f
-            image.scaleX = 1f
-            image.scaleY = 1f
-            image.translationX = pagerStage.width * resistance * .32f
-            image.rotationY = resistance * 28f
-            return
-        }
-
-        val other = if (direction > 0) previousImage else nextImage
-        resetView(other, 0f)
-        target.cameraDistance = cameraDistance
-        // Interactive cover-flow: the adjacent card remains visibly parked at the edge while
-        // the current card follows the finger. There is no cross-fade through black.
-        val side = if (direction > 0) 1f else -1f
-        target.alpha = .42f + (.58f * progress)
-        target.rotationY = -side * 26f * (1f - progress)
-        target.translationX = side * pagerStage.width * .78f * (1f - progress)
-        target.scaleX = .92f + (.08f * progress)
-        target.scaleY = target.scaleX
-
-        image.alpha = 1f - (.12f * progress)
-        image.rotationY = -side * 20f * progress
-        image.translationX = -side * pagerStage.width * .62f * progress
-        image.scaleX = 1f - (.025f * progress)
-        image.scaleY = image.scaleX
-        foilBadge.alpha = (1f - progress * 1.35f).coerceAtLeast(0f)
-    }
-
-    private fun finishPageDrag(fraction: Float, velocityX: Float) {
-        if (pageTurnAnimating) return
-        val direction = activeDragDirection.takeIf { it != 0 } ?: if (fraction < 0f) 1 else -1
-        val targetIndex = currentPage + direction
-        val target = targetImage(direction)
-        val targetReady = targetIndex in pages.indices &&
-            boundPages[target] == targetIndex && target.drawable != null
-        // Distance, not a short fling, decides the page. Reversing the finger is handled as an
-        // explicit cancellation by ZoomableImageView rather than becoming an opposite page turn.
-        val shouldCommit = PageTurnPolicy.shouldCommit(fraction, velocityX, targetReady)
-        if (!shouldCommit) {
-            animateTurnBack()
-            return
-        }
-
-        pageTurnAnimating = true
-        image.isEnabled = false
-        val turnSign = sign(fraction).takeIf { it != 0f } ?: if (direction > 0) -1f else 1f
-        val remaining = (1f - abs(fraction)).coerceIn(.18f, 1f)
-        val duration = (220L * remaining).toLong().coerceAtLeast(110L)
-        image.animate().cancel()
-        target.animate().cancel()
-        image.animate()
-            .alpha(0f)
-            .rotationY(turnSign * 92f)
-            .translationX(turnSign * pagerStage.width * .22f)
-            .scaleX(.92f)
-            .scaleY(.92f)
-            .setDuration(duration)
-            .start()
-        target.animate()
-            .alpha(1f)
-            .rotationY(0f)
-            .translationX(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(duration)
-            .withEndAction { completePageTurn(direction) }
-            .start()
-    }
-
-    private fun animateTurnBack() {
-        val views = listOf(image, previousImage, nextImage)
-        views.forEach { it.animate().cancel() }
-        val direction = activeDragDirection
-        if (direction == 0) {
-            resetTurnImmediately()
-            return
-        }
-        val target = targetImage(direction)
-        val other = if (direction > 0) previousImage else nextImage
-        resetView(other, 0f)
-        val side = if (direction > 0) 1f else -1f
-        image.animate()
-            .alpha(1f)
-            .rotationY(0f)
-            .translationX(0f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(180L)
-            .start()
-        target.animate()
-            .alpha(0f)
-            .rotationY(-side * 26f)
-            .translationX(side * pagerStage.width * .78f)
-            .scaleX(.92f)
-            .scaleY(.92f)
-            .setDuration(180L)
-            .withEndAction {
-                resetView(target, 0f)
-                activeDragDirection = 0
+    private fun setupPager() {
+        val initialPage = currentPage
+        pager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+        pager.offscreenPageLimit = 1
+        pager.adapter = object : RecyclerView.Adapter<ImageHolder>() {
+            override fun getItemCount() = pages.size
+            override fun onCreateViewHolder(parent: ViewGroup, type: Int) = ImageHolder(ZoomableImageView(parent.context).apply {
+                layoutParams = ViewGroup.LayoutParams(-1, -1)
+                contentDescription = getString(R.string.card_image)
+                // No custom page gestures: the native pager owns horizontal swipes at base zoom.
+                onSwipe = null; onPageDrag = null; onPageDragEnd = null; onPageDragCancel = null
+            })
+            override fun onBindViewHolder(holder: ImageHolder, position: Int) {
+                holder.photo.resetZoom()
+                boundPages[holder.photo] = position
+                applyFoilEffect(holder.photo, pages[position])
+                CardImageCache.display(this@CardImageActivity, pages[position].imageUrl, holder.photo)
             }
-            .start()
-        foilBadge.animate().alpha(1f).setDuration(160L).start()
-    }
-
-    private fun resetTurnImmediately() {
-        resetView(image, 1f)
-        if (previousImage !== image) resetView(previousImage, 0f)
-        if (nextImage !== image) resetView(nextImage, 0f)
-    }
-
-    private fun completePageTurn(direction: Int) {
-        val outgoing = image
-        if (direction > 0) {
-            image = nextImage
-            nextImage = previousImage
-            previousImage = outgoing
-        } else {
-            image = previousImage
-            previousImage = nextImage
-            nextImage = outgoing
+            override fun onViewAttachedToWindow(holder: ImageHolder) {
+                if (holder.bindingAdapterPosition == currentPage) {
+                    image = holder.photo
+                    onPageSettled()
+                }
+            }
+            override fun onViewRecycled(holder: ImageHolder) {
+                boundPages.remove(holder.photo)
+                Glide.clear(holder.photo)
+                holder.photo.setImageDrawable(null)
+            }
         }
-        currentPage += direction
-        activeDragDirection = 0
-        pageTurnAnimating = false
-        resetView(image, 1f)
-        resetView(previousImage, 0f)
-        resetView(nextImage, 0f)
-        image.resetZoom()
-        configurePageGestures()
-        prepareAdjacentPages()
-        onPageSettled()
+        thumbnailsAdapter = ThumbnailAdapter()
+        thumbnails.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
+        thumbnails.adapter = thumbnailsAdapter
+        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                val old = currentPage
+                currentPage = position
+                languageLoadTask?.cancel(true); languageRequest++
+                thumbnailsAdapter.notifyItemChanged(old)
+                thumbnailsAdapter.notifyItemChanged(position)
+                thumbnails.smoothScrollToPosition(position)
+                pager.post {
+                    if (isDestroyed || currentPage != position) return@post
+                    val holder = (pager.getChildAt(0) as RecyclerView).findViewHolderForAdapterPosition(position) as? ImageHolder
+                    if (holder != null) { image = holder.photo; image.resetZoom(); onPageSettled() }
+                }
+            }
+        })
+        pager.setCurrentItem(initialPage, false)
+        thumbnails.scrollToPosition(currentPage)
     }
 
-    private fun targetImage(direction: Int): ZoomableImageView =
-        if (direction > 0) nextImage else previousImage
-
-    private fun prepareAdjacentPages() {
-        bindPreview(previousImage, currentPage - 1)
-        bindPreview(nextImage, currentPage + 1)
-    }
-
-    private fun bindPreview(target: ZoomableImageView, pageIndex: Int) {
-        target.onSwipe = null
-        target.onPageDrag = null
-        target.onPageDragEnd = null
-        target.onPageDragCancel = null
-        target.isEnabled = false
-        target.isClickable = false
-        target.contentDescription = null
-        resetView(target, 0f)
-        val page = pages.getOrNull(pageIndex)
-        val nextUrl = page?.imageUrl.orEmpty()
-        val previousUrl = target.getTag(R.id.card_image_cache_url) as? String
-        if (previousUrl != nextUrl) {
-            // The view may still contain the page it represented before the three buffers rotated.
-            // Clear it while fully transparent so an old bitmap can never be treated as a ready
-            // adjacent page and flash for one frame under the user's finger.
-            Glide.clear(target)
-            target.setImageDrawable(null)
+    private class ImageHolder(val photo: ZoomableImageView) : RecyclerView.ViewHolder(photo)
+    private inner class ThumbnailAdapter : RecyclerView.Adapter<ThumbnailHolder>() {
+        override fun getItemCount() = pages.size
+        override fun onCreateViewHolder(parent: ViewGroup, type: Int): ThumbnailHolder {
+            val row = LinearLayout(parent.context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = RecyclerView.LayoutParams((76*resources.displayMetrics.density).toInt(), -1)
+                setPadding(4,4,4,4)
+            }
+            val picture = ImageView(parent.context).apply { scaleType = ImageView.ScaleType.FIT_CENTER }
+            val label = TextView(parent.context).apply { setTextColor(Color.WHITE); textSize = 12f; gravity = android.view.Gravity.CENTER; maxLines = 1 }
+            row.addView(picture, LinearLayout.LayoutParams(-1,0,1f))
+            row.addView(label, LinearLayout.LayoutParams(-1,-2))
+            return ThumbnailHolder(row,picture,label)
         }
-        boundPages[target] = pageIndex
-        applyFoilEffect(target, page)
-        CardImageCache.display(this, page?.imageUrl, target)
+        override fun onBindViewHolder(holder: ThumbnailHolder, position: Int) {
+            val page = pages[position]
+            CardImageCache.display(this@CardImageActivity, page.imageUrl, holder.picture)
+            holder.label.text = page.priceLabel
+            holder.itemView.isSelected = position == currentPage
+            holder.itemView.setBackgroundColor(if (position == currentPage) 0xFF566A85.toInt() else Color.TRANSPARENT)
+            holder.itemView.contentDescription = "${position+1}/${pages.size}: ${page.label}, ${page.priceLabel}"
+            holder.itemView.setOnClickListener { pager.setCurrentItem(position, false) }
+        }
+        override fun onViewRecycled(holder: ThumbnailHolder) { Glide.clear(holder.picture) }
     }
-
-    private fun resetView(target: View, alpha: Float) {
-        target.animate().cancel()
-        target.alpha = alpha
-        target.rotationY = 0f
-        target.translationX = 0f
-        target.scaleX = 1f
-        target.scaleY = 1f
-    }
+    private class ThumbnailHolder(view: View, val picture: ImageView, val label: TextView) : RecyclerView.ViewHolder(view)
 
     private fun onPageSettled() {
         val page = pages[currentPage]
@@ -425,7 +289,7 @@ class CardImageActivity : AppCompatActivity() {
     }
 
     private fun refreshVisibleFoilEffects() {
-        listOf(image, previousImage, nextImage).distinct().forEach { target ->
+        boundPages.keys.toList().forEach { target ->
             val pageIndex = boundPages[target]
             applyFoilEffect(target, pageIndex?.let(pages::getOrNull))
         }
@@ -484,12 +348,8 @@ class CardImageActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         languageLoadTask?.cancel(true)
-        if (::previousImage.isInitialized && ::nextImage.isInitialized && ::image.isInitialized) {
-            listOf(image, previousImage, nextImage).distinct().forEach {
-                Glide.clear(it)
-                it.setImageDrawable(null)
-            }
-        }
+        boundPages.keys.toList().forEach { Glide.clear(it); it.setImageDrawable(null) }
+        boundPages.clear()
         if (isFinishing && galleryToken.isNotBlank()) CardGalleryStore.remove(galleryToken)
         super.onDestroy()
     }

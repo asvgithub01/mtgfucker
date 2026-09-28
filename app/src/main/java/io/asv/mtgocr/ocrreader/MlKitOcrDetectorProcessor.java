@@ -13,7 +13,7 @@ import java.util.List;
 /** Extracts title candidates from ML Kit while keeping the proven local name-matching flow. */
 final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLine> {
   interface TextCandidateListener {
-    void onTextCandidates(List<String> candidates, String rulesText);
+    void onTextCandidates(List<String> candidates, String rulesText, int frameId);
   }
 
   private final GraphicOverlay<?> graphicOverlay;
@@ -48,7 +48,7 @@ final class MlKitOcrDetectorProcessor implements Detector.Processor<MlKitTextLin
         rulesText.append(line.getText()).append(' ');
       }
     }
-    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates, rulesText.toString());
+    if (listener != null && !candidates.isEmpty()) listener.onTextCandidates(candidates, rulesText.toString(), detections.getFrameMetadata().getId());
   }
 
   private static void addCandidate(List<String> candidates, String rawText) {

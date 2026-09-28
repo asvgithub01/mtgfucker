@@ -22,10 +22,25 @@
   <string name="cv_native_save_failed">Não foi possível confirmar a gravação. Retira a carta antes de tentar novamente.</string>
   <string name="cv_native_safety_filters">Filtros de segurança</string>
   <string name="cv_native_filtered_hint">Com filtros: 3 leituras ≥0,70 e margem ≥0,08.</string>
-  <string name="cv_native_fast_hint">Rápido: primeiro candidato ≥0,50. Maior risco de erro.</string>
+  <string name="cv_native_fast_hint">Rápido: 1 leitura ≥0,80, margem ≥0,08; senão 2 leituras ≥0,55, margem ≥0,04.</string>
   <string name="cv_native_show_thumbnail">Mostrar miniatura analisada</string>
   <string name="cv_native_price_idle">Preço da última carta reconhecida</string>
   <string name="cv_native_price_loading">A consultar preço…</string>
   <string name="cv_native_price_unavailable">Preço indisponível</string>
   <string name="edscan_save_photos">Guardar foto para OCR de idioma (experimental)</string>
+  <string name="party_settings">Confetes</string>
+  <string name="party_threshold_value">Confetes acima de %.2f €</string>
+  <string name="party_threshold_hint">De 0,50 € a 20 €, em passos de 0,50 €. Partilhado por EdScan e OCR; usa o preço em euros.</string>
+  <string name="edscan_tuning_title">Ajustar</string>
+  <string name="edscan_tuning_values">Rápido: ≥%1$.2f · margem ≥%2$.2f · %3$d leituras</string>
+  <string name="edscan_tuning_score">Semelhança mínima: %.2f</string>
+  <string name="edscan_tuning_margin">Margem mínima: %.2f</string>
+  <string name="edscan_tuning_score_label">Semelhança mínima</string>
+  <string name="edscan_tuning_margin_label">Margem mínima</string>
+  <string name="edscan_tuning_twice">Exigir duas leituras iguais</string>
+  <string name="edscan_tuning_hint">Apenas modo rápido. Candidatos fortes (≥0,80 e margem ≥0,08) continuam imediatos se cumprirem os mínimos. Valores menores ou uma leitura aumentam os erros.</string>
+  <string name="edscan_tuning_reset">Repor 0,55 / 0,04</string>
+  <string name="edscan_session_total">Sessão: %1$d cópias · %4$s (min:s) · %2$s · %3$d sem preço</string>
+  <string name="cv_native_ambiguous_margin">Não guardada: candidatos muito semelhantes; impressão não confirmada. Margem %1$.3f, mínimo %2$.3f. Experimente outra posição ou reveja os ajustes.</string>
+  <string name="cv_native_saved_provisional">Guardada com impressão provisória. Rever no pós-processamento.</string>
 </resources>

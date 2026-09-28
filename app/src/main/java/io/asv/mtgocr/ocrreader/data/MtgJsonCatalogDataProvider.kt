@@ -136,12 +136,12 @@ class MtgJsonCatalogDataProvider(
         }
     }
 
-    fun setCards(setCode: String): List<CardPrintingEntity> {
+    fun setCards(setCode: String, forceRefresh: Boolean = false): List<CardPrintingEntity> {
         val normalizedSetCode = setCode.uppercase(Locale.US)
         val cached = dao.printingsBySet(normalizedSetCode)
         val sync = dao.fullSetSync(normalizedSetCode)
         val staleBefore = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
-        if (cached.isNotEmpty() && cached.any { !it.mcmId.isNullOrBlank() } &&
+        if (!forceRefresh && cached.isNotEmpty() && cached.any { !it.mcmId.isNullOrBlank() } &&
             sync != null && sync.updatedAt >= staleBefore
         ) return cached
         return try {

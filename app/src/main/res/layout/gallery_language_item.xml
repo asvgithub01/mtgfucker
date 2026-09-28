@@ -3,6 +3,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/gallery_language_background"
+    android:descendantFocusability="blocksDescendants"
+    android:clickable="false"
+    android:focusable="false"
     android:gravity="center_vertical"
     android:minHeight="44dp"
     android:orientation="horizontal"
@@ -12,6 +15,8 @@
     android:paddingBottom="6dp">
 
     <TextView
+        android:clickable="false"
+        android:focusable="false"
         android:id="@+id/txtGalleryLanguageFlag"
         android:layout_width="32dp"
         android:layout_height="wrap_content"
@@ -20,6 +25,8 @@
         android:textSize="20sp" />
 
     <TextView
+        android:clickable="false"
+        android:focusable="false"
         android:id="@+id/txtGalleryLanguageName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

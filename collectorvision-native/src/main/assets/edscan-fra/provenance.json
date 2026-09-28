@@ -1,0 +1,20 @@
+{
+  "set": "FRA",
+  "source": "Scryfall + MTGJSON",
+  "mtgjsonDate": "2026-09-27",
+  "sourceCards": 461,
+  "addedRows": 454,
+  "uniqueArtworks": 424,
+  "modelSha256": "bd13d8d60383c69da04dce261f32e93fdaeaa8fd618fbc991e7385f71b3d45df",
+  "files": {
+    "fra-20260928-embeddings.f16.bin": {
+      "bytes": 116224,
+      "sha256": "88cce743f5a24ade240ce2b60cd18fd558a282213a66274f1cd8cc99a921e62b"
+    },
+    "fra-20260928-card-ids.json": {
+      "bytes": 17707,
+      "sha256": "9474bf61df3ce413dbd86e51ce43db1cec69983c5908bba8bd1f37b4244f485d"
+    }
+  },
+  "excluded": []
+}

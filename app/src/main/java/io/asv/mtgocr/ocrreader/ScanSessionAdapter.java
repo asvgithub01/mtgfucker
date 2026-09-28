@@ -101,6 +101,8 @@ final class ScanSessionAdapter extends BaseAdapter {
     StringBuilder details = new StringBuilder(setName);
     if (!setCode.isEmpty()) details.append(details.length() == 0 ? "" : " ").append('(').append(setCode).append(')');
     if (!collector.isEmpty()) details.append(" · #").append(collector);
+    if (ScanReviewStatus.hasConflict(context, card)) details.insert(0, context.getString(R.string.scan_review_conflict) + " · ");
+    if (card.isProvisionalEdition()) details.insert(0, context.getString(R.string.edition_provisional) + " · ");
     boolean loading = listener.isLoading(card);
     edition.setText(details.length() == 0
         ? context.getString(loading ? R.string.scan_metadata_loading : R.string.scan_metadata_incomplete)

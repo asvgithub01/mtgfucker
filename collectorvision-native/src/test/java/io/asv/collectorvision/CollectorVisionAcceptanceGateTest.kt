@@ -4,6 +4,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CollectorVisionAcceptanceGateTest {
+    @Test fun configurableFastCanUseOneReadingWithoutUnlockingSavedCard() {
+        val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false); configureFast(.5f, 0f, 1) }
+        val attempt = requireNotNull(gate.observe(true, hits("A", .51f, .50f)))
+        assertTrue(gate.complete(attempt, true))
+        gate.configureFast(.55f, .04f, 2)
+        repeat(4) { assertNull(gate.observe(true, hits("A"))) }
+    }
+    @Test fun strongFastCannotBypassStricterSliders() {
+        val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false); configureFast(.90f, .15f, 2) }
+        repeat(3) { assertNull(gate.observe(true, hits("A", .85f, .65f))) }
+        assertNull(gate.observe(true, hits("A", .95f, .85f)))
+        val attempt = requireNotNull(gate.observe(true, hits("A", .95f, .70f)))
+        assertEquals(.90f, attempt.scoreThreshold, .0001f)
+        assertEquals(.15f, attempt.marginThreshold, .0001f)
+    }
+
     private fun hits(id: String = "A", score: Float = .85f, runner: Float = .65f) = listOf(Hit(id,score),Hit("other",runner))
     private fun accept(gate: CollectorVisionAcceptanceGate, id: String="A"): CollectorVisionAcceptanceGate.Attempt {
         assertNull(gate.observe(true,hits(id)))
@@ -100,11 +116,27 @@ class CollectorVisionAcceptanceGateTest {
         gate.observe(false,emptyList());gate.resetStability();gate.observe(false,emptyList())
         repeat(5) { assertNull(gate.observe(true,hits())) }
     }
-    @Test fun fastAcceptsFirstVisibleCandidateWithoutRunnerOrMargin() {
+    @Test fun fastRejectsUnknownRunnerAndNearTiesButAcceptsStrongImmediately() {
         val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
-        val first = requireNotNull(gate.observe(true, listOf(Hit("A", .50f))))
-        gate.complete(first, true)
-        assertNotNull(gate.observe(true, hits("B", .60f, .599f)))
+        assertNull(gate.observe(true, listOf(Hit("A", .95f))))
+        assertNull(gate.observe(true, hits("A", .80f, .79f)))
+        assertNotNull(gate.observe(true, hits("A", .85f, .70f)))
+    }
+    @Test fun fastLowerThresholdStillRejectsWeakOrAmbiguousRepeatedCandidates() {
+        val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        repeat(3) { assertNull(gate.observe(true, hits("A", .549f, .40f))) }
+        repeat(3) { assertNull(gate.observe(true, hits("A", .55f, .53f))) }
+        assertNull(gate.observe(true, hits("A", .55f, .50f)))
+        assertNotNull(gate.observe(true, hits("A", .55f, .50f)))
+    }
+    @Test fun fastModerateCandidateRequiresTwoConsistentReadings() {
+        val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        assertNull(gate.observe(true, hits("A", .55f, .50f)))
+        assertNull(gate.observe(true, hits("B", .55f, .50f)))
+        val attempt = requireNotNull(gate.observe(true, hits("B", .55f, .50f)))
+        assertEquals(2, attempt.readings)
+        assertEquals(.55f, attempt.scoreThreshold, .0001f)
+        assertEquals(.04f, attempt.marginThreshold, .0001f)
     }
     @Test fun fastStillRejectsAbsentInvalidAndBelowThresholdCandidates() {
         val gate = CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
@@ -134,5 +166,20 @@ class CollectorVisionAcceptanceGateTest {
         gate.observe(true, hits()); gate.observe(true, hits())
         gate.setFiltersEnabled(false); gate.setFiltersEnabled(true)
         accept(gate)
+    }
+    @Test fun acceptanceExplainsFastAndFilteredDecision() {
+        val gate = CollectorVisionAcceptanceGate()
+        val filtered = accept(gate)
+        assertTrue(filtered.filtered)
+        assertEquals(3, filtered.readings)
+        assertEquals(.70f, filtered.scoreThreshold, .0001f)
+        assertEquals(.08f, filtered.marginThreshold, .0001f)
+        gate.complete(filtered, true)
+        gate.setFiltersEnabled(false)
+        val fast = requireNotNull(gate.observe(true, hits("B", .85f, .70f)))
+        assertFalse(fast.filtered)
+        assertEquals(1, fast.readings)
+        assertEquals(.80f, fast.scoreThreshold, .0001f)
+        assertEquals(.08f, fast.marginThreshold, .0001f)
     }
 }

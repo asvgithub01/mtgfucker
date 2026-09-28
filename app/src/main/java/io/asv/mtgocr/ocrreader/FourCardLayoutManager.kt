@@ -5,10 +5,10 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 /** Two rows, two visible columns; each cell follows the actual viewport on resize. */
-class FourCardLayoutManager(context: Context) : GridLayoutManager(context, 2, HORIZONTAL, false) {
+class FourCardLayoutManager @JvmOverloads constructor(context: Context, private val columns: Int = 2, rows: Int = 2) : GridLayoutManager(context, rows, HORIZONTAL, false) {
     override fun checkLayoutParams(lp: RecyclerView.LayoutParams): Boolean {
-        lp.width = ((width - paddingLeft - paddingRight) / 2 - lp.leftMargin - lp.rightMargin).coerceAtLeast(1)
-        lp.height = ((height - paddingTop - paddingBottom) / 2 - lp.topMargin - lp.bottomMargin).coerceAtLeast(1)
+        lp.width = ((width - paddingLeft - paddingRight) / columns - lp.leftMargin - lp.rightMargin).coerceAtLeast(1)
+        lp.height = ((height - paddingTop - paddingBottom) / spanCount - lp.topMargin - lp.bottomMargin).coerceAtLeast(1)
         return true
     }
 }

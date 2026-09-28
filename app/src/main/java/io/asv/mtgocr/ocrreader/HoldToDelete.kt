@@ -22,20 +22,24 @@ object HoldToDelete {
         }, FrameLayout.LayoutParams(size, size, Gravity.TOP or Gravity.START))
         return wrapper
     }
-    @JvmStatic fun bind(root: View, action: Runnable) {
+    @JvmStatic fun bind(root: View, action: Runnable) = bind(root, null, action)
+    @JvmStatic fun bind(root: View, stableId: String?, action: Runnable) {
         val button = root.findViewWithTag<ImageButton>("hold_delete_card") ?: return
+        if (stableId != null && button.getTag(R.id.txtCardQuantity) == stableId) return
+        button.setTag(R.id.txtCardQuantity, stableId)
         val oldCancel = button.getTag(R.id.btnOrganizeCard) as? Runnable
         oldCancel?.run()
         var pending: Runnable? = null
         var x = 0f; var y = 0f
         val slop = ViewConfiguration.get(root.context).scaledTouchSlop
-        fun cancel() { pending?.let { button.removeCallbacks(it) }; pending = null; button.isPressed = false }
+        fun cancel() { pending?.let { button.removeCallbacks(it) }; pending = null; button.isPressed = false; button.parent?.requestDisallowInterceptTouchEvent(false) }
         button.setOnClickListener { action.run() } // Accessibility activation still asks for confirmation.
         button.setOnTouchListener { _, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     cancel(); x = event.x; y = event.y; button.isPressed = true
-                    pending = Runnable { pending = null; button.isPressed = false; action.run() }
+                    button.parent?.requestDisallowInterceptTouchEvent(true)
+                    pending = Runnable { pending = null; button.isPressed = false; button.parent?.requestDisallowInterceptTouchEvent(false); action.run() }
                     button.postDelayed(pending!!, 1000)
                 }
                 MotionEvent.ACTION_MOVE -> if (kotlin.math.abs(event.x-x) > slop || kotlin.math.abs(event.y-y) > slop) cancel()

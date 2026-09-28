@@ -22,10 +22,25 @@
   <string name="cv_native_save_failed">Speichern nicht bestätigt. Karte vor erneutem Versuch entfernen.</string>
   <string name="cv_native_safety_filters">Sicherheitsfilter</string>
   <string name="cv_native_filtered_hint">Mit Filtern: 3 Erkennungen ≥0,70 und Abstand ≥0,08.</string>
-  <string name="cv_native_fast_hint">Schnell: erster Kandidat ≥0,50. Höheres Fehlerrisiko.</string>
+  <string name="cv_native_fast_hint">Schnell: 1 Lesung ≥0,80, Abstand ≥0,08; sonst 2 Lesungen ≥0,55, Abstand ≥0,04.</string>
   <string name="cv_native_show_thumbnail">Analysiertes Miniaturbild anzeigen</string>
   <string name="cv_native_price_idle">Preis der zuletzt erkannten Karte</string>
   <string name="cv_native_price_loading">Preis wird geladen…</string>
   <string name="cv_native_price_unavailable">Preis nicht verfügbar</string>
   <string name="edscan_save_photos">Foto für Sprach-OCR speichern (experimentell)</string>
+  <string name="party_settings">Konfetti</string>
+  <string name="party_threshold_value">Konfetti über %.2f €</string>
+  <string name="party_threshold_hint">Von 0,50 € bis 20 € in Schritten von 0,50 €. Gemeinsam für EdScan und OCR; verwendet den Europreis.</string>
+  <string name="edscan_tuning_title">Anpassen</string>
+  <string name="edscan_tuning_values">Schnell: ≥%1$.2f · Abstand ≥%2$.2f · %3$d Lesungen</string>
+  <string name="edscan_tuning_score">Mindestähnlichkeit: %.2f</string>
+  <string name="edscan_tuning_margin">Mindestabstand: %.2f</string>
+  <string name="edscan_tuning_score_label">Mindestähnlichkeit</string>
+  <string name="edscan_tuning_margin_label">Mindestabstand</string>
+  <string name="edscan_tuning_twice">Zwei gleiche Lesungen verlangen</string>
+  <string name="edscan_tuning_hint">Nur Schnellmodus. Starke Kandidaten (≥0,80 und Abstand ≥0,08) bleiben sofortig, wenn sie die Mindestwerte erfüllen. Niedrigere Werte oder eine Lesung erhöhen Fehler.</string>
+  <string name="edscan_tuning_reset">Zurücksetzen 0,55 / 0,04</string>
+  <string name="edscan_session_total">Sitzung: %1$d Exemplare · %4$s (min:s) · %2$s · %3$d ohne Preis</string>
+  <string name="cv_native_ambiguous_margin">Nicht gespeichert: Kandidaten zu ähnlich; Druckversion unbestätigt. Abstand %1$.3f, Minimum %2$.3f. Andere Position versuchen oder Einstellungen prüfen.</string>
+  <string name="cv_native_saved_provisional">Mit vorläufiger Druckversion gespeichert. In der Nachbearbeitung prüfen.</string>
 </resources>

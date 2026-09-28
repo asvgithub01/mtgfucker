@@ -1,143 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="1dp">
-
-    <LinearLayout
-        android:id="@+id/lytViewHolder"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent"
-        android:orientation="vertical">
-
-        <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#202020">
-
-            <io.asv.mtgocr.ocrreader.RoundedCardImageView
-                android:id="@+id/imgCard"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:contentDescription="@string/card_image"
-                android:scaleType="fitCenter" />
-
-            <TextView
-                android:id="@+id/txtPrice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|start"
-                android:layout_marginStart="0dp"
-                android:layout_marginTop="36dp"
-                android:layout_marginEnd="6dp"
-                android:layout_marginBottom="6dp"
-                android:background="#D9000000"
-                android:paddingStart="7dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="7dp"
-                android:paddingBottom="4dp"
-                android:textColor="#FFFFFF"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_margin="4dp"
-                android:background="#DDFFFFFF"
-                android:orientation="horizontal">
-                <ImageButton
-                    android:id="@+id/btnCardDetails"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/view_card_details"
-                    android:padding="6dp"
-                    android:src="@android:drawable/ic_menu_info_details" />
-                <ImageButton
-                    android:id="@+id/btnCardGallery"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/open_card_gallery"
-                    android:padding="6dp"
-                    android:src="@android:drawable/ic_menu_gallery" />
-                <ImageButton
-                    android:id="@+id/btnOrganizeCard"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/organize_card"
-                    android:padding="6dp"
-                    android:src="@drawable/ic_groups" />
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="0dp">
+    <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="1dp" app:cardCornerRadius="12dp" app:cardElevation="2dp" app:cardBackgroundColor="#202020">
+        <FrameLayout android:id="@+id/lytViewHolder" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@android:color/transparent" android:padding="0dp">
+            <io.asv.mtgocr.ocrreader.RoundedCardFrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#202020">
+                <io.asv.mtgocr.ocrreader.RoundedCardImageView android:id="@+id/imgCard" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@string/card_image" android:scaleType="fitStart" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:background="#D9000000" android:orientation="vertical" android:padding="7dp" android:visibility="gone">
+                    <TextView android:id="@+id/txtName" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:visibility="gone" />
+                    <TextView android:id="@+id/txtGroups" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="2" android:textColor="#F1F1F1" android:textSize="11sp" />
+                </LinearLayout>
+            </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="#80000000" android:gravity="center_horizontal" android:id="@+id/cardGridActions" android:layout_gravity="bottom">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="48dp" android:orientation="horizontal" android:gravity="center_vertical">
+                    <ImageButton android:id="@+id/imgCardSetSymbol" android:layout_width="0dp" android:layout_height="48dp" android:padding="8dp" android:scaleType="fitCenter" android:importantForAccessibility="yes" android:background="?attr/selectableItemBackgroundBorderless" android:tint="#FFFFFF" android:contentDescription="@string/view_card_details" android:layout_weight="1" />
+                    <ImageButton android:id="@+id/btnOrganizeCard" android:layout_width="0dp" android:layout_height="48dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/organize_card" android:padding="8dp" android:src="@drawable/ic_groups" android:tint="#FFFFFF" android:layout_weight="1" />
+                    <ImageButton android:id="@+id/btnCardCapture" android:layout_width="0dp" android:layout_height="48dp" android:padding="8dp" android:src="@android:drawable/ic_menu_camera" android:tint="#FFFFFF" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/card_capture_show" android:layout_weight="1" />
+                    <ImageButton android:id="@+id/btnDeleteCard" android:tag="hold_delete_card" android:layout_width="0dp" android:layout_height="48dp" android:src="@android:drawable/ic_menu_delete" android:tint="#FFFFFF" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/hold_delete_card" android:padding="8dp" android:layout_weight="1" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="8dp" android:paddingEnd="8dp">
+                    <TextView android:id="@+id/txtPrice" android:layout_width="0dp" android:layout_height="wrap_content" android:background="@android:color/transparent" android:paddingStart="0dp" android:paddingTop="4dp" android:paddingEnd="0dp" android:paddingBottom="4dp" android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:maxLines="1" android:gravity="start|center_vertical" app:autoSizeTextType="uniform" app:autoSizeMinTextSize="8sp" app:autoSizeMaxTextSize="12sp" app:autoSizeStepGranularity="1sp" android:layout_weight="1" />
+                    <TextView android:id="@+id/txtCardQuantity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/bg_quantity_badge" android:gravity="center" android:minWidth="24dp" android:textColor="?attr/colorSecondary" android:textSize="14sp" android:textStyle="bold" android:maxLines="1" android:paddingStart="3dp" android:paddingEnd="3dp" />
+                </LinearLayout>
             </LinearLayout>
-
-            <TextView
-                android:id="@+id/txtCardQuantity"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="46dp"
-                android:layout_marginEnd="7dp"
-                android:background="@drawable/bg_quantity_badge"
-                android:gravity="center"
-                android:minWidth="34dp"
-                android:textColor="?attr/colorSecondary"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/imgFoilBadge"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="86dp"
-                android:layout_marginEnd="8dp"
-                android:contentDescription="@string/foil_card_badge"
-                android:src="@drawable/ic_foil_badge"
-                android:visibility="gone" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:background="#D9000000"
-                android:orientation="vertical"
-                android:padding="7dp">
-
-                <TextView
-                    android:id="@+id/txtName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/txtGroups"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:textColor="#F1F1F1"
-                    android:textSize="11sp" />
-            </LinearLayout>
-        </io.asv.mtgocr.ocrreader.RoundedCardFrameLayout>
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/txtUndo"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="#CC0000"
-        android:gravity="center"
-        android:text="@string/undo"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold"
-        android:visibility="gone" />
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+    <TextView android:id="@+id/txtUndo" android:layout_width="match_parent" android:layout_height="56dp" android:background="#CC0000" android:gravity="center" android:text="@string/undo" android:textColor="#FFFFFF" android:textStyle="bold" android:visibility="gone" />
 </LinearLayout>

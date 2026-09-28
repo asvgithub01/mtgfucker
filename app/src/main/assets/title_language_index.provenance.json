@@ -1,7 +1,7 @@
 {
   "schema": "TLV1",
   "source": "MTGJSON AllPrintings",
-  "sourceSha256": "9e8eb6f0930cee9891ed60a4d759751b92188253ac0b2c5b9d0e56ef8c1fc01b",
+  "sourceSha256": "10fb70021c83a63671c0a937beadf556a42ad8d9caa83a30b3ecfcddfa28886c",
   "rows": 294755,
-  "bytes": 5163636
+  "bytes": 5163630
 }

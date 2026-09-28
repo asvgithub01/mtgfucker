@@ -1,0 +1,11 @@
+{
+  "scope": "Previous snapshot plus FRA only",
+  "mtgjsonFraDate": "2026-09-27",
+  "originalSourceSha256": "9e8eb6f0930cee9891ed60a4d759751b92188253ac0b2c5b9d0e56ef8c1fc01b",
+  "files": {
+    "art_hash_index.bin": "b769bb1712a270c6a2cd575d595e9c6646fe047808ff81e4036e34e905b47d4d",
+    "art_printing_index.bin": "b4df2bb5c5014e4553890b1344714d74c076c61ae91d1b48ffc9ccd4c8680863",
+    "printing_artist_index.bin": "cfec7ac0474157c7648b3fef4b289045b8611dda10d83eb3e263dd428e4f6d78",
+    "title_language_index.bin": "4d62d7637db1c228f8fe1a543a924b0e333a0d0ef83b87f8553183e70921b211"
+  }
+}

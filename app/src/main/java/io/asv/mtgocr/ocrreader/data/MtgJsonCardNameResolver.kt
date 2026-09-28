@@ -21,12 +21,26 @@ class MtgJsonCardNameResolver(
         val language: String
     )
 
+    private val assets = context.applicationContext.assets
+    @Volatile private var bundledNamesReady = false
+
+    @Synchronized private fun ensureBundledNames() {
+        if (bundledNamesReady) return
+        val aliases = assets.open(BundledOcrNames.ASSET).bufferedReader().use {
+            BundledOcrNames.read(it, System.currentTimeMillis())
+        }
+        dao.saveCardNameAliases(aliases)
+        ocrNameIndex = null
+        bundledNamesReady = true
+    }
+
     private val cacheDirectory = File(context.cacheDir, "mtgjson").apply { mkdirs() }
     private val atomicCardsFile = File(cacheDirectory, "AtomicCards.json.gz")
     private val predictionIndexMarker = File(cacheDirectory, "AtomicCards.names-indexed")
     @Volatile private var ocrNameIndex: OcrNameIndex? = null
 
     fun cached(cardName: String): Resolution? {
+        ensureBundledNames()
         return dao.cardNameAlias(MtgJsonParsers.normalizeSearchName(cardName))?.toResolution()
     }
 
@@ -97,6 +111,7 @@ class MtgJsonCardNameResolver(
 
     /** Builds the Room prefix index only from the already downloaded local JSON. */
     fun preparePredictionIndex(): Boolean {
+        ensureBundledNames()
         if (!atomicCardsFile.exists()) {
             val aliasesAvailable = dao.cardNameAliasCount() > 0
             if (aliasesAvailable) prepareOcrNameIndex()
@@ -132,10 +147,12 @@ class MtgJsonCardNameResolver(
     }
 
     private fun prepareOcrNameIndex() {
+        ensureBundledNames()
         if (ocrNameIndex == null) ocrNameIndex = OcrNameIndex(dao.allCardNameAliases())
     }
 
     fun suggestions(query: String, limit: Int): List<Resolution> {
+        ensureBundledNames()
         val normalized = MtgJsonParsers.normalizeSearchName(query)
         if (normalized.length < 2) return emptyList()
         val upperBound = normalized + '\uFFFF'

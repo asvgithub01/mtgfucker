@@ -44,9 +44,12 @@
                 app:iconTint="?attr/colorPrimary"
                 app:strokeColor="?attr/colorPrimary" />
 
-            <EditText
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical">
+                <EditText
                 android:id="@+id/txtCollectionSearch"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="44dp"
                 android:hint="@string/search_collection_hint"
                 android:imeOptions="actionDone"
@@ -57,6 +60,12 @@
                 android:singleLine="true"
                 android:textColor="#111111"
                 android:textColorHint="#777777" />
+                <ImageButton android:id="@+id/btnCollectionActions"
+                    android:layout_width="48dp" android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_more" android:padding="12dp"
+                    android:contentDescription="@string/collection_actions" />
+            </LinearLayout>
 
 
             <LinearLayout
@@ -122,19 +131,6 @@
                     android:padding="8dp"
                     android:src="@android:drawable/ic_menu_gallery" />
             </LinearLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnExportCardmarket"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="@string/cardmarket_export"
-                android:textColor="?attr/colorSecondary"
-                android:visibility="gone"
-                app:icon="@android:drawable/ic_menu_save"
-                app:iconTint="?attr/colorSecondary"
-                app:strokeColor="?attr/colorSecondary" />
         </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
 
         <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
@@ -559,6 +555,13 @@
                 app:tint="#FFFFFF" />
         </LinearLayout>
 
+        <io.asv.mtgocr.ocrreader.RecentScansView
+            android:id="@+id/recentOcrScans"
+            android:layout_width="match_parent"
+            android:layout_height="104dp"
+            android:layout_above="@id/scanActions"
+            android:layout_marginTop="4dp" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnScanSession"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -595,7 +598,7 @@
             android:id="@+id/txtScanOcrCharacters"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_above="@id/scanActions"
+            android:layout_above="@id/recentOcrScans"
             android:layout_marginStart="20dp"
             android:layout_marginTop="6dp"
             android:layout_marginEnd="20dp"
@@ -694,6 +697,18 @@
             android:layout_alignParentBottom="true"
             android:gravity="center_horizontal"
             android:orientation="vertical">
+                <Button
+                    android:id="@+id/partySettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/party_settings" />
+                <CheckBox
+                    android:id="@+id/checkSaveOcrPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="?attr/colorSecondary"
+                    android:text="@string/save_ocr_photo"
+                    android:textColor="#FFFFFF" />
                 <CheckBox
                     android:id="@+id/checkEnhancedOcr"
                     android:layout_width="match_parent"

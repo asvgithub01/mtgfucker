@@ -4,6 +4,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CollectorVisionMathTest {
+    @Test fun photoUsesWinningRotationWithoutMirroring() {
+        val corners = listOf(Corner(0f,0f),Corner(1f,0f),Corner(1f,1f),Corner(0f,1f))
+        assertEquals(corners, CollectorVisionMath.photoCorners(corners, false))
+        assertEquals(listOf(corners[2],corners[3],corners[0],corners[1]), CollectorVisionMath.photoCorners(corners,true))
+        assertEquals(corners, CollectorVisionMath.photoCorners(CollectorVisionMath.photoCorners(corners,true),true))
+        assertTrue(CollectorVisionMath.prefersRotated(listOf(Hit("a",.4f)), listOf(Hit("b",.8f))))
+        assertFalse(CollectorVisionMath.prefersRotated(listOf(Hit("a",.8f)), listOf(Hit("b",.8f))))
+    }
+
     @Test fun halfValuesIncludeSubnormalAndInfinity() {
         assertEquals(1f,CollectorVisionMath.half(0x3c00),0f)
         assertEquals(-2f,CollectorVisionMath.half(0xc000),0f)

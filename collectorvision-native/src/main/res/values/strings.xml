@@ -22,10 +22,25 @@
   <string name="cv_native_save_failed">No se pudo confirmar el guardado. Retira la carta antes de reintentar.</string>
   <string name="cv_native_safety_filters">Filtros de seguridad</string>
   <string name="cv_native_filtered_hint">Con filtros: 3 lecturas ≥0,70 y margen ≥0,08.</string>
-  <string name="cv_native_fast_hint">Rápido: primer candidato ≥0,50. Mayor riesgo de error.</string>
+  <string name="cv_native_fast_hint">Rápido: 1 lectura ≥0,80 y margen ≥0,08; si no, 2 lecturas ≥0,55 y margen ≥0,04.</string>
   <string name="cv_native_show_thumbnail">Mostrar miniatura analizada</string>
   <string name="cv_native_price_idle">Precio de la última carta reconocida</string>
   <string name="cv_native_price_loading">Consultando precio…</string>
   <string name="cv_native_price_unavailable">Precio no disponible</string>
   <string name="edscan_save_photos">Guardar foto para OCR de idioma (experimental)</string>
+  <string name="party_settings">Confeti</string>
+  <string name="party_threshold_value">Confeti al superar %.2f €</string>
+  <string name="party_threshold_hint">De 0,50 € a 20 €, en pasos de 0,50 €. Ajuste compartido por EdScan y OCR; usa el precio en euros.</string>
+  <string name="edscan_tuning_title">Ajustar</string>
+  <string name="edscan_tuning_values">Rápido: ≥%1$.2f · margen ≥%2$.2f · %3$d lecturas</string>
+  <string name="edscan_tuning_score">Similitud mínima: %.2f</string>
+  <string name="edscan_tuning_margin">Margen mínimo: %.2f</string>
+  <string name="edscan_tuning_score_label">Similitud mínima</string>
+  <string name="edscan_tuning_margin_label">Margen mínimo</string>
+  <string name="edscan_tuning_twice">Exigir dos lecturas iguales</string>
+  <string name="edscan_tuning_hint">Solo modo rápido. Los candidatos fuertes (≥0,80 y margen ≥0,08) siguen siendo inmediatos si cumplen tus mínimos. Bajar valores o usar una lectura aumenta las confusiones.</string>
+  <string name="edscan_tuning_reset">Restablecer 0,55 / 0,04</string>
+  <string name="edscan_session_total">Sesión: %1$d copias · %4$s (min:s) · %2$s · %3$d sin precio</string>
+  <string name="cv_native_ambiguous_margin">No guardada: candidatos muy parecidos; impresión sin confirmar. Margen %1$.3f, mínimo %2$.3f. Prueba otra posición o revisa los ajustes.</string>
+  <string name="cv_native_saved_provisional">Guardada con edición provisional. Revisar en postprocesado.</string>
 </resources>

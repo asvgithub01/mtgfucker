@@ -33,7 +33,10 @@ class EdScanJobsDeviceTest {
             Thread.sleep(500)
             assertEquals(original, output.readText())
         } finally {
-            if (output.exists()) listOf(".jpg", ".json", ".ocr.json").forEach { File(dir, key+it).delete() }
+            androidx.work.WorkManager.getInstance(context).cancelUniqueWork("edscan-verify-$key").result.get()
+            androidx.work.WorkManager.getInstance(context).cancelUniqueWork("edscan-ocr-$key").result.get()
+            Thread.sleep(500)
+            if (output.exists()) listOf(".jpg", ".json", ".ocr.json", ".verification.json").forEach { File(dir, key+it).delete() }
         }
     }
     @Test fun deleteRequiresOneSecondAndCancelsOnRelease() {

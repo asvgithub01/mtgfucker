@@ -29,8 +29,8 @@
   <string name="cv_native_price_unavailable">Price unavailable</string>
   <string name="edscan_save_photos">Save photo for language OCR (experimental)</string>
   <string name="party_settings">Confetti</string>
-  <string name="party_threshold_value">Confetti from €%.2f</string>
-  <string name="party_threshold_hint">From €0.50 to €20, in €0.50 steps. Shared by EdScan and OCR; uses the euro price.</string>
+  <string name="party_threshold_value">Base ×1 (first effect): €%.2f</string>
+  <string name="party_threshold_hint">From €0.50 to €25, in €0.50 steps. Shared by EdScan and OCR; uses the euro price.</string>
   <string name="edscan_tuning_title">Tune</string>
   <string name="edscan_tuning_values">Fast: ≥%1$.2f · margin ≥%2$.2f · %3$d readings</string>
   <string name="edscan_tuning_score">Minimum similarity: %.2f</string>

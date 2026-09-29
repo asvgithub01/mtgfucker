@@ -4,10 +4,15 @@ import org.junit.Assert.*
 class PriceCelebrationTest {
     @Test fun sliderIncludesEndpointsAndDefault() {
         assertEquals(.5, PriceCelebration.thresholdForProgress(0), .0001)
-        assertEquals(20.0, PriceCelebration.thresholdForProgress(39), .0001)
+        assertEquals(25.0, PriceCelebration.thresholdForProgress(49), .0001)
         assertEquals(10.0, PriceCelebration.thresholdForProgress(19), .0001)
         assertEquals(19, PriceCelebration.progressForThreshold(Double.NaN))
-        (0..39).forEach { assertEquals(it, PriceCelebration.progressForThreshold(PriceCelebration.thresholdForProgress(it))) }
+        assertEquals(.5, PriceCelebration.thresholdForProgress(-1), .0001)
+        assertEquals(25.0, PriceCelebration.thresholdForProgress(99), .0001)
+        assertTrue(PriceCelebration.eligible(25.0, 25.0))
+        assertFalse(PriceCelebration.eligible(24.99, 25.0))
+        assertFalse(PriceCelebration.eligible(30.0, 25.01))
+        (0..49).forEach { assertEquals(it, PriceCelebration.progressForThreshold(PriceCelebration.thresholdForProgress(it))) }
     }
     @Test fun customThresholdIncludesBoundaryAndRejectsInvalidValues() {
         assertTrue(PriceCelebration.eligible(.50, .50))

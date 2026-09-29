@@ -8,13 +8,13 @@ import androidx.lifecycle.Lifecycle
 
 object PriceCelebration {
     private const val PREFS = "valuable_scan_celebrations"
-    internal fun thresholdForProgress(progress: Int): Double = (progress.coerceIn(0, 39) + 1) * 0.5
+    internal fun thresholdForProgress(progress: Int): Double = (progress.coerceIn(0, 49) + 1) * 0.5
     internal fun progressForThreshold(threshold: Double): Int =
-        if (threshold.isFinite()) kotlin.math.round(threshold * 2 - 1).toInt().coerceIn(0, 39) else 19
+        if (threshold.isFinite()) kotlin.math.round(threshold * 2 - 1).toInt().coerceIn(0, 49) else 19
     @JvmStatic fun threshold(context: android.content.Context): Double =
         thresholdForProgress(context.getSharedPreferences(PREFS, 0).getInt("threshold_step", 19))
     @JvmStatic @JvmOverloads fun eligible(euros: Double, threshold: Double = 10.0) =
-        euros.isFinite() && threshold.isFinite() && threshold in 0.5..20.0 && euros >= threshold
+        euros.isFinite() && threshold.isFinite() && threshold in 0.5..25.0 && euros >= threshold
     @JvmStatic fun showSettings(activity: AppCompatActivity) {
         val panel = android.widget.LinearLayout(activity).apply {
             orientation = android.widget.LinearLayout.VERTICAL
@@ -22,7 +22,7 @@ object PriceCelebration {
             setPadding(padding, padding, padding, padding)
         }
         val label = android.widget.TextView(activity)
-        val slider = android.widget.SeekBar(activity).apply { max = 39; progress = progressForThreshold(threshold(activity)) }
+        val slider = android.widget.SeekBar(activity).apply { max = 49; progress = progressForThreshold(threshold(activity)) }
         val levels = android.widget.TextView(activity)
         fun updateLabel() {
             val base = thresholdForProgress(slider.progress)

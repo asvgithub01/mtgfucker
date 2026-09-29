@@ -29,8 +29,8 @@
   <string name="cv_native_price_unavailable">Prezzo non disponibile</string>
   <string name="edscan_save_photos">Salva foto per OCR della lingua (sperimentale)</string>
   <string name="party_settings">Coriandoli</string>
-  <string name="party_threshold_value">Coriandoli da %.2f €</string>
-  <string name="party_threshold_hint">Da 0,50 € a 20 €, a passi di 0,50 €. Impostazione condivisa da EdScan e OCR; usa il prezzo in euro.</string>
+  <string name="party_threshold_value">Base ×1 (primo effetto): %.2f €</string>
+  <string name="party_threshold_hint">Da 0,50 € a 25 €, a passi di 0,50 €. Impostazione condivisa da EdScan e OCR; usa il prezzo in euro.</string>
   <string name="edscan_tuning_title">Regola</string>
   <string name="edscan_tuning_values">Rapido: ≥%1$.2f · margine ≥%2$.2f · %3$d letture</string>
   <string name="edscan_tuning_score">Somiglianza minima: %.2f</string>

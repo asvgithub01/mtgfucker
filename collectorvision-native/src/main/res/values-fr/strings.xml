@@ -29,8 +29,8 @@
   <string name="cv_native_price_unavailable">Prix indisponible</string>
   <string name="edscan_save_photos">Enregistrer la photo pour OCR de langue (expérimental)</string>
   <string name="party_settings">Confettis</string>
-  <string name="party_threshold_value">Confettis dès %.2f €</string>
-  <string name="party_threshold_hint">De 0,50 € à 20 €, par pas de 0,50 €. Réglage commun à EdScan et OCR ; utilise le prix en euros.</string>
+  <string name="party_threshold_value">Base ×1 (premier effet) : %.2f €</string>
+  <string name="party_threshold_hint">De 0,50 € à 25 €, par pas de 0,50 €. Réglage commun à EdScan et OCR ; utilise le prix en euros.</string>
   <string name="edscan_tuning_title">Régler</string>
   <string name="edscan_tuning_values">Rapide : ≥%1$.2f · écart ≥%2$.2f · %3$d lectures</string>
   <string name="edscan_tuning_score">Similarité minimale : %.2f</string>

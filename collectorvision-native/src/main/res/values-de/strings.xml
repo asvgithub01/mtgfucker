@@ -29,8 +29,8 @@
   <string name="cv_native_price_unavailable">Preis nicht verfügbar</string>
   <string name="edscan_save_photos">Foto für Sprach-OCR speichern (experimentell)</string>
   <string name="party_settings">Konfetti</string>
-  <string name="party_threshold_value">Konfetti ab %.2f €</string>
-  <string name="party_threshold_hint">Von 0,50 € bis 20 € in Schritten von 0,50 €. Gemeinsam für EdScan und OCR; verwendet den Europreis.</string>
+  <string name="party_threshold_value">Basis ×1 (erster Effekt): %.2f €</string>
+  <string name="party_threshold_hint">Von 0,50 € bis 25 € in Schritten von 0,50 €. Gemeinsam für EdScan und OCR; verwendet den Europreis.</string>
   <string name="edscan_tuning_title">Anpassen</string>
   <string name="edscan_tuning_values">Schnell: ≥%1$.2f · Abstand ≥%2$.2f · %3$d Lesungen</string>
   <string name="edscan_tuning_score">Mindestähnlichkeit: %.2f</string>

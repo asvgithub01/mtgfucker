@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ScanPartyOptionsTest {
     @Test fun exactDoublingThresholdsAreInclusiveAndCumulative() {
-        for (base in listOf(.5, 1.0, 3.5, 20.0)) {
+        for (base in listOf(.5, 1.0, 3.5, 20.0, 25.0)) {
             for (level in 1..5) {
                 val price = base * (1 shl (level - 1))
                 val options = ScanPartyOptions.forPrice(price, base)!!
@@ -24,7 +24,7 @@ class ScanPartyOptionsTest {
         for (price in listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, -1.0, 0.0, .99)) {
             assertNull(ScanPartyOptions.forPrice(price, 1.0))
         }
-        for (base in listOf(Double.NaN, Double.POSITIVE_INFINITY, -1.0, 0.0, 20.01)) {
+        for (base in listOf(Double.NaN, Double.POSITIVE_INFINITY, -1.0, 0.0, 25.01)) {
             assertNull(ScanPartyOptions.forPrice(100.0, base))
         }
     }

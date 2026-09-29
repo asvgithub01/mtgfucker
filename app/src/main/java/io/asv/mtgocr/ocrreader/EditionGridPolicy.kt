@@ -7,6 +7,7 @@ internal object EditionGridPolicy {
     fun choices(options: List<CardEditionOption>, set: String, preferredFinish: String): List<CardEditionOption> {
         val finish = preferredFinish.takeUnless { it.isBlank() || it.equals("normal", true) } ?: "nonfoil"
         val candidates = options.filter { it.setCode.equals(set, true) }
+        if (preferredFinish == "*") return candidates.distinctBy { it.printingUuid to it.finish }
         return candidates.filter { it.finish.equals(finish, true) }.ifEmpty { candidates }
             .distinctBy { it.printingUuid to it.finish }
     }

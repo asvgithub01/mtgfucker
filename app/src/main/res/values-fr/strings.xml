@@ -623,8 +623,8 @@
     <string name="review_reviewed">Vérifié manuellement</string>
     <string name="review_pending">Analyse ou catalogue en attente</string>
     <string name="review_inconclusive">Indices insuffisants</string>
-    <string name="review_art">Illustration (OCR)</string>
-    <string name="review_language">Langue (EdScan)</string>
+    <string name="review_art">Illustration</string>
+    <string name="review_language">Langue</string>
     <string name="review_photo">Voir la photo enregistrée</string>
     <string name="review_keep">Conserver les données actuelles</string>
     <string name="review_keep_confirm">Marquer ces indices comme vérifiés sans modifier la carte ?</string>
@@ -669,4 +669,17 @@
     <string name="edscan_error_finish">Cas 2 : finition indisponible pour cette impression. Changez la finition.</string>
     <string name="edscan_error_back">Cas 3 : verso (_back) non pris en charge. Scannez le recto.</string>
   <string name="review_provisional_printing">Impression provisoire : la carte correspond, mais plusieurs impressions sont possibles. Choisissez la bonne édition ou confirmez-la.</string>
+    <string name="review_flow_help">1. Analyser les photos : OCR (nom/langue) et EdScan (illustration/édition). 2. Vérifier les propositions. 3. Enregistrer. Aucune modification automatique. Touchez la photo, pincez et déplacez pour zoomer. La finition se choisit avec l’édition, pas sur la photo.</string>
+    <string name="review_analyse_all">Réanalyser toutes les photos et vérifier les illustrations</string>
+    <string name="review_save_changes">Enregistrer les modifications</string>
+    <string name="review_discard_changes">Annuler les modifications</string>
+    <string name="review_unsaved">Non enregistré</string>
+    <string name="review_edition_first">Choisissez la bonne édition avant la langue.</string>
+    <string name="review_select_language">Choisissez une langue disponible avant d’enregistrer.</string>
+    <string name="review_save_first">Enregistrez ou annulez les modifications avant de réanalyser.</string>
+    <string name="review_finish_value">Finition choisie : %1$s</string>
+    <string name="review_analysis_progress">Étapes terminées : %1$d/%2$d · Échecs/annulations : %3$d</string>
+    <string name="review_title_conflict">⚠ OCR et carte enregistrée divergent : %1$s. Vérification manuelle.</string>
+    <string name="review_title_matches">Nom corroboré par OCR : %1$s</string>
+    <string name="review_title_unknown">Titre OCR non concluant : %1$s</string>
 </resources>

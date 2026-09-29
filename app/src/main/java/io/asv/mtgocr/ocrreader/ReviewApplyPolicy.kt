@@ -2,9 +2,9 @@ package io.asv.mtgocr.ocrreader
 
 object ReviewApplyPolicy {
     fun applicable(entry: ScanReviewStore.Entry): Boolean =
-        entry.state in setOf("conflict", "suggestion") &&
+        entry.titleState != "conflict" && entry.state in setOf("conflict", "suggestion") &&
             if (entry.visual) entry.candidateId.isNotBlank() && entry.candidateLabel.isNotBlank()
-            else !entry.language.isNullOrBlank() && entry.language != entry.card.languageCode
+            else !entry.card.isProvisionalEdition && !entry.provisional && !entry.language.isNullOrBlank() && entry.language != entry.card.languageCode
     /** Never bulk-choose between contradictory photographs of the same inventory row. */
     fun bulkChoices(entries: List<ScanReviewStore.Entry>, selected: Collection<ScanReviewStore.Entry>): List<ScanReviewStore.Entry> =
         entries.filter(::applicable).groupBy { it.card.collectionItemId }.values.mapNotNull { group ->

@@ -1,0 +1,89 @@
+package io.asv.mtgocr.ocrreader
+
+import android.content.Context
+import androidx.work.*
+import io.asv.collectorvision.EdScanJobs
+import io.asv.collectorvision.EdScanLanguageWorker
+import io.asv.collectorvision.EdScanVerificationWorker
+import io.asv.mtgocr.ocrreader.data.CardRepository
+import kotlinx.coroutines.*
+import org.json.JSONObject
+import java.io.File
+import java.util.UUID
+import kotlin.coroutines.resume
+
+/** One durable chain per photo: OCR + strict visual verification + title cross-check. No inventory writes. */
+object ReviewAnalysisBatch {
+    fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>): String {
+        val dir = EdScanJobs.directory(context)
+        val tag = "review-batch-${UUID.randomUUID()}"
+        val work = WorkManager.getInstance(context)
+        val photos = entries.distinctBy { it.photoKey }.filter {
+            it.photoKey.matches(Regex("[0-9a-f-]{36}")) && File(dir,"${it.photoKey}.jpg").isFile && File(dir,"${it.photoKey}.json").isFile
+        }
+        for (entry in photos) {
+            val key = entry.photoKey
+            val attempt = UUID.randomUUID().toString()
+            ScanReviewStore.write(File(dir,"$key.visual-request.json"),JSONObject().put("attempt",attempt).put("both",true))
+            val data = workDataOf("key" to key,"attempt" to attempt,"library" to library)
+            val visual = OneTimeWorkRequestBuilder<EdScanVerificationWorker>().setInputData(data).addTag(tag).build()
+            val ocr = OneTimeWorkRequestBuilder<EdScanLanguageWorker>().setInputData(data).addTag(tag).build()
+            val compare = OneTimeWorkRequestBuilder<ReviewTitleWorker>().setInputData(data).addTag(tag).build()
+            work.beginUniqueWork("review-full-$key", ExistingWorkPolicy.REPLACE, visual).then(ocr).then(compare).enqueue()
+        }
+        context.getSharedPreferences("review_batch",0).edit().putString(library,tag).apply()
+        return tag
+    }
+}
+
+/** A title mismatch is evidence for a human, never permission to rewrite the collection. */
+class ReviewTitleWorker(context: Context, params: WorkerParameters): CoroutineWorker(context,params) {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
+        val key=inputData.getString("key").orEmpty()
+        val attempt=inputData.getString("attempt").orEmpty()
+        val library=inputData.getString("library").orEmpty()
+        if (!key.matches(Regex("[0-9a-f-]{36}")) || !attempt.matches(Regex("[0-9a-f-]{36}"))) return@withContext Result.failure()
+        val dir=EdScanJobs.directory(applicationContext)
+        try {
+            val link=ScanReviewStore.json(File(dir,"$key.link.json")) ?: return@withContext Result.failure()
+            if(link.optString("library")!=library) return@withContext Result.failure()
+            // Read the captured library explicitly: changing the active library must not redirect a job.
+            val collection=DataUtils.readSerializable<io.asv.mtgocr.ocrreader.model.Biblio>(applicationContext,library)
+            val card=collection?.cards?.firstOrNull { it.collectionItemId==link.optString("collectionItemId") }
+                ?: return@withContext Result.failure()
+            val ocr=ScanReviewStore.json(File(dir,"$key.$attempt.ocr.json")) ?: return@withContext Result.failure()
+            val titles=buildList<String> {
+                val readings=ocr.optJSONArray("readings") ?: return@buildList
+                for(i in 0 until readings.length()) {
+                    val lines=readings.optJSONObject(i)?.optJSONArray("titleLines") ?: continue
+                    for(j in 0 until lines.length()) add(lines.optString(j))
+                }
+            }
+            val repo=CardRepository.get(applicationContext)
+            val matches=withTimeout(90000) { suspendCancellableCoroutine<List<io.asv.mtgocr.ocrreader.data.PhotoCardNameMatch>> { c ->
+                repo.matchLocalPhotoText(titles,true) { if(c.isActive) c.resume(it) }
+            } }
+            val options=withTimeout(90000) { suspendCancellableCoroutine<List<io.asv.mtgocr.ocrreader.data.CardEditionOption>> { c ->
+                repo.loadCachedPrinting(card.name,card.printingUuid,null,card.setCode.orEmpty(),card.collectorNumber.orEmpty()) { options,error ->
+                    if(c.isActive) { if(error!=null) c.resume(emptyList()) else c.resume(options.filter { it.printingUuid==card.printingUuid }) }
+                }
+            } }
+            val expected=options.firstOrNull()?.cardName.orEmpty()
+            val observed=matches.map { it.canonicalName }.distinct()
+            val state=ReviewTitlePolicy.compare(expected,observed)
+            ScanReviewStore.write(File(dir,"$key.$attempt.title.json"),JSONObject()
+                .put("state",state).put("expected",expected).put("observed",observed.joinToString(" / "))
+                .put("printingUuid",card.printingUuid.orEmpty()).put("autoApplied",false))
+            Result.success()
+        } catch(_: TimeoutCancellationException) { if(runAttemptCount<2) Result.retry() else Result.failure() }
+        catch(e: CancellationException) { throw e }
+        catch(_: Exception) { if(runAttemptCount<2) Result.retry() else Result.failure() }
+    }
+}
+
+object ReviewTitlePolicy {
+    fun compare(expected: String, observed: List<String>): String {
+        if(expected.isBlank() || observed.size!=1) return "inconclusive"
+        return if(expected.equals(observed.single(),true)) "consistent" else "conflict"
+    }
+}

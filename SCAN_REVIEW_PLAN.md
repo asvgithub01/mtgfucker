@@ -89,3 +89,12 @@ Esta sección sustituye el alcance anterior de verificación visual EdScan:
 - Errores de ficha o espera superior a30s se muestran explícitamente. Reintento manual cuando concluye la petición anterior, evitando duplicar tareas en la cola compartida.
 - Resolver metadatos depende de candidateLabel ausente, no de URL ausente. Se libera resolving tras éxito/error y se controlan errores de escritura; ficha sin imagen queda como no disponible.
 - Evidencia Sony:41 fotosOCR,31 inconclusas,10 candidatas en la lectura inicial;9 sin match y1 con match. Prueba exacta Arcbound Worker/Divine Offering resuelve catálogo local sin error. No bajar umbrales para ocultar inconclusos.
+
+
+## Flujo de revisión 2026-09-29 (codex/postprocessing-review)
+- Reanalizar todas trabaja sobre fotos asociadas de la biblioteca, aunque el filtro visible sea otro. Cada foto tiene tres trabajos duraderos: verificación visual, OCR y contraste del título canónico. Progreso cuenta pasos WorkManager terminados, con fallidos/cancelados separados. Fotografías ausentes no se pueden reanalizar.
+- EdScan revisa con similitud >=0.70 y margen >=0.08, independientemente del modo rápido. No es una segunda fuente independiente ni prueba de acabado/impresiones indistinguibles. Resultado ambiguo sigue sin confirmar.
+- OCR EdScan usa líneas del título superior y texto de reglas para idioma. Se guardan las lecturas por script; título sin alias local o ambiguo no crea una falsa confirmación. Discordancia de nombre conocido bloquea aplicación masiva y requiere decisión humana.
+- Una fila por foto agrupa evidencias de idioma/arte/provisional. Símbolo junto al nombre abre ediciones; bandera abre idiomas. Ambos editan un borrador; Guardar cambios valida la impresión/idioma y conserva ID, cantidad, condición y grupos. Acabado admite cambio explícito al elegir impresión; propuestas automáticas no lo cambian. Precio anterior se limpia.
+- No se sustituye silenciosamente el idioma al editar: si no existe en la nueva impresión, queda pendiente de selección. Los borradores sobreviven a rotación, no a muerte del proceso; salir solicita descartarlos. Orden de sesión/scroll se conservan. La captura admite pinch/pan y ampliación completa.
+- Prueba Sony real sin escribir inventario: Aerid Konstrari FRA407, cadena3/3 sin errores; OCR corroboró nombre e inglés (~0.997). Visual top0.74668/segundo0.73391, margen0.01278: inconcluso, correctamente NO confirma edición. Pendiente corpus más amplio (foil/no foil, fotos OCR lejanas, errores de título y cambios en fila120).

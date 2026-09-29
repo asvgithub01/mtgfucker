@@ -623,8 +623,8 @@
     <string name="review_reviewed">Manuell geprüft</string>
     <string name="review_pending">Analyse oder Katalog ausstehend</string>
     <string name="review_inconclusive">Unzureichende Hinweise</string>
-    <string name="review_art">Illustration (OCR)</string>
-    <string name="review_language">Sprache (EdScan)</string>
+    <string name="review_art">Illustration</string>
+    <string name="review_language">Sprache</string>
     <string name="review_photo">Gespeichertes Foto anzeigen</string>
     <string name="review_keep">Aktuelle Daten behalten</string>
     <string name="review_keep_confirm">Hinweise als geprüft markieren, ohne die Karte zu ändern?</string>
@@ -669,4 +669,17 @@
     <string name="edscan_error_finish">Fall 2: Gewählte Ausführung für diesen Druck nicht verfügbar. Ausführung ändern.</string>
     <string name="edscan_error_back">Fall 3: Rückseite (_back) noch nicht unterstützt. Vorderseite scannen.</string>
   <string name="review_provisional_printing">Vorläufige Druckversion: Die Karte stimmt überein, aber mehrere Druckversionen sind möglich. Richtige Ausgabe wählen oder bestätigen.</string>
+    <string name="review_flow_help">1. Fotos analysieren: OCR (Name/Sprache) und EdScan (Bild/Druck). 2. Vorschläge prüfen. 3. Änderungen speichern. Keine automatische Übernahme. Foto antippen, mit zwei Fingern zoomen und ziehen. Finish wird beim Druck gewählt, nicht im Foto erkannt.</string>
+    <string name="review_analyse_all">Alle Fotos erneut analysieren und Bild prüfen</string>
+    <string name="review_save_changes">Änderungen speichern</string>
+    <string name="review_discard_changes">Änderungen verwerfen</string>
+    <string name="review_unsaved">Nicht gespeichert</string>
+    <string name="review_edition_first">Zuerst den richtigen Druck wählen, dann die Sprache.</string>
+    <string name="review_select_language">Vor dem Speichern eine verfügbare Sprache wählen.</string>
+    <string name="review_save_first">Änderungen vor der Analyse speichern oder verwerfen.</string>
+    <string name="review_finish_value">Gewähltes Finish: %1$s</string>
+    <string name="review_analysis_progress">Schritte abgeschlossen: %1$d/%2$d · Fehler/abgebrochen: %3$d</string>
+    <string name="review_title_conflict">⚠ OCR und gespeicherte Karte widersprechen sich: %1$s. Manuell prüfen.</string>
+    <string name="review_title_matches">Name durch OCR bestätigt: %1$s</string>
+    <string name="review_title_unknown">Kein eindeutiger OCR-Titel: %1$s</string>
 </resources>

@@ -8,6 +8,12 @@ class ReviewApplyPolicyTest {
         card.printingUuid="old"; card.finish="foil"; card.languageCode="es"
         return ScanReviewStore.Entry("photo",card,"ocr","conflict",null,"candidate","New card",123)
     }
+    @Test fun titleConflictCannotBeBulkAppliedAndProvisionalLanguageNeedsEdition() {
+        val e=entry()
+        assertFalse(ReviewApplyPolicy.applicable(e.copy(titleState="conflict")))
+        e.card.setProvisionalEdition(true)
+        assertFalse(ReviewApplyPolicy.applicable(e.copy(visual=false,language="pt")))
+    }
     @Test fun bulkSkipsInconclusiveAndDeduplicatesIdenticalProposals() {
         val first=entry()
         val duplicate=first.copy(key="photo2")

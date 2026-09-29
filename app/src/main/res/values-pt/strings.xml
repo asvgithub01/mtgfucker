@@ -623,8 +623,8 @@
     <string name="review_reviewed">Revisto manualmente</string>
     <string name="review_pending">Análise ou catálogo pendente</string>
     <string name="review_inconclusive">Evidência insuficiente</string>
-    <string name="review_art">Arte (OCR)</string>
-    <string name="review_language">Idioma (EdScan)</string>
+    <string name="review_art">Arte</string>
+    <string name="review_language">Idioma</string>
     <string name="review_photo">Ver foto guardada</string>
     <string name="review_keep">Manter dados atuais</string>
     <string name="review_keep_confirm">Marcar como revisto sem alterar a carta?</string>
@@ -669,4 +669,17 @@
     <string name="edscan_error_finish">Caso 2: acabamento indisponível para esta impressão. Altere o acabamento.</string>
     <string name="edscan_error_back">Caso 3: verso (_back) ainda não suportado. Digitalize a frente.</string>
   <string name="review_provisional_printing">Impressão provisória: a carta corresponde, mas há várias impressões possíveis. Selecione a edição correta ou confirme.</string>
+    <string name="review_flow_help">1. Analisar fotos: OCR (nome/idioma) e EdScan (arte/edição). 2. Rever propostas. 3. Guardar alterações. Nada é aplicado automaticamente. Toque na foto, amplie com dois dedos e arraste. O acabamento é escolhido com a edição, não detetado na foto.</string>
+    <string name="review_analyse_all">Reanalisar todas as fotos e verificar arte</string>
+    <string name="review_save_changes">Guardar alterações</string>
+    <string name="review_discard_changes">Descartar alterações</string>
+    <string name="review_unsaved">Por guardar</string>
+    <string name="review_edition_first">Escolha primeiro a edição correta para selecionar o idioma.</string>
+    <string name="review_select_language">Escolha um idioma disponível antes de guardar.</string>
+    <string name="review_save_first">Guarde ou descarte alterações antes de reanalisar.</string>
+    <string name="review_finish_value">Acabamento escolhido: %1$s</string>
+    <string name="review_analysis_progress">Passos concluídos: %1$d/%2$d · Falhas/cancelamentos: %3$d</string>
+    <string name="review_title_conflict">⚠ OCR e carta guardada não coincidem: %1$s. Resolva manualmente.</string>
+    <string name="review_title_matches">Nome corroborado por OCR: %1$s</string>
+    <string name="review_title_unknown">Título OCR inconclusivo: %1$s</string>
 </resources>

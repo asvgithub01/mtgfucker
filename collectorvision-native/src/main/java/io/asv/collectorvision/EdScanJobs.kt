@@ -171,7 +171,9 @@ class EdScanLanguageWorker(context: Context, params: WorkerParameters) : Corouti
         val key = inputData.getString("key") ?: return@withContext Result.failure()
         if (!key.matches(Regex("[a-fA-F0-9-]{36}"))) return@withContext Result.failure()
         val dir = EdScanJobs.directory(applicationContext)
-        val resultFile = File(dir, "$key.ocr.json")
+        val attempt = inputData.getString("attempt").orEmpty()
+        if (attempt.isNotBlank() && !attempt.matches(Regex("[0-9a-f-]{36}"))) return@withContext Result.failure()
+        val resultFile = File(dir, if (attempt.isBlank()) "$key.ocr.json" else "$key.$attempt.ocr.json")
         if (resultFile.exists()) return@withContext Result.success()
         EdScanInferencePriority.awaitIdle()
         val bitmap = BitmapFactory.decodeFile(File(dir, "$key.jpg").path) ?: return@withContext Result.failure()
@@ -189,20 +191,29 @@ class EdScanLanguageWorker(context: Context, params: WorkerParameters) : Corouti
             for ((index, reader) in readers.withIndex()) {
                 ensureActive()
                 EdScanInferencePriority.awaitIdle()
-                val text = reader.process(InputImage.fromBitmap(bitmap, 0)).await().text
+                val recognized = reader.process(InputImage.fromBitmap(bitmap, 0)).await()
+                val lines = recognized.textBlocks.flatMap { it.lines }
+                val metadata = runCatching { JSONObject(File(dir, "$key.json").readText()) }.getOrNull()
+                val rectified = metadata?.optString("source") != "ocr"
+                val titleLines = lines.filter { !rectified || (it.boundingBox?.centerY() ?: bitmap.height) < bitmap.height * .24f }
+                val rules = lines.filter { line ->
+                    val y = line.boundingBox?.centerY() ?: 0
+                    !rectified || y in (bitmap.height * .48f).toInt()..(bitmap.height * .90f).toInt()
+                }.joinToString("\n") { it.text }
+                val text = rules.ifBlank { recognized.text }
                 val candidates = language.identifyPossibleLanguages(text).await()
                 val guesses = org.json.JSONArray()
                 candidates.filter { it.languageTag != "und" }.forEach {
                     guesses.put(JSONObject().put("language", it.languageTag).put("confidence", it.confidence))
                 }
                 readings.put(JSONObject().put("script", listOf("latin", "chinese", "japanese", "korean")[index])
-                    .put("text", text).put("candidates", guesses))
+                    .put("text", text).put("titleLines", org.json.JSONArray(titleLines.map { it.text })).put("candidates", guesses))
             }
             result.put("readings", readings)
             EdScanJobs.write(resultFile, result.toString().toByteArray())
             Result.success()
         } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        catch (_: Exception) { if(attempt.isNotBlank() && runAttemptCount >= 2) Result.failure() else Result.retry() }
         finally { readers.forEach { it.close() }; language.close(); bitmap.recycle() }
     }
 }

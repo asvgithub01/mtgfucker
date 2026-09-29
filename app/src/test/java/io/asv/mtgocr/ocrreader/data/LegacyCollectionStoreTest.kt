@@ -12,6 +12,30 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class LegacyCollectionStoreTest {
+    @Test fun languageOnlyReviewKeepsPriceForTheSamePrintingAndFinish() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")
+        card.price="9 EUR"; card.priceL="9"; card.priceM="9"; card.priceH="9"
+        val expected=card.snapshotForPersistence()
+        LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,option("nonfoil").copy(price=null),"pt",true)
+        assertEquals("9 EUR",card.price)
+        assertEquals("9",card.priceM)
+        assertEquals("pt",card.languageCode)
+    }
+    @Test fun explicitEditionSelectionCanChangeFinishWithoutLosingInventory() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")
+        card.quantityCount=2; card.groups.add("Keep")
+        card.price="99 EUR"
+        val expected=card.snapshotForPersistence()
+        val foil=option("foil").copy(price=null)
+        assertSame(card,LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,foil,"es",allowFinishChange=true))
+        assertEquals("foil",card.finish)
+        assertEquals("",card.price)
+        assertEquals(2,card.quantityCount)
+        assertEquals(listOf("Keep"),card.groups)
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,expected,foil,"es",allowFinishChange=true))
+    }
     @Test fun edscanRepeatedCopiesHaveIndependentIdentityAndQuantity() {
         val collection = Biblio("test", "Test")
         val printing = option("nonfoil")

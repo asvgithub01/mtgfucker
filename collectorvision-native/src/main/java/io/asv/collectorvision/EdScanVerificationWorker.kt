@@ -49,7 +49,7 @@ class EdScanVerificationWorker(context: Context, params: WorkerParameters) : Cor
             }
             Result.success()
         } catch (e: CancellationException) { throw e }
-        catch (_: Exception) { Result.retry() }
+        catch (_: Exception) { if(attempt.isNotBlank() && runAttemptCount >= 2) Result.failure() else Result.retry() }
         finally { bitmap.recycle() }
     } }
 }

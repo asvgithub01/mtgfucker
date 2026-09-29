@@ -10,7 +10,7 @@ import java.io.File
 
 object ScanReviewStore {
     data class Entry(val key: String, val card: CardInfo, val source: String, val state: String,
-        val language: String?, val candidateId: String, val candidateLabel: String, val stamp: Long, val candidateImage: String = "", val photoKey: String = key, val visual: Boolean = source == "ocr", val candidateSet: String = "", val provisional: Boolean = false)
+        val language: String?, val candidateId: String, val candidateLabel: String, val stamp: Long, val candidateImage: String = "", val photoKey: String = key, val visual: Boolean = source == "ocr", val candidateSet: String = "", val provisional: Boolean = false, val titleState: String = "", val observedTitle: String = "")
     fun json(file: File): JSONObject? = runCatching { JSONObject(file.readText()) }.getOrNull()
     fun read(context: Context, library: String): List<Entry> {
         if (LibraryCatalog.activeFile(context) != library) return emptyList()
@@ -33,16 +33,21 @@ object ScanReviewStore {
             if (identity.optString("library") != library) return@flatMap emptyList()
             val card = cards[identity.optString("collectionItemId")] ?: return@flatMap emptyList()
             val photoKey = link.name.removeSuffix(".link.json")
-            val request = json(File(dir,"$photoKey.visual-request.json"))?.optString("attempt").orEmpty()
+            val requestJson = json(File(dir,"$photoKey.visual-request.json"))
+            val request = requestJson?.optString("attempt").orEmpty()
+            val both = requestJson?.optBoolean("both") == true
             val input = json(File(dir,"$photoKey.json")) ?: return@flatMap emptyList()
             val source = input.optString("source").ifBlank { "edscan" }
             val latest = listOf(request).filter { it.matches(Regex("[0-9a-f-]{36}")) }
             // Keep EdScan language evidence, but do not show an obsolete visual result as a second conflict.
-            val attempts = if(source == "ocr" && latest.isNotEmpty()) latest else listOf("") + latest
+            val attempts = if(both && latest.isNotEmpty()) listOf("language:"+request,request)
+                else if(source == "ocr" && latest.isNotEmpty()) latest else listOf("") + latest
             attempts.map { attempt ->
-                val key = if(attempt.isBlank()) photoKey else "$photoKey.$attempt"
-                val visual = source == "ocr" || attempt.isNotBlank()
-                val resultFile = File(dir, if (visual) "$key.verification.json" else "$key.ocr.json")
+                val languageAttempt = attempt.startsWith("language:")
+                val resultKey = if(attempt.isBlank()) photoKey else "$photoKey.${attempt.removePrefix("language:")}"
+                val key = if(languageAttempt) "$resultKey.language" else resultKey
+                val visual = !languageAttempt && (source == "ocr" || attempt.isNotBlank())
+                val resultFile = File(dir, if (visual) "$resultKey.verification.json" else "$resultKey.ocr.json")
                 val result = json(resultFile)
                 var language: String? = null
                 var candidateId = ""
@@ -77,12 +82,16 @@ object ScanReviewStore {
                     state=when { language==null -> "inconclusive"; card.languageCode.isBlank() -> "suggestion"
                         card.languageCode == language -> "consistent"; else -> "conflict" }
                 }
-                val stamp = maxOf(resultFile.lastModified(),matchFile.lastModified())
+                val titleFile = File(dir,"$resultKey.title.json")
+                val title = json(titleFile)?.takeIf { it.optString("printingUuid")==card.printingUuid.orEmpty() }
+                val titleState = title?.optString("state").orEmpty()
+                if(titleState=="conflict") state="conflict"
+                val stamp = maxOf(resultFile.lastModified(),matchFile.lastModified(),titleFile.lastModified())
                 val review=json(File(dir,"$key.review.json"))
                 if (review != null && review.optLong("stamp") == stamp &&
                     review.optString("printingUuid") == card.printingUuid.orEmpty() &&
                     review.optString("finish") == card.finish.orEmpty() && review.optString("language") == card.languageCode) state="reviewed"
-                Entry(key,card.snapshotForPersistence(),source,state,language,candidateId,label,stamp,candidateImage,photoKey,visual,candidateSet)
+                Entry(key,card.snapshotForPersistence(),source,state,language,candidateId,label,stamp,candidateImage,photoKey,visual,candidateSet,false,titleState,title?.optString("observed").orEmpty())
             }
         }).sortedWith(compareBy<Entry> { when(it.state) { "conflict"->0; "suggestion"->1; "pending"->2; "inconclusive"->3; else->4 } }.thenByDescending { it.key })
     }

@@ -623,8 +623,8 @@
     <string name="review_reviewed">Manually reviewed</string>
     <string name="review_pending">Analysis or catalog pending</string>
     <string name="review_inconclusive">Insufficient evidence</string>
-    <string name="review_art">Artwork (OCR)</string>
-    <string name="review_language">Language (EdScan)</string>
+    <string name="review_art">Artwork</string>
+    <string name="review_language">Language</string>
     <string name="review_photo">View saved photo</string>
     <string name="review_keep">Keep current data</string>
     <string name="review_keep_confirm">Mark this evidence reviewed without changing the card?</string>
@@ -669,4 +669,17 @@
     <string name="edscan_error_finish">Case 2: selected finish is unavailable for this printing. Change the finish.</string>
     <string name="edscan_error_back">Case 3: back-face candidate (_back) is not supported yet. Scan the front.</string>
   <string name="review_provisional_printing">Provisional printing: the card matches, but several printings are possible. Select the correct printing or confirm it is correct.</string>
+    <string name="review_flow_help">1. Analyse photos: OCR (name and language) and EdScan (art/printing). 2. Review proposals. 3. Save changes. Nothing is applied automatically. Tap a photo to enlarge; pinch and drag. Finish is selected with the printing, not detected from the photo.</string>
+    <string name="review_analyse_all">Reanalyse all photos and verify art</string>
+    <string name="review_save_changes">Save changes</string>
+    <string name="review_discard_changes">Discard changes</string>
+    <string name="review_unsaved">Unsaved</string>
+    <string name="review_edition_first">Set the correct printing before choosing a language.</string>
+    <string name="review_select_language">Select an available language before saving.</string>
+    <string name="review_save_first">Save or discard pending edits before reanalysis.</string>
+    <string name="review_finish_value">Selected finish: %1$s</string>
+    <string name="review_analysis_progress">Steps completed: %1$d/%2$d · Failed/cancelled: %3$d</string>
+    <string name="review_title_conflict">⚠ OCR and saved card disagree: %1$s. Resolve manually.</string>
+    <string name="review_title_matches">Name corroborated by OCR: %1$s</string>
+    <string name="review_title_unknown">No conclusive OCR title: %1$s</string>
 </resources>

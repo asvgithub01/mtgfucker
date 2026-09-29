@@ -353,20 +353,25 @@ object LegacyCollectionStore {
     }
 
     /** Explicit visual-review correction can change card identity, not only its set. */
-    fun applyReviewedPrinting(context: Context, library: String, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null): CardInfo? {
+    fun applyReviewedPrinting(context: Context, library: String, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false): CardInfo? {
         if (fileName(context) != library) return null
         val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return null
-        val current = applyReviewedPrintingInCollection(collection, expected, option, targetLanguage) ?: return null
+        val current = applyReviewedPrintingInCollection(collection, expected, option, targetLanguage, allowFinishChange) ?: return null
         DataUtils.saveSerializable(context,collection,library)
         OcrCaptureActivity.mBiblio=collection
         return current
     }
 
-    internal fun applyReviewedPrintingInCollection(collection: Biblio, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null): CardInfo? {
+    internal fun applyReviewedPrintingInCollection(collection: Biblio, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false): CardInfo? {
         val current = collection.cards.firstOrNull { it.collectionItemId == expected.collectionItemId } ?: return null
         if (current.printingUuid != expected.printingUuid || current.finish != expected.finish ||
-            current.languageCode != expected.languageCode || option.finish != current.finish) return null
+            current.languageCode != expected.languageCode || (!allowFinishChange && option.finish != current.finish)) return null
+        val preservePrice = current.printingUuid==option.printingUuid && current.finish==option.finish && option.price==null
+        val prices = listOf(current.price,current.priceL,current.priceM,current.priceH)
         updateEditionInCollection(collection,current.collectionItemId,option)
+        if(preservePrice) {
+            current.price=prices[0]; current.priceL=prices[1]; current.priceM=prices[2]; current.priceH=prices[3]
+        }
         if (targetLanguage != null) current.languageCode = CardLanguage.toCode(targetLanguage)
         current.name = option.displayName
         current.description = listOf(option.typeLine,option.rulesText).filter { it.isNotBlank() }.joinToString("\n")

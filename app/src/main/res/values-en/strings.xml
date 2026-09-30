@@ -682,4 +682,5 @@
     <string name="review_title_conflict">⚠ OCR and saved card disagree: %1$s. Resolve manually.</string>
     <string name="review_title_matches">Name corroborated by OCR: %1$s</string>
     <string name="review_title_unknown">No conclusive OCR title: %1$s</string>
+    <string name="review_save_confirm">Save pending changes and confirm that the selected card is correct?</string>
 </resources>

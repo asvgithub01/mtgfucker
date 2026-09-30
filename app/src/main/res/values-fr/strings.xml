@@ -682,4 +682,5 @@
     <string name="review_title_conflict">⚠ OCR et carte enregistrée divergent : %1$s. Vérification manuelle.</string>
     <string name="review_title_matches">Nom corroboré par OCR : %1$s</string>
     <string name="review_title_unknown">Titre OCR non concluant : %1$s</string>
+    <string name="review_save_confirm">Enregistrer les modifications en attente et confirmer que la carte sélectionnée est correcte ?</string>
 </resources>

@@ -353,22 +353,25 @@ object LegacyCollectionStore {
     }
 
     /** Explicit visual-review correction can change card identity, not only its set. */
-    fun applyReviewedPrinting(context: Context, library: String, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false): CardInfo? {
+    fun applyReviewedPrinting(context: Context, library: String, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false, confirmPrinting: Boolean = true): CardInfo? {
         if (fileName(context) != library) return null
         val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return null
-        val current = applyReviewedPrintingInCollection(collection, expected, option, targetLanguage, allowFinishChange) ?: return null
+        val current = applyReviewedPrintingInCollection(collection, expected, option, targetLanguage, allowFinishChange, confirmPrinting) ?: return null
         DataUtils.saveSerializable(context,collection,library)
         OcrCaptureActivity.mBiblio=collection
         return current
     }
 
-    internal fun applyReviewedPrintingInCollection(collection: Biblio, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false): CardInfo? {
+    internal fun applyReviewedPrintingInCollection(collection: Biblio, expected: CardInfo, option: CardEditionOption, targetLanguage: String? = null, allowFinishChange: Boolean = false, confirmPrinting: Boolean = true): CardInfo? {
         val current = collection.cards.firstOrNull { it.collectionItemId == expected.collectionItemId } ?: return null
         if (current.printingUuid != expected.printingUuid || current.finish != expected.finish ||
             current.languageCode != expected.languageCode || (!allowFinishChange && option.finish != current.finish)) return null
+        if(!confirmPrinting && (current.printingUuid!=option.printingUuid || current.finish!=option.finish)) return null
+        val wasProvisional=current.isProvisionalEdition
         val preservePrice = current.printingUuid==option.printingUuid && current.finish==option.finish && option.price==null
         val prices = listOf(current.price,current.priceL,current.priceM,current.priceH)
         updateEditionInCollection(collection,current.collectionItemId,option)
+        if(!confirmPrinting) current.setProvisionalEdition(wasProvisional)
         if(preservePrice) {
             current.price=prices[0]; current.priceL=prices[1]; current.priceM=prices[2]; current.priceH=prices[3]
         }

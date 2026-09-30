@@ -12,6 +12,18 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class LegacyCollectionStoreTest {
+    @Test fun languageSavePreservesProvisionalUntilExplicitConfirmation() {
+        val collection=Biblio("test","Test")
+        val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"")
+        card.setProvisionalEdition(true)
+        assertSame(card,LegacyCollectionStore.applyReviewedPrintingInCollection(collection,card.snapshotForPersistence(),option("nonfoil"),"en",confirmPrinting=false))
+        assertTrue(card.isProvisionalEdition)
+        assertEquals("en",card.languageCode)
+        assertNull(LegacyCollectionStore.applyReviewedPrintingInCollection(collection,card.snapshotForPersistence(),option("foil"),"en",allowFinishChange=true,confirmPrinting=false))
+        assertSame(card,LegacyCollectionStore.applyReviewedPrintingInCollection(collection,card.snapshotForPersistence(),option("nonfoil"),"en",confirmPrinting=true))
+        assertFalse(card.isProvisionalEdition)
+    }
+
     @Test fun languageOnlyReviewKeepsPriceForTheSamePrintingAndFinish() {
         val collection=Biblio("test","Test")
         val card=LegacyCollectionStore.addCopyToCollection(collection,option("nonfoil"),"es")

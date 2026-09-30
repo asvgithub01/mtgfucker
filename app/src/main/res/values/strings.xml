@@ -854,4 +854,5 @@
     <string name="review_title_conflict">⚠ OCR y carta guardada no coinciden: %1$s. Resolver manualmente.</string>
     <string name="review_title_matches">Nombre corroborado por OCR: %1$s</string>
     <string name="review_title_unknown">OCR sin título concluyente: %1$s</string>
+    <string name="review_save_confirm">¿Guardar los cambios pendientes y confirmar que la carta seleccionada es correcta?</string>
 </resources>

@@ -682,4 +682,5 @@
     <string name="review_title_conflict">⚠ OCR und gespeicherte Karte widersprechen sich: %1$s. Manuell prüfen.</string>
     <string name="review_title_matches">Name durch OCR bestätigt: %1$s</string>
     <string name="review_title_unknown">Kein eindeutiger OCR-Titel: %1$s</string>
+    <string name="review_save_confirm">Ausstehende Änderungen speichern und bestätigen, dass die ausgewählte Karte korrekt ist?</string>
 </resources>

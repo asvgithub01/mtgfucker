@@ -38,13 +38,23 @@ class ScanReviewActivity : AppCompatActivity() {
     private var applying=false
     data class Draft(val original: ScanReviewStore.Entry, val option: CardEditionOption? = null,
         val language: String = original.card.languageCode, val image: String? = null,
-        val validated: io.asv.mtgocr.ocrreader.data.CardImageVariant? = null)
+        val validated: io.asv.mtgocr.ocrreader.data.CardImageVariant? = null,
+        val origin: String = "", val requiresEdition: Boolean = false,
+        val preview: io.asv.mtgocr.ocrreader.data.ReviewArtPreview? = null)
     class DraftState : androidx.lifecycle.ViewModel() {
         val values=linkedMapOf<String,Draft>()
         val attemptedPresets=mutableSetOf<String>()
         val proposalOriginals=mutableMapOf<String,Draft>()
         val errors=mutableMapOf<String,String>()
     }
+    private val artPreviews=mutableMapOf<String,io.asv.mtgocr.ocrreader.data.ReviewArtPreview>()
+    private val artOptions=mutableMapOf<String,CardEditionOption>()
+    private val ocrOptions=mutableMapOf<String,List<CardEditionOption>>()
+    private val ocrLoading=mutableSetOf<String>()
+    private val ocrRetryAfter=mutableMapOf<String,Long>()
+    private fun ocrName(entry: ScanReviewStore.Entry)=entries.firstOrNull {
+        it.photoKey==entry.photoKey && it.observedTitle.isNotBlank()
+    }?.observedTitle.orEmpty()
     private val presetPending=mutableSetOf<String>()
     private val presetRetryAfter=mutableMapOf<String,Long>()
     private fun screenEntries(): List<ScanReviewStore.Entry> = visible.drop(list.firstVisiblePosition.coerceAtLeast(0))
@@ -161,8 +171,9 @@ class ScanReviewActivity : AppCompatActivity() {
                 val next=entries.joinToString("|") { "${it.key}:${it.stamp}:${it.state}:${it.card.printingUuid}:${it.card.languageCode}:${it.card.finish}:${it.candidateImage}:${it.candidateLabel}" }
                 if(next!=signature) { signature=next; render() }
                 presetLanguages()
+                loadOcrProposals()
                 val screenPhotos=screenEntries().map { it.photoKey }.toSet()
-                result.filter { it.photoKey in screenPhotos && !resolutionErrors.contains(it.key) && it.state!="reviewed" && it.visual && it.candidateId.isNotBlank() && it.candidateLabel.isBlank() }
+                result.filter { it.photoKey in screenPhotos && !resolutionErrors.contains(it.key) && it.state!="reviewed" && it.visual && it.candidateId.isNotBlank() && (it.candidateLabel.isBlank() || (it.candidateId !in artOptions && it.candidateId !in artPreviews)) }
                     .take((2-resolving.size).coerceAtLeast(0)).forEach(::resolveArt)
             }
         }
@@ -191,71 +202,17 @@ class ScanReviewActivity : AppCompatActivity() {
         selectAll.isChecked=choices.isNotEmpty() && choices.all { selected.containsKey(it.key) }
     }
     private fun label(entry: ScanReviewStore.Entry): CharSequence {
-        val state=when(entry.state) {
-            "conflict"->R.string.review_conflict; "suggestion"->R.string.review_suggestion
-            "consistent"->R.string.review_consistent; "reviewed"->R.string.review_reviewed
-            "pending"->R.string.review_pending; else->R.string.review_inconclusive
-        }
-        val current="${entry.card.name} · ${entry.card.setCode.orEmpty()} #${entry.card.collectorNumber.orEmpty()}"
-        val text=android.text.SpannableStringBuilder()
-        fun heading(value: String, color: Int) {
-            val start=text.length
-            text.append(value).append("\n")
-            text.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),start,text.length,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            text.setSpan(android.text.style.ForegroundColorSpan(color),start,text.length,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        heading(getString(if(entry.source=="ocr") R.string.review_origin_ocr else R.string.review_origin_edscan),
-            if(entry.source=="ocr") 0xFF2196F3.toInt() else 0xFF009688.toInt())
-        if(entry.provisional && entry.state!="reviewed") {
-            heading(getString(R.string.review_provisional_printing),0xFFEF6C00.toInt())
-
-        } else if(entry.state=="conflict" || entry.state=="suggestion") {
-            heading(getString(if(entry.visual) R.string.review_correct_printing else R.string.review_correct_language),0xFFEF6C00.toInt())
-            val before=if(entry.visual) current else entry.card.languageCode.takeIf { it.isNotBlank() }?.let(CardLanguageFlag::label).orEmpty().ifBlank { "?" }
-            val after=if(entry.visual) entry.candidateLabel else entry.language?.let(CardLanguageFlag::label).orEmpty()
-            text.append(getString(R.string.review_change_values,before,after)).append("\n")
-            if(!entry.visual) text.append(current).append("\n")
-        }
-        val photoEvidence=entries.filter { it.photoKey==entry.photoKey }
-        val languageEvidence=photoEvidence.firstOrNull { !it.visual }
-        val titleEvidence=photoEvidence.firstOrNull { it.titleState.isNotBlank() } ?: entry
-        val saved=entry.card.languageCode.takeIf { it.isNotBlank() }?.let(CardLanguageFlag::label)
-            ?: getString(R.string.review_language_unknown)
-
-        if(languageEvidence!=null) {
-            val detected=languageEvidence.language?.takeIf { it.isNotBlank() }?.let(CardLanguageFlag::label)
-                ?: getString(if(entry.state=="pending") R.string.review_pending else R.string.review_language_unknown)
-            val start=text.length
-            text.append(getString(R.string.review_detected_language,detected)).append("\n")
-            text.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),start,text.length,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        }
-        if(titleEvidence.titleState.isNotBlank()) text.append(getString(when(titleEvidence.titleState) {
-            "conflict" -> R.string.review_title_conflict
-            "consistent" -> R.string.review_title_matches
-            else -> R.string.review_title_unknown
-        },titleEvidence.observedTitle)).append("\n")
-        text.append(getString(state)).append(" · ").append(getString(if(entry.visual) R.string.review_art else R.string.review_language))
-        photoEvidence.filter { it.key!=entry.key && !it.provisional }.forEach { evidence ->
-            val stateLabel=when(evidence.state) {
-                "pending"->R.string.review_pending; "consistent"->R.string.review_consistent
-                "reviewed"->R.string.review_reviewed; "conflict"->R.string.review_conflict
-                "suggestion"->R.string.review_suggestion; else->R.string.review_inconclusive
-            }
-            text.append("\n").append(getString(if(evidence.visual) R.string.review_art else R.string.review_language))
-                .append(": ").append(getString(stateLabel))
-        }
-        // Emphasise actual values, keeping the surrounding instructions readable.
-        val emphasized=listOf(current,entry.candidateLabel,saved,
-            entry.language?.let(CardLanguageFlag::label).orEmpty()).filter { it.isNotBlank() }
-        for(value in emphasized) {
-            var offset=text.indexOf(value)
-            while(offset>=0) {
-                text.setSpan(android.text.style.StyleSpan(android.graphics.Typeface.BOLD),offset,offset+value.length,
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                offset=text.indexOf(value,offset+value.length)
-            }
-        }
-        return text
+        val evidence=entries.filter { it.photoKey==entry.photoKey }
+        val art=evidence.firstOrNull { it.visual && !it.provisional }
+        val ocr=ocrName(entry).ifBlank { getString(R.string.review_pending) }+
+            evidence.firstOrNull { !it.visual }?.language?.takeIf { it.isNotBlank() }?.let { " · "+CardLanguageFlag.label(it) }.orEmpty()
+        val artName=art?.candidateLabel?.ifBlank { getString(if(art.key in resolutionErrors) R.string.review_catalog_error else if(art.candidateId.isBlank()) R.string.review_no_identification else R.string.review_catalog_pending) }
+            ?: getString(R.string.review_pending)
+        val metrics=if(art?.artScore!=null && art.artMargin!=null)
+            String.format(java.util.Locale.US,"%.4f / %.4f",art.artScore,art.artMargin) else "—"
+        val checked=art?.analysedAt?.takeIf { it>0 }?.let { android.text.format.DateFormat.format("dd/MM HH:mm:ss",it).toString() } ?: "—"
+        return getString(R.string.review_evidence_summary,
+            "${entry.card.name} · ${entry.card.setCode} #${entry.card.collectorNumber}",ocr,artName,metrics,checked)
     }
     private inner class ReviewRows: BaseAdapter() {
         override fun getCount()=visible.size
@@ -286,16 +243,19 @@ class ScanReviewActivity : AppCompatActivity() {
                 val pictures=LinearLayout(context)
                 for (caption in listOf(R.string.review_photo,R.string.review_identified)) {
                     val column=LinearLayout(context).apply { orientation=LinearLayout.VERTICAL }
-                    val editionHeader=LinearLayout(context).apply { gravity=android.view.Gravity.CENTER }
+                    val editionHeader=LinearLayout(context).apply { gravity=android.view.Gravity.CENTER; minimumHeight=(56*resources.displayMetrics.density).toInt() }
                     editionHeader.addView(ImageView(context).apply { scaleType=ImageView.ScaleType.FIT_CENTER },
                         LinearLayout.LayoutParams((28*resources.displayMetrics.density).toInt(),(28*resources.displayMetrics.density).toInt()))
                     editionHeader.addView(TextView(context).apply { setText(caption); gravity=17; setTypeface(null,android.graphics.Typeface.BOLD) },
                         LinearLayout.LayoutParams(0,-2,1f))
                     column.addView(editionHeader)
                     column.addView(TextView(context).apply { gravity=17; visibility=View.GONE })
-                    column.addView(ZoomableImageView(context).apply { setBackgroundColor(0xFF101010.toInt()) },
-                        LinearLayout.LayoutParams(-1,(260*resources.displayMetrics.density).toInt()))
-                    column.addView(Button(context).apply { setText(R.string.review_zoom) })
+                    column.addView(FrameLayout(context).apply {
+                        addView(ZoomableImageView(context).apply { setBackgroundColor(0xFF101010.toInt()) },FrameLayout.LayoutParams(-1,-1))
+                        addView(TextView(context).apply { textSize=18f; setTypeface(null,android.graphics.Typeface.BOLD)
+                            setTextColor(android.graphics.Color.WHITE); setBackgroundColor(0xCC000000.toInt()); setPadding(14,6,14,6)
+                        },FrameLayout.LayoutParams(-2,-2,android.view.Gravity.TOP or android.view.Gravity.END))
+                    },LinearLayout.LayoutParams(-1,(260*resources.displayMetrics.density).toInt()))
                     pictures.addView(column,LinearLayout.LayoutParams(0,-2,1f))
                 }
                 addView(pictures)
@@ -316,12 +276,11 @@ class ScanReviewActivity : AppCompatActivity() {
             enable(row)
             val done=reviewed(entry)
             val draft=drafts[entry.card.collectionItemId]
-            val proposal=entries.firstOrNull { it.photoKey==entry.photoKey && it.visual && it.candidateId.isNotBlank() }
             val header=row.getChildAt(0) as LinearLayout
             (header.getChildAt(0) as TextView).text=if(done) "✓ "+getString(R.string.review_reviewed) else label(entry)
             val identity=header.getChildAt(1) as LinearLayout
             val option=draft?.option
-            (identity.getChildAt(0) as TextView).text="${option?.displayName ?: entry.card.name} · ${option?.setCode ?: entry.card.setCode} #${option?.collectorNumber ?: entry.card.collectorNumber}"
+            (identity.getChildAt(0) as TextView).text="${draft?.preview?.name ?: option?.displayName ?: entry.card.name} · ${draft?.preview?.set ?: option?.setCode ?: entry.card.setCode} #${draft?.preview?.number ?: option?.collectorNumber ?: entry.card.collectorNumber}"
             (identity.getChildAt(1) as ImageButton).apply {
                 SetSymbolLoader.display(this@ScanReviewActivity,option?.setCode ?: entry.card.setCode.orEmpty(),this)
                 isEnabled=!applying; setOnClickListener { chooseEdition(entry) }
@@ -340,15 +299,17 @@ class ScanReviewActivity : AppCompatActivity() {
                 draft?.image ?: option?.imageUrl ?: entry.card.imgPath.orEmpty())
             urls.forEachIndexed { index,url ->
                 val editionHeader=(pictures.getChildAt(index) as LinearLayout).getChildAt(0) as LinearLayout
-                val setCode=if(index==0) entry.card.setCode.orEmpty() else option?.setCode ?: entry.card.setCode.orEmpty()
+                val setCode=if(index==0) entry.card.setCode.orEmpty() else draft?.preview?.set ?: option?.setCode ?: entry.card.setCode.orEmpty()
                 val symbol=editionHeader.getChildAt(0) as ImageView
                 SetSymbolLoader.display(this@ScanReviewActivity,setCode,symbol)
                 symbol.contentDescription=setCode
-                (editionHeader.getChildAt(1) as TextView).text=(if(index==1 && proposal!=null && !done)
-                    getString(if(proposalOriginals.containsKey(entry.card.collectionItemId)) R.string.review_proposal_first else R.string.review_identified_first)
-                    else getString(if(index==0) R.string.review_photo else R.string.review_identified))+
+                (editionHeader.getChildAt(1) as TextView).text=getString(if(index==0) R.string.review_photo else if(draft?.origin.isNullOrBlank()) R.string.review_card_original else R.string.review_card_proposal)+
                     setCode.takeIf { it.isNotBlank() }?.let { " · ${it.uppercase()}" }.orEmpty()
-                val target=(pictures.getChildAt(index) as LinearLayout).getChildAt(2) as ZoomableImageView
+                val frame=(pictures.getChildAt(index) as LinearLayout).getChildAt(2) as FrameLayout
+                val target=frame.getChildAt(0) as ZoomableImageView
+                (frame.getChildAt(1) as TextView).apply {
+                    text=when(draft?.origin) { "arte" -> getString(R.string.review_badge_art); "OCR/arte" -> getString(R.string.review_badge_both); else -> draft?.origin.orEmpty() }; visibility=if(index==1 && text.isNotBlank()) View.VISIBLE else View.GONE
+                }
                 target.setFoilEffectModes(FoilEffectMode.RAINBOW)
                 target.setFoilEffect(index==1 && CardFinish.isFoil(finish))
                 val message=(pictures.getChildAt(index) as LinearLayout).getChildAt(1) as TextView
@@ -369,19 +330,12 @@ class ScanReviewActivity : AppCompatActivity() {
                 } else CardImageCache.display(this@ScanReviewActivity,url,target)
                 target.contentDescription=getString(if(index==0) R.string.review_photo else R.string.review_identified)
                 target.setOnClickListener {
-                    if(index==1 && proposal!=null && !done && !applying) toggleProposal(entry,proposal)
-                    else if(url.isNotBlank()) startActivity(Intent(this@ScanReviewActivity,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,url))
+                    if(index==1 && !done && !applying) toggleProposal(entry)
+                    else if(index==0 && url.isNotBlank()) startActivity(Intent(this@ScanReviewActivity,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,url))
                 }
-                ((pictures.getChildAt(index) as LinearLayout).getChildAt(3) as Button).apply {
-                    isEnabled=url.isNotBlank() && !applying
-                    setOnClickListener { startActivity(Intent(this@ScanReviewActivity,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,url)) }
-                }
-                target.setOnLongClickListener {
-                    if(url.isNotBlank()) startActivity(Intent(this@ScanReviewActivity,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,url))
-                    true
-                }
-                message.visibility=if(index==1 && proposal!=null && !done) View.VISIBLE else message.visibility
-                if(index==1 && proposal!=null && !done) message.setText(if(proposal.state=="inconclusive") R.string.review_weak_proposal else R.string.review_toggle_hint)
+                target.setOnLongClickListener(null)
+                // Both columns retain identical image geometry; no instructional text above one image.
+                message.visibility=View.GONE
             }
             val check=row.getChildAt(2) as CheckBox
             check.visibility=View.GONE
@@ -505,13 +459,31 @@ class ScanReviewActivity : AppCompatActivity() {
         CardRepository.get(this).loadCollectorVisionPrinting(entry.candidateId) { options,error ->
             handler.removeCallbacks(timeout)
             if (isDestroyed) return@loadCollectorVisionPrinting
-            val option=options.firstOrNull()
+            val option=options.firstOrNull { it.finish==entry.card.finish } ?: options.firstOrNull()
             if(option==null) {
-                resolving.remove(entry.key); resolutionErrors.add(entry.key)
                 android.util.Log.w("ScanReview", "Catalog lookup failed: ${entry.candidateId}",error)
-                rows.notifyDataSetChanged()
+                CardRepository.get(this).loadReviewArtPreview(entry.candidateId) { preview,failure ->
+                    if(isDestroyed || isFinishing) return@loadReviewArtPreview
+                    if(preview==null) {
+                        resolving.remove(entry.key); resolutionErrors.add(entry.key)
+                        android.util.Log.w("ScanReview","Preview lookup failed",failure); render()
+                    } else {
+                        artPreviews[entry.candidateId]=preview
+                        io.execute {
+                            val saved=runCatching { ScanReviewStore.write(File(EdScanJobs.directory(this),"${entry.key}.match.json"),JSONObject()
+                                .put("candidateId",entry.candidateId).put("name",preview.name).put("set",preview.set)
+                                .put("number",preview.number).put("imageUrl",preview.image)) }.isSuccess
+                            runOnUiThread {
+                                resolving.remove(entry.key)
+                                if(saved) resolutionErrors.remove(entry.key) else resolutionErrors.add(entry.key)
+                                if(!isDestroyed) { signature=""; reload(); render() }
+                            }
+                        }
+                    }
+                }
                 return@loadCollectorVisionPrinting
             }
+            artOptions[entry.candidateId]=option
             io.execute {
                 val saved=runCatching {
                     ScanReviewStore.write(File(EdScanJobs.directory(this),"${entry.key}.match.json"),JSONObject()
@@ -547,7 +519,7 @@ class ScanReviewActivity : AppCompatActivity() {
                 val language=initial.language.takeIf { code -> variants.any { it.languageCode==code } }.orEmpty()
                 val variant=variants.firstOrNull { it.languageCode==language }
                 proposalOriginals.remove(entry.card.collectionItemId)
-                drafts[entry.card.collectionItemId]=initial.copy(option=option,language=language,image=variant?.imageUrl ?: option.imageUrl,validated=variant)
+                drafts[entry.card.collectionItemId]=initial.copy(option=option,language=language,image=variant?.imageUrl ?: option.imageUrl,validated=variant,requiresEdition=false,preview=null)
                 retained.add(entry.photoKey); render()
                 if(language.isBlank()) notifyFull(R.string.review_select_language)
             }
@@ -600,31 +572,58 @@ class ScanReviewActivity : AppCompatActivity() {
                 }.setNegativeButton(android.R.string.cancel,null).show()
         }
     }
-    private fun toggleProposal(entry: ScanReviewStore.Entry, proposal: ScanReviewStore.Entry) {
-        val id=entry.card.collectionItemId
-        val generation=(editGeneration[id] ?: 0)+1; editGeneration[id]=generation
-        proposalOriginals.remove(id)?.let { drafts[id]=it; render(); return }
-        val original=drafts[id] ?: Draft(entry)
-        CardRepository.get(this).loadCollectorVisionPrinting(proposal.candidateId) { options,error ->
-            if(isDestroyed || isFinishing || editGeneration[id]!=generation || applying) return@loadCollectorVisionPrinting
-            val option=options.firstOrNull { it.finish==(original.option?.finish ?: entry.card.finish) } ?: options.firstOrNull()
-            if(option==null) { report(entry,R.string.review_catalog_retry,error); return@loadCollectorVisionPrinting }
-            CardRepository.get(this).loadImageLanguages(option.setCode,option.collectorNumber) { variants,failure ->
-                if(isDestroyed || isFinishing || editGeneration[id]!=generation || applying) return@loadImageLanguages
-                if(failure!=null || variants.isEmpty()) { report(entry,R.string.review_catalog_retry,failure); return@loadImageLanguages }
-                val suggested=entries.firstOrNull { it.photoKey==entry.photoKey && !it.visual }?.language
-                val variant=variants.firstOrNull { it.languageCode==original.language } ?: variants.firstOrNull { it.languageCode==suggested }
-                proposalOriginals[id]=original
-                drafts[id]=original.copy(option=option,language=variant?.languageCode.orEmpty(),image=variant?.imageUrl ?: option.imageUrl,validated=variant)
-                rowErrors.remove(id); render()
+    private fun loadOcrProposals() {
+        screenEntries().filterNot(::reviewed).forEach { entry ->
+            val name=ocrName(entry)
+            if(name.isBlank() || name in ocrOptions || System.currentTimeMillis()<(ocrRetryAfter[name] ?: 0L) || !ocrLoading.add(name)) return@forEach
+            CardRepository.get(this).loadReviewName(name) { options,error ->
+                ocrLoading.remove(name)
+                if(isDestroyed || isFinishing) return@loadReviewName
+                if(options.isNotEmpty()) ocrOptions[name]=options
+                else ocrRetryAfter[name]=System.currentTimeMillis()+30000
+                if(error!=null) android.util.Log.w("ScanReview","OCR proposal: $name",error)
+                render()
             }
         }
+    }
+    private fun toggleProposal(entry: ScanReviewStore.Entry) {
+        val id=entry.card.collectionItemId
+        val original=proposalOriginals.getOrPut(id) { drafts[id] ?: Draft(entry) }
+        val evidence=entries.firstOrNull { it.photoKey==entry.photoKey && it.visual && it.candidateId.isNotBlank() }
+        val art=evidence?.candidateId?.let { artOptions[it] }
+        val options=ocrOptions[ocrName(entry)].orEmpty()
+        val ocr=options.firstOrNull { it.printingUuid==art?.printingUuid && it.finish==art.finish }
+            ?: options.firstOrNull { it.printingUuid==entry.card.printingUuid && it.finish==entry.card.finish }
+            ?: options.firstOrNull { it.finish==entry.card.finish } ?: options.firstOrNull()
+        val proposals=ReviewProposalCycle.proposals(ocr,art)
+        val preview=evidence?.candidateId?.let { artPreviews[it] }
+        val sources=proposals.map { it.first }+if(art==null && preview!=null) listOf("arte") else emptyList()
+        if(sources.isEmpty()) {
+            loadOcrProposals()
+            if(evidence!=null) { resolutionErrors.remove(evidence.key); resolveArt(evidence) }
+            report(entry,R.string.review_proposals_loading); return
+        }
+        val current=drafts[id]?.origin.orEmpty()
+        val next=ReviewProposalCycle.next(current,sources)
+        if(next.isEmpty()) { drafts[id]=original; rowErrors.remove(id); render(); return }
+        val option=proposals.firstOrNull { it.first==next }?.second
+        if(option==null && preview!=null) {
+            drafts[id]=original.copy(option=null,image=preview.image,validated=null,origin="arte",requiresEdition=true,preview=preview)
+            rowErrors[id]=getString(R.string.review_preview_only); render(); return
+        }
+        if(option==null) return
+        editGeneration[id]=(editGeneration[id] ?: 0)+1
+        val needEdition=next=="OCR" && options.map { it.printingUuid }.distinct().size>1 && option.printingUuid!=entry.card.printingUuid
+        drafts[id]=original.copy(option=option,image=option.imageUrl,validated=null,origin=next,requiresEdition=needEdition)
+        if(needEdition) rowErrors[id]=getString(R.string.review_ocr_choose_edition) else rowErrors.remove(id)
+        render()
     }
 
     private fun saveDraft(entry: ScanReviewStore.Entry) {
         if(applying) return
         val id=entry.card.collectionItemId
         val draft=drafts[id] ?: Draft(entry).also { drafts[id]=it }
+        if(draft.requiresEdition) { report(entry,if(draft.preview!=null) R.string.review_preview_only else R.string.review_ocr_choose_edition); chooseEditionForName(entry,draft.preview?.name ?: draft.option?.cardName ?: ocrName(entry)); return }
         if(draft.language.isBlank()) { report(entry,R.string.review_select_language); return }
         rowErrors.remove(id)
         applying=true; render()
@@ -719,6 +718,8 @@ class ScanReviewActivity : AppCompatActivity() {
     private fun reanalyse(entry: ScanReviewStore.Entry) {
         AlertDialog.Builder(this).setMessage(R.string.review_flow_help)
             .setNegativeButton(android.R.string.cancel,null).setPositiveButton(R.string.review_reanalyse) { _,_->
+                proposalOriginals.remove(entry.card.collectionItemId)?.let { drafts[entry.card.collectionItemId]=it }
+                ocrOptions.remove(ocrName(entry)); rowErrors.remove(entry.card.collectionItemId)
                 analyse(listOf(entry))
             }.show()
     }

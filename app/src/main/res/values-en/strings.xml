@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Case 2: selected finish is unavailable for this printing. Change the finish.</string>
     <string name="edscan_error_back">Case 3: back-face candidate (_back) is not supported yet. Scan the front.</string>
   <string name="review_provisional_printing">Provisional printing: the card matches, but several printings are possible. Select the correct printing or confirm it is correct.</string>
-    <string name="review_flow_help">Review card, printing, finish and language, then tap Apply changes once. Reviewed cards leave Pending. Tap the right image to switch original/proposal; hold to enlarge. Unverified proposals need your review.</string>
+    <string name="review_flow_help">Review OCR and art results above. Tap the saved photo to enlarge. Tap the right card to cycle identified, OCR and art; matching proposals are combined. Only Apply changes saves and closes the review.</string>
     <string name="review_analyse_all">Reanalyse all photos and verify art</string>
     <string name="review_save_changes">Save changes</string>
     <string name="review_discard_changes">Discard changes</string>
@@ -694,4 +694,12 @@
     <string name="review_ocr_choice">Find card read by OCR: %1$s</string>
     <string name="review_zoom">Enlarge</string>
     <string name="review_selected_language">Selected language: %1$s</string>
+    <string name="review_evidence_summary">Saved: %1$s\nOCR proposes: %2$s\nArt proposes: %3$s\nEdScan (Cornelius2.12 + Milo1): similarity / margin = %4$s\nMinimums: 0.70 / 0.08 · Last analysis: %5$s</string>
+    <string name="review_ocr_choose_edition">OCR proposes a name, not an exact printing. Select the printing before applying.</string>
+    <string name="review_proposals_loading">Loading catalog proposals. If none appear, check your connection and tap again.</string>
+    <string name="review_badge_art">art</string>
+    <string name="review_badge_both">OCR/art</string>
+    <string name="review_card_original">Identified card</string>
+    <string name="review_card_proposal">Proposed card</string>
+    <string name="review_preview_only">Visual proposal has no compatible local printing. Preview only: select a valid printing before applying.</string>
 </resources>

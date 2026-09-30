@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Cas 2 : finition indisponible pour cette impression. Changez la finition.</string>
     <string name="edscan_error_back">Cas 3 : verso (_back) non pris en charge. Scannez le recto.</string>
   <string name="review_provisional_printing">Impression provisoire : la carte correspond, mais plusieurs impressions sont possibles. Choisissez la bonne édition ou confirmez-la.</string>
-    <string name="review_flow_help">Vérifiez carte, édition, finition et langue, puis appliquez les modifications. La carte quitte les éléments en attente. Touchez à droite pour alterner original/proposition ; appui long pour agrandir. Vérifiez les propositions non confirmées.</string>
+    <string name="review_flow_help">Vérifiez les résultats OCR et image en haut. Touchez la photo pour agrandir. À droite, alternez carte identifiée, OCR et image ; les propositions identiques sont réunies. Appliquer enregistre et termine la révision.</string>
     <string name="review_analyse_all">Réanalyser toutes les photos et vérifier les illustrations</string>
     <string name="review_save_changes">Enregistrer les modifications</string>
     <string name="review_discard_changes">Annuler les modifications</string>
@@ -694,4 +694,12 @@
     <string name="review_ocr_choice">Chercher la carte lue par OCR : %1$s</string>
     <string name="review_zoom">Agrandir</string>
     <string name="review_selected_language">Langue sélectionnée : %1$s</string>
+    <string name="review_evidence_summary">Enregistrée : %1$s\nProposition OCR : %2$s\nProposition image : %3$s\nEdScan : similarité / marge = %4$s\nMinimums : 0,70 / 0,08 · Dernière analyse : %5$s</string>
+    <string name="review_ocr_choose_edition">OCR propose un nom, pas une édition exacte. Choisissez l’édition avant application.</string>
+    <string name="review_proposals_loading">Chargement des propositions. Si aucune ne paraît, vérifiez la connexion puis touchez à nouveau.</string>
+    <string name="review_badge_art">image</string>
+    <string name="review_badge_both">OCR/image</string>
+    <string name="review_card_original">Carte identifiée</string>
+    <string name="review_card_proposal">Carte proposée</string>
+    <string name="review_preview_only">Aucune édition compatible dans le catalogue local. Aperçu seul : choisissez une édition valide avant application.</string>
 </resources>

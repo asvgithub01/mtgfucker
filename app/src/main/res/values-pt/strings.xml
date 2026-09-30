@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: acabamento indisponível para esta impressão. Altere o acabamento.</string>
     <string name="edscan_error_back">Caso 3: verso (_back) ainda não suportado. Digitalize a frente.</string>
   <string name="review_provisional_printing">Impressão provisória: a carta corresponde, mas há várias impressões possíveis. Selecione a edição correta ou confirme.</string>
-    <string name="review_flow_help">Revê carta, edição, acabamento e idioma e aplica as alterações. A carta sai dos pendentes. Toca à direita para alternar original/proposta; mantém premido para ampliar. Verifica as propostas não confirmadas.</string>
+    <string name="review_flow_help">Revê os resultados OCR e arte acima. Toca na foto guardada para ampliar. À direita alterna identificada, OCR e arte; propostas iguais são agrupadas. Aplicar alterações guarda e termina a revisão.</string>
     <string name="review_analyse_all">Reanalisar todas as fotos e verificar arte</string>
     <string name="review_save_changes">Guardar alterações</string>
     <string name="review_discard_changes">Descartar alterações</string>
@@ -694,4 +694,12 @@
     <string name="review_ocr_choice">Procurar carta lida por OCR: %1$s</string>
     <string name="review_zoom">Ampliar</string>
     <string name="review_selected_language">Idioma selecionado: %1$s</string>
+    <string name="review_evidence_summary">Guardado: %1$s\nProposta OCR: %2$s\nProposta arte: %3$s\nEdScan (Cornelius2.12 + Milo1): semelhança / margem = %4$s\nMínimos: 0,70 / 0,08 · Última análise: %5$s</string>
+    <string name="review_ocr_choose_edition">O OCR propõe o nome, não a edição exata. Seleciona a edição antes de aplicar.</string>
+    <string name="review_proposals_loading">A carregar propostas. Se não aparecerem, verifica a ligação e toca novamente.</string>
+    <string name="review_badge_art">arte</string>
+    <string name="review_badge_both">OCR/arte</string>
+    <string name="review_card_original">Carta identificada</string>
+    <string name="review_card_proposal">Carta proposta</string>
+    <string name="review_preview_only">Sem edição compatível no catálogo local. Apenas pré-visualização: seleciona uma edição válida antes de aplicar.</string>
 </resources>

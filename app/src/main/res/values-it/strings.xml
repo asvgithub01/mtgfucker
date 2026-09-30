@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: finitura non disponibile per questa stampa. Cambia finitura.</string>
     <string name="edscan_error_back">Caso 3: retro (_back) non ancora supportato. Scansiona il fronte.</string>
   <string name="review_provisional_printing">Stampa provvisoria: la carta corrisponde, ma sono possibili più stampe. Seleziona quella corretta o conferma.</string>
-    <string name="review_flow_help">Controlla carta, edizione, finitura e lingua, poi applica le modifiche. La carta esce dalle revisioni pendenti. Tocca a destra per alternare originale/proposta; tieni premuto per ingrandire. Controlla le proposte non verificate.</string>
+    <string name="review_flow_help">Controlla i risultati OCR e immagine in alto. Tocca la foto salvata per ingrandire. A destra alterna carta identificata, OCR e immagine; proposte coincidenti sono unite. Applica modifiche salva e chiude la revisione.</string>
     <string name="review_analyse_all">Rianalizza tutte le foto e verifica illustrazioni</string>
     <string name="review_save_changes">Salva modifiche</string>
     <string name="review_discard_changes">Scarta modifiche</string>
@@ -694,4 +694,12 @@
     <string name="review_ocr_choice">Cerca carta letta da OCR: %1$s</string>
     <string name="review_zoom">Ingrandisci</string>
     <string name="review_selected_language">Lingua selezionata: %1$s</string>
+    <string name="review_evidence_summary">Salvata: %1$s\nProposta OCR: %2$s\nProposta immagine: %3$s\nEdScan (Cornelius2.12 + Milo1): similarità / margine = %4$s\nMinimi: 0,70 / 0,08 · Ultima analisi: %5$s</string>
+    <string name="review_ocr_choose_edition">OCR propone il nome, non la stampa esatta. Scegli la stampa prima di applicare.</string>
+    <string name="review_proposals_loading">Caricamento proposte. Se non appaiono, controlla la connessione e tocca di nuovo.</string>
+    <string name="review_badge_art">immagine</string>
+    <string name="review_badge_both">OCR/immagine</string>
+    <string name="review_card_original">Carta identificata</string>
+    <string name="review_card_proposal">Carta proposta</string>
+    <string name="review_preview_only">Nessuna stampa compatibile nel catalogo locale. Solo anteprima: scegli una stampa valida prima di applicare.</string>
 </resources>

@@ -17,6 +17,8 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
+data class ReviewArtPreview(val name: String, val set: String, val number: String, val image: String)
+
 data class CardEditionOption(
     val printingUuid: String,
     val cardName: String,
@@ -693,6 +695,37 @@ class CardRepository private constructor(context: Context) {
      * and every network/cache-refresh path so automatic scanning can persist an already indexed
      * printing without showing the editions-and-prices loader.
      */
+    /** Review name lookup without price downloads; OCR identifies a name, not an exact printing. */
+    /** Display-only fallback. Never manufacture a local printing UUID for an unsupported art-series card. */
+    fun loadReviewArtPreview(id: String, callback: (ReviewArtPreview?, Throwable?) -> Unit) {
+        visualLookupExecutor.execute {
+            val result=runCatching {
+                require(id.matches(Regex("[0-9a-fA-F-]{36}")))
+                val request=okhttp3.Request.Builder().url("https://api.scryfall.com/cards/$id")
+                    .header("User-Agent","MtgCollectorVisionNative/0.2").header("Accept","application/json").build()
+                client.newCall(request).execute().use { response ->
+                    check(response.isSuccessful) { "Scryfall HTTP ${response.code}" }
+                    val card=org.json.JSONObject(requireNotNull(response.body).string())
+                    check(card.getString("id").equals(id,true))
+                    val images=card.optJSONObject("image_uris") ?: card.optJSONArray("card_faces")?.optJSONObject(0)?.optJSONObject("image_uris")
+                    ReviewArtPreview(card.getString("name"),card.getString("set"),card.getString("collector_number"),images?.optString("normal").orEmpty())
+                }
+            }
+            mainHandler.post { callback(result.getOrNull(),result.exceptionOrNull()) }
+        }
+    }
+
+    fun loadReviewName(cardName: String, callback: (List<CardEditionOption>, Throwable?) -> Unit) {
+        visualLookupExecutor.execute {
+            try {
+                val name=nameResolver.cached(cardName)?.canonicalName ?: cardName
+                val printings=catalog.cachedEditions(name).ifEmpty { catalog.editions(name) }
+                val options=combine(printings,emptyList(),printings.firstOrNull()?.name ?: name)
+                mainHandler.post { callback(options,null) }
+            } catch(error: Throwable) { mainHandler.post { callback(emptyList(),error) } }
+        }
+    }
+
     fun loadCachedPrinting(
         cardName: String,
         printingUuid: String?,

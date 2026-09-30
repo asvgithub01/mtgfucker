@@ -841,7 +841,7 @@
     <string name="edscan_error_finish">Caso 2: el acabado seleccionado no existe para esta impresión. Cambia el acabado.</string>
     <string name="edscan_error_back">Caso 3: candidato de reverso (_back) no compatible todavía. Escanea el anverso.</string>
   <string name="review_provisional_printing">Edición provisional: la carta coincide, pero hay varias impresiones posibles. Selecciona la edición correcta o confirma que está bien.</string>
-    <string name="review_flow_help">Revisa carta, edición, acabado e idioma y pulsa Aplicar cambios una vez. La carta revisada sale de Pendientes. Toca la imagen derecha para alternar original/propuesta; mantén pulsado para ampliar. Las propuestas sin verificar necesitan tu comprobación.</string>
+    <string name="review_flow_help">Revisa los resultados OCR y arte arriba. Toca la foto guardada para ampliar. Toca la carta derecha para alternar identificada, OCR y arte; si coinciden comparten propuesta. Solo Aplicar cambios guarda y cierra la revisión.</string>
     <string name="review_analyse_all">Reanalizar todas las fotos y verificar arte</string>
     <string name="review_save_changes">Guardar cambios</string>
     <string name="review_discard_changes">Descartar cambios</string>
@@ -866,4 +866,12 @@
     <string name="review_ocr_choice">Buscar carta leída por OCR: %1$s</string>
     <string name="review_zoom">Ampliar</string>
     <string name="review_selected_language">Idioma seleccionado: %1$s</string>
+    <string name="review_evidence_summary">Guardado: %1$s\nOCR propone: %2$s\nArte propone: %3$s\nEdScan (Cornelius2.12 + Milo1): similitud / margen = %4$s\nMínimos: 0,70 / 0,08 · Último análisis: %5$s</string>
+    <string name="review_ocr_choose_edition">El OCR propone el nombre, no la edición exacta. Selecciona la edición antes de aplicar.</string>
+    <string name="review_proposals_loading">Cargando propuestas del catálogo. Si no aparecen, comprueba la conexión y toca de nuevo.</string>
+    <string name="review_badge_art">arte</string>
+    <string name="review_badge_both">OCR/arte</string>
+    <string name="review_card_original">Carta identificada</string>
+    <string name="review_card_proposal">Carta propuesta</string>
+    <string name="review_preview_only">Propuesta visual sin impresión compatible en el catálogo local. Solo vista previa: selecciona una edición válida antes de aplicar.</string>
 </resources>

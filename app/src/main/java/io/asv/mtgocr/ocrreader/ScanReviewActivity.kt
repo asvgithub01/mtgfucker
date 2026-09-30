@@ -560,10 +560,12 @@ class ScanReviewActivity : AppCompatActivity() {
                 if(error!=null || variants.isEmpty()) {
                     report(entry,R.string.review_catalog_retry,error); return@loadImageLanguages
                 }
-                val language=initial.language.takeIf { code -> variants.any { it.languageCode==code } }.orEmpty()
+                val language=ReviewLanguagePolicy.forSelectedEdition(initial.language,variants.map { it.languageCode },
+                    entries.filter { it.photoKey==entry.photoKey && !it.visual }.mapNotNull { it.language })
                 val variant=variants.firstOrNull { it.languageCode==language }
                 proposalOriginals.remove(entry.card.collectionItemId)
-                drafts[entry.card.collectionItemId]=initial.copy(option=option,language=language,image=variant?.imageUrl ?: option.imageUrl,validated=variant,requiresEdition=false,preview=null,identityConfirmed=true)
+                drafts[entry.card.collectionItemId]=initial.copy(option=option,language=language,image=variant?.imageUrl ?: option.imageUrl,validated=variant,requiresEdition=false,preview=null,identityConfirmed=true,
+                    languageConfirmed=initial.languageConfirmed && language==initial.language)
                 retained.add(entry.photoKey); render()
                 if(language.isBlank()) notifyFull(R.string.review_select_language)
             }

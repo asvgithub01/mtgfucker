@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: acabamento indisponível para esta impressão. Altere o acabamento.</string>
     <string name="edscan_error_back">Caso 3: verso (_back) ainda não suportado. Digitalize a frente.</string>
   <string name="review_provisional_printing">Impressão provisória: a carta corresponde, mas há várias impressões possíveis. Selecione a edição correta ou confirme.</string>
-    <string name="review_flow_help">Revê os resultados OCR e arte acima. Toca na foto guardada para ampliar. À direita alterna identificada, OCR e arte; propostas iguais são agrupadas. Aplicar alterações guarda e termina a revisão.</string>
+    <string name="review_flow_help">Revê OCR e arte. Toca na foto para ampliar e na carta à direita para alternar propostas. Aplicar alterações guarda a revisão manual. Resolver casos fiáveis reanalisa e guarda automaticamente as concordâncias seguras.</string>
     <string name="review_analyse_all">Reanalisar todas as fotos e verificar arte</string>
     <string name="review_save_changes">Guardar alterações</string>
     <string name="review_discard_changes">Descartar alterações</string>
@@ -705,4 +705,13 @@
     <string name="review_confirm_identity">Verifiquei a carta, edição e acabamento selecionados</string>
     <string name="review_unresolved_identity">* Falta rever a carta ou edição. Escolhe uma proposta e edição, ou confirma a seleção atual. Nada foi aplicado.</string>
     <string name="review_unresolved_language">* O idioma difere da proposta. Toca no idioma e escolhe o correto antes de aplicar.</string>
+    <string name="review_resolve_reliable">Resolver casos fiáveis</string>
+    <string name="review_reliable_stop">Parar lote</string>
+    <string name="review_reliable_cancel_help">As tarefas pendentes serão paradas. As cartas guardadas mantêm-se; uma gravação em curso termina primeiro.</string>
+    <string name="review_reliable_confirm">Reanalisar %1$d fotos e GUARDAR os casos fiáveis. Apenas concordância OCR/arte com edição clara e idioma compatível. Acabamento mantido. Casos ambíguos, cópias agrupadas e rascunhos ficam pendentes. É criada uma cópia e registo local.</string>
+    <string name="review_reliable_empty">Não há fotos pendentes sem alterações manuais.</string>
+    <string name="review_reliable_counts">Guardadas: %1$d · Revisão manual: %2$d · Erros/canceladas: %3$d · Fotos: %4$d (toca para detalhes)</string>
+    <string name="review_reliable_backup">Cópia e registo guardados em review_batches. Não são apagadas cartas nem fotos.</string>
+    <string name="review_reliable_multiple">Várias cópias ou fotos do mesmo elemento: rever manualmente</string>
+    <string name="review_reliable_changed">Dados alterados durante análise: não substituídos</string>
 </resources>

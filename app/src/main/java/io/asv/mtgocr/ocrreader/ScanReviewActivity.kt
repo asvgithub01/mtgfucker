@@ -78,6 +78,10 @@ class ScanReviewActivity : AppCompatActivity() {
     private val rowOrder=linkedMapOf<String,Int>()
     private val retained=mutableSetOf<String>()
     private val editGeneration=mutableMapOf<String,Int>()
+    private lateinit var reliableButton: Button
+    private lateinit var reliableStatus: TextView
+    private var reliableRunning=false
+    private var reliableReport=emptyList<androidx.work.WorkInfo>()
     private lateinit var analyseButton: Button
     private lateinit var analysisProgress: ProgressBar
     private lateinit var analysisStatus: TextView
@@ -103,6 +107,20 @@ class ScanReviewActivity : AppCompatActivity() {
         })
         analyseButton=Button(this).apply { isEnabled=false; setText(R.string.review_analyse_all); setOnClickListener { analyse(entries) } }
         root.addView(analyseButton)
+        reliableButton=Button(this).apply {
+            setText(R.string.review_resolve_reliable)
+            setOnClickListener {
+                if(reliableRunning) {
+                    AlertDialog.Builder(this@ScanReviewActivity).setMessage(R.string.review_reliable_cancel_help)
+                        .setNegativeButton(android.R.string.cancel,null).setPositiveButton(R.string.review_reliable_stop) { _,_->
+                            androidx.work.WorkManager.getInstance(this@ScanReviewActivity).cancelAllWorkByTag(batchTag)
+                        }.show()
+                } else startReliable()
+            }
+        }
+        root.addView(reliableButton)
+        reliableStatus=TextView(this).apply { visibility=View.GONE; setOnClickListener { showReliableReport() } }
+        root.addView(reliableStatus)
         analysisProgress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal)
         root.addView(analysisProgress,LinearLayout.LayoutParams(-1,-2))
         analysisStatus=TextView(this); root.addView(analysisStatus)
@@ -170,10 +188,9 @@ class ScanReviewActivity : AppCompatActivity() {
                 analyseButton.isEnabled=entries.isNotEmpty() && !analysisRunning && !applying
                 val next=entries.joinToString("|") { "${it.key}:${it.stamp}:${it.state}:${it.card.printingUuid}:${it.card.languageCode}:${it.card.finish}:${it.candidateImage}:${it.candidateLabel}" }
                 if(next!=signature) { signature=next; render() }
-                presetLanguages()
-                loadOcrProposals()
+                if(!reliableRunning) { presetLanguages(); loadOcrProposals() }
                 val screenPhotos=screenEntries().map { it.photoKey }.toSet()
-                result.filter { it.photoKey in screenPhotos && !resolutionErrors.contains(it.key) && it.state!="reviewed" && it.visual && it.candidateId.isNotBlank() && (it.candidateLabel.isBlank() || (it.candidateId !in artOptions && it.candidateId !in artPreviews)) }
+                result.filter { !reliableRunning && it.photoKey in screenPhotos && !resolutionErrors.contains(it.key) && it.state!="reviewed" && it.visual && it.candidateId.isNotBlank() && (it.candidateLabel.isBlank() || (it.candidateId !in artOptions && it.candidateId !in artPreviews)) }
                     .take((2-resolving.size).coerceAtLeast(0)).forEach(::resolveArt)
             }
         }
@@ -195,10 +212,12 @@ class ScanReviewActivity : AppCompatActivity() {
     }
     private fun updateApplyButton() {
         analyseButton.isEnabled=!applying && !analysisRunning && entries.isNotEmpty()
+        reliableButton.isEnabled=!applying && (reliableRunning || (!analysisRunning && entries.isNotEmpty()))
+        reliableButton.setText(if(reliableRunning) R.string.review_reliable_stop else R.string.review_resolve_reliable)
         applySelected.text=getString(R.string.review_apply_selected,selected.size)
-        applySelected.isEnabled=!applying && drafts.isEmpty() && selected.isNotEmpty()
+        applySelected.isEnabled=!applying && !reliableRunning && drafts.isEmpty() && selected.isNotEmpty()
         val choices=ReviewApplyPolicy.bulkChoices(visible,selected.values)
-        selectAll.isEnabled=!applying && (choices.isNotEmpty() || selected.isNotEmpty())
+        selectAll.isEnabled=!applying && !reliableRunning && (choices.isNotEmpty() || selected.isNotEmpty())
         selectAll.isChecked=choices.isNotEmpty() && choices.all { selected.containsKey(it.key) }
     }
     private fun identityPending(entry: ScanReviewStore.Entry): Boolean {
@@ -343,8 +362,8 @@ class ScanReviewActivity : AppCompatActivity() {
                 val symbol=editionHeader.getChildAt(0) as ImageView
                 SetSymbolLoader.display(this@ScanReviewActivity,setCode,symbol)
                 symbol.contentDescription=if(index==1) getString(R.string.editions)+" · "+setCode else setCode
-                symbol.isClickable=index==1 && !done && !applying
-                symbol.setOnClickListener(if(index==1 && !done && !applying) View.OnClickListener {
+                symbol.isClickable=index==1 && !done && !applying && !reliableRunning
+                symbol.setOnClickListener(if(index==1 && !done && !applying && !reliableRunning) View.OnClickListener {
                     chooseEditionForName(entry,draft?.preview?.name ?: option?.cardName ?: entry.card.name)
                 } else null)
                 (editionHeader.getChildAt(1) as TextView).text=getString(if(index==0) R.string.review_photo else if(draft?.origin.isNullOrBlank()) R.string.review_card_original else R.string.review_card_proposal)+
@@ -374,7 +393,7 @@ class ScanReviewActivity : AppCompatActivity() {
                 } else CardImageCache.display(this@ScanReviewActivity,url,target)
                 target.contentDescription=getString(if(index==0) R.string.review_photo else R.string.review_identified)
                 target.setOnClickListener {
-                    if(index==1 && !done && !applying) toggleProposal(entry)
+                    if(index==1 && !done && !applying && !reliableRunning) toggleProposal(entry)
                     else if(index==0 && url.isNotBlank()) startActivity(Intent(this@ScanReviewActivity,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,url))
                 }
                 target.setOnLongClickListener(null)
@@ -424,18 +443,18 @@ class ScanReviewActivity : AppCompatActivity() {
             val observed=entries.firstOrNull { it.photoKey==entry.photoKey && it.titleState=="conflict" }?.observedTitle.orEmpty()
             ocrChoice.visibility=if(!done && observed.isNotBlank()) View.VISIBLE else View.GONE
             ocrChoice.text=getString(R.string.review_ocr_choice,observed)
-            ocrChoice.isEnabled=!applying
+            ocrChoice.isEnabled=!applying && !reliableRunning
             ocrChoice.setOnClickListener { chooseEditionForName(entry,observed) }
             row.alpha=if(done) .55f else 1f
             fun controls(view: View, enabled: Boolean) {
                 view.isEnabled=enabled
                 if(view is ViewGroup) for(i in 0 until view.childCount) controls(view.getChildAt(i),enabled)
             }
-            if(done || applying) {
+            if(done || applying || reliableRunning) {
                 controls(header,false); controls(manual,false); controls(actions,false)
                 row.getChildAt(5).isEnabled=false
-                row.getChildAt(3).isEnabled=!applying
-                if(done && !applying) manual.getChildAt(0).isEnabled=true
+                row.getChildAt(3).isEnabled=!applying && !reliableRunning
+                if(done && !applying && !reliableRunning) manual.getChildAt(0).isEnabled=true
             }
             return row
         }
@@ -737,6 +756,16 @@ class ScanReviewActivity : AppCompatActivity() {
                 val done=jobs.count { it.state.isFinished }
                 val failed=jobs.count { it.state==androidx.work.WorkInfo.State.FAILED || it.state==androidx.work.WorkInfo.State.CANCELLED }
                 analysisRunning=jobs.any { !it.state.isFinished }
+                reliableReport=jobs.filter { ReliableReviewWorker.TAG in it.tags }
+                reliableRunning=reliableReport.isNotEmpty() && analysisRunning
+                if(reliableReport.isNotEmpty()) {
+                    val applied=reliableReport.count { it.outputData.getString("autoStatus")=="applied" }
+                    val skipped=reliableReport.count { it.outputData.getString("autoStatus")=="skipped" }
+                    val errors=reliableReport.count { it.outputData.getString("autoStatus")=="error" || it.state==androidx.work.WorkInfo.State.FAILED || it.state==androidx.work.WorkInfo.State.CANCELLED }
+                    reliableStatus.visibility=View.VISIBLE
+                    reliableStatus.text=getString(R.string.review_reliable_counts,applied,skipped,errors,reliableReport.size)
+                } else reliableStatus.visibility=View.GONE
+                updateApplyButton(); render()
                 analysisProgress.max=jobs.size.coerceAtLeast(1); analysisProgress.progress=done
                 analysisStatus.text=getString(R.string.review_analysis_progress,done,jobs.size,failed)
                 analyseButton.isEnabled=!analysisRunning && !applying
@@ -744,7 +773,37 @@ class ScanReviewActivity : AppCompatActivity() {
             }
         }
     }
-    private fun analyse(items: List<ScanReviewStore.Entry>) {
+    private fun startReliable() {
+        val candidates=entries.filter { !reviewed(it) && !drafts.containsKey(it.card.collectionItemId) }
+        val count=candidates.map { it.photoKey }.distinct().size
+        if(count==0) { notifyFull(R.string.review_reliable_empty); return }
+        AlertDialog.Builder(this).setTitle(R.string.review_resolve_reliable)
+            .setMessage(getString(R.string.review_reliable_confirm,count))
+            .setNegativeButton(android.R.string.cancel,null)
+            .setPositiveButton(R.string.review_resolve_reliable) { _,_-> analyse(candidates,true) }.show()
+    }
+    private fun showReliableReport() {
+        val reasons=reliableReport.filter { it.state.isFinished }.groupingBy {
+            it.outputData.getString("reason") ?: "error"
+        }.eachCount()
+        val details=reasons.entries.joinToString("\n") { (reason,count) ->
+            val label=when(reason) {
+                "ok" -> R.string.review_reviewed
+                "weak" -> R.string.review_inconclusive
+                "identity" -> R.string.review_unresolved_identity
+                "language" -> R.string.review_select_language
+                "catalog" -> R.string.review_catalog_error
+                "multiple" -> R.string.review_reliable_multiple
+                "changed" -> R.string.review_reliable_changed
+                else -> R.string.review_operation_failed
+            }
+            "$count · ${getString(label)}"
+        }
+        AlertDialog.Builder(this).setTitle(R.string.review_resolve_reliable)
+            .setMessage(reliableStatus.text.toString()+"\n\n"+details+"\n\n"+getString(R.string.review_reliable_backup))
+            .setPositiveButton(android.R.string.ok,null).show()
+    }
+    private fun analyse(items: List<ScanReviewStore.Entry>, reliableSave: Boolean = false) {
         if(analysisRunning || applying) return
         // Reanalysis never saves or discards edits, including drafts belonging to other rows.
         items.map { it.card.collectionItemId }.distinct().forEach { id ->
@@ -752,14 +811,14 @@ class ScanReviewActivity : AppCompatActivity() {
             drafts[id]?.let { drafts[id]=it.copy(identityConfirmed=false,languageConfirmed=false) }
             proposalOriginals[id]?.let { proposalOriginals[id]=it.copy(identityConfirmed=false,languageConfirmed=false) }
         }
-        analyseButton.isEnabled=false; analysisRunning=true
+        analyseButton.isEnabled=false; analysisRunning=true; reliableRunning=reliableSave; render()
         io.execute {
-            val result=runCatching { ReviewAnalysisBatch.start(applicationContext,library,items) }
+            val result=runCatching { ReviewAnalysisBatch.start(applicationContext,library,items,reliableSave) }
             runOnUiThread {
                 if(isDestroyed || isFinishing) return@runOnUiThread
                 analysisRunning=false
                 result.onSuccess { observeBatch(it) }.onFailure {
-                    analyseButton.isEnabled=true; notifyFull(R.string.review_operation_failed)
+                    reliableRunning=false; updateApplyButton(); render(); notifyFull(R.string.review_operation_failed)
                 }
                 signature=""; reload()
             }

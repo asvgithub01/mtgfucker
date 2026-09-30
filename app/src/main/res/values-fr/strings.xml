@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Cas 2 : finition indisponible pour cette impression. Changez la finition.</string>
     <string name="edscan_error_back">Cas 3 : verso (_back) non pris en charge. Scannez le recto.</string>
   <string name="review_provisional_printing">Impression provisoire : la carte correspond, mais plusieurs impressions sont possibles. Choisissez la bonne édition ou confirmez-la.</string>
-    <string name="review_flow_help">Vérifiez les résultats OCR et image en haut. Touchez la photo pour agrandir. À droite, alternez carte identifiée, OCR et image ; les propositions identiques sont réunies. Appliquer enregistre et termine la révision.</string>
+    <string name="review_flow_help">Vérifiez OCR et image. Touchez la photo pour agrandir et la carte à droite pour alterner les propositions. Appliquer enregistre la révision manuelle. Résoudre les cas fiables réanalyse et enregistre automatiquement les accords sûrs.</string>
     <string name="review_analyse_all">Réanalyser toutes les photos et vérifier les illustrations</string>
     <string name="review_save_changes">Enregistrer les modifications</string>
     <string name="review_discard_changes">Annuler les modifications</string>
@@ -705,4 +705,13 @@
     <string name="review_confirm_identity">Carte, édition et finition sélectionnées vérifiées</string>
     <string name="review_unresolved_identity">* Carte ou édition à vérifier. Choisissez une proposition et son édition, ou confirmez la sélection actuelle. Rien appliqué.</string>
     <string name="review_unresolved_language">* La langue diffère de la proposition. Touchez la langue et choisissez explicitement avant application.</string>
+    <string name="review_resolve_reliable">Résoudre les cas fiables</string>
+    <string name="review_reliable_stop">Arrêter le lot</string>
+    <string name="review_reliable_cancel_help">Les tâches en attente seront arrêtées. Les cartes enregistrées restent ; une sauvegarde en cours se termine.</string>
+    <string name="review_reliable_confirm">Réanalyser %1$d photos et ENREGISTRER les cas fiables. Seulement les accords OCR/image avec édition claire et langue compatible. Finition conservée. Cas ambigus, copies regroupées et brouillons restent en attente. Sauvegarde et journal locaux créés.</string>
+    <string name="review_reliable_empty">Aucune photo en attente sans modifications manuelles.</string>
+    <string name="review_reliable_counts">Enregistrées : %1$d · À vérifier : %2$d · Erreurs/annulées : %3$d · Photos : %4$d (toucher pour détails)</string>
+    <string name="review_reliable_backup">Sauvegarde et journal conservés dans review_batches. Aucune carte ou photo supprimée.</string>
+    <string name="review_reliable_multiple">Plusieurs copies ou photos du même élément : vérification manuelle</string>
+    <string name="review_reliable_changed">Données modifiées pendant analyse : non écrasées</string>
 </resources>

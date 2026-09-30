@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: finitura non disponibile per questa stampa. Cambia finitura.</string>
     <string name="edscan_error_back">Caso 3: retro (_back) non ancora supportato. Scansiona il fronte.</string>
   <string name="review_provisional_printing">Stampa provvisoria: la carta corrisponde, ma sono possibili più stampe. Seleziona quella corretta o conferma.</string>
-    <string name="review_flow_help">Controlla i risultati OCR e immagine in alto. Tocca la foto salvata per ingrandire. A destra alterna carta identificata, OCR e immagine; proposte coincidenti sono unite. Applica modifiche salva e chiude la revisione.</string>
+    <string name="review_flow_help">Controlla OCR e immagine. Tocca la foto per ingrandire e la carta a destra per alternare proposte. Applica modifiche salva la revisione manuale. Risolvi casi affidabili rianalizza e salva automaticamente le corrispondenze sicure.</string>
     <string name="review_analyse_all">Rianalizza tutte le foto e verifica illustrazioni</string>
     <string name="review_save_changes">Salva modifiche</string>
     <string name="review_discard_changes">Scarta modifiche</string>
@@ -705,4 +705,13 @@
     <string name="review_confirm_identity">Ho verificato carta, edizione e finitura selezionate</string>
     <string name="review_unresolved_identity">* Carta o edizione da verificare. Scegli proposta e stampa, oppure conferma la selezione attuale. Nessuna modifica applicata.</string>
     <string name="review_unresolved_language">* La lingua differisce dalla proposta. Tocca la lingua e scegli quella corretta prima di applicare.</string>
+    <string name="review_resolve_reliable">Risolvi casi affidabili</string>
+    <string name="review_reliable_stop">Ferma lotto</string>
+    <string name="review_reliable_cancel_help">Le attività pendenti saranno fermate. Le carte salvate restano; un salvataggio in corso termina prima.</string>
+    <string name="review_reliable_confirm">Rianalizza %1$d foto e SALVA i casi affidabili. Solo accordi OCR/immagine con stampa chiara e lingua compatibile. Finitura mantenuta. Casi ambigui, copie raggruppate e bozze restano pendenti. Verranno creati backup e registro locale.</string>
+    <string name="review_reliable_empty">Nessuna foto pendente senza modifiche manuali.</string>
+    <string name="review_reliable_counts">Salvate: %1$d · Manuali: %2$d · Errori/annullate: %3$d · Foto: %4$d (tocca per dettagli)</string>
+    <string name="review_reliable_backup">Backup e registro locali in review_batches. Nessuna carta o foto eliminata.</string>
+    <string name="review_reliable_multiple">Più copie o foto dello stesso elemento: revisione manuale</string>
+    <string name="review_reliable_changed">Dati cambiati durante analisi: non sovrascritti</string>
 </resources>

@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Case 2: selected finish is unavailable for this printing. Change the finish.</string>
     <string name="edscan_error_back">Case 3: back-face candidate (_back) is not supported yet. Scan the front.</string>
   <string name="review_provisional_printing">Provisional printing: the card matches, but several printings are possible. Select the correct printing or confirm it is correct.</string>
-    <string name="review_flow_help">Review OCR and art results above. Tap the saved photo to enlarge. Tap the right card to cycle identified, OCR and art; matching proposals are combined. Only Apply changes saves and closes the review.</string>
+    <string name="review_flow_help">Review OCR and art. Tap the photo to enlarge and the right card to cycle proposals. Apply changes saves manual review. Resolve reliable cases reanalyzes and automatically saves safe agreements.</string>
     <string name="review_analyse_all">Reanalyse all photos and verify art</string>
     <string name="review_save_changes">Save changes</string>
     <string name="review_discard_changes">Discard changes</string>
@@ -705,4 +705,13 @@
     <string name="review_confirm_identity">I checked the selected card, printing and finish</string>
     <string name="review_unresolved_identity">* Card or printing needs review. Choose a proposal and printing, or confirm the current selection. Nothing was applied.</string>
     <string name="review_unresolved_language">* Selected language differs from the proposal. Tap the language and explicitly choose the correct one before applying.</string>
+    <string name="review_resolve_reliable">Resolve reliable cases</string>
+    <string name="review_reliable_stop">Stop batch</string>
+    <string name="review_reliable_cancel_help">Pending tasks will stop. Already saved cards remain; an ongoing card save finishes first.</string>
+    <string name="review_reliable_confirm">Reanalyse %1$d photos and SAVE reliable cases. Only OCR/art agreements with a clear printing and supported language are applied. Current finish is preserved. Ambiguous cases, grouped copies and manual drafts stay pending. A backup and local batch log are created.</string>
+    <string name="review_reliable_empty">No pending photos without manual edits.</string>
+    <string name="review_reliable_counts">Saved: %1$d · Manual review: %2$d · Errors/cancelled: %3$d · Photos: %4$d (tap for details)</string>
+    <string name="review_reliable_backup">Backup and log kept locally in review_batches. No cards or photos are deleted.</string>
+    <string name="review_reliable_multiple">Multiple copies or photos of the same item: manual review</string>
+    <string name="review_reliable_changed">Data changed during analysis: not overwritten</string>
 </resources>

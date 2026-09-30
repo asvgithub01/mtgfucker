@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Fall 2: Gewählte Ausführung für diesen Druck nicht verfügbar. Ausführung ändern.</string>
     <string name="edscan_error_back">Fall 3: Rückseite (_back) noch nicht unterstützt. Vorderseite scannen.</string>
   <string name="review_provisional_printing">Vorläufige Druckversion: Die Karte stimmt überein, aber mehrere Druckversionen sind möglich. Richtige Ausgabe wählen oder bestätigen.</string>
-    <string name="review_flow_help">OCR- und Bildergebnisse oben prüfen. Gespeichertes Foto zum Vergrößern antippen. Rechts zwischen erkannter Karte, OCR und Bild wechseln; gleiche Vorschläge werden kombiniert. Nur Änderungen anwenden speichert und schließt die Prüfung.</string>
+    <string name="review_flow_help">OCR und Bild prüfen. Foto zum Vergrößern antippen; rechts Vorschläge wechseln. Änderungen anwenden speichert die manuelle Prüfung. Zuverlässige Fälle lösen analysiert erneut und speichert sichere Übereinstimmungen automatisch.</string>
     <string name="review_analyse_all">Alle Fotos erneut analysieren und Bild prüfen</string>
     <string name="review_save_changes">Änderungen speichern</string>
     <string name="review_discard_changes">Änderungen verwerfen</string>
@@ -705,4 +705,13 @@
     <string name="review_confirm_identity">Ausgewählte Karte, Druck und Finish geprüft</string>
     <string name="review_unresolved_identity">* Karte oder Druck noch ungeprüft. Vorschlag und Druck wählen oder aktuelle Auswahl bestätigen. Nichts angewendet.</string>
     <string name="review_unresolved_language">* Sprache weicht vom Vorschlag ab. Sprache antippen und vor dem Anwenden ausdrücklich wählen.</string>
+    <string name="review_resolve_reliable">Zuverlässige Fälle lösen</string>
+    <string name="review_reliable_stop">Stapel stoppen</string>
+    <string name="review_reliable_cancel_help">Ausstehende Aufgaben werden gestoppt. Gespeicherte Karten bleiben; ein laufender Speichervorgang wird beendet.</string>
+    <string name="review_reliable_confirm">%1$d Fotos neu analysieren und zuverlässige Fälle SPEICHERN. Nur OCR/Bild-Übereinstimmungen mit eindeutigem Druck und passender Sprache. Finish bleibt erhalten. Unklare Fälle, gruppierte Kopien und Entwürfe bleiben offen. Sicherung und Protokoll werden erstellt.</string>
+    <string name="review_reliable_empty">Keine ausstehenden Fotos ohne manuelle Änderungen.</string>
+    <string name="review_reliable_counts">Gespeichert: %1$d · Manuell: %2$d · Fehler/abgebrochen: %3$d · Fotos: %4$d (Details antippen)</string>
+    <string name="review_reliable_backup">Sicherung und Protokoll lokal in review_batches. Keine Karten oder Fotos werden gelöscht.</string>
+    <string name="review_reliable_multiple">Mehrere Kopien oder Fotos desselben Eintrags: manuell prüfen</string>
+    <string name="review_reliable_changed">Daten während der Analyse geändert: nicht überschrieben</string>
 </resources>

@@ -841,7 +841,7 @@
     <string name="edscan_error_finish">Caso 2: el acabado seleccionado no existe para esta impresión. Cambia el acabado.</string>
     <string name="edscan_error_back">Caso 3: candidato de reverso (_back) no compatible todavía. Escanea el anverso.</string>
   <string name="review_provisional_printing">Edición provisional: la carta coincide, pero hay varias impresiones posibles. Selecciona la edición correcta o confirma que está bien.</string>
-    <string name="review_flow_help">Revisa los resultados OCR y arte arriba. Toca la foto guardada para ampliar. Toca la carta derecha para alternar identificada, OCR y arte; si coinciden comparten propuesta. Solo Aplicar cambios guarda y cierra la revisión.</string>
+    <string name="review_flow_help">Revisa OCR y arte. Toca la foto para ampliar y la carta derecha para alternar propuestas. Aplicar cambios guarda la revisión manual. Resolver casos fiables reanaliza y guarda automáticamente los acuerdos seguros.</string>
     <string name="review_analyse_all">Reanalizar todas las fotos y verificar arte</string>
     <string name="review_save_changes">Guardar cambios</string>
     <string name="review_discard_changes">Descartar cambios</string>
@@ -877,4 +877,13 @@
     <string name="review_confirm_identity">He comprobado la carta, la edición y el acabado seleccionados</string>
     <string name="review_unresolved_identity">* Falta resolver la carta o edición. Elige una propuesta y su edición, o marca que has comprobado la selección actual. No se ha aplicado nada.</string>
     <string name="review_unresolved_language">* El idioma seleccionado no coincide con la propuesta. Pulsa el idioma y elige explícitamente el correcto antes de aplicar.</string>
+    <string name="review_resolve_reliable">Resolver casos fiables</string>
+    <string name="review_reliable_stop">Detener lote</string>
+    <string name="review_reliable_cancel_help">Se detendrán las tareas pendientes. Las cartas ya guardadas se conservan; una carta que esté guardándose terminará primero.</string>
+    <string name="review_reliable_confirm">Reanalizar %1$d fotos y GUARDAR los casos fiables. Solo se aplican coincidencias OCR/arte con edición clara e idioma compatible. Se conserva el acabado actual. Los casos ambiguos, copias agrupadas y borradores manuales quedan pendientes. Se crea una copia previa y un registro local del lote.</string>
+    <string name="review_reliable_empty">No hay fotos pendientes sin cambios manuales.</string>
+    <string name="review_reliable_counts">Guardadas: %1$d · Revisión manual: %2$d · Errores/canceladas: %3$d · Fotos: %4$d (toca para detalles)</string>
+    <string name="review_reliable_backup">Copia anterior y registro conservados localmente en review_batches. No se borran cartas ni fotografías.</string>
+    <string name="review_reliable_multiple">Varias copias o fotos del mismo elemento: revisar manualmente</string>
+    <string name="review_reliable_changed">Datos modificados durante el análisis: no se sobrescriben</string>
 </resources>

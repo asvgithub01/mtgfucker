@@ -12,24 +12,28 @@ import java.io.File
 import java.util.UUID
 import kotlin.coroutines.resume
 
-/** One durable chain per photo: OCR + strict visual verification + title cross-check. No inventory writes. */
+/** One durable chain per photo: OCR + strict visual verification + title cross-check. Inventory writes only through the explicitly requested reliable-save stage. */
 object ReviewAnalysisBatch {
-    fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>): String {
+    fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>, reliableSave: Boolean = false): String {
         val dir = EdScanJobs.directory(context)
         val tag = "review-batch-${UUID.randomUUID()}"
         val work = WorkManager.getInstance(context)
         val photos = entries.distinctBy { it.photoKey }.filter {
             it.photoKey.matches(Regex("[0-9a-f-]{36}")) && File(dir,"${it.photoKey}.jpg").isFile && File(dir,"${it.photoKey}.json").isFile
         }
+        if(reliableSave) ReliableReviewJournal.prepare(context,library,tag,photos)
         for (entry in photos) {
             val key = entry.photoKey
             val attempt = UUID.randomUUID().toString()
             ScanReviewStore.write(File(dir,"$key.visual-request.json"),JSONObject().put("attempt",attempt).put("both",true))
-            val data = workDataOf("key" to key,"attempt" to attempt,"library" to library)
+            val data = workDataOf("key" to key,"attempt" to attempt,"library" to library,"batch" to tag)
             val visual = OneTimeWorkRequestBuilder<EdScanVerificationWorker>().setInputData(data).addTag(tag).build()
             val ocr = OneTimeWorkRequestBuilder<EdScanLanguageWorker>().setInputData(data).addTag(tag).build()
             val compare = OneTimeWorkRequestBuilder<ReviewTitleWorker>().setInputData(data).addTag(tag).build()
-            work.beginUniqueWork("review-full-$key", ExistingWorkPolicy.REPLACE, visual).then(ocr).then(compare).enqueue()
+            val chain=work.beginUniqueWork("review-full-$key", ExistingWorkPolicy.REPLACE, visual).then(ocr).then(compare)
+            if(reliableSave) chain.then(OneTimeWorkRequestBuilder<ReliableReviewWorker>().setInputData(data)
+                .addTag(tag).addTag(ReliableReviewWorker.TAG).build()).enqueue()
+            else chain.enqueue()
         }
         context.getSharedPreferences("review_batch",0).edit().putString(library,tag).apply()
         return tag

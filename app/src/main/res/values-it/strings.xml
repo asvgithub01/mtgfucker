@@ -702,4 +702,7 @@
     <string name="review_card_original">Carta identificata</string>
     <string name="review_card_proposal">Carta proposta</string>
     <string name="review_preview_only">Nessuna stampa compatibile nel catalogo locale. Solo anteprima: scegli una stampa valida prima di applicare.</string>
+    <string name="review_confirm_identity">Ho verificato carta, edizione e finitura selezionate</string>
+    <string name="review_unresolved_identity">* Carta o edizione da verificare. Scegli proposta e stampa, oppure conferma la selezione attuale. Nessuna modifica applicata.</string>
+    <string name="review_unresolved_language">* La lingua differisce dalla proposta. Tocca la lingua e scegli quella corretta prima di applicare.</string>
 </resources>

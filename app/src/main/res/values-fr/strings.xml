@@ -702,4 +702,7 @@
     <string name="review_card_original">Carte identifiée</string>
     <string name="review_card_proposal">Carte proposée</string>
     <string name="review_preview_only">Aucune édition compatible dans le catalogue local. Aperçu seul : choisissez une édition valide avant application.</string>
+    <string name="review_confirm_identity">Carte, édition et finition sélectionnées vérifiées</string>
+    <string name="review_unresolved_identity">* Carte ou édition à vérifier. Choisissez une proposition et son édition, ou confirmez la sélection actuelle. Rien appliqué.</string>
+    <string name="review_unresolved_language">* La langue diffère de la proposition. Touchez la langue et choisissez explicitement avant application.</string>
 </resources>

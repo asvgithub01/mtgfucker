@@ -702,4 +702,7 @@
     <string name="review_card_original">Erkannte Karte</string>
     <string name="review_card_proposal">Vorgeschlagene Karte</string>
     <string name="review_preview_only">Kein passender Druck im lokalen Katalog. Nur Vorschau: vor dem Anwenden einen gültigen Druck wählen.</string>
+    <string name="review_confirm_identity">Ausgewählte Karte, Druck und Finish geprüft</string>
+    <string name="review_unresolved_identity">* Karte oder Druck noch ungeprüft. Vorschlag und Druck wählen oder aktuelle Auswahl bestätigen. Nichts angewendet.</string>
+    <string name="review_unresolved_language">* Sprache weicht vom Vorschlag ab. Sprache antippen und vor dem Anwenden ausdrücklich wählen.</string>
 </resources>

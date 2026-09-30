@@ -4,6 +4,11 @@ import org.junit.Assert.*
 import org.junit.Test
 class ReviewProposalCycleTest {
     private fun option(uuid: String, finish: String="nonfoil")=CardEditionOption(uuid,"Name","Name","SET","Set","1","","rare",finish,finish=="foil",null,"","",null,null,null,null)
+    @Test fun ocrPrefersNonfoilEvenWhenSavedOrArtIsFoil() {
+        val foil=option("a","foil"); val normal=option("b")
+        assertEquals(normal,ReviewProposalCycle.preferredOcr(listOf(foil,normal),"a","a"))
+        assertEquals(foil,ReviewProposalCycle.preferredOcr(listOf(foil),null,null))
+    }
     @Test fun cyclesOriginalOcrArtOriginal() {
         val sources=listOf("OCR","arte")
         assertEquals("OCR",ReviewProposalCycle.next("",sources))

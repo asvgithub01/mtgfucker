@@ -896,4 +896,5 @@
     <string name="review_history_modified">Modificada</string>
     <string name="review_history_confirmed">Confirmada sin cambios</string>
     <string name="review_photo_counts">%1$d por revisar · %2$d revisadas · %3$d fotos</string>
+    <string name="review_phase_progress">Fotos por fase · total %5$d\nArte: %1$d · OCR: %2$d · Nombres: %3$d\nRevisión final terminada: %4$d/%5$d</string>
 </resources>

@@ -779,8 +779,13 @@ class ScanReviewActivity : AppCompatActivity() {
                 analysisProgress.max=jobs.size.coerceAtLeast(1); analysisProgress.progress=done
                 if(reliableReport.isNotEmpty()) {
                     val finished=reliableReport.count { it.state.isFinished }
-                    analysisProgress.max=reliableReport.size; analysisProgress.progress=finished
-                    analysisStatus.text=getString(R.string.review_photo_progress,finished,reliableReport.size)
+                    fun succeeded(tag: String)=jobs.count { tag in it.tags && it.state==androidx.work.WorkInfo.State.SUCCEEDED }
+                    // Final-stage photos can stay at zero while hundreds of visual/OCR stages complete.
+                    // Keep the bar proportional to all work; label each phase in photos, never as cards.
+                    analysisStatus.text=getString(R.string.review_phase_progress,
+                        succeeded("io.asv.collectorvision.EdScanVerificationWorker"),
+                        succeeded("io.asv.collectorvision.EdScanLanguageWorker"),
+                        succeeded("io.asv.mtgocr.ocrreader.ReviewTitleWorker"),finished,reliableReport.size)
                 } else analysisStatus.text=getString(R.string.review_analysis_progress,done,jobs.size,failed)
                 analyseButton.isEnabled=!analysisRunning && !applying
                 if(!analysisRunning) { signature=""; reload(); refreshReliableHistory() }

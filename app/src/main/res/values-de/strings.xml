@@ -724,4 +724,5 @@
     <string name="review_history_modified">Geändert</string>
     <string name="review_history_confirmed">Unverändert bestätigt</string>
     <string name="review_photo_counts">%1$d zu prüfen · %2$d geprüft · %3$d Fotos</string>
+    <string name="review_phase_progress">Fotos je Phase · insgesamt %5$d\nBild: %1$d · OCR: %2$d · Namen: %3$d\nEndprüfung abgeschlossen: %4$d/%5$d</string>
 </resources>

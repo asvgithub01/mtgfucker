@@ -2234,6 +2234,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     super.onPause();
     if (mPreview != null) {
       mPreview.stop();
+      io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
     }
   }
 
@@ -2242,6 +2243,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    * rest of the processing pipeline.
    */
   @Override protected void onDestroy() {
+    io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
     if (collectionPriceTask != null) collectionPriceTask.cancel(true);
     sessionRefreshCoordinator.close();
     scanLanguageRequest++;
@@ -2424,11 +2426,16 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
     if (mCameraSource != null) {
       try {
+        io.asv.collectorvision.EdScanInferencePriority.INSTANCE.acquire(this);
         mPreview.start(mCameraSource, mGraphicOverlay);
       } catch (IOException e) {
+        io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
         Log.e(TAG, "Unable to start camera source.", e);
         mCameraSource.release();
         mCameraSource = null;
+      } catch (RuntimeException e) {
+        io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
+        throw e;
       }
     }
   }
@@ -3844,6 +3851,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     resetScannerGateDiagnostics();
     scanStability.resetPending();
     if (mPreview != null) mPreview.stop();
+    io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
     scanSessionDialog.setOnDismissListener(dismissed -> {
       scanSessionOpen = false;
       scanSessionDialog = null;
@@ -4689,6 +4697,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void showRecycler() {
     hideNamePredictions();
     if (mPreview != null) mPreview.stop();
+    io.asv.collectorvision.EdScanInferencePriority.INSTANCE.release(this);
 
     if (bottomNavigation != null) bottomNavigation.setVisibility(View.VISIBLE);
     showSelectedSection();

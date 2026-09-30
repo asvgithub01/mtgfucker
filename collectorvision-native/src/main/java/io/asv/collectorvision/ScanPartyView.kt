@@ -37,20 +37,35 @@ internal class ScanPartyView(
         startedAt = SystemClock.uptimeMillis()
         activity.lifecycle.addObserver(this)
         // Bundled user-provided audio; play only the highest reached tier.
-        audio = runCatching { MediaPlayer.create(context, when (options.level) {
+        val resource = when (options.level) {
             5 -> R.raw.party_dancer
             4 -> R.raw.party_disco
             3 -> R.raw.party_trumpets
             2 -> R.raw.party_balloons
             else -> R.raw.party_confetti
-        }) }.getOrNull()
-        runCatching { audio?.start() }.onFailure { audio?.release(); audio = null }
+        }
+        // prepare() inside MediaPlayer.create blocks the camera UI; prepare asynchronously instead.
+        runCatching {
+            val player=MediaPlayer()
+            audio=player
+            player.setOnPreparedListener {
+                if(audio===it && isAttachedToWindow) runCatching { it.start() }
+            }
+            player.setOnErrorListener { failed,_,_ ->
+                if(audio===failed) { audio=null; failed.release() }
+                true
+            }
+            resources.openRawResourceFd(resource).use { fd ->
+                player.setDataSource(fd.fileDescriptor,fd.startOffset,fd.length)
+            }
+            player.prepareAsync()
+        }.onFailure { audio?.release(); audio=null }
     }
 
     override fun onDraw(canvas: Canvas) {
         val seconds = (SystemClock.uptimeMillis() - startedAt) / 1000f
         val progress = seconds * 1000 / options.durationMillis
-        if (progress >= 1f) { (parent as? ViewGroup)?.removeView(this); return }
+        if (progress >= 1f) { post { (parent as? ViewGroup)?.removeView(this) }; return }
         val fade = ((1f - progress) * 5).coerceIn(0f, 1f)
         if (options.disco) drawDisco(canvas, seconds, fade)
         if (options.balloons) drawBalloons(canvas, progress, fade)
@@ -66,7 +81,8 @@ internal class ScanPartyView(
             canvas.restore()
         }
         if (options.dancer) drawDancer(canvas, seconds, fade)
-        postInvalidateOnAnimation()
+        // Effects need not redraw at a 120 Hz display rate while scanning.
+        postInvalidateDelayed(33L)
     }
 
     private fun drawBalloons(canvas: Canvas, t: Float, fade: Float) {

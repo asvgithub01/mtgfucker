@@ -714,4 +714,14 @@
     <string name="review_reliable_backup">Backup and log kept locally in review_batches. No cards or photos are deleted.</string>
     <string name="review_reliable_multiple">Multiple copies or photos of the same item: manual review</string>
     <string name="review_reliable_changed">Data changed during analysis: not overwritten</string>
+    <string name="review_history">Resolution history</string>
+    <string name="review_history_empty">No saved batches yet.</string>
+    <string name="review_photo_progress">Photos completed: %1$d/%2$d</string>
+    <string name="review_last_attempt">Last attempt · %1$s\n%2$s</string>
+    <string name="review_history_summary">%1$d modified · %2$d confirmed\n%3$d manual review · %4$d errors\n%5$d no result · %6$d saved without breakdown</string>
+    <string name="review_reason_art">Inconclusive art: check the photo and choose the card/edition. Repeating the same capture may give the same result.</string>
+    <string name="review_reason_identity">OCR has no unique name or disagrees with art: check the photo and select the correct card.</string>
+    <string name="review_history_modified">Modified</string>
+    <string name="review_history_confirmed">Confirmed unchanged</string>
+    <string name="review_photo_counts">%1$d to review · %2$d reviewed · %3$d photos</string>
 </resources>

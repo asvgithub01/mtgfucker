@@ -886,4 +886,14 @@
     <string name="review_reliable_backup">Copia anterior y registro conservados localmente en review_batches. No se borran cartas ni fotografías.</string>
     <string name="review_reliable_multiple">Varias copias o fotos del mismo elemento: revisar manualmente</string>
     <string name="review_reliable_changed">Datos modificados durante el análisis: no se sobrescriben</string>
+    <string name="review_history">Historial de resoluciones</string>
+    <string name="review_history_empty">Todavía no hay lotes guardados.</string>
+    <string name="review_photo_progress">Fotos finalizadas: %1$d/%2$d</string>
+    <string name="review_last_attempt">Último intento · %1$s\n%2$s</string>
+    <string name="review_history_summary">%1$d modificadas · %2$d confirmadas\n%3$d revisión manual · %4$d errores\n%5$d sin resultado · %6$d guardadas sin desglose</string>
+    <string name="review_reason_art">Arte no concluyente: revisa la foto y elige la carta/edición. Repetir sin cambiar la captura puede dar el mismo resultado.</string>
+    <string name="review_reason_identity">OCR sin nombre único o distinto del arte: contrasta la foto y selecciona la carta correcta.</string>
+    <string name="review_history_modified">Modificada</string>
+    <string name="review_history_confirmed">Confirmada sin cambios</string>
+    <string name="review_photo_counts">%1$d por revisar · %2$d revisadas · %3$d fotos</string>
 </resources>

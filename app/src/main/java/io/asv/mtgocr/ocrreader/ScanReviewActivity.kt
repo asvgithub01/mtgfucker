@@ -80,6 +80,8 @@ class ScanReviewActivity : AppCompatActivity() {
     private val editGeneration=mutableMapOf<String,Int>()
     private lateinit var reliableButton: Button
     private lateinit var reliableStatus: TextView
+    private var reliableHistory=emptyList<ReliableReviewHistory.Batch>()
+    private var historyLoading=false
     private var reliableRunning=false
     private var reliableReport=emptyList<androidx.work.WorkInfo>()
     private lateinit var analyseButton: Button
@@ -121,6 +123,7 @@ class ScanReviewActivity : AppCompatActivity() {
         root.addView(reliableButton)
         reliableStatus=TextView(this).apply { visibility=View.GONE; setOnClickListener { showReliableReport() } }
         root.addView(reliableStatus)
+        root.addView(Button(this).apply { setText(R.string.review_history); setOnClickListener { showReliableReport() } })
         analysisProgress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal)
         root.addView(analysisProgress,LinearLayout.LayoutParams(-1,-2))
         analysisStatus=TextView(this); root.addView(analysisStatus)
@@ -172,7 +175,7 @@ class ScanReviewActivity : AppCompatActivity() {
         state.putStringArrayList("reviewRetained",ArrayList(retained))
         state.putString("reviewSource",sourceFilter); state.putBoolean("reviewFilter",filter.isChecked)
     }
-    override fun onResume() { super.onResume(); active=true; handler.post(tick) }
+    override fun onResume() { super.onResume(); active=true; handler.post(tick); refreshReliableHistory() }
     override fun onPause() { active=false; handler.removeCallbacks(tick); super.onPause() }
     override fun onDestroy() { io.shutdown(); super.onDestroy() }
     private fun reload() {
@@ -201,8 +204,8 @@ class ScanReviewActivity : AppCompatActivity() {
         val offset=list.getChildAt(0)?.top ?: 0
         val scoped=ReviewPresentationPolicy.primary(entries.filter { sourceFilter=="all" || it.source==sourceFilter })
         visible=scoped.filter { !filter.isChecked || !reviewed(it) }
-        status.text=if(scoped.isEmpty()) getString(R.string.review_no_photos) else getString(R.string.review_counts,
-            scoped.count { it.state=="conflict" },scoped.count { it.state=="pending" },scoped.size)
+        status.text=if(scoped.isEmpty()) getString(R.string.review_no_photos) else getString(R.string.review_photo_counts,
+            scoped.count { !reviewed(it) },scoped.count { reviewed(it) },scoped.size)
         if (!applying) selected.entries.removeAll { (_,old) -> visible.none { ReviewApplyPolicy.sameProposal(old,it) && ReviewApplyPolicy.applicable(it) } }
         rows.notifyDataSetChanged()
         val position=visible.indexOfFirst { it.photoKey==anchor }.takeIf { it>=0 } ?: oldPosition.coerceAtMost((visible.size-1).coerceAtLeast(0))
@@ -257,6 +260,13 @@ class ScanReviewActivity : AppCompatActivity() {
         val first=formatted.indexOf("\n")+1
         val end=formatted.indexOf("\n",formatted.indexOf("\n",first)+1)
         if(first>0 && end>first) formatted.setSpan(android.text.style.LeadingMarginSpan.Standard((16*resources.displayMetrics.density).toInt()),first,end,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        reliableHistory.firstOrNull { batch -> batch.items.any { it.photo==entry.photoKey } }?.let { batch ->
+            val outcome=batch.items.first { it.photo==entry.photoKey }
+            if(outcome.status!="applied") {
+                formatted.append("\n\n").append(getString(R.string.review_last_attempt,
+                    android.text.format.DateFormat.format("dd/MM HH:mm",batch.at),getString(reliableReason(outcome.reason))))
+            }
+        }
         return formatted
     }
     private inner class ReviewRows: BaseAdapter() {
@@ -764,12 +774,16 @@ class ScanReviewActivity : AppCompatActivity() {
                     val errors=reliableReport.count { it.outputData.getString("autoStatus")=="error" || it.state==androidx.work.WorkInfo.State.FAILED || it.state==androidx.work.WorkInfo.State.CANCELLED }
                     reliableStatus.visibility=View.VISIBLE
                     reliableStatus.text=getString(R.string.review_reliable_counts,applied,skipped,errors,reliableReport.size)
-                } else reliableStatus.visibility=View.GONE
+                } else if(reliableHistory.isEmpty()) reliableStatus.visibility=View.GONE
                 updateApplyButton(); render()
                 analysisProgress.max=jobs.size.coerceAtLeast(1); analysisProgress.progress=done
-                analysisStatus.text=getString(R.string.review_analysis_progress,done,jobs.size,failed)
+                if(reliableReport.isNotEmpty()) {
+                    val finished=reliableReport.count { it.state.isFinished }
+                    analysisProgress.max=reliableReport.size; analysisProgress.progress=finished
+                    analysisStatus.text=getString(R.string.review_photo_progress,finished,reliableReport.size)
+                } else analysisStatus.text=getString(R.string.review_analysis_progress,done,jobs.size,failed)
                 analyseButton.isEnabled=!analysisRunning && !applying
-                if(!analysisRunning) { signature=""; reload() }
+                if(!analysisRunning) { signature=""; reload(); refreshReliableHistory() }
             }
         }
     }
@@ -782,26 +796,56 @@ class ScanReviewActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel,null)
             .setPositiveButton(R.string.review_resolve_reliable) { _,_-> analyse(candidates,true) }.show()
     }
-    private fun showReliableReport() {
-        val reasons=reliableReport.filter { it.state.isFinished }.groupingBy {
-            it.outputData.getString("reason") ?: "error"
-        }.eachCount()
-        val details=reasons.entries.joinToString("\n") { (reason,count) ->
-            val label=when(reason) {
-                "ok" -> R.string.review_reviewed
-                "weak" -> R.string.review_inconclusive
-                "identity" -> R.string.review_unresolved_identity
-                "language" -> R.string.review_select_language
-                "catalog" -> R.string.review_catalog_error
-                "multiple" -> R.string.review_reliable_multiple
-                "changed" -> R.string.review_reliable_changed
-                else -> R.string.review_operation_failed
+    private fun reliableReason(reason: String): Int = when(reason) {
+        "ok" -> R.string.review_reviewed
+        "weak" -> R.string.review_reason_art
+        "identity" -> R.string.review_reason_identity
+        "language" -> R.string.review_select_language
+        "catalog" -> R.string.review_catalog_error
+        "multiple" -> R.string.review_reliable_multiple
+        "changed" -> R.string.review_reliable_changed
+        else -> R.string.review_operation_failed
+    }
+    private fun historySummary(batch: ReliableReviewHistory.Batch)=getString(R.string.review_history_summary,
+        batch.modified,batch.confirmed,batch.manual,batch.errors,batch.missing,batch.unknown)
+
+    private fun refreshReliableHistory() {
+        if(historyLoading || isDestroyed) return
+        historyLoading=true
+        io.execute {
+            val history=runCatching { ReliableReviewHistory.read(applicationContext,library) }.getOrDefault(emptyList())
+            runOnUiThread {
+                historyLoading=false
+                if(isDestroyed || isFinishing) return@runOnUiThread
+                reliableHistory=history
+                if(!reliableRunning && history.isNotEmpty()) {
+                    val batch=history.first()
+                    reliableStatus.visibility=View.VISIBLE
+                    reliableStatus.text=getString(R.string.review_last_attempt,
+                        android.text.format.DateFormat.format("dd/MM HH:mm",batch.at),historySummary(batch))
+                }
+                render()
             }
-            "$count · ${getString(label)}"
         }
-        AlertDialog.Builder(this).setTitle(R.string.review_resolve_reliable)
-            .setMessage(reliableStatus.text.toString()+"\n\n"+details+"\n\n"+getString(R.string.review_reliable_backup))
-            .setPositiveButton(android.R.string.ok,null).show()
+    }
+    private fun showReliableReport() {
+        if(reliableHistory.isEmpty()) { notifyFull(R.string.review_history_empty); return }
+        val labels=reliableHistory.map { batch ->
+            android.text.format.DateFormat.format("dd/MM HH:mm",batch.at).toString()+" · "+
+                getString(R.string.review_photo_progress,batch.items.size,batch.total)+"\n"+historySummary(batch)
+        }.toTypedArray()
+        AlertDialog.Builder(this).setTitle(R.string.review_history).setItems(labels) { _,index ->
+            val batch=reliableHistory[index]
+            val reasons=batch.items.filter { it.status!="applied" }.groupingBy { it.reason }.eachCount()
+            val details=reasons.entries.joinToString("\n") { (reason,count) -> "$count · ${getString(reliableReason(reason))}" }
+            val names=batch.items.filter { it.status=="applied" }.joinToString("\n") {
+                val label=if(it.changed==true) R.string.review_history_modified else if(it.changed==false) R.string.review_history_confirmed else R.string.review_reviewed
+                "${getString(label)} · ${it.name}"
+            }
+            AlertDialog.Builder(this).setTitle(labels[index].substringBefore("\n"))
+                .setMessage(historySummary(batch)+"\n\n"+details+"\n\n"+names+"\n\n"+getString(R.string.review_reliable_backup))
+                .setPositiveButton(android.R.string.ok,null).show()
+        }.setPositiveButton(android.R.string.ok,null).show()
     }
     private fun analyse(items: List<ScanReviewStore.Entry>, reliableSave: Boolean = false) {
         if(analysisRunning || applying) return

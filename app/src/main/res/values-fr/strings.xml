@@ -714,4 +714,14 @@
     <string name="review_reliable_backup">Sauvegarde et journal conservés dans review_batches. Aucune carte ou photo supprimée.</string>
     <string name="review_reliable_multiple">Plusieurs copies ou photos du même élément : vérification manuelle</string>
     <string name="review_reliable_changed">Données modifiées pendant analyse : non écrasées</string>
+    <string name="review_history">Historique des résolutions</string>
+    <string name="review_history_empty">Aucun lot enregistré.</string>
+    <string name="review_photo_progress">Photos terminées : %1$d/%2$d</string>
+    <string name="review_last_attempt">Dernier essai · %1$s\n%2$s</string>
+    <string name="review_history_summary">%1$d modifiées · %2$d confirmées\n%3$d à vérifier · %4$d erreurs\n%5$d sans résultat · %6$d enregistrées sans détail</string>
+    <string name="review_reason_art">Image incertaine : vérifiez la photo et choisissez carte/édition. Répéter la même capture peut donner le même résultat.</string>
+    <string name="review_reason_identity">OCR sans nom unique ou différent de l’image : vérifiez la photo et choisissez la bonne carte.</string>
+    <string name="review_history_modified">Modifiée</string>
+    <string name="review_history_confirmed">Confirmée sans changement</string>
+    <string name="review_photo_counts">%1$d à vérifier · %2$d vérifiées · %3$d photos</string>
 </resources>

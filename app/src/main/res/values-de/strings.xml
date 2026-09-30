@@ -714,4 +714,14 @@
     <string name="review_reliable_backup">Sicherung und Protokoll lokal in review_batches. Keine Karten oder Fotos werden gelöscht.</string>
     <string name="review_reliable_multiple">Mehrere Kopien oder Fotos desselben Eintrags: manuell prüfen</string>
     <string name="review_reliable_changed">Daten während der Analyse geändert: nicht überschrieben</string>
+    <string name="review_history">Verlauf der Auflösungen</string>
+    <string name="review_history_empty">Noch keine gespeicherten Stapel.</string>
+    <string name="review_photo_progress">Fotos abgeschlossen: %1$d/%2$d</string>
+    <string name="review_last_attempt">Letzter Versuch · %1$s\n%2$s</string>
+    <string name="review_history_summary">%1$d geändert · %2$d bestätigt\n%3$d manuell prüfen · %4$d Fehler\n%5$d ohne Ergebnis · %6$d ohne Aufschlüsselung gespeichert</string>
+    <string name="review_reason_art">Bild nicht eindeutig: Foto prüfen und Karte/Edition wählen. Dieselbe Aufnahme kann dasselbe Ergebnis liefern.</string>
+    <string name="review_reason_identity">OCR ohne eindeutigen Namen oder abweichend vom Bild: Foto prüfen und richtige Karte wählen.</string>
+    <string name="review_history_modified">Geändert</string>
+    <string name="review_history_confirmed">Unverändert bestätigt</string>
+    <string name="review_photo_counts">%1$d zu prüfen · %2$d geprüft · %3$d Fotos</string>
 </resources>

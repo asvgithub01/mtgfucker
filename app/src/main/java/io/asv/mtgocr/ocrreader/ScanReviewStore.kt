@@ -57,14 +57,15 @@ object ScanReviewStore {
                 var state = "pending"
                 val matchFile = File(dir,"$key.match.json")
                 if (result != null && visual) {
-                    if (result.optString("status") == "candidate") {
+                    if (result.optString("observedScryfallId").isNotBlank()) {
                         candidateId = result.optString("observedScryfallId")
+                        state = "inconclusive"
                         val match = json(matchFile)
                         if (match != null && match.optString("candidateId",candidateId) == candidateId) {
                             candidateImage = match.optString("imageUrl")
                             candidateSet = match.optString("set")
                             label = match.optString("name")+" · "+match.optString("set")+" #"+match.optString("number")
-                            state = if (card.printingUuid == match.optString("printingUuid")) "consistent" else "conflict"
+                            state = ReviewPresentationPolicy.candidateState(result.optString("status")!="inconclusive",card.printingUuid == match.optString("printingUuid"))
                         }
                     } else state = "inconclusive"
                 } else if (result != null) {

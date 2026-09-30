@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Fall 2: Gewählte Ausführung für diesen Druck nicht verfügbar. Ausführung ändern.</string>
     <string name="edscan_error_back">Fall 3: Rückseite (_back) noch nicht unterstützt. Vorderseite scannen.</string>
   <string name="review_provisional_printing">Vorläufige Druckversion: Die Karte stimmt überein, aber mehrere Druckversionen sind möglich. Richtige Ausgabe wählen oder bestätigen.</string>
-    <string name="review_flow_help">1. Fotos analysieren: OCR (Name/Sprache) und EdScan (Bild/Druck). 2. Vorschläge prüfen. 3. Änderungen speichern. Keine automatische Übernahme. Foto antippen, mit zwei Fingern zoomen und ziehen. Finish wird beim Druck gewählt, nicht im Foto erkannt.</string>
+    <string name="review_flow_help">Karte, Druck, Finish und Sprache prüfen, dann Änderungen anwenden. Geprüfte Karten verlassen die ausstehende Liste. Rechts tippen wechselt Original/Vorschlag; gedrückt halten vergrößert. Ungeprüfte Vorschläge selbst prüfen.</string>
     <string name="review_analyse_all">Alle Fotos erneut analysieren und Bild prüfen</string>
     <string name="review_save_changes">Änderungen speichern</string>
     <string name="review_discard_changes">Änderungen verwerfen</string>
@@ -683,4 +683,15 @@
     <string name="review_title_matches">Name durch OCR bestätigt: %1$s</string>
     <string name="review_title_unknown">Kein eindeutiger OCR-Titel: %1$s</string>
     <string name="review_save_confirm">Ausstehende Änderungen speichern und bestätigen, dass die ausgewählte Karte korrekt ist?</string>
+    <string name="review_pending_only">Nur ausstehende (abwählen für geprüfte)</string>
+    <string name="review_apply_changes">Änderungen anwenden</string>
+    <string name="review_reopen">Erneut prüfen</string>
+    <string name="review_catalog_retry">Katalog konnte nicht geladen werden. Änderungen bleiben ausstehend. Verbindung prüfen und erneut versuchen; die Sprache kann trotzdem verfügbar sein.</string>
+    <string name="review_proposal_first">Vorschlag / Erkannte Karte</string>
+    <string name="review_identified_first">Erkannte Karte / Vorschlag</string>
+    <string name="review_weak_proposal">Ungeprüfter Vorschlag. Zum Wechseln tippen. Zum Vergrößern gedrückt halten.</string>
+    <string name="review_toggle_hint">Tippen wechselt Karte/Vorschlag. Gedrückt halten zum Vergrößern.</string>
+    <string name="review_ocr_choice">OCR-Karte suchen: %1$s</string>
+    <string name="review_zoom">Vergrößern</string>
+    <string name="review_selected_language">Ausgewählte Sprache: %1$s</string>
 </resources>

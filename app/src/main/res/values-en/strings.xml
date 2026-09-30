@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Case 2: selected finish is unavailable for this printing. Change the finish.</string>
     <string name="edscan_error_back">Case 3: back-face candidate (_back) is not supported yet. Scan the front.</string>
   <string name="review_provisional_printing">Provisional printing: the card matches, but several printings are possible. Select the correct printing or confirm it is correct.</string>
-    <string name="review_flow_help">1. Analyse photos: OCR (name and language) and EdScan (art/printing). 2. Review proposals. 3. Save changes. Nothing is applied automatically. Tap a photo to enlarge; pinch and drag. Finish is selected with the printing, not detected from the photo.</string>
+    <string name="review_flow_help">Review card, printing, finish and language, then tap Apply changes once. Reviewed cards leave Pending. Tap the right image to switch original/proposal; hold to enlarge. Unverified proposals need your review.</string>
     <string name="review_analyse_all">Reanalyse all photos and verify art</string>
     <string name="review_save_changes">Save changes</string>
     <string name="review_discard_changes">Discard changes</string>
@@ -683,4 +683,15 @@
     <string name="review_title_matches">Name corroborated by OCR: %1$s</string>
     <string name="review_title_unknown">No conclusive OCR title: %1$s</string>
     <string name="review_save_confirm">Save pending changes and confirm that the selected card is correct?</string>
+    <string name="review_pending_only">Pending only (uncheck to see reviewed)</string>
+    <string name="review_apply_changes">Apply changes</string>
+    <string name="review_reopen">Reopen review</string>
+    <string name="review_catalog_retry">Could not load the catalog. Your changes are still pending. Check your connection and retry; this does not mean the language is unavailable.</string>
+    <string name="review_proposal_first">Proposal / Identified card</string>
+    <string name="review_identified_first">Identified card / Proposal</string>
+    <string name="review_weak_proposal">Unverified proposal. Tap image to switch. Hold to enlarge.</string>
+    <string name="review_toggle_hint">Tap to switch card/proposal. Hold to enlarge.</string>
+    <string name="review_ocr_choice">Find card read by OCR: %1$s</string>
+    <string name="review_zoom">Enlarge</string>
+    <string name="review_selected_language">Selected language: %1$s</string>
 </resources>

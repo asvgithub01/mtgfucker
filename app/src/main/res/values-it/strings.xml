@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: finitura non disponibile per questa stampa. Cambia finitura.</string>
     <string name="edscan_error_back">Caso 3: retro (_back) non ancora supportato. Scansiona il fronte.</string>
   <string name="review_provisional_printing">Stampa provvisoria: la carta corrisponde, ma sono possibili più stampe. Seleziona quella corretta o conferma.</string>
-    <string name="review_flow_help">1. Analizzare foto: OCR (nome/lingua) ed EdScan (illustrazione/edizione). 2. Rivedere proposte. 3. Salvare modifiche. Nessuna modifica automatica. Tocca la foto, pizzica e trascina. La finitura si sceglie con l’edizione, non dalla foto.</string>
+    <string name="review_flow_help">Controlla carta, edizione, finitura e lingua, poi applica le modifiche. La carta esce dalle revisioni pendenti. Tocca a destra per alternare originale/proposta; tieni premuto per ingrandire. Controlla le proposte non verificate.</string>
     <string name="review_analyse_all">Rianalizza tutte le foto e verifica illustrazioni</string>
     <string name="review_save_changes">Salva modifiche</string>
     <string name="review_discard_changes">Scarta modifiche</string>
@@ -683,4 +683,15 @@
     <string name="review_title_matches">Nome corroborato da OCR: %1$s</string>
     <string name="review_title_unknown">Titolo OCR non conclusivo: %1$s</string>
     <string name="review_save_confirm">Salvare le modifiche in sospeso e confermare che la carta selezionata è corretta?</string>
+    <string name="review_pending_only">Solo da rivedere (deseleziona per vedere le revisionate)</string>
+    <string name="review_apply_changes">Applica modifiche</string>
+    <string name="review_reopen">Rivedi</string>
+    <string name="review_catalog_retry">Impossibile consultare il catalogo. Le modifiche restano in sospeso. Controlla la connessione e riprova; non significa che la lingua non sia disponibile.</string>
+    <string name="review_proposal_first">Proposta / Carta identificata</string>
+    <string name="review_identified_first">Carta identificata / Proposta</string>
+    <string name="review_weak_proposal">Proposta non verificata. Tocca per alternare. Tieni premuto per ingrandire.</string>
+    <string name="review_toggle_hint">Tocca per alternare carta/proposta. Tieni premuto per ingrandire.</string>
+    <string name="review_ocr_choice">Cerca carta letta da OCR: %1$s</string>
+    <string name="review_zoom">Ingrandisci</string>
+    <string name="review_selected_language">Lingua selezionata: %1$s</string>
 </resources>

@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Cas 2 : finition indisponible pour cette impression. Changez la finition.</string>
     <string name="edscan_error_back">Cas 3 : verso (_back) non pris en charge. Scannez le recto.</string>
   <string name="review_provisional_printing">Impression provisoire : la carte correspond, mais plusieurs impressions sont possibles. Choisissez la bonne édition ou confirmez-la.</string>
-    <string name="review_flow_help">1. Analyser les photos : OCR (nom/langue) et EdScan (illustration/édition). 2. Vérifier les propositions. 3. Enregistrer. Aucune modification automatique. Touchez la photo, pincez et déplacez pour zoomer. La finition se choisit avec l’édition, pas sur la photo.</string>
+    <string name="review_flow_help">Vérifiez carte, édition, finition et langue, puis appliquez les modifications. La carte quitte les éléments en attente. Touchez à droite pour alterner original/proposition ; appui long pour agrandir. Vérifiez les propositions non confirmées.</string>
     <string name="review_analyse_all">Réanalyser toutes les photos et vérifier les illustrations</string>
     <string name="review_save_changes">Enregistrer les modifications</string>
     <string name="review_discard_changes">Annuler les modifications</string>
@@ -683,4 +683,15 @@
     <string name="review_title_matches">Nom corroboré par OCR : %1$s</string>
     <string name="review_title_unknown">Titre OCR non concluant : %1$s</string>
     <string name="review_save_confirm">Enregistrer les modifications en attente et confirmer que la carte sélectionnée est correcte ?</string>
+    <string name="review_pending_only">En attente uniquement (décocher pour voir les cartes vérifiées)</string>
+    <string name="review_apply_changes">Appliquer les modifications</string>
+    <string name="review_reopen">Réexaminer</string>
+    <string name="review_catalog_retry">Impossible de consulter le catalogue. Vos modifications restent en attente. Vérifiez la connexion et réessayez ; cela ne signifie pas que la langue est indisponible.</string>
+    <string name="review_proposal_first">Proposition / Carte identifiée</string>
+    <string name="review_identified_first">Carte identifiée / Proposition</string>
+    <string name="review_weak_proposal">Proposition non vérifiée. Touchez pour alterner. Appui long pour agrandir.</string>
+    <string name="review_toggle_hint">Touchez pour alterner carte/proposition. Appui long pour agrandir.</string>
+    <string name="review_ocr_choice">Chercher la carte lue par OCR : %1$s</string>
+    <string name="review_zoom">Agrandir</string>
+    <string name="review_selected_language">Langue sélectionnée : %1$s</string>
 </resources>

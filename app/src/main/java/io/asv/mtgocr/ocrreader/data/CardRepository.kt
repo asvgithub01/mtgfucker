@@ -919,6 +919,10 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    // Only successful, non-empty lookups are cached. A review must not revalidate an
+    // already offered language over the network on every click or on Apply.
+    private val reviewImageLanguages=java.util.concurrent.ConcurrentHashMap<String,List<CardImageVariant>>()
+
     fun loadImageLanguages(
         setCode: String,
         collectorNumber: String,
@@ -926,7 +930,10 @@ class CardRepository private constructor(context: Context) {
     ): Future<*> {
         return imageExecutor.submit {
             try {
-                val variants = imageProvider.getImageLanguages(setCode, collectorNumber)
+                val key=setCode.lowercase()+":"+collectorNumber
+                val variants = reviewImageLanguages[key] ?: imageProvider.getImageLanguages(setCode, collectorNumber).also {
+                    if(it.isNotEmpty()) reviewImageLanguages[key]=it
+                }
                 mainHandler.post { callback(variants, null) }
             } catch (error: Throwable) {
                 if (Thread.currentThread().isInterrupted) return@submit
@@ -973,6 +980,14 @@ class CardRepository private constructor(context: Context) {
                 )
             )
             mainHandler.post(callback)
+        }
+    }
+
+    fun selectReviewedEdition(collectionItemId: String, option: CardEditionOption, callback: (Throwable?) -> Unit) {
+        selectionExecutor.execute {
+            val error=runCatching { dao.saveOwnedPrinting(OwnedPrintingEntity(collectionItemId,
+                option.cardName,option.printingUuid,option.finish,System.currentTimeMillis())) }.exceptionOrNull()
+            mainHandler.post { callback(error) }
         }
     }
 

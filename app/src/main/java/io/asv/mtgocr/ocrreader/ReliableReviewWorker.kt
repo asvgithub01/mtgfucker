@@ -84,7 +84,6 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
             if(visual.optString("status")!="candidate" || !ReliableReviewPolicy.artReliable(best,margin)) return@withContext result("skipped","weak")
             val title=ScanReviewStore.json(File(dir,"$key.$attempt.title.json")) ?: return@withContext result("skipped","identity")
             val ocr=title.optString("observed")
-            if(ocr.isBlank() || title.optString("state")=="inconclusive") return@withContext result("skipped","identity")
             val collection=requireNotNull(DataUtils.readSerializable<Biblio>(applicationContext,library))
             val expected=collection.cards.firstOrNull { it.collectionItemId==plan.optString("itemId") }
                 ?: return@withContext result("skipped","changed")
@@ -97,7 +96,6 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
                 }
             } }
             val option=options.firstOrNull { it.finish==expected.finish } ?: return@withContext result("skipped","catalog")
-            if(!ReliableReviewPolicy.sameIdentity(ocr,option.cardName)) return@withContext result("skipped","identity")
             val variants=withTimeout(90000) { suspendCancellableCoroutine<List<CardImageVariant>> { c ->
                 repo.loadImageLanguages(option.setCode,option.collectorNumber) { value,error ->
                     if(c.isActive) c.resume(if(error==null) value else emptyList())
@@ -116,8 +114,25 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
                     }
                 }
             }
-            val strong=LanguageReviewPolicy.propose(guesses)?.takeIf { code -> guesses.any { it.language==code && it.confidence>=.95 && it.textLength>=30 } }
-            val language=ReliableReviewPolicy.language(variants.map { it.languageCode },strong) ?: return@withContext result("skipped","language")
+            val titles=buildList<String> {
+                val readings=ocrResult?.optJSONArray("readings") ?: return@buildList
+                for(i in 0 until readings.length()) {
+                    val lines=readings.optJSONObject(i)?.optJSONArray("titleLines") ?: continue
+                    for(j in 0 until lines.length()) add(lines.optString(j))
+                }
+            }
+            val matched=ReliableReviewPolicy.titleLanguages(titles,variants.filter { it.languageCode=="en" || !ReliableReviewPolicy.sameIdentity(it.printedName,option.cardName) }.map {
+                ReliableReviewPolicy.LocalTitle(it.languageCode,it.printedName)
+            })
+            val canonicalMatch=title.optString("state")!="inconclusive" && ReliableReviewPolicy.sameIdentity(ocr,option.cardName)
+            if(!canonicalMatch && matched.isEmpty()) return@withContext result("skipped","identity")
+            val proposed=LanguageReviewPolicy.propose(guesses)
+            if(proposed!=null && variants.none { it.languageCode==proposed }) return@withContext result("skipped","edition_language")
+            if(proposed!=null && matched.isNotEmpty() && proposed !in matched) return@withContext result("skipped","language")
+            val edscan=ScanReviewStore.json(File(dir,"$key.json"))?.optString("source")!="ocr"
+            val strong=proposed?.takeIf { code -> (edscan && code=="es") || guesses.any { it.language==code && it.confidence>=.95 && it.textLength>=30 } }
+            val language=ReliableReviewPolicy.resolveLanguage(variants.map { it.languageCode },matched,strong)
+                ?: return@withContext result("skipped","language")
             val variant=variants.first { it.languageCode==language }
             val localized=option.copy(imageUrl=variant.imageUrl,displayName=variant.printedName.ifBlank { option.displayName })
             ensureActive()

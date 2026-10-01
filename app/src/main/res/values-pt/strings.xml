@@ -725,4 +725,8 @@
     <string name="review_history_confirmed">Confirmada sem alterações</string>
     <string name="review_photo_counts">%1$d por rever · %2$d revistas · %3$d fotos</string>
     <string name="review_phase_progress">Fotos por fase · total %5$d\nArte: %1$d · OCR: %2$d · Nomes: %3$d\nRevisão final concluída: %4$d/%5$d</string>
+    <string name="review_expand_item">Expandir carta</string>
+    <string name="review_collapse_item">Recolher carta</string>
+    <string name="review_seller_warning">Antes de vender, verifica a edição. A resolução automática não a garante. Exceção: edição corretamente fixada na captura OCR/EdScan; uma seleção posterior não comprova esse bloqueio original.</string>
+    <string name="review_edition_language_conflict">Conflito idioma/edição: o idioma detetado não existe nesta impressão. Verifica edição e OCR; nada foi guardado automaticamente.</string>
 </resources>

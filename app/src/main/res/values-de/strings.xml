@@ -725,4 +725,8 @@
     <string name="review_history_confirmed">Unverändert bestätigt</string>
     <string name="review_photo_counts">%1$d zu prüfen · %2$d geprüft · %3$d Fotos</string>
     <string name="review_phase_progress">Fotos je Phase · insgesamt %5$d\nBild: %1$d · OCR: %2$d · Namen: %3$d\nEndprüfung abgeschlossen: %4$d/%5$d</string>
+    <string name="review_expand_item">Karte aufklappen</string>
+    <string name="review_collapse_item">Karte zuklappen</string>
+    <string name="review_seller_warning">Vor dem Verkauf die Edition prüfen. Automatische Auflösung garantiert keine Edition. Ausnahme: eine bei der OCR/EdScan-Aufnahme korrekt festgelegte Edition; eine spätere Auswahl belegt diese ursprüngliche Festlegung nicht.</string>
+    <string name="review_edition_language_conflict">Sprach-/Editionskonflikt: Die erkannte Sprache ist für diesen Druck nicht verfügbar. Edition und OCR prüfen; nichts wurde automatisch gespeichert.</string>
 </resources>

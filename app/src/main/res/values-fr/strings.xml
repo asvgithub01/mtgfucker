@@ -725,4 +725,8 @@
     <string name="review_history_confirmed">Confirmée sans changement</string>
     <string name="review_photo_counts">%1$d à vérifier · %2$d vérifiées · %3$d photos</string>
     <string name="review_phase_progress">Photos par étape · total %5$d\nImage : %1$d · OCR : %2$d · Noms : %3$d\nRévision finale terminée : %4$d/%5$d</string>
+    <string name="review_expand_item">Déplier la carte</string>
+    <string name="review_collapse_item">Replier la carte</string>
+    <string name="review_seller_warning">Avant de vendre, vérifiez l’édition. La résolution automatique ne la garantit pas. Exception : une édition correctement verrouillée lors de la capture OCR/EdScan ; une sélection ultérieure ne prouve pas ce verrouillage initial.</string>
+    <string name="review_edition_language_conflict">Conflit langue/édition : la langue détectée est indisponible pour cette impression. Vérifiez édition et OCR ; aucun enregistrement automatique.</string>
 </resources>

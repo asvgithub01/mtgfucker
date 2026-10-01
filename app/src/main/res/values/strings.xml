@@ -897,4 +897,8 @@
     <string name="review_history_confirmed">Confirmada sin cambios</string>
     <string name="review_photo_counts">%1$d por revisar · %2$d revisadas · %3$d fotos</string>
     <string name="review_phase_progress">Fotos por fase · total %5$d\nArte: %1$d · OCR: %2$d · Nombres: %3$d\nRevisión final terminada: %4$d/%5$d</string>
+    <string name="review_expand_item">Desplegar carta</string>
+    <string name="review_collapse_item">Plegar carta</string>
+    <string name="review_seller_warning">Si vas a vender estas cartas, revisa la edición antes de publicarlas. La autorresolución no garantiza la edición. La excepción es una edición que tú fijaste correctamente al capturar en OCR/EdScan; la edición seleccionada después no acredita ese bloqueo original.</string>
+    <string name="review_edition_language_conflict">Conflicto idioma/edición: el idioma detectado no está disponible en esta impresión. Revisa la edición y la lectura OCR; no se ha guardado automáticamente.</string>
 </resources>

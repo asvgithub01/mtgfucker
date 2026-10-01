@@ -25,4 +25,22 @@ class ReliableReviewPolicyTest {
         assertEquals("ja",ReliableReviewPolicy.language(listOf("ja","ja"),null))
         assertNull(ReliableReviewPolicy.language(emptyList(),"en"))
     }
+
+    @Test fun localizedTitleDeterminesOnlyUnambiguousLanguage() {
+        val titles=listOf(ReliableReviewPolicy.LocalTitle("en","Humble Defector"),ReliableReviewPolicy.LocalTitle("es","Desertor humilde"))
+        val matched=ReliableReviewPolicy.titleLanguages(listOf("DESERTOR HUMILDE"),titles)
+        assertEquals(setOf("es"),matched)
+        assertEquals("es",ReliableReviewPolicy.resolveLanguage(listOf("en","es"),matched,null))
+        assertNull(ReliableReviewPolicy.resolveLanguage(listOf("en","es"),matched,"en"))
+    }
+    @Test fun sharedLocalizedNameCannotDecideBetweenSpanishAndPortuguese() {
+        val matched=ReliableReviewPolicy.titleLanguages(listOf("Alias"),listOf(
+            ReliableReviewPolicy.LocalTitle("es","Alias"),ReliableReviewPolicy.LocalTitle("pt","Alias")))
+        assertNull(ReliableReviewPolicy.resolveLanguage(listOf("es","pt"),matched,null))
+        assertEquals("pt",ReliableReviewPolicy.resolveLanguage(listOf("es","pt"),matched,"pt"))
+    }
+    @Test fun unsupportedDetectedLanguageOverridesSingleAvailableLanguage() {
+        assertNull(ReliableReviewPolicy.language(listOf("en"),"es"))
+        assertNull(ReliableReviewPolicy.resolveLanguage(listOf("en"),setOf("en"),"es"))
+    }
 }

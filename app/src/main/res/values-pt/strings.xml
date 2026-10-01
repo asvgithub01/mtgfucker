@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: acabamento indisponível para esta impressão. Altere o acabamento.</string>
     <string name="edscan_error_back">Caso 3: verso (_back) ainda não suportado. Digitalize a frente.</string>
   <string name="review_provisional_printing">Impressão provisória: a carta corresponde, mas há várias impressões possíveis. Selecione a edição correta ou confirme.</string>
-    <string name="review_flow_help">Revê OCR e arte. Toca na foto para ampliar e na carta à direita para alternar propostas. Aplicar alterações guarda a revisão manual. Resolver casos fiáveis reanalisa e guarda automaticamente as concordâncias seguras.</string>
+    <string name="review_flow_help">Reveja OCR e arte. Toque na foto para ampliar e na carta direita para alternar propostas. Aplicar guarda a revisão manual. Resolver casos fiáveis reutiliza as análises; Reanalisar força uma nova leitura.</string>
     <string name="review_analyse_all">Reanalisar todas as fotos e verificar arte</string>
     <string name="review_save_changes">Guardar alterações</string>
     <string name="review_discard_changes">Descartar alterações</string>
@@ -708,7 +708,7 @@
     <string name="review_resolve_reliable">Resolver casos fiáveis</string>
     <string name="review_reliable_stop">Parar lote</string>
     <string name="review_reliable_cancel_help">As tarefas pendentes serão paradas. As cartas guardadas mantêm-se; uma gravação em curso termina primeiro.</string>
-    <string name="review_reliable_confirm">Reanalisar %1$d fotos e GUARDAR os casos fiáveis. Apenas concordância OCR/arte com edição clara e idioma compatível. Acabamento mantido. Casos ambíguos, cópias agrupadas e rascunhos ficam pendentes. É criada uma cópia e registo local.</string>
+    <string name="review_reliable_confirm">Resolver até %1$d fotos pendentes. OCR e arte são reutilizados; casos sem alterações são ignorados. Só são guardados acordos fiáveis com edição e idioma compatíveis. Casos ambíguos ficam para revisão manual. Mantém-se cópia e registo.</string>
     <string name="review_reliable_empty">Não há fotos pendentes sem alterações manuais.</string>
     <string name="review_reliable_counts">Guardadas: %1$d · Revisão manual: %2$d · Erros/canceladas: %3$d · Fotos: %4$d (toca para detalhes)</string>
     <string name="review_reliable_backup">Cópia e registo guardados em review_batches. Não são apagadas cartas nem fotos.</string>
@@ -729,4 +729,12 @@
     <string name="review_collapse_item">Recolher carta</string>
     <string name="review_seller_warning">Antes de vender, verifica a edição. A resolução automática não a garante. Exceção: edição corretamente fixada na captura OCR/EdScan; uma seleção posterior não comprova esse bloqueio original.</string>
     <string name="review_edition_language_conflict">Conflito idioma/edição: o idioma detetado não existe nesta impressão. Verifica edição e OCR; nada foi guardado automaticamente.</string>
+    <string name="review_processing_finished">Análise terminada. Consulte o resumo das resoluções.</string>
+    <string name="review_cache_summary">%1$d sem alterações: não repetidas.\n%2$d reutilizam OCR e arte.\n%3$d precisam de análise da captura.</string>
+    <string name="review_cache_no_work">Não há novos dados. Os casos pendentes precisam de revisão manual. Reanalisar carta força uma nova leitura.</string>
+    <string name="review_manual_excluded">%1$d fotos com alterações manuais por guardar ficam excluídas.</string>
+    <string name="review_result_summary">%1$d resolvidas e guardadas · %2$d para revisão manual\n%3$d erros · %4$d sem resultado\nToque para ver motivos e cartas alteradas.</string>
+    <string name="review_resolution_progress">Total: %1$d\nProcessadas: %2$d\nResolvidas e guardadas automaticamente: %3$d\nPendentes de revisão manual: %4$d\nErros incluídos nas pendentes: %5$d</string>
+    <string name="review_resolution_preparing">A preparar; a reutilizar as análises existentes…</string>
+    <string name="review_no_pending">Não há cartas pendentes de revisão.</string>
 </resources>

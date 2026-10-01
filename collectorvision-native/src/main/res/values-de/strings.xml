@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Mit vorläufiger Druckversion gespeichert. In der Nachbearbeitung prüfen.</string>
   <string name="party_effects_hint">Die Effekte werden automatisch kombiniert. Nur die höchste erreichte Stufe spielt ihren Ton ab (4–5 s).</string>
   <string name="party_levels">Ab %1$.2f €: Konfetti\nAb %2$.2f €: + Ballons\nAb %3$.2f €: + Trompeten\nAb %4$.2f €: + Diskokugel\nAb %5$.2f €: + Tänzer und Spiegelung</string>
+    <string name="cv_native_idle_paused">Kamera pausiert. Zum Scannen auf Fortsetzen tippen.</string>
+    <string name="cv_native_resume">Kamera fortsetzen</string>
+    <string name="cv_native_scope_wait">Edition auswählen oder bestätigen; Katalog wird vorbereitet…</string>
 </resources>

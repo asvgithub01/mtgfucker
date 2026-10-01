@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Caso 2: finitura non disponibile per questa stampa. Cambia finitura.</string>
     <string name="edscan_error_back">Caso 3: retro (_back) non ancora supportato. Scansiona il fronte.</string>
   <string name="review_provisional_printing">Stampa provvisoria: la carta corrisponde, ma sono possibili più stampe. Seleziona quella corretta o conferma.</string>
-    <string name="review_flow_help">Controlla OCR e immagine. Tocca la foto per ingrandire e la carta a destra per alternare proposte. Applica modifiche salva la revisione manuale. Risolvi casi affidabili rianalizza e salva automaticamente le corrispondenze sicure.</string>
+    <string name="review_flow_help">Verifica OCR e illustrazione. Tocca la foto per ingrandire e la carta destra per alternare proposte. Applica salva la revisione manuale. Risolvi casi affidabili riutilizza le analisi; Rianalizza forza una nuova lettura.</string>
     <string name="review_analyse_all">Rianalizza tutte le foto e verifica illustrazioni</string>
     <string name="review_save_changes">Salva modifiche</string>
     <string name="review_discard_changes">Scarta modifiche</string>
@@ -708,7 +708,7 @@
     <string name="review_resolve_reliable">Risolvi casi affidabili</string>
     <string name="review_reliable_stop">Ferma lotto</string>
     <string name="review_reliable_cancel_help">Le attività pendenti saranno fermate. Le carte salvate restano; un salvataggio in corso termina prima.</string>
-    <string name="review_reliable_confirm">Rianalizza %1$d foto e SALVA i casi affidabili. Solo accordi OCR/immagine con stampa chiara e lingua compatibile. Finitura mantenuta. Casi ambigui, copie raggruppate e bozze restano pendenti. Verranno creati backup e registro locale.</string>
+    <string name="review_reliable_confirm">Risolvi fino a %1$d foto in sospeso. OCR e illustrazione vengono riutilizzati; i casi invariati sono saltati. Si salvano solo accordi affidabili con edizione e lingua compatibili. I casi ambigui restano manuali. Si conservano backup e registro.</string>
     <string name="review_reliable_empty">Nessuna foto pendente senza modifiche manuali.</string>
     <string name="review_reliable_counts">Salvate: %1$d · Manuali: %2$d · Errori/annullate: %3$d · Foto: %4$d (tocca per dettagli)</string>
     <string name="review_reliable_backup">Backup e registro locali in review_batches. Nessuna carta o foto eliminata.</string>
@@ -729,4 +729,12 @@
     <string name="review_collapse_item">Comprimi carta</string>
     <string name="review_seller_warning">Prima di vendere, verifica l’edizione. La risoluzione automatica non la garantisce. Eccezione: edizione correttamente bloccata durante la cattura OCR/EdScan; una selezione successiva non dimostra quel blocco originale.</string>
     <string name="review_edition_language_conflict">Conflitto lingua/edizione: lingua rilevata non disponibile per questa stampa. Verifica edizione e OCR; nessun salvataggio automatico.</string>
+    <string name="review_processing_finished">Analisi terminata. Consulta il riepilogo delle risoluzioni.</string>
+    <string name="review_cache_summary">%1$d invariate: non ripetute.\n%2$d riutilizzano OCR e illustrazione.\n%3$d richiedono analisi della foto.</string>
+    <string name="review_cache_no_work">Nessun nuovo dato. I casi in sospeso richiedono revisione manuale. Rianalizza carta forza una nuova lettura.</string>
+    <string name="review_manual_excluded">%1$d foto con modifiche manuali non salvate sono escluse.</string>
+    <string name="review_result_summary">%1$d risolte e salvate · %2$d da rivedere manualmente\n%3$d errori · %4$d senza risultato\nTocca per motivi e carte modificate.</string>
+    <string name="review_resolution_progress">Totale: %1$d\nElaborate: %2$d\nRisolte e salvate automaticamente: %3$d\nDa rivedere manualmente: %4$d\nDi cui errori: %5$d</string>
+    <string name="review_resolution_preparing">Preparazione; riutilizzo delle analisi esistenti…</string>
+    <string name="review_no_pending">Nessuna carta in attesa di revisione.</string>
 </resources>

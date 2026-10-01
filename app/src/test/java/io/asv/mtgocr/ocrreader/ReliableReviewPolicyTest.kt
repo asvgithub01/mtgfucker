@@ -2,6 +2,22 @@ package io.asv.mtgocr.ocrreader
 import org.junit.Assert.*
 import org.junit.Test
 class ReliableReviewPolicyTest {
+    @Test fun freejamEdscanUsesStoredEditionAndOcrEnglishWithoutNewArtGate() {
+        assertFalse(ReliableReviewPolicy.requiresArt("edscan"))
+        assertFalse(ReliableReviewPolicy.requiresArt("")) // Legacy EdScan metadata.
+        assertTrue(ReliableReviewPolicy.requiresArt("ocr"))
+        assertEquals("en",ReliableReviewPolicy.edscanLanguage(true,setOf("en"),listOf("en","es","fr"),"en"))
+    }
+    @Test fun falsePositiveRemainsManualEvenWithAvailableLanguage() {
+        assertNull(ReliableReviewPolicy.edscanLanguage(false,emptySet(),listOf("en","es"),"es"))
+    }
+    @Test fun edscanLanguageNotInSelectedEditionRemainsConflict() {
+        assertNull(ReliableReviewPolicy.edscanLanguage(true,setOf("es"),listOf("en"),"es"))
+    }
+    @Test fun localizedNamesDisambiguateLanguageWithoutInventingIt() {
+        assertEquals("es",ReliableReviewPolicy.edscanLanguage(false,setOf("es"),listOf("en","es"),"es"))
+        assertNull(ReliableReviewPolicy.edscanLanguage(true,setOf("es","pt"),listOf("es","pt"),null))
+    }
     @Test fun oldPermissiveSkycatAcceptanceIsNeverAutoApplied() {
         assertFalse(ReliableReviewPolicy.artReliable(.5507,.0104))
         assertFalse(ReliableReviewPolicy.artReliable(.5872,.0500))

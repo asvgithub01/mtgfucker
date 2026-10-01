@@ -39,7 +39,7 @@ data class CloudSyncResult(
  * Premium-only last-snapshot synchronization.
  *
  * Disabling Premium never deletes Firestore data. Local saves made while paused remain local and
- * are uploaded when Premium returns. On a fresh install an empty/missing local Biblio is restored
+ * are uploaded when Premium returns. On a fresh install an untracked empty/missing local Biblio is restored
  * from the authenticated user's last completed snapshot.
  */
 object CloudLibrarySync {
@@ -161,10 +161,16 @@ object CloudLibrarySync {
             val localHash = local?.let { CloudSnapshotCodec.sha256(CloudSnapshotCodec.encode(it)) }.orEmpty()
 
             when {
-                !localFile.isFile || local == null || (local.cards.isNullOrEmpty() && !remote.cards.isNullOrEmpty()) -> {
+                !localFile.isFile || local == null || CloudRestorePolicy.restoreEmpty(
+                    local.cards.isNullOrEmpty(), !remote.cards.isNullOrEmpty(), savedHash.isNotBlank()) -> {
                     saveRestored(context, library, remote)
                     rememberSnapshot(context, user.uid, library.id, remoteHash, remoteSnapshot)
                     restored++
+                }
+                // A tracked library emptied locally is a deletion, not a fresh installation.
+                local.cards.isNullOrEmpty() && savedHash.isNotBlank() && localHash != savedHash -> {
+                    upload(context, user, library, local)
+                    uploaded++
                 }
                 savedHash.isBlank() && localHash != remoteHash -> {
                     val merged = CloudSnapshotCodec.merge(remote, local, library.fileName, library.name)

@@ -39,6 +39,48 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     protected open fun printingIdentities(): Map<String,String> = emptyMap()
     protected open fun requestPrintingIdentities(ids: List<String>) = Unit
     protected open fun acceptedProvisional(ids: List<String>) = Unit
+    @Volatile private var visualScope: Set<String>? = null
+    @Volatile private var scopeVersion=0
+    protected fun updateVisualScope(ids: Set<String>?) {
+        visualScope=ids?.toSet(); scopeVersion++; acceptance.resetStability()
+        if (::status.isInitialized) {
+            if (idlePaused) status.setText(R.string.cv_native_idle_paused)
+            else if (ids != null && ids.isEmpty()) status.setText(R.string.cv_native_scope_wait)
+        }
+    }
+    private var idlePaused=false
+    private var lastUse=0L
+    private var lastUsefulCard: String?=null
+    private val idleHandler=android.os.Handler(android.os.Looper.getMainLooper())
+    private val idleTick=object:Runnable {
+        override fun run() {
+            if(!active || idlePaused) return
+            if(ScannerIdlePolicy.shouldPause(SystemClock.elapsedRealtime(),lastUse)) pauseScanner()
+            else idleHandler.postDelayed(this,1000)
+        }
+    }
+    protected val scanSavePending: Boolean get()=acceptance.isPending()
+    protected fun manualScanFeedback() { playScanTone(ToneGenerator.TONE_PROP_BEEP,80) }
+    protected fun pauseScanner() {
+        idlePaused=true; generation++; acceptance.resetStability()
+        analysis?.clearAnalyzer()
+        val bound=listOfNotNull(analysis,preview)
+        if(bound.isNotEmpty()) provider?.unbind(*bound.toTypedArray())
+        analysis=null; preview=null
+        EdScanInferencePriority.release(this); scanningStateChanged(false)
+        status.setText(R.string.cv_native_idle_paused)
+        start.setText(R.string.cv_native_resume); start.visibility=View.VISIBLE; start.isEnabled=true
+    }
+    protected open val scanResumeAllowed: Boolean get() = true
+    protected fun resumeScanner() {
+        if (!scanResumeAllowed) return
+        idlePaused=false; lastUse=SystemClock.elapsedRealtime()
+        EdScanInferencePriority.acquire(this)
+        idleHandler.removeCallbacks(idleTick); idleHandler.postDelayed(idleTick,1000)
+        if(ready) { start.visibility=View.GONE; requestCamera() } else prepare()
+    }
+    override fun onUserInteraction() { super.onUserInteraction(); lastUse=SystemClock.elapsedRealtime() }
+
     private val debugFrames = java.util.ArrayDeque<JSONObject>()
     private var priceScanKey: String? = null
     protected open fun acceptedPhoto(key: String?) = Unit
@@ -141,7 +183,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             root.addView(modeRow)
         }
         val controls = LinearLayout(this)
-        start = Button(this).apply { setText(R.string.cv_native_start); setOnClickListener { prepare() } }
+        start = Button(this).apply { setText(R.string.cv_native_start); setOnClickListener { resumeScanner() } }
         // Retain the button only as a recovery action after preparation fails.
         start.visibility = View.GONE
         controls.addView(start, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -227,13 +269,13 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     }
 
     private fun requestCamera() {
-        if (!active) return
+        if (!active || idlePaused) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) bindCamera()
         else permission.launch(Manifest.permission.CAMERA)
     }
 
     private fun bindCamera() {
-        if (!active || !ready || analysis != null) return
+        if (!active || idlePaused || !ready || analysis != null) return
         val token = generation
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
@@ -265,11 +307,14 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             val captureGap = workerGeneration != token || now - lastFrameFinishedAt > 1500
             if (captureGap) { candidate = null; repetitions = 0 }
             workerGeneration = token
+            val currentScope=scopeVersion
+            val allowed=visualScope
+            if(allowed!=null && allowed.isEmpty()) return
             val raw = image.toBitmap()
             val rotation = image.imageInfo.rotationDegrees
             bitmap = if (rotation == 0) raw else Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height,
                 Matrix().apply { postRotate(rotation.toFloat()) }, true).also { if (it !== raw) raw.recycle() }
-            val result = engine?.scan(bitmap) ?: return
+            val result = engine?.scan(bitmap,allowed) ?: return
             val top = result.hits.firstOrNull()
             val id = if (result.present && top != null && top.score >= 0.50f) top.cardId else null
             if (candidate == id && id != null) repetitions++ else { candidate = id; repetitions = if (id == null) 0 else 1 }
@@ -305,7 +350,8 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             val label = if (id == null) getString(R.string.cv_native_no_card) else
                 getString(if (stable) R.string.cv_native_candidate else R.string.cv_native_checking, id, top!!.score)
             runOnUiThread {
-                if (!active || token != generation || isDestroyed) { shown?.recycle(); photo?.recycle(); return@runOnUiThread }
+                if (!active || token != generation || currentScope!=scopeVersion || isDestroyed) { shown?.recycle(); photo?.recycle(); return@runOnUiThread }
+                if(stable && id!=null && id!=lastUsefulCard) { lastUsefulCard=id; lastUse=SystemClock.elapsedRealtime() }
                 if (showThumbnail) {
                     frameView.setImageBitmap(shown)
                     shownBitmap?.recycle(); shownBitmap = shown
@@ -498,8 +544,12 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         }
     }
 
-    override fun onStart() { super.onStart(); EdScanInferencePriority.acquire(this); active = true; if (ready) requestCamera() }
+    override fun onStart() {
+        super.onStart(); active=true; lastUse=SystemClock.elapsedRealtime()
+        if(!idlePaused) { EdScanInferencePriority.acquire(this); if(ready) requestCamera(); idleHandler.postDelayed(idleTick,1000) }
+    }
     override fun onStop() {
+        idleHandler.removeCallbacks(idleTick)
         scanningStateChanged(false)
         active = false; generation++
         acceptance.resetStability()

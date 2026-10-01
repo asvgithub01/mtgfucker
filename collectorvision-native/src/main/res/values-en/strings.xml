@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Saved with provisional printing. Review in postprocessing.</string>
   <string name="party_effects_hint">Effects accumulate automatically. Only the highest reached level plays its sound (4–5 s).</string>
   <string name="party_levels">From €%1$.2f: confetti\nFrom €%2$.2f: + balloons\nFrom €%3$.2f: + trumpets\nFrom €%4$.2f: + disco ball\nFrom €%5$.2f: + dancer and reflection</string>
+    <string name="cv_native_idle_paused">Camera paused. Tap Resume to scan.</string>
+    <string name="cv_native_resume">Resume camera</string>
+    <string name="cv_native_scope_wait">Select or confirm the edition; preparing its catalog…</string>
 </resources>

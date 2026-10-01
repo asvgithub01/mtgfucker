@@ -1,7 +1,14 @@
 package io.asv.mtgocr.ocrreader
 
-/** No score-only auto-acceptance: fresh OCR identity and exact art printing must agree. */
+/** EdScan confirms its stored printing with OCR; OCR-origin scans also require verified art. */
 object ReliableReviewPolicy {
+    const val VERSION = 2
+    fun requiresArt(source: String): Boolean = source == "ocr"
+
+    fun edscanLanguage(canonicalMatch: Boolean, matched: Set<String>, available: List<String>, detected: String?): String? {
+        if(!canonicalMatch && matched.isEmpty()) return null
+        return resolveLanguage(available,matched,detected)
+    }
     fun artReliable(score: Double?, margin: Double?): Boolean =
         score!=null && margin!=null && score.isFinite() && margin.isFinite() && score>=.70 && margin>=.08
 

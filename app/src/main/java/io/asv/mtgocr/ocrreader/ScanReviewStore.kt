@@ -40,7 +40,8 @@ object ScanReviewStore {
             val source = input.optString("source").ifBlank { "edscan" }
             val latest = listOf(request).filter { it.matches(Regex("[0-9a-f-]{36}")) }
             // Keep EdScan language evidence, but do not show an obsolete visual result as a second conflict.
-            val attempts = if(both && latest.isNotEmpty()) listOf("language:"+request,request)
+            val attempts = if(requestJson?.optBoolean("languageOnly")==true && latest.isNotEmpty()) listOf("language:"+request)
+                else if(both && latest.isNotEmpty()) listOf("language:"+request,request)
                 else if(source == "ocr" && latest.isNotEmpty()) latest else listOf("") + latest
             attempts.map { attempt ->
                 val languageAttempt = attempt.startsWith("language:")

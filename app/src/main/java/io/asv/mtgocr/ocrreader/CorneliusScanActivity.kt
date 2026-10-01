@@ -14,6 +14,7 @@ import java.util.concurrent.Executors
 
 /** Host-only persistence bridge; the native engine remains independent of the collection. */
 class CorneliusScanActivity : NativeCollectorVisionActivity() {
+    companion object { const val EXTRA_DESTINATION_GROUP = "edscan_destination_group" }
     private lateinit var recent: RecentScansView
     private var debugKey: String? = null
     override fun acceptedDebug(key: String) { debugKey = key; if (::recent.isInitialized) recent.beginPending(key) }
@@ -70,7 +71,8 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         sessionClock = ScanSessionClock(savedInstanceState?.getLong("corneliusScanMillis") ?: 0L)
-        group = savedInstanceState?.getString("corneliusGroup")
+        group = CorneliusGroups.destination(savedInstanceState?.getString("corneliusGroup"),
+            intent.getStringExtra(EXTRA_DESTINATION_GROUP))
         libraryFile = savedInstanceState?.getString("corneliusLibrary") ?: LibraryCatalog.activeFile(this)
         savedInstanceState?.getStringArrayList("corneliusIds")?.let { addedIds.addAll(it) }
         super.onCreate(savedInstanceState)
@@ -90,6 +92,26 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
         row.addView(language, LinearLayout.LayoutParams(0, -2, 1f))
         row.addView(finish, LinearLayout.LayoutParams(0, -2, 1f))
         container.addView(row)
+        val setRow=LinearLayout(this)
+        val lock=android.widget.MultiAutoCompleteTextView(this).apply {
+            hint=getString(R.string.edition_search_hint); setSingleLine(true)
+            imeOptions=android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+        }
+        setRow.addView(lock,LinearLayout.LayoutParams(0,-2,1f)); container.addView(setRow)
+        setInput=ScannerSetInput(this,lock,"edscan_input",Runnable { updateSetLock() },Runnable {
+            lockGeneration++; updateVisualScope(emptySet())
+        })
+        updateSetLock()
+        val nameRow=LinearLayout(this)
+        val name=android.widget.EditText(this).apply { hint=getString(R.string.card_name_hint); setSingleLine(true); imeOptions=android.view.inputmethod.EditorInfo.IME_ACTION_DONE }
+        val mic=android.widget.ImageButton(this).apply { setImageResource(R.drawable.ic_mic); imageTintList=android.content.res.ColorStateList.valueOf(name.currentTextColor); contentDescription=getString(R.string.speak_card_name) }
+        val add=android.widget.ImageButton(this).apply { setImageResource(R.drawable.ic_add); contentDescription=getString(R.string.add_typed_card) }
+        val size=(48*resources.displayMetrics.density).toInt()
+        nameRow.addView(name,LinearLayout.LayoutParams(0,size,1f)); nameRow.addView(mic,LinearLayout.LayoutParams(size,size)); nameRow.addView(add,LinearLayout.LayoutParams(size,size))
+        container.addView(nameRow)
+        val suggestions=android.widget.ListView(this).apply { visibility=android.view.View.GONE }
+        container.addView(suggestions,LinearLayout.LayoutParams(-1,(120*resources.displayMetrics.density).toInt()))
+        nameInput=ScannerNameInput(this,name,suggestions,mic,add,java.util.function.Consumer { addManualName(it) })
     }
 
     override fun addHostRecentControls(container: LinearLayout) {
@@ -103,6 +125,55 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
         })
     }
 
+    private lateinit var setInput: ScannerSetInput
+    private lateinit var nameInput: ScannerNameInput
+    private var lockGeneration=0
+    private var manualBusy=false
+    override val scanResumeAllowed: Boolean get() = !manualBusy
+    private var appliedLocks=emptySet<String>()
+    private fun updateSetLock() {
+        val codes=setInput.codes()
+        val token=++lockGeneration
+        updateVisualScope(if(codes.isEmpty()) null else emptySet())
+        appliedLocks=codes
+        if(codes.isEmpty()) return
+        CardRepository.get(this).loadVisualSetIds(codes) { ids,error ->
+            if(isDestroyed || token!=lockGeneration) return@loadVisualSetIds
+            if(error!=null || ids.isEmpty()) {
+                Toast.makeText(this,R.string.scan_card_not_found_in_selected_set,Toast.LENGTH_LONG).show()
+                return@loadVisualSetIds
+            }
+            updateVisualScope(ids)
+        }
+    }
+    private fun addManualName(name: String) {
+        if(manualBusy || scanSavePending) { Toast.makeText(this,R.string.experimental_scan_saving_card,Toast.LENGTH_SHORT).show(); return }
+        if(name.isBlank()) { Toast.makeText(this,R.string.empty_scan_name,Toast.LENGTH_SHORT).show(); return }
+        // Stop inference while selecting/saving so the live candidate cannot overwrite manual state.
+        pauseScanner(); manualBusy=true
+        updateSetLock()
+        val requestedSets=setInput.codes()
+        val requestedFinish=finishes[finish.selectedItemPosition]
+        val repo=CardRepository.get(this)
+        repo.loadCard(name,false,false) { options,error ->
+            if(isDestroyed || isFinishing) return@loadCard
+            val allowed=io.asv.mtgocr.ocrreader.data.ScanSetLockPolicy.expand(requestedSets)
+            val option=options.filter { it.finish==requestedFinish && (allowed.isEmpty() || it.setCode.uppercase() in allowed) }.maxByOrNull { it.releaseDate }
+            if(error!=null || option==null || (requestedSets!=setInput.codes() || requestedFinish!=finishes[finish.selectedItemPosition])) {
+                manualBusy=false; Toast.makeText(this,R.string.scan_card_not_found_in_selected_set,Toast.LENGTH_LONG).show(); return@loadCard
+            }
+            repo.loadVisualId(option.printingUuid) { id ->
+                if(isDestroyed || isFinishing) return@loadVisualId
+                if(id==null || (requestedSets!=setInput.codes() || requestedFinish!=finishes[finish.selectedItemPosition])) { manualBusy=false; Toast.makeText(this,R.string.scan_card_not_found,Toast.LENGTH_LONG).show(); return@loadVisualId }
+                debugKey=null; photoKey=null; provisionalIds=emptyList()
+                persistCandidate(id,1f) { ok ->
+                    manualBusy=false
+                    if(ok && !isDestroyed) { nameInput.clear(); manualScanFeedback() }
+                }
+            }
+        }
+    }
+
     private var saveError: String? = null
     override val persistenceFailureMessage: String? get() = saveError
     override fun persistCandidate(cardId: String, score: Float, callback: (Boolean) -> Unit) {
@@ -112,10 +183,12 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
             if (!saved && !isDestroyed) acceptedDebugKey?.let { recent.endPending(it) }
             callback(saved)
         }
+        val acceptedLocks=appliedLocks.toSet()
         val acceptedPhotoKey = photoKey
         val acceptedProvisionalIds = provisionalIds.toList()
         acceptedDebugKey?.let { io.asv.collectorvision.EdScanDebug.record(applicationContext, it, "request", org.json.JSONObject()
             .put("language", languages[language.selectedItemPosition]).put("finish", finishes[finish.selectedItemPosition])
+            .put("lockedSetCodes",org.json.JSONArray(acceptedLocks.toList()))
             .put("library", libraryFile).put("photoKey", acceptedPhotoKey ?: org.json.JSONObject.NULL)) }
         val selectedLanguage = languages[language.selectedItemPosition]
         val selectedFinish = finishes[finish.selectedItemPosition]
@@ -125,7 +198,8 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
             val lookupMs = android.os.SystemClock.elapsedRealtime() - lookupStartedAt
             if (isFinishing || isDestroyed) { finished(false); return@loadCollectorVisionPrinting }
             val actualFinish = EdScanSavePolicy.finish(selectedFinish, options.map { it.finish }.toSet())
-            val option = options.firstOrNull { it.finish == actualFinish }
+            val allowedSets=io.asv.mtgocr.ocrreader.data.ScanSetLockPolicy.expand(acceptedLocks)
+            val option = options.firstOrNull { it.finish == actualFinish && (allowedSets.isEmpty() || it.setCode.uppercase() in allowedSets) }
             if (option == null) {
                 acceptedDebugKey?.let { io.asv.collectorvision.EdScanDebug.record(applicationContext, it, "error", org.json.JSONObject()
                     .put("reason", "exact_printing_or_finish_unavailable").put("detail", error?.message ?: "")
@@ -158,6 +232,12 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
                 val queueMs = saveStartedAt - queuedAt
                 try {
                     check(LibraryCatalog.activeFile(this) == libraryFile)
+                    acceptedPhotoKey?.let { key ->
+                        val metadata=java.io.File(io.asv.collectorvision.EdScanJobs.directory(this),"$key.json")
+                        ScanReviewStore.json(metadata)?.let { json ->
+                            ScanReviewStore.write(metadata,json.put("lockedSetCodes",org.json.JSONArray(acceptedLocks.toList())))
+                        }
+                    }
                     val sessionGroup = group ?: reserveGroup().also { group = it }
                     val card = LegacyCollectionStore.addCopy(this, option, selectedLanguage,
                         groupName = sessionGroup, expectedLibraryFile = libraryFile, mergeExisting = false)
@@ -280,6 +360,8 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
 }
 
 internal object CorneliusGroups {
+    fun destination(restored: String?, selected: String?): String? =
+        restored?.takeIf { it.isNotBlank() } ?: selected?.takeIf { it.isNotBlank() }
     fun next(groups: List<String>, previous: Int): String {
         val highest = groups.mapNotNull { Regex("(?i)^Cornelius (\\d+)$").matchEntire(it)?.groupValues?.get(1)?.toIntOrNull() }.maxOrNull() ?: 0
         val next = maxOf(previous, highest, 0).toLong() + 1

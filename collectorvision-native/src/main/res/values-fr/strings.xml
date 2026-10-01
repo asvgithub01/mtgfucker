@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Enregistrée avec une impression provisoire. À vérifier en post-traitement.</string>
   <string name="party_effects_hint">Les effets se cumulent automatiquement. Seul le niveau le plus élevé atteint joue son son (4–5 s).</string>
   <string name="party_levels">Dès %1$.2f € : confettis\nDès %2$.2f € : + ballons\nDès %3$.2f € : + trompettes\nDès %4$.2f € : + boule disco\nDès %5$.2f € : + danseur et reflet</string>
+    <string name="cv_native_idle_paused">Caméra en pause. Appuyez sur Reprendre pour scanner.</string>
+    <string name="cv_native_resume">Reprendre la caméra</string>
+    <string name="cv_native_scope_wait">Sélectionnez ou confirmez l’édition ; préparation du catalogue…</string>
 </resources>

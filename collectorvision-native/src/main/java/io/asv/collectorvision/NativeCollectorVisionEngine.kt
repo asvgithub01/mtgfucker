@@ -64,9 +64,15 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             return NativeCollectorVisionEngine(directory,true)
         }
     }
+    private var scope: Set<String>? = null
+    private var searchRows: IntArray? = null
     @Synchronized
-    fun scan(bitmap: Bitmap): ScanResult {
+    fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null): ScanResult {
         check(!closed)
+        if(scope !== allowedIds) {
+            scope=allowedIds
+            searchRows=VisualSearchScope.rows(ids,allowedIds)
+        }
         val start=SystemClock.elapsedRealtime()
         val outputs=run(detector,bitmap,384,listOf("corners","sharpness"))
         val corners=CollectorVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
@@ -126,7 +132,9 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     private fun search(query: FloatArray): List<Hit> {
         require(query.size==128)
         val bestScores=FloatArray(8) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(8) { -1 }
-        for (row in ids.indices) {
+        val selected=searchRows
+        for (index in 0 until (selected?.size ?: ids.size)) {
+            val row=selected?.get(index) ?: index
             var sum=0f; val offset=row*128
             for (col in 0 until 128) sum+=halfLookup[catalog[offset+col].toInt() and 65535]*query[col]
             for (k in bestScores.indices) if (sum>bestScores[k]) {

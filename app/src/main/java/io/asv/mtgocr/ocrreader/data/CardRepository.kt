@@ -866,6 +866,22 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    /** Exact Scryfall IDs for the on-device visual index; never guess a printing by name. */
+    fun loadVisualSetIds(setCodes: Set<String>, callback: (Set<String>, Throwable?) -> Unit) {
+        executor.execute {
+            try {
+                val ids=ScanSetLockPolicy.expand(setCodes).flatMap { catalog.setCards(it) }.mapNotNull { it.scryfallId }.toSet()
+                mainHandler.post { callback(ids,null) }
+            } catch(error:Exception) { mainHandler.post { callback(emptySet(),error) } }
+        }
+    }
+    fun loadVisualId(printingUuid: String, callback: (String?) -> Unit) {
+        executor.execute {
+            val id=runCatching { dao.printingsByUuids(listOf(printingUuid)).firstOrNull()?.scryfallId }.getOrNull()
+            mainHandler.post { callback(id) }
+        }
+    }
+
     fun loadSet(setCode: String, callback: (List<SetCardOption>, Throwable?) -> Unit) {
         executor.execute {
             try {

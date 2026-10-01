@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Guardada con edición provisional. Revisar en postprocesado.</string>
   <string name="party_effects_hint">Los efectos se acumulan automáticamente. Suena solo el nivel más alto alcanzado (4–5 s).</string>
   <string name="party_levels">Desde %1$.2f €: confeti\nDesde %2$.2f €: + globos\nDesde %3$.2f €: + trompetas\nDesde %4$.2f €: + bola disco\nDesde %5$.2f €: + bailarín y reflejo</string>
+    <string name="cv_native_idle_paused">Cámara pausada. Pulsa Reanudar para escanear.</string>
+    <string name="cv_native_resume">Reanudar cámara</string>
+    <string name="cv_native_scope_wait">Selecciona o confirma la edición; preparando su catálogo…</string>
 </resources>

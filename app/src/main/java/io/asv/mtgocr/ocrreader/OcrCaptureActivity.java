@@ -198,6 +198,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private TextView libraryCountText;
   private TextView cloudSummaryText;
   private android.widget.MultiAutoCompleteTextView lockedSetInput;
+  private ScannerNameInput sharedNameInput;
+  private ScannerSetInput sharedSetInput;
   private CardScanGuideView cardScanGuide;
   private TextView scanDebugStatus;
   private TextView scanOcrCharacters;
@@ -430,30 +432,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         }
       });
     });
-    lockedSetInput.setThreshold(1);
-    lockedSetInput.setTokenizer(new android.widget.MultiAutoCompleteTextView.CommaTokenizer());
-    cardRepository.loadSetCatalog(false, (sets, error) -> {
-      if (isFinishing() || isDestroyed()) return kotlin.Unit.INSTANCE;
-      List<EditionSearchAdapter.Entry> entries = new ArrayList<>();
-      for (io.asv.mtgocr.ocrreader.data.MagicSetOption set : sets) {
-        entries.add(new EditionSearchAdapter.Entry(set.getCode(), set.getName(), ""));
-      }
-      lockedSetInput.setAdapter(new EditionSearchAdapter(this, entries));
-      return kotlin.Unit.INSTANCE;
-    });
-    lockedSetInput.setOnItemClickListener((parent, view, position, id) -> {
-      getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
-          .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
+    sharedSetInput = new ScannerSetInput(this, lockedSetInput, SCANNER_PREFERENCES, () -> {
       cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
       updateOcrEngineForLockedSets();
-    });
-    lockedSetInput.setOnFocusChangeListener((view, focused) -> {
-      if (!focused) {
-        getSharedPreferences(SCANNER_PREFERENCES, MODE_PRIVATE).edit()
-            .putString(PREF_LOCKED_SET, lockedSetInput.getText().toString().trim()).apply();
-        cardRepository.prepareLockedSetOcrAliases(lockedSetCodes());
-        updateOcrEngineForLockedSets();
-      }
     });
     cardScanGuide.setMessage(getString(R.string.scan_align_card));
     scanSessionAdapter = new ScanSessionAdapter(this, scannedSessionCards,
@@ -485,7 +466,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           }
         });
     scanSessionButton.setOnClickListener(view -> showScanSession());
-    speakCardNameButton.setOnClickListener(view -> startCardNameVoiceInput());
     addTypedCardButton.setOnClickListener(
         view -> submitScannedCard(txtSearch.getText().toString(), "", true));
     scanToneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 90);
@@ -541,55 +521,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   //region recycler
 
   private void setUpNamePredictor() {
-    nameSuggestionAdapter = new ArrayAdapter<>(
-        this, R.layout.name_suggestion_item, new ArrayList<String>());
-    cardNameSuggestions.setAdapter(nameSuggestionAdapter);
-    cardNameSuggestions.setOnItemClickListener((parent, view, position, id) -> {
-      if (position < 0 || position >= currentNameSuggestions.size()) return;
-      CardNameSuggestion suggestion = currentNameSuggestions.get(position);
-      suppressPredictionWatcher = true;
-      txtSearch.setText(suggestion.getDisplayName());
-      txtSearch.setSelection(txtSearch.length());
-      suppressPredictionWatcher = false;
-      hideNamePredictions();
-      InputMethodManager keyboard =
-          (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-      keyboard.hideSoftInputFromWindow(txtSearch.getWindowToken(), 0);
-      txtSearch.clearFocus();
-    });
-    txtSearch.addTextChangedListener(new TextWatcher() {
-      @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) { }
-
-      @Override public void onTextChanged(CharSequence text, int start, int before, int count) {
-        if (!suppressPredictionWatcher) {
-          scheduleNamePredictions(text == null ? "" : text.toString());
-        }
-      }
-
-      @Override public void afterTextChanged(Editable editable) { }
-    });
-    txtSearch.setOnEditorActionListener((view, actionId, event) -> {
-      if (actionId != EditorInfo.IME_ACTION_DONE) return false;
-      String selectedName = txtSearch.getText().toString().trim();
-      if (selectedName.length() == 0) return true;
-      submitScannedCard(selectedName);
-      return true;
-    });
+    sharedNameInput = new ScannerNameInput(this, txtSearch, cardNameSuggestions,
+        speakCardNameButton, addTypedCardButton, name -> submitScannedCard(name, "", true), () -> !suppressPredictionWatcher);
     cardRepository.preparePriceIndex(ready -> kotlin.Unit.INSTANCE);
-  }
-
-  private void startCardNameVoiceInput() {
-    Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag());
-    intent.putExtra(RecognizerIntent.EXTRA_PROMPT, getString(R.string.speak_card_name_prompt));
-    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-    try {
-      startActivityForResult(intent, RC_SPEAK_CARD_NAME);
-    } catch (ActivityNotFoundException error) {
-      Toast.makeText(this, R.string.speech_recognition_unavailable, Toast.LENGTH_SHORT).show();
-    }
   }
 
   /** Builds the large multilingual name index only when the scanner is actually requested. */
@@ -640,41 +574,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     cardScanGuide.setMessage(getString(R.string.scan_preparing_name_index));
   }
 
-  private void scheduleNamePredictions(String query) {
-    if (pendingNamePrediction != null) autoOcrHandler.removeCallbacks(pendingNamePrediction);
-    final String trimmed = query.trim();
-    if (trimmed.length() < 2 || lytSearch.getVisibility() != View.VISIBLE) {
-      hideNamePredictions();
-      return;
-    }
-    final int request = ++namePredictionRequest;
-    pendingNamePrediction = () -> cardRepository.suggestCardNames(trimmed, suggestions -> {
-      if (request != namePredictionRequest || lytSearch.getVisibility() != View.VISIBLE ||
-          !txtSearch.getText().toString().trim().equals(trimmed)) {
-        return kotlin.Unit.INSTANCE;
-      }
-      currentNameSuggestions.clear();
-      currentNameSuggestions.addAll(suggestions);
-      nameSuggestionAdapter.clear();
-      for (CardNameSuggestion suggestion : suggestions) {
-        nameSuggestionAdapter.add(getString(
-            R.string.suggestion_with_language,
-            suggestion.getDisplayName(),
-            suggestion.getLanguage()
-        ));
-      }
-      nameSuggestionAdapter.notifyDataSetChanged();
-      cardNameSuggestions.setVisibility(suggestions.isEmpty() ? View.GONE : View.VISIBLE);
-      return kotlin.Unit.INSTANCE;
-    });
-    autoOcrHandler.postDelayed(pendingNamePrediction, NAME_PREDICTION_DELAY_MS);
-  }
-
   private void hideNamePredictions() {
-    namePredictionRequest++;
-    currentNameSuggestions.clear();
-    if (nameSuggestionAdapter != null) nameSuggestionAdapter.clear();
-    if (cardNameSuggestions != null) cardNameSuggestions.setVisibility(View.GONE);
+    if (sharedNameInput != null) sharedNameInput.hide();
   }
 
   private void handleAutomaticOcr(List<String> candidates, String rulesText, OcrFramePhoto.Frame evidence) {
@@ -961,12 +862,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private Set<String> lockedSetCodes() {
-    Set<String> result = new LinkedHashSet<>();
-    String value = lockedSetInput == null ? "" : lockedSetInput.getText().toString();
-    for (String token : value.split("[,\\s]+")) {
-      if (!token.trim().isEmpty()) result.add(token.trim().toUpperCase(Locale.US));
-    }
-    return result;
+    return ScannerSetInput.parse(lockedSetInput == null ? "" : lockedSetInput.getText().toString());
   }
 
   /** Uses the lighter Latin recognizer when the locked edition has no Japanese printings. */
@@ -3336,7 +3232,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         startActivityForResult(
             new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
     } else if (viewId == R.id.fabCollectorVision) {
-      startActivityForResult(new Intent(this, CorneliusScanActivity.class), RC_RAPID_EDITION_SCAN);
+      Intent scanner = new Intent(this, CorneliusScanActivity.class);
+      if (currentFilterKey.startsWith("group:")) {
+        scanner.putExtra(CorneliusScanActivity.EXTRA_DESTINATION_GROUP,
+            currentFilterKey.substring("group:".length()));
+      }
+      startActivityForResult(scanner, RC_RAPID_EDITION_SCAN);
     } else if (viewId == R.id.fabRulesScanner) {
       startActivityForResult(new Intent(this, RulesScanActivity.class), RC_RAPID_EDITION_SCAN);
     } else if (viewId == R.id.fabHashOnlyScanner) {

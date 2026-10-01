@@ -14,29 +14,56 @@ import kotlin.coroutines.resume
 
 /** One durable chain per photo: OCR + strict visual verification + title cross-check. Inventory writes only through the explicitly requested reliable-save stage. */
 object ReviewAnalysisBatch {
-    fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>, reliableSave: Boolean = false): String {
+    data class Started(val tag: String?, val unchanged: Int, val reused: Int, val fresh: Int)
+    fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>, reliableSave: Boolean = false): Started {
         val dir = EdScanJobs.directory(context)
         val tag = "review-batch-${UUID.randomUUID()}"
         val work = WorkManager.getInstance(context)
         val photos = entries.distinctBy { it.photoKey }.filter {
             it.photoKey.matches(Regex("[0-9a-f-]{36}")) && File(dir,"${it.photoKey}.jpg").isFile && File(dir,"${it.photoKey}.json").isFile
         }
-        if(reliableSave) ReliableReviewJournal.prepare(context,library,tag,photos)
-        for (entry in photos) {
+        val journals=File(context.filesDir,"review_batches").listFiles().orEmpty()
+            .filter { ScanReviewStore.json(File(it,"batch.json"))?.optString("library")==library }
+            .sortedByDescending { ScanReviewStore.json(File(it,"batch.json"))?.optLong("createdAt") ?: 0L }
+        val reusable=if(reliableSave) photos.mapNotNull { entry ->
+            ReviewEvidenceCache.attempt(dir,entry.photoKey,entry.source!="ocr")?.let { entry.photoKey to it }
+        }.toMap() else emptyMap()
+        val pending=photos.filterNot { entry -> reusable[entry.photoKey]?.let {
+            ReviewEvidenceCache.unchanged(dir,entry,it,journals)
+        } == true }
+        val unchanged=photos.size-pending.size
+        if(pending.isEmpty()) return Started(null,unchanged,0,0)
+        if(reliableSave) ReliableReviewJournal.prepare(context,library,tag,pending)
+        if(reliableSave) context.getSharedPreferences("review_batch",0).edit()
+            .putInt("$tag-total",photos.size).putInt("$tag-unchanged",unchanged).putInt("$tag-planned",pending.size).apply()
+        for (entry in pending) {
             val key = entry.photoKey
-            val attempt = UUID.randomUUID().toString()
-            ScanReviewStore.write(File(dir,"$key.visual-request.json"),JSONObject().put("attempt",attempt).put("both",true))
+            val languageOnly=reliableSave && entry.source!="ocr"
+            val cached=reusable[key]
+            val attempt = cached ?: UUID.randomUUID().toString()
+            // Original EdScan OCR can be reused even before a full review has ever run.
+            val originalOcr=File(dir,"$key.ocr.json")
+            val copyOriginal=languageOnly && cached==null && originalOcr.isFile &&
+                ScanReviewStore.json(originalOcr)!=null && listOf(File(dir,"$key.jpg"),File(dir,"$key.json")).all { it.lastModified()<=originalOcr.lastModified() }
+            if(copyOriginal) originalOcr.copyTo(File(dir,"$key.$attempt.ocr.json"),overwrite=true)
+            ScanReviewStore.write(File(dir,"$key.visual-request.json"),JSONObject().put("attempt",attempt).put("both",true).put("languageOnly",languageOnly))
             val data = workDataOf("key" to key,"attempt" to attempt,"library" to library,"batch" to tag)
             val visual = OneTimeWorkRequestBuilder<EdScanVerificationWorker>().setInputData(data).addTag(tag).build()
             val ocr = OneTimeWorkRequestBuilder<EdScanLanguageWorker>().setInputData(data).addTag(tag).build()
-            val compare = OneTimeWorkRequestBuilder<ReviewTitleWorker>().setInputData(data).addTag(tag).build()
-            val chain=work.beginUniqueWork("review-full-$key", ExistingWorkPolicy.REPLACE, visual).then(ocr).then(compare)
+            val compare = OneTimeWorkRequestBuilder<ReviewTitleWorker>().setInputData(data).addTag(tag)
+                .apply { if(cached!=null || copyOriginal) addTag("review-reused-evidence") }.build()
+            val chain=when {
+                cached!=null || copyOriginal -> work.beginUniqueWork("review-full-$key",ExistingWorkPolicy.REPLACE,compare)
+                languageOnly -> work.beginUniqueWork("review-full-$key",ExistingWorkPolicy.REPLACE,ocr).then(compare)
+                else -> work.beginUniqueWork("review-full-$key", ExistingWorkPolicy.REPLACE, visual).then(ocr).then(compare)
+            }
             if(reliableSave) chain.then(OneTimeWorkRequestBuilder<ReliableReviewWorker>().setInputData(data)
                 .addTag(tag).addTag(ReliableReviewWorker.TAG).build()).enqueue()
             else chain.enqueue()
         }
         context.getSharedPreferences("review_batch",0).edit().putString(library,tag).apply()
-        return tag
+        val reused=pending.count { it.photoKey in reusable }
+        return Started(tag,unchanged,reused,pending.size-reused)
     }
 }
 

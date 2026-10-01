@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Fall 2: Gewählte Ausführung für diesen Druck nicht verfügbar. Ausführung ändern.</string>
     <string name="edscan_error_back">Fall 3: Rückseite (_back) noch nicht unterstützt. Vorderseite scannen.</string>
   <string name="review_provisional_printing">Vorläufige Druckversion: Die Karte stimmt überein, aber mehrere Druckversionen sind möglich. Richtige Ausgabe wählen oder bestätigen.</string>
-    <string name="review_flow_help">OCR und Bild prüfen. Foto zum Vergrößern antippen; rechts Vorschläge wechseln. Änderungen anwenden speichert die manuelle Prüfung. Zuverlässige Fälle lösen analysiert erneut und speichert sichere Übereinstimmungen automatisch.</string>
+    <string name="review_flow_help">OCR und Bild prüfen. Foto zum Vergrößern antippen, rechte Karte zum Wechseln des Vorschlags. Änderungen anwenden speichert die manuelle Prüfung. Sichere Fälle lösen verwendet vorhandene Analysen; erneut analysieren erzwingt eine neue Erkennung.</string>
     <string name="review_analyse_all">Alle Fotos erneut analysieren und Bild prüfen</string>
     <string name="review_save_changes">Änderungen speichern</string>
     <string name="review_discard_changes">Änderungen verwerfen</string>
@@ -708,7 +708,7 @@
     <string name="review_resolve_reliable">Zuverlässige Fälle lösen</string>
     <string name="review_reliable_stop">Stapel stoppen</string>
     <string name="review_reliable_cancel_help">Ausstehende Aufgaben werden gestoppt. Gespeicherte Karten bleiben; ein laufender Speichervorgang wird beendet.</string>
-    <string name="review_reliable_confirm">%1$d Fotos neu analysieren und zuverlässige Fälle SPEICHERN. Nur OCR/Bild-Übereinstimmungen mit eindeutigem Druck und passender Sprache. Finish bleibt erhalten. Unklare Fälle, gruppierte Kopien und Entwürfe bleiben offen. Sicherung und Protokoll werden erstellt.</string>
+    <string name="review_reliable_confirm">Bis zu %1$d offene Fotos prüfen. OCR und Bildanalyse werden wiederverwendet; unveränderte Fälle übersprungen. Nur sichere Ergebnisse mit passender Edition und Sprache werden gespeichert. Unklare Fälle bleiben manuell. Sicherung und Protokoll bleiben erhalten.</string>
     <string name="review_reliable_empty">Keine ausstehenden Fotos ohne manuelle Änderungen.</string>
     <string name="review_reliable_counts">Gespeichert: %1$d · Manuell: %2$d · Fehler/abgebrochen: %3$d · Fotos: %4$d (Details antippen)</string>
     <string name="review_reliable_backup">Sicherung und Protokoll lokal in review_batches. Keine Karten oder Fotos werden gelöscht.</string>
@@ -729,4 +729,12 @@
     <string name="review_collapse_item">Karte zuklappen</string>
     <string name="review_seller_warning">Vor dem Verkauf die Edition prüfen. Automatische Auflösung garantiert keine Edition. Ausnahme: eine bei der OCR/EdScan-Aufnahme korrekt festgelegte Edition; eine spätere Auswahl belegt diese ursprüngliche Festlegung nicht.</string>
     <string name="review_edition_language_conflict">Sprach-/Editionskonflikt: Die erkannte Sprache ist für diesen Druck nicht verfügbar. Edition und OCR prüfen; nichts wurde automatisch gespeichert.</string>
+    <string name="review_processing_finished">Analyse beendet. Siehe Zusammenfassung der Ergebnisse.</string>
+    <string name="review_cache_summary">%1$d unverändert: nicht wiederholt.\n%2$d verwenden OCR und Bildanalyse erneut.\n%3$d benötigen eine Bildanalyse.</string>
+    <string name="review_cache_no_work">Keine neuen Eingaben. Offene Fälle müssen manuell geprüft werden. Karte erneut analysieren erzwingt eine neue Erkennung.</string>
+    <string name="review_manual_excluded">%1$d Fotos mit ungespeicherten manuellen Änderungen werden ausgelassen.</string>
+    <string name="review_result_summary">%1$d gelöst und gespeichert · %2$d manuell prüfen\n%3$d Fehler · %4$d ohne Ergebnis\nTippen für Gründe und geänderte Karten.</string>
+    <string name="review_resolution_progress">Gesamt: %1$d\nVerarbeitet: %2$d\nAutomatisch gelöst und gespeichert: %3$d\nManuelle Prüfung nötig: %4$d\nDavon Fehler: %5$d</string>
+    <string name="review_resolution_preparing">Prüfung wird vorbereitet; vorhandene Analysen werden verwendet…</string>
+    <string name="review_no_pending">Keine Karten zur Prüfung ausstehend.</string>
 </resources>

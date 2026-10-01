@@ -47,7 +47,7 @@ object ReliableReviewJournal {
     }
 }
 
-/** Fourth stage, after fresh art, OCR and title matching. Saves only conservative agreements. */
+/** Save stage: EdScan retains the exact stored printing; OCR-origin scans require visual agreement. */
 class ReliableReviewWorker(context: Context, params: WorkerParameters): CoroutineWorker(context,params) {
     companion object { private val mutex=Mutex(); const val TAG="reliable-apply" }
     override suspend fun doWork(): Result = mutex.withLock { withContext(Dispatchers.IO) {
@@ -61,7 +61,7 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
         val plan=ScanReviewStore.json(File(journal,"$key.plan.json")) ?: return@withContext Result.failure()
         fun result(status: String, reason: String): Result {
             ScanReviewStore.write(outcome,JSONObject().put("status",status).put("reason",reason)
-                .put("name",plan.optString("name")).put("at",System.currentTimeMillis()))
+                .put("name",plan.optString("name")).put("rulesVersion",ReliableReviewPolicy.VERSION).put("at",System.currentTimeMillis()))
             return Result.success(workDataOf("autoStatus" to status,"reason" to reason,"name" to plan.optString("name")))
         }
         // A retried worker must never apply the same correction twice.
@@ -74,14 +74,15 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
             val dir=EdScanJobs.directory(applicationContext)
             fun requestCurrent()=ScanReviewStore.json(File(dir,"$key.visual-request.json"))?.optString("attempt")==attempt
             if(!requestCurrent()) return@withContext result("skipped","changed")
-            val visual=ScanReviewStore.json(File(dir,"$key.$attempt.verification.json")) ?: return@withContext result("skipped","weak")
-            val hits=visual.optJSONArray("hits")
+            val edscan=!ReliableReviewPolicy.requiresArt(ScanReviewStore.json(File(dir,"$key.json"))?.optString("source").orEmpty())
+            val visual=ScanReviewStore.json(File(dir,"$key.$attempt.verification.json"))
+            val hits=visual?.optJSONArray("hits")
             val first=hits?.optJSONObject(0)
             val best=first?.optDouble("score")
             val runner=hits?.let { list -> (1 until list.length()).mapNotNull { list.optJSONObject(it) }
                 .firstOrNull { it.optString("id")!=first?.optString("id") }?.optDouble("score") }
             val margin=if(best!=null && runner!=null) best-runner else null
-            if(visual.optString("status")!="candidate" || !ReliableReviewPolicy.artReliable(best,margin)) return@withContext result("skipped","weak")
+            if(!edscan && (visual?.optString("status")!="candidate" || !ReliableReviewPolicy.artReliable(best,margin))) return@withContext result("skipped","weak")
             val title=ScanReviewStore.json(File(dir,"$key.$attempt.title.json")) ?: return@withContext result("skipped","identity")
             val ocr=title.optString("observed")
             val collection=requireNotNull(DataUtils.readSerializable<Biblio>(applicationContext,library))
@@ -91,8 +92,10 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
                 return@withContext result("skipped","changed")
             val repo=CardRepository.get(applicationContext)
             val options=withTimeout(90000) { suspendCancellableCoroutine<List<CardEditionOption>> { c ->
-                repo.loadCollectorVisionPrinting(visual.optString("observedScryfallId")) { value,error ->
-                    if(c.isActive) { if(error!=null) c.resume(emptyList()) else c.resume(value) }
+                if(edscan) repo.loadCachedPrinting(expected.name,expected.printingUuid,null,expected.setCode.orEmpty(),expected.collectorNumber.orEmpty()) { value,error ->
+                    if(c.isActive) c.resume(if(error==null) value.filter { it.printingUuid==expected.printingUuid } else emptyList())
+                } else repo.loadCollectorVisionPrinting(visual?.optString("observedScryfallId").orEmpty()) { value,error ->
+                    if(c.isActive) c.resume(if(error==null) value else emptyList())
                 }
             } }
             val option=options.firstOrNull { it.finish==expected.finish } ?: return@withContext result("skipped","catalog")
@@ -129,9 +132,9 @@ class ReliableReviewWorker(context: Context, params: WorkerParameters): Coroutin
             val proposed=LanguageReviewPolicy.propose(guesses)
             if(proposed!=null && variants.none { it.languageCode==proposed }) return@withContext result("skipped","edition_language")
             if(proposed!=null && matched.isNotEmpty() && proposed !in matched) return@withContext result("skipped","language")
-            val edscan=ScanReviewStore.json(File(dir,"$key.json"))?.optString("source")!="ocr"
-            val strong=proposed?.takeIf { code -> (edscan && code=="es") || guesses.any { it.language==code && it.confidence>=.95 && it.textLength>=30 } }
-            val language=ReliableReviewPolicy.resolveLanguage(variants.map { it.languageCode },matched,strong)
+            val strong=proposed?.takeIf { code -> edscan || guesses.any { it.language==code && it.confidence>=.95 && it.textLength>=30 } }
+            val language=(if(edscan) ReliableReviewPolicy.edscanLanguage(canonicalMatch,matched,variants.map { it.languageCode },proposed)
+                else ReliableReviewPolicy.resolveLanguage(variants.map { it.languageCode },matched,strong))
                 ?: return@withContext result("skipped","language")
             val variant=variants.first { it.languageCode==language }
             val localized=option.copy(imageUrl=variant.imageUrl,displayName=variant.printedName.ifBlank { option.displayName })

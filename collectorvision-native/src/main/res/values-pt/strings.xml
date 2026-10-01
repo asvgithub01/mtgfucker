@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Guardada com impressão provisória. Rever no pós-processamento.</string>
   <string name="party_effects_hint">Os efeitos acumulam-se automaticamente. Apenas o nível mais alto atingido reproduz o som (4–5 s).</string>
   <string name="party_levels">A partir de %1$.2f €: confetes\nA partir de %2$.2f €: + balões\nA partir de %3$.2f €: + trompetes\nA partir de %4$.2f €: + bola de discoteca\nA partir de %5$.2f €: + dançarino e reflexo</string>
+    <string name="cv_native_idle_paused">Câmara em pausa. Toque em Retomar para digitalizar.</string>
+    <string name="cv_native_resume">Retomar câmara</string>
+    <string name="cv_native_scope_wait">Seleciona ou confirma a edição; a preparar o catálogo…</string>
 </resources>

@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Case 2: selected finish is unavailable for this printing. Change the finish.</string>
     <string name="edscan_error_back">Case 3: back-face candidate (_back) is not supported yet. Scan the front.</string>
   <string name="review_provisional_printing">Provisional printing: the card matches, but several printings are possible. Select the correct printing or confirm it is correct.</string>
-    <string name="review_flow_help">Review OCR and art. Tap the photo to enlarge and the right card to cycle proposals. Apply changes saves manual review. Resolve reliable cases reanalyzes and automatically saves safe agreements.</string>
+    <string name="review_flow_help">Review OCR and art. Tap the photo to zoom and the right card to switch proposals. Apply changes saves manual edits. Resolve reliable cases reuses existing analysis and saves safe agreements; Reanalyse forces a new reading.</string>
     <string name="review_analyse_all">Reanalyse all photos and verify art</string>
     <string name="review_save_changes">Save changes</string>
     <string name="review_discard_changes">Discard changes</string>
@@ -708,7 +708,7 @@
     <string name="review_resolve_reliable">Resolve reliable cases</string>
     <string name="review_reliable_stop">Stop batch</string>
     <string name="review_reliable_cancel_help">Pending tasks will stop. Already saved cards remain; an ongoing card save finishes first.</string>
-    <string name="review_reliable_confirm">Reanalyse %1$d photos and SAVE reliable cases. Only OCR/art agreements with a clear printing and supported language are applied. Current finish is preserved. Ambiguous cases, grouped copies and manual drafts stay pending. A backup and local batch log are created.</string>
+    <string name="review_reliable_confirm">Resolve up to %1$d pending photos. Existing OCR and art analysis are reused; unchanged cases are skipped. Only reliable agreements with compatible printing and language are saved. Ambiguous cases need manual review. A backup and journal are retained.</string>
     <string name="review_reliable_empty">No pending photos without manual edits.</string>
     <string name="review_reliable_counts">Saved: %1$d · Manual review: %2$d · Errors/cancelled: %3$d · Photos: %4$d (tap for details)</string>
     <string name="review_reliable_backup">Backup and log kept locally in review_batches. No cards or photos are deleted.</string>
@@ -729,4 +729,12 @@
     <string name="review_collapse_item">Collapse card</string>
     <string name="review_seller_warning">Before selling these cards, check their edition. Automatic resolution does not guarantee the edition. The exception is an edition you correctly locked when capturing in OCR/EdScan; a later selection does not prove that original lock.</string>
     <string name="review_edition_language_conflict">Language/edition conflict: the detected language is unavailable for this printing. Check the edition and OCR reading; nothing was automatically saved.</string>
+    <string name="review_processing_finished">Analysis finished. See the resolution summary.</string>
+    <string name="review_cache_summary">%1$d unchanged: not repeated.\n%2$d reuse OCR and art.\n%3$d need capture analysis.</string>
+    <string name="review_cache_no_work">There is no new input to process. Pending cases need manual review; repeating will not change the result. Use Reanalyse card only to force a new reading.</string>
+    <string name="review_manual_excluded">%1$d photos with unsaved manual edits are excluded.</string>
+    <string name="review_result_summary">%1$d resolved and saved · %2$d need manual review\n%3$d errors · %4$d without result\nTap for reasons and changed cards.</string>
+    <string name="review_resolution_progress">Total: %1$d\nProcessed: %2$d\nAutomatically resolved and saved: %3$d\nPending manual review: %4$d\nErrors included in pending: %5$d</string>
+    <string name="review_resolution_preparing">Preparing review; reusing existing analysis…</string>
+    <string name="review_no_pending">No cards pending review.</string>
 </resources>

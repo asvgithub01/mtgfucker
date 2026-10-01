@@ -115,6 +115,8 @@ Actualizar índices visuales no actualiza este diccionario; comprobar también l
   entradas antiguas menores de 1000px conservan ancho 744. Escalar también kernels y geometría.
   CameraX usa siempre `setTargetResolution(1280×960)`, igual que OCR sin V2; activar
   símbolo no reenlaza la cámara ni cambia encuadre. Comprobar resolución efectiva; no asumir la solicitada.
+- Una biblioteca vacía con historial de sincronización es un borrado local, no una instalación
+  nueva: no restaurar automáticamente sus cartas desde cloud.
 - No bloquear la cámara con red, indexado o guardados pesados. Reutilizar ejecutores y los
   métodos de persistencia existentes; respetar el ciclo de vida de Activity y los callbacks.
 - Antes de publicar la proyección web, `CloudLibrarySync` completa una sola vez los IDs de
@@ -326,6 +328,16 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - Fondos: `OcrCaptureActivity.updateSectionBackground` aplica arte a todas las pestañas. `CollectionScreenBackground` lo incorpora en detalle de colección/foto con carga IO y limpieza lifecycle. Respetar pin premium y fallback sin cartas.
 
-- Postprocesado: `ReviewAnalysisBatch` encadena EdScan estricto + OCR + contraste de título por foto con intentos UUID y progreso WorkManager; el reanálisis normal no modifica inventario. El modo explícito Resolver casos fiables añade `ReliableReviewWorker`: requiere acuerdo OCR/arte, score ≥0.70 y margen ≥0.08, conserva acabado y valida idioma; excluye múltiples copias/fotos. Guarda snapshot y resultados en `files/review_batches`, comprueba huella antes de escribir y verifica persistencia antes de cerrar revisión. `ReviewPresentationPolicy` agrupa evidencias en una fila por foto sin inventar claves. `ScanReviewActivity` edita borradores y solo guarda explícitamente; selector de idioma exige edición y filtra variantes. Acabado se elige con impresión, no se infiere visualmente. `loadCachedPrinting` recibe UUID MTGJSON; `loadCollectorVisionPrinting` recibe ScryfallID. No confundirlos.
+- Postprocesado: `ReviewAnalysisBatch` encadena EdScan estricto + OCR + contraste de título por foto con intentos UUID y progreso WorkManager; el reanálisis normal no modifica inventario. El modo explícito Resolver casos fiables añade `ReliableReviewWorker`: para origen OCR requiere acuerdo OCR/arte, score ≥0.70 y margen ≥0.08; para origen EdScan contrasta identidad OCR e idioma contra la impresión guardada sin repetir arte; conserva acabado y valida idioma; excluye múltiples copias/fotos. Guarda snapshot y resultados en `files/review_batches`, comprueba huella antes de escribir y verifica persistencia antes de cerrar revisión. `ReviewPresentationPolicy` agrupa evidencias en una fila por foto sin inventar claves. `ScanReviewActivity` edita borradores y solo guarda explícitamente; selector de idioma exige edición y filtra variantes. Acabado se elige con impresión, no se infiere visualmente. `loadCachedPrinting` recibe UUID MTGJSON; `loadCollectorVisionPrinting` recibe ScryfallID. No confundirlos.
 
 - Autorresolución: contrastar títulos OCR con nombres localizados de la impresión; alias compartidos ES/PT no determinan idioma. Un idioma OCR fiable no disponible bloquea incluso si solo hay una variante. El selector de edición del postprocesador debe tener fallback visible cuando falta SVG (PLST). Filas plegables conservan índices internos dentro de su contenedor; no desplazar hijos sin actualizar el binding.
+
+## Controles compartidos de scanners
+
+- `ScannerSetInput.kt` comparte selector multiedición y símbolos; `ScannerNameInput.kt` comparte sugerencias, voz y añadir entre OCR y `CorneliusScanActivity`.
+- El bloqueo EdScan filtra Scryfall IDs exactos antes de comparar embeddings. Scope vacío bloquea reconocimiento mientras carga; `null` significa catálogo completo. Nunca usar fallback global al fallar el set.
+- `ScannerIdlePolicy.kt` pausa EdScan a los 30 segundos sin interacción ni cambio de carta estable; libera CameraX y se reanuda explícitamente.
+
+- Postprocesado: `ReviewEvidenceCache.kt` reutiliza OCR/arte por hash de captura, metadata y resultados. Autorresolver omite resultados pendientes sin cambios y distingue presets automáticos de borradores manuales. Reanalizar explícito fuerza nuevas evidencias; no bajar umbrales para vaciar pendientes.
+
+- Autorresolución EdScan: conservar UUID/edición/acabado guardados; OCR con identidad coincidente e idioma disponible resuelve idioma sin exigir otra verificación visual. Origen OCR sí requiere arte. Versionar decisiones (`ReliableReviewPolicy.VERSION`) al cambiar reglas, no recalcular OCR/arte por ese motivo.

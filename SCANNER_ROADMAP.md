@@ -66,3 +66,15 @@ Puntos clave:
   la siguiente no herede el consenso de la anterior.
 - Añadir una validación explícita de presencia de carta antes de OCR/hash: una mano, el fondo u
   otra forma sin carta no debe iniciar identificación ni producir una inserción.
+
+
+## Agrupación y metadatos de sesión — pendiente (2026-10-01)
+
+- Regla actual: si la Biblio tiene una agrupación seleccionada, es el destino explícito
+  del escaneo (OCR y EdScan). Sin selección, se mantiene por ahora el grupo Cornelius automático.
+- A futuro, retirar la creación automática Cornelius y preguntar al pulsar Atrás/salir
+  de los scanners si el usuario quiere agrupar las cartas de esa sesión.
+- Conservar y transmitir también los metadatos de sesión, incluido el tiempo efectivo
+  de escaneo (pausas excluidas). Quedan por definir destino, modelo de persistencia y UX;
+  no perder estos datos al salir ni mezclarlos con sesiones anteriores.
+- Este diálogo y la persistencia/transferencia de metadatos son planificación, no funcionalidad implementada.

@@ -45,4 +45,7 @@
   <string name="cv_native_saved_provisional">Salvata con stampa provvisoria. Verificare nella post-elaborazione.</string>
   <string name="party_effects_hint">Gli effetti si accumulano automaticamente. Suona solo il livello più alto raggiunto (4–5 s).</string>
   <string name="party_levels">Da %1$.2f €: coriandoli\nDa %2$.2f €: + palloncini\nDa %3$.2f €: + trombe\nDa %4$.2f €: + sfera disco\nDa %5$.2f €: + ballerino e riflesso</string>
+    <string name="cv_native_idle_paused">Fotocamera in pausa. Tocca Riprendi per scansionare.</string>
+    <string name="cv_native_resume">Riprendi fotocamera</string>
+    <string name="cv_native_scope_wait">Seleziona o conferma l’edizione; preparazione del catalogo…</string>
 </resources>

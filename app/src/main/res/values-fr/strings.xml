@@ -669,7 +669,7 @@
     <string name="edscan_error_finish">Cas 2 : finition indisponible pour cette impression. Changez la finition.</string>
     <string name="edscan_error_back">Cas 3 : verso (_back) non pris en charge. Scannez le recto.</string>
   <string name="review_provisional_printing">Impression provisoire : la carte correspond, mais plusieurs impressions sont possibles. Choisissez la bonne édition ou confirmez-la.</string>
-    <string name="review_flow_help">Vérifiez OCR et image. Touchez la photo pour agrandir et la carte à droite pour alterner les propositions. Appliquer enregistre la révision manuelle. Résoudre les cas fiables réanalyse et enregistre automatiquement les accords sûrs.</string>
+    <string name="review_flow_help">Vérifiez OCR et illustration. Touchez la photo pour zoomer et la carte droite pour changer de proposition. Appliquer enregistre la révision manuelle. Résoudre les cas fiables réutilise les analyses ; Réanalyser force une nouvelle lecture.</string>
     <string name="review_analyse_all">Réanalyser toutes les photos et vérifier les illustrations</string>
     <string name="review_save_changes">Enregistrer les modifications</string>
     <string name="review_discard_changes">Annuler les modifications</string>
@@ -708,7 +708,7 @@
     <string name="review_resolve_reliable">Résoudre les cas fiables</string>
     <string name="review_reliable_stop">Arrêter le lot</string>
     <string name="review_reliable_cancel_help">Les tâches en attente seront arrêtées. Les cartes enregistrées restent ; une sauvegarde en cours se termine.</string>
-    <string name="review_reliable_confirm">Réanalyser %1$d photos et ENREGISTRER les cas fiables. Seulement les accords OCR/image avec édition claire et langue compatible. Finition conservée. Cas ambigus, copies regroupées et brouillons restent en attente. Sauvegarde et journal locaux créés.</string>
+    <string name="review_reliable_confirm">Résoudre jusqu’à %1$d photos en attente. OCR et illustration sont réutilisés ; les cas inchangés sont ignorés. Seuls les accords fiables avec édition et langue compatibles sont enregistrés. Les cas ambigus restent manuels. Une sauvegarde et un journal sont conservés.</string>
     <string name="review_reliable_empty">Aucune photo en attente sans modifications manuelles.</string>
     <string name="review_reliable_counts">Enregistrées : %1$d · À vérifier : %2$d · Erreurs/annulées : %3$d · Photos : %4$d (toucher pour détails)</string>
     <string name="review_reliable_backup">Sauvegarde et journal conservés dans review_batches. Aucune carte ou photo supprimée.</string>
@@ -729,4 +729,12 @@
     <string name="review_collapse_item">Replier la carte</string>
     <string name="review_seller_warning">Avant de vendre, vérifiez l’édition. La résolution automatique ne la garantit pas. Exception : une édition correctement verrouillée lors de la capture OCR/EdScan ; une sélection ultérieure ne prouve pas ce verrouillage initial.</string>
     <string name="review_edition_language_conflict">Conflit langue/édition : la langue détectée est indisponible pour cette impression. Vérifiez édition et OCR ; aucun enregistrement automatique.</string>
+    <string name="review_processing_finished">Analyse terminée. Consultez le résumé des résolutions.</string>
+    <string name="review_cache_summary">%1$d inchangées : non répétées.\n%2$d réutilisent OCR et illustration.\n%3$d nécessitent une analyse de la photo.</string>
+    <string name="review_cache_no_work">Aucune nouvelle donnée. Les cas en attente nécessitent une vérification manuelle. Réanalyser la carte force une nouvelle lecture.</string>
+    <string name="review_manual_excluded">%1$d photos avec des modifications manuelles non enregistrées sont exclues.</string>
+    <string name="review_result_summary">%1$d résolues et enregistrées · %2$d à vérifier manuellement\n%3$d erreurs · %4$d sans résultat\nTouchez pour voir les motifs et les cartes modifiées.</string>
+    <string name="review_resolution_progress">Total : %1$d\nTraitées : %2$d\nRésolues et enregistrées automatiquement : %3$d\nÀ vérifier manuellement : %4$d\nDont erreurs : %5$d</string>
+    <string name="review_resolution_preparing">Préparation ; réutilisation des analyses existantes…</string>
+    <string name="review_no_pending">Aucune carte en attente de vérification.</string>
 </resources>

@@ -841,7 +841,7 @@
     <string name="edscan_error_finish">Caso 2: el acabado seleccionado no existe para esta impresión. Cambia el acabado.</string>
     <string name="edscan_error_back">Caso 3: candidato de reverso (_back) no compatible todavía. Escanea el anverso.</string>
   <string name="review_provisional_printing">Edición provisional: la carta coincide, pero hay varias impresiones posibles. Selecciona la edición correcta o confirma que está bien.</string>
-    <string name="review_flow_help">Revisa OCR y arte. Toca la foto para ampliar y la carta derecha para alternar propuestas. Aplicar cambios guarda la revisión manual. Resolver casos fiables reanaliza y guarda automáticamente los acuerdos seguros.</string>
+    <string name="review_flow_help">Revisa OCR y arte. Toca la foto para ampliar y la carta derecha para alternar propuestas. Aplicar cambios guarda la revisión manual. Resolver casos fiables reutiliza los análisis existentes y guarda los acuerdos seguros; Reanalizar fuerza una nueva lectura.</string>
     <string name="review_analyse_all">Reanalizar todas las fotos y verificar arte</string>
     <string name="review_save_changes">Guardar cambios</string>
     <string name="review_discard_changes">Descartar cambios</string>
@@ -880,7 +880,7 @@
     <string name="review_resolve_reliable">Resolver casos fiables</string>
     <string name="review_reliable_stop">Detener lote</string>
     <string name="review_reliable_cancel_help">Se detendrán las tareas pendientes. Las cartas ya guardadas se conservan; una carta que esté guardándose terminará primero.</string>
-    <string name="review_reliable_confirm">Reanalizar %1$d fotos y GUARDAR los casos fiables. Solo se aplican coincidencias OCR/arte con edición clara e idioma compatible. Se conserva el acabado actual. Los casos ambiguos, copias agrupadas y borradores manuales quedan pendientes. Se crea una copia previa y un registro local del lote.</string>
+    <string name="review_reliable_confirm">Resolver hasta %1$d fotos pendientes. Se reutilizan OCR y arte ya calculados y se omiten los casos sin cambios. Solo se guardan acuerdos fiables con edición e idioma compatibles. Los casos ambiguos quedan para revisión manual. Se conserva una copia previa y un registro.</string>
     <string name="review_reliable_empty">No hay fotos pendientes sin cambios manuales.</string>
     <string name="review_reliable_counts">Guardadas: %1$d · Revisión manual: %2$d · Errores/canceladas: %3$d · Fotos: %4$d (toca para detalles)</string>
     <string name="review_reliable_backup">Copia anterior y registro conservados localmente en review_batches. No se borran cartas ni fotografías.</string>
@@ -901,4 +901,12 @@
     <string name="review_collapse_item">Plegar carta</string>
     <string name="review_seller_warning">Si vas a vender estas cartas, revisa la edición antes de publicarlas. La autorresolución no garantiza la edición. La excepción es una edición que tú fijaste correctamente al capturar en OCR/EdScan; la edición seleccionada después no acredita ese bloqueo original.</string>
     <string name="review_edition_language_conflict">Conflicto idioma/edición: el idioma detectado no está disponible en esta impresión. Revisa la edición y la lectura OCR; no se ha guardado automáticamente.</string>
+    <string name="review_processing_finished">Análisis terminado. Consulta el resumen de resoluciones.</string>
+    <string name="review_cache_summary">%1$d sin cambios: no se repiten.\n%2$d reutilizan OCR y arte.\n%3$d necesitan analizar la captura.</string>
+    <string name="review_cache_no_work">No hay datos nuevos que procesar. Los casos pendientes necesitan revisión manual; repetir no cambiará el resultado. Usa Reanalizar carta solo si quieres forzar una nueva lectura.</string>
+    <string name="review_manual_excluded">%1$d fotos con cambios manuales sin guardar quedan fuera del lote.</string>
+    <string name="review_result_summary">%1$d resueltas y guardadas · %2$d requieren revisión manual\n%3$d errores · %4$d sin resultado\nToca para ver los motivos y las cartas modificadas.</string>
+    <string name="review_resolution_progress">Total: %1$d\nProcesadas: %2$d\nAutorresueltas y guardadas: %3$d\nPendientes de revisión manual: %4$d\nErrores incluidos en pendientes: %5$d</string>
+    <string name="review_resolution_preparing">Preparando la revisión; reutilizando los análisis existentes…</string>
+    <string name="review_no_pending">No quedan cartas pendientes.</string>
 </resources>

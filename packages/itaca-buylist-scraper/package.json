@@ -1,0 +1,17 @@
+{
+  "name": "@mtgfucker/itaca-buylist-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mtgfucker-itaca": "src/cli.mjs"
+  },
+  "scripts": {
+    "update": "node src/cli.mjs",
+    "publish": "node src/publish.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

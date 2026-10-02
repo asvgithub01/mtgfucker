@@ -11,6 +11,10 @@
     "build:extension": "npm --workspace @mtgfucker/cardmarket-extension run build",
     "build:browser": "npm run build:web && npm run build:extension",
     "test:browser": "npm --workspace @mtgfucker/cardmarket-protocol test",
-    "dev:web": "npm --workspace @mtgfucker/web run dev"
+    "dev:web": "npm --workspace @mtgfucker/web run dev",
+    "scrape:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper run update --",
+    "publish:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper run publish --",
+    "refresh:itaca": "npm run scrape:itaca -- --all --resume --output build/itaca-buylist-full.json && npm run publish:itaca",
+    "test:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper test && vitest run web/test/itacaCatalog.test.ts"
   }
 }

@@ -65,6 +65,7 @@
 | Colección persistida | `model/CardInfo.java`, `model/Biblio.java`, `DataUtils.java`, `LibraryCatalog.kt`, `data/LegacyCollectionStore.kt` |
 | Exportación de venta Cardmarket | `data/CardmarketCsvExporter.kt`, `data/PriceCurrency.kt`; botón y guardado en `OcrCaptureActivity.java`; consultar `CARDMARKET_EXPORT.md` |
 | Web y extensión Cardmarket | `web/`, `extension/`, protocolo compartido `packages/cardmarket-protocol/`; consultar `CARDMARKET_EXPORT.md` |
+| Valoración web y catálogo público Itaca | `web/src/itacaCatalog.ts`, `packages/itaca-buylist-scraper/`; consultar su `README.md`. Oferta base, sin ajustes por idioma/condición/foil. |
 | Idioma, acabado, condición y moneda | `data/CardLanguage.kt`, `CardFinish.kt`, `model/CardCondition.kt`, `data/PriceCurrency.kt` |
 | Sincronización cloud | `CloudLibrarySync.kt`, `CloudAccountActivity.kt`; el backfill Cardmarket vive en `data/CardRepository.kt`; consultar `FIREBASE_SETUP.md` |
 
@@ -224,6 +225,9 @@ bash gradlew :app:testDebugUnitTest :app:assembleDebug --console=plain
 # En PowerShell/Windows con gradlew en CRLF:
 .\gradlew.bat :app:testDebugUnitTest :app:assembleDebug --console=plain
 git diff --check
+# Itaca: pruebas y actualización del catálogo web (sin cambios Android):
+npm run test:itaca
+npm run refresh:itaca
 # Corpus de artes Scryfall (descarga reanudable, fuera de Git):
 python scripts/download_art_crops.py --data-dir ../mtgfucker-art-hash-data --workers 12
 python scripts/art_hash_poc.py --data-dir ../mtgfucker-art-hash-data build

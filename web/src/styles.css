@@ -32,6 +32,20 @@ h2 { margin: 0; font-size: 25px; letter-spacing: -.025em; }
 .bulk-workspace { max-width: 1500px; margin: auto; display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(320px, .7fr); gap: 28px; align-items: start; }
 .listing-form, .output { padding: 28px; }
 .bulk-panel { padding: 28px; min-width: 0; }
+.itaca-panel { grid-column: 1 / -1; padding: 28px; min-width: 0; }
+.itaca-panel .section-heading { align-items: center; }
+.itaca-panel .section-heading .secondary { flex: 0 0 auto; }
+.itaca-explanation { margin: -12px 0 6px; color: #aaa6b1; font-size: 14px; }
+.itaca-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0; }
+.itaca-summary article { display: grid; gap: 6px; padding: 18px; border: 1px solid #3e3a48; border-radius: 13px; background: #111116; }
+.itaca-summary span, .itaca-summary small { color: #918d98; font-size: 12px; }
+.itaca-summary strong { color: #e9ff5b; font-size: clamp(22px, 3vw, 34px); }
+.itaca-list-wrap { max-height: 680px; margin-bottom: 0; }
+.itaca-list { min-width: 1180px; }
+.itaca-list td:first-child, .itaca-list th:first-child { width: auto; text-align: left; }
+.match-badge { display: inline-flex; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.match-badge.matched { color: #e9ff5b; background: #71802e33; border: 1px solid #71802e; }
+.match-badge.unmatched { color: #d1cbd7; background: #57515f33; border: 1px solid #57515f; }
 .section-heading { display: flex; align-items: start; justify-content: space-between; margin-bottom: 25px; }
 .cloud-picker { display: grid; grid-template-columns: auto minmax(220px, 1fr); align-items: center; gap: 14px 20px; padding: 16px; margin: -4px 0 22px; border: 1px solid #4c4855; border-radius: 12px; background: #121117; }
 .cloud-picker .eyebrow { margin-bottom: 3px; }
@@ -69,7 +83,7 @@ button:disabled { opacity: .55; cursor: wait; }
 .adjusted-price { color: #e9ff5b; font-weight: 800; white-space: nowrap; }
 .empty-copy { padding: 35px; text-align: center; color: #898590; }
 .output { min-height: 480px; }
-.batch-output { position: sticky; top: 20px; }
+.batch-output { position: static; }
 .empty-state { min-height: 335px; display: grid; place-content: center; text-align: center; color: #898590; }
 .empty-state span { font-size: 90px; font-weight: 900; line-height: 1; color: #28252f; }
 .ready-output { margin-top: 28px; }
@@ -89,4 +103,6 @@ textarea { min-height: 160px; resize: vertical; font-family: ui-monospace, SFMon
   .selection-bar { align-items: flex-start; flex-direction: column; }
   .selection-actions { justify-content: flex-start; }
   .batch-output { position: static; }
+  .itaca-summary { grid-template-columns: 1fr; }
+  .itaca-panel .section-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
 }

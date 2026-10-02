@@ -56,3 +56,21 @@ en el modelo serializado de la colección. Cada sincronización guarda además u
 comprimida (`webChunks`) que la web puede leer sin intentar descodificar la serialización Java.
 Los borradores creados desde la web se guardan, cuando hay sesión, en
 `users/{uid}/cardmarketDrafts/{batchId}`.
+
+## Valoración con la BuyList de Itaca
+
+La misma web incluye **Valorar mi colección**. Usa la Biblio seleccionada —o todas— y cruza
+el `mcmId` de cada impresión con el Product ID de Cardmarket publicado por Itaca. Muestra el
+total estimado en efectivo e Itacoins, la cobertura del matching y todas las filas con precio
+unitario y total por copias.
+
+El catálogo estático se actualiza y publica en `web/public/data/itaca-buylist.json.gz` con:
+
+```powershell
+npm run refresh:itaca
+```
+
+La valoración usa la oferta base visible en el listado de Itaca, normalmente inglés, NM y no
+foil. Idioma, estado y acabado se muestran para revisar la colección, pero todavía no ajustan
+esa oferta; obtener precios exactos de cada variante requerirá una integración acordada con
+Itaca o consultas puntuales posteriores.

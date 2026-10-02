@@ -24,6 +24,11 @@ import {
 } from "./firebase";
 import type { User } from "firebase/auth";
 import { loadCardmarketCatalog, type CardmarketCatalogPlacement } from "./cardmarketCatalog";
+import {
+  loadItacaCatalog,
+  valueLibrariesWithItaca,
+  type ItacaValuation
+} from "./itacaCatalog";
 
 const PLAN_STORAGE_KEY = "mtgfucker.cardmarket.sale-plan.v3";
 const LEGACY_PLAN_STORAGE_KEYS = [
@@ -140,6 +145,25 @@ app.innerHTML = `
           <p id="saveStatus" class="status"></p>
         </div>
       </aside>
+
+      <section class="panel itaca-panel">
+        <div class="section-heading">
+          <div><p class="eyebrow">Comparador Itaca</p><h2>¿Cuánto ofrece Itaca por tu colección?</h2></div>
+          <button id="valueItaca" class="secondary" type="button">Valorar mi colección</button>
+        </div>
+        <p class="itaca-explanation">Cruce exacto por Product ID de Cardmarket. Usa la Biblio elegida arriba o todas si no hay filtro.</p>
+        <p class="warning">Estimación con la oferta base visible de Itaca, normalmente inglés, NM y no foil. El idioma, estado o acabado de tu copia todavía no modifican el precio.</p>
+        <p id="itacaStatus" class="status">Pulsa el botón para cargar el catálogo y realizar el cruce.</p>
+        <div id="itacaResult" hidden>
+          <div id="itacaSummary" class="itaca-summary"></div>
+          <div class="card-list-wrap itaca-list-wrap">
+            <table class="card-list itaca-list">
+              <thead><tr><th>Carta</th><th>Biblio</th><th>Edición</th><th>Variante</th><th>Matching</th><th>Copias</th><th>€ unidad</th><th>Itacoins unidad</th><th>Total €</th><th>Total Itacoins</th></tr></thead>
+              <tbody id="itacaRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </section>
   </main>
 `;
@@ -171,6 +195,11 @@ const openCardmarket = document.querySelector<HTMLAnchorElement>("#openCardmarke
 const previousBatch = document.querySelector<HTMLButtonElement>("#previousBatch")!;
 const nextBatch = document.querySelector<HTMLButtonElement>("#nextBatch")!;
 const saveStatus = document.querySelector<HTMLElement>("#saveStatus")!;
+const valueItaca = document.querySelector<HTMLButtonElement>("#valueItaca")!;
+const itacaStatus = document.querySelector<HTMLElement>("#itacaStatus")!;
+const itacaResult = document.querySelector<HTMLElement>("#itacaResult")!;
+const itacaSummary = document.querySelector<HTMLElement>("#itacaSummary")!;
+const itacaRows = document.querySelector<HTMLTableSectionElement>("#itacaRows")!;
 
 let currentUser: User | null = null;
 let libraries: CloudLibrary[] = [];
@@ -202,6 +231,40 @@ function parsePriceAmount(raw: string): number | null {
 
 function formatPrice(cents: number): string {
   return `${(cents / 100).toFixed(2)} €`;
+}
+
+function formatItacoins(hundredths: number): string {
+  return `${(hundredths / 100).toFixed(2)} Itacoins`;
+}
+
+function renderItacaValuation(valuation: ItacaValuation, catalog: Awaited<ReturnType<typeof loadItacaCatalog>>): void {
+  const coverage = valuation.rows.length
+    ? Math.round((valuation.matchedRows / valuation.rows.length) * 100)
+    : 0;
+  itacaSummary.innerHTML = `
+    <article><span>Efectivo estimado</span><strong>${formatPrice(valuation.cashTotalCents)}</strong></article>
+    <article><span>Itacoins estimados</span><strong>${formatItacoins(valuation.itacoinTotalHundredths)}</strong></article>
+    <article><span>Matching exacto</span><strong>${valuation.matchedRows}/${valuation.rows.length}</strong><small>${coverage}% de las filas · ${valuation.matchedCopies}/${valuation.totalCopies} copias</small></article>`;
+  itacaRows.innerHTML = valuation.rows.map(row => {
+    const variant = [row.card.language || "—", row.card.condition || "—", row.card.finish || "—"].join(" · ");
+    return `<tr>
+      <td><strong>${escapeHtml(row.card.name)}</strong><small>Product ID ${escapeHtml(row.card.mcmId || "no disponible")}</small></td>
+      <td>${escapeHtml(row.libraryName)}</td>
+      <td>${escapeHtml(row.card.setCode || "—")}<small>${escapeHtml(row.card.setName || "")}</small></td>
+      <td>${escapeHtml(variant)}</td>
+      <td><span class="match-badge ${row.quote ? "matched" : "unmatched"}">${row.quote ? "Exacto" : "No aparece"}</span></td>
+      <td>${row.card.quantity}</td>
+      <td>${row.quote ? formatPrice(row.cashUnitCents) : "—"}</td>
+      <td>${row.quote ? formatItacoins(row.itacoinUnitHundredths) : "—"}</td>
+      <td class="adjusted-price">${row.quote ? formatPrice(row.cashTotalCents) : "—"}</td>
+      <td>${row.quote ? formatItacoins(row.itacoinTotalHundredths) : "—"}</td>
+    </tr>`;
+  }).join("");
+  const catalogStatus = catalog.complete
+    ? `catálogo actualizado ${new Date(catalog.updatedAt).toLocaleString("es-ES")}`
+    : `PRUEBA CON CATÁLOGO PARCIAL: ${catalog.expansionCount}/${catalog.directoryExpansionCount} expansiones`;
+  itacaStatus.textContent = `${valuation.matchedRows} filas encontradas · ${valuation.unmatchedRows} sin oferta · ${catalogStatus}.`;
+  itacaResult.hidden = false;
 }
 
 function multiplier(): number {
@@ -501,6 +564,24 @@ selectAll.addEventListener("click", () => {
 clearSelection.addEventListener("click", () => {
   selectedKeys.clear();
   renderCards();
+});
+
+valueItaca.addEventListener("click", async () => {
+  try {
+    valueItaca.disabled = true;
+    valueItaca.textContent = "Cargando catálogo…";
+    itacaStatus.textContent = "Abriendo el catálogo completo de Itaca y cruzando Product IDs…";
+    const catalog = await loadItacaCatalog();
+    const valuation = valueLibrariesWithItaca(libraries, catalog, libraryFilter.value);
+    renderItacaValuation(valuation, catalog);
+    itacaResult.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    itacaResult.hidden = true;
+    itacaStatus.textContent = error instanceof Error ? error.message : "No se pudo valorar la colección en Itaca.";
+  } finally {
+    valueItaca.disabled = false;
+    valueItaca.textContent = "Valorar mi colección";
+  }
 });
 
 createPlan.addEventListener("click", async () => {

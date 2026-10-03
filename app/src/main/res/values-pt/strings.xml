@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="review_ocr_no_title">OCR concluído: título não reconhecido</string>
+    <string name="review_edscan_evidence_summary">Guardado: %1$s\nOCR: %2$s\nArte: não necessária para EdScan</string>
+    <string name="review_tab_pending">Pendentes (%1$d)</string>
+    <string name="review_tab_resolved">Resolvidos (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">Ainda não há tentativas de resolução.</string>
+    <string name="review_no_resolved">Não há fotos resolvidas com este filtro.</string>
+    <string name="review_item_resolved">Resolvida</string>
+    <string name="review_item_pending">Pendente</string>
+    <string name="review_rules_title">Regras de resolução automática</string>
+    <string name="review_rules_help">ANÁLISE E GRAVAÇÃO\nResolver casos fiáveis executa as análises em falta e reutiliza o OCR e a arte guardados da mesma foto. Não é preciso analisar todas as fotos antes. Reanalisar uma foto força uma nova leitura e fica como tentativa excecional. A resolução abrange os pendentes da biblioteca, não apenas o filtro visível.\n\nORIGEM OCR\nA arte pode propor a impressão e edição corretas e atualizar a imagem e o preço. A gravação automática exige identidade coincidente entre OCR e arte, limiares de confiança e margem da arte (0,70 e 0,08) e idioma compatível.\n\nORIGEM EDSCAN\nMantêm-se a impressão e edição identificadas pelo EdScan. O OCR confirma a identidade e determina o idioma sem exigir novo reconhecimento da arte. Com identidade corroborada e sem contradições, uma impressão disponível apenas em EN é confirmada como EN, por exemplo Zombie Master de LEB. Se o OCR detetar italiano mas a impressão só admitir EN, fica um conflito para revisão manual: não se força EN nem se muda automaticamente a edição.\n\nLIMITES E REVISÃO MANUAL\nIdentidade diferente, idioma ambíguo ou incompatível, arte pouco fiável, catálogo incompleto e várias cópias ou fotos da mesma linha exigem revisão. O acabamento não é inferido da imagem. Alterações manuais pendentes ficam excluídas; quantidades e grupos são preservados. Cada lote guarda uma cópia anterior e o histórico. Não se garante o estado físico nem um preço de venda.</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancelar</string>
     <string name="permission_camera_rationale">O acesso à câmera é necessário para detecção</string>
@@ -737,4 +748,7 @@
     <string name="review_resolution_progress">Total: %1$d\nProcessadas: %2$d\nResolvidas e guardadas automaticamente: %3$d\nPendentes de revisão manual: %4$d\nErros incluídos nas pendentes: %5$d</string>
     <string name="review_resolution_preparing">A preparar; a reutilizar as análises existentes…</string>
     <string name="review_no_pending">Não há cartas pendentes de revisão.</string>
+    <string name="review_compare_proposal">Proposta</string>
+    <string name="review_compare_saved">Guardada</string>
+    <string name="review_use_art_proposal">Usar proposta de arte</string>
 </resources>

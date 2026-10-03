@@ -10,7 +10,7 @@ import java.io.File
 
 object ScanReviewStore {
     data class Entry(val key: String, val card: CardInfo, val source: String, val state: String,
-        val language: String?, val candidateId: String, val candidateLabel: String, val stamp: Long, val candidateImage: String = "", val photoKey: String = key, val visual: Boolean = source == "ocr", val candidateSet: String = "", val provisional: Boolean = false, val titleState: String = "", val observedTitle: String = "", val artScore: Double? = null, val artMargin: Double? = null, val analysedAt: Long = 0)
+        val language: String?, val candidateId: String, val candidateLabel: String, val stamp: Long, val candidateImage: String = "", val photoKey: String = key, val visual: Boolean = source == "ocr", val candidateSet: String = "", val provisional: Boolean = false, val titleState: String = "", val observedTitle: String = "", val artScore: Double? = null, val artMargin: Double? = null, val analysedAt: Long = 0, val ocrCompleted: Boolean = false)
     fun json(file: File): JSONObject? = runCatching { JSONObject(file.readText()) }.getOrNull()
     fun read(context: Context, library: String): List<Entry> {
         if (LibraryCatalog.activeFile(context) != library) return emptyList()
@@ -40,9 +40,7 @@ object ScanReviewStore {
             val source = input.optString("source").ifBlank { "edscan" }
             val latest = listOf(request).filter { it.matches(Regex("[0-9a-f-]{36}")) }
             // Keep EdScan language evidence, but do not show an obsolete visual result as a second conflict.
-            val attempts = if(requestJson?.optBoolean("languageOnly")==true && latest.isNotEmpty()) listOf("language:"+request)
-                else if(both && latest.isNotEmpty()) listOf("language:"+request,request)
-                else if(source == "ocr" && latest.isNotEmpty()) latest else listOf("") + latest
+            val attempts = ReviewAnalysisPolicy.evidenceAttempts(source,latest.firstOrNull(),both)
             attempts.map { attempt ->
                 val languageAttempt = attempt.startsWith("language:")
                 val resultKey = if(attempt.isBlank()) photoKey else "$photoKey.${attempt.removePrefix("language:")}"
@@ -98,7 +96,7 @@ object ScanReviewStore {
                 if (review != null && review.optLong("stamp") == stamp &&
                     review.optString("printingUuid") == card.printingUuid.orEmpty() &&
                     review.optString("finish") == card.finish.orEmpty() && review.optString("language") == card.languageCode) state="reviewed"
-                Entry(key,card.snapshotForPersistence(),source,state,language,candidateId,label,stamp,candidateImage,photoKey,visual,candidateSet,false,titleState,title?.optString("observed").orEmpty().ifBlank { rawTitle },score,if(score!=null && runner!=null) score-runner else null,result?.optLong("checkedAt") ?: 0L)
+                Entry(key,card.snapshotForPersistence(),source,state,language,candidateId,label,stamp,candidateImage,photoKey,visual,candidateSet,false,titleState,title?.optString("observed").orEmpty().ifBlank { rawTitle },score,if(score!=null && runner!=null) score-runner else null,result?.optLong("checkedAt") ?: 0L,ocr?.optJSONArray("readings")!=null)
             }
         }).sortedWith(compareBy<Entry> { when(it.state) { "conflict"->0; "suggestion"->1; "pending"->2; "inconclusive"->3; else->4 } }.thenByDescending { it.key })
     }

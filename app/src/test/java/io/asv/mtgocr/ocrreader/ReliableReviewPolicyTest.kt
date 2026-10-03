@@ -2,6 +2,16 @@ package io.asv.mtgocr.ocrreader
 import org.junit.Assert.*
 import org.junit.Test
 class ReliableReviewPolicyTest {
+    @Test fun zombieMasterLebConfirmsOnlyAvailableEnglishWithCorroboratedIdentity() {
+        assertEquals("en",ReliableReviewPolicy.edscanLanguage(true,setOf("en"),listOf("en"),"en"))
+        // A unique catalog language does not need a second language classifier vote.
+        assertEquals("en",ReliableReviewPolicy.edscanLanguage(true,emptySet(),listOf("en"),null))
+    }
+    @Test fun italianOcrConflictsWithEnglishOnlyEdscanPrinting() {
+        assertNull(ReliableReviewPolicy.edscanLanguage(true,setOf("en"),listOf("en"),"it"))
+        assertNull(ReliableReviewPolicy.edscanLanguage(true,emptySet(),listOf("en"),"it"))
+        assertNull(ReliableReviewPolicy.edscanLanguage(false,emptySet(),listOf("en"),null))
+    }
     @Test fun freejamEdscanUsesStoredEditionAndOcrEnglishWithoutNewArtGate() {
         assertFalse(ReliableReviewPolicy.requiresArt("edscan"))
         assertFalse(ReliableReviewPolicy.requiresArt("")) // Legacy EdScan metadata.

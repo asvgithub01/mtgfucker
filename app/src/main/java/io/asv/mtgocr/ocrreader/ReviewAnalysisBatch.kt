@@ -12,7 +12,7 @@ import java.io.File
 import java.util.UUID
 import kotlin.coroutines.resume
 
-/** One durable chain per photo: OCR + strict visual verification + title cross-check. Inventory writes only through the explicitly requested reliable-save stage. */
+/** One durable chain per photo: OCR + title cross-check; visual verification only for OCR-origin scans. Inventory writes require the explicit reliable-save stage. */
 object ReviewAnalysisBatch {
     data class Started(val tag: String?, val unchanged: Int, val reused: Int, val fresh: Int)
     fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>, reliableSave: Boolean = false): Started {
@@ -38,13 +38,14 @@ object ReviewAnalysisBatch {
             .putInt("$tag-total",photos.size).putInt("$tag-unchanged",unchanged).putInt("$tag-planned",pending.size).apply()
         for (entry in pending) {
             val key = entry.photoKey
-            val languageOnly=reliableSave && entry.source!="ocr"
             val cached=reusable[key]
             val attempt = cached ?: UUID.randomUUID().toString()
             // Original EdScan OCR can be reused even before a full review has ever run.
             val originalOcr=File(dir,"$key.ocr.json")
-            val copyOriginal=languageOnly && cached==null && originalOcr.isFile &&
-                ScanReviewStore.json(originalOcr)!=null && listOf(File(dir,"$key.jpg"),File(dir,"$key.json")).all { it.lastModified()<=originalOcr.lastModified() }
+            val plan=ReviewAnalysisPolicy.plan(entry.source,reliableSave,cached!=null,originalOcr.isFile &&
+                ScanReviewStore.json(originalOcr)!=null && listOf(File(dir,"$key.jpg"),File(dir,"$key.json")).all { it.lastModified()<=originalOcr.lastModified() })
+            val languageOnly=plan.languageOnly
+            val copyOriginal=plan.copyOriginalOcr
             if(copyOriginal) originalOcr.copyTo(File(dir,"$key.$attempt.ocr.json"),overwrite=true)
             ScanReviewStore.write(File(dir,"$key.visual-request.json"),JSONObject().put("attempt",attempt).put("both",true).put("languageOnly",languageOnly))
             val data = workDataOf("key" to key,"attempt" to attempt,"library" to library,"batch" to tag)

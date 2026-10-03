@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="review_ocr_no_title">OCR completado: título no reconocido</string>
+    <string name="review_edscan_evidence_summary">Guardado: %1$s\nOCR: %2$s\nArte: no necesario para origen EdScan</string>
+    <string name="review_tab_pending">Pendientes (%1$d)</string>
+    <string name="review_tab_resolved">Resueltos (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">Sin intentos de resolución todavía.</string>
+    <string name="review_no_resolved">No hay fotos resueltas con este filtro.</string>
+    <string name="review_item_resolved">Resuelta</string>
+    <string name="review_item_pending">Pendiente</string>
+    <string name="review_rules_title">Cómo se resuelven los casos fiables</string>
+    <string name="review_rules_help">ANÁLISIS Y GUARDADO\nResolver casos fiables analiza lo que falta y reutiliza el OCR y el arte guardados de la misma foto. No hace falta analizar todas las fotos antes. Reanalizar una foto fuerza una nueva lectura y queda como reintento excepcional. La resolución recorre los pendientes de la Biblio, no solo el filtro visible.\n\nORIGEN OCR\nEl arte puede proponer la impresión y la edición correctas, y actualizar su imagen y precio. Solo se guarda automáticamente si OCR y arte coinciden en la identidad, el arte supera los umbrales de confianza y separación (0,70 y 0,08), y el idioma es compatible.\n\nORIGEN EDSCAN\nSe conserva la impresión y edición identificadas por EdScan. El OCR comprueba la identidad y determina el idioma, sin volver a exigir reconocimiento por arte. Con identidad corroborada, si esa impresión solo admite EN y no hay evidencia contradictoria, se confirma EN; por ejemplo, Zombie Master de LEB. Si el OCR detecta italiano pero esa impresión solo admite EN, queda un conflicto para que lo revises: no se fuerza EN ni se cambia la edición automáticamente.\n\nLÍMITES Y REVISIÓN MANUAL\nIdentidad discrepante, idioma ambiguo o incompatible, arte débil, catálogo incompleto y múltiples copias o fotos de una misma fila requieren revisión. El acabado no se deduce de la imagen. Los cambios manuales pendientes se excluyen de la autoresolución; no se alteran cantidades ni agrupaciones. Cada lote guarda una copia previa y su historial. No garantiza el estado físico ni un precio de venta.</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancelar</string>
     <string name="permission_camera_rationale">Access to the camera is needed for detection</string>
@@ -909,4 +920,7 @@
     <string name="review_resolution_progress">Total: %1$d\nProcesadas: %2$d\nAutorresueltas y guardadas: %3$d\nPendientes de revisión manual: %4$d\nErrores incluidos en pendientes: %5$d</string>
     <string name="review_resolution_preparing">Preparando la revisión; reutilizando los análisis existentes…</string>
     <string name="review_no_pending">No quedan cartas pendientes.</string>
+    <string name="review_compare_proposal">Propuesta</string>
+    <string name="review_compare_saved">Guardada</string>
+    <string name="review_use_art_proposal">Usar propuesta de arte</string>
 </resources>

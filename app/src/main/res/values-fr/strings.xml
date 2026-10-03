@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="review_ocr_no_title">OCR terminé : titre non reconnu</string>
+    <string name="review_edscan_evidence_summary">Enregistré : %1$s\nOCR : %2$s\nIllustration : non requise pour EdScan</string>
+    <string name="review_tab_pending">En attente (%1$d)</string>
+    <string name="review_tab_resolved">Résolus (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">Aucune tentative de résolution.</string>
+    <string name="review_no_resolved">Aucune photo résolue pour ce filtre.</string>
+    <string name="review_item_resolved">Résolue</string>
+    <string name="review_item_pending">En attente</string>
+    <string name="review_rules_title">Règles de résolution automatique</string>
+    <string name="review_rules_help">ANALYSE ET ENREGISTREMENT\nRésoudre les cas fiables effectue les analyses manquantes et réutilise les résultats OCR et visuels de la même photo. Une analyse globale préalable est inutile. Réanalyser une photo force une nouvelle lecture et reste un recours exceptionnel. La résolution traite les photos en attente de la bibliothèque, pas seulement le filtre visible.\n\nORIGINE OCR\nL’illustration peut proposer la bonne impression et édition, avec mise à jour de l’image et du prix. L’enregistrement automatique exige un accord OCR/illustration sur l’identité, des seuils de confiance et de marge visuelles (0,70 et 0,08), et une langue compatible.\n\nORIGINE EDSCAN\nL’impression et l’édition reconnues par EdScan sont conservées. L’OCR vérifie l’identité et détermine la langue sans nouvelle reconnaissance visuelle. Si l’identité est corroborée et sans contradiction, une impression uniquement disponible en EN est confirmée en EN, comme Zombie Master de LEB. Si l’OCR détecte de l’italien alors que cette impression exige EN, un conflit reste à vérifier manuellement : EN n’est pas imposé et l’édition ne change pas automatiquement.\n\nLIMITES ET VÉRIFICATION MANUELLE\nIdentité différente, langue ambiguë ou incompatible, résultat visuel faible, catalogue incomplet et plusieurs exemplaires ou photos pour une ligne nécessitent une vérification. La finition ne se déduit pas de l’image. Les modifications manuelles en attente sont exclues ; quantités et groupes sont conservés. Chaque lot garde une sauvegarde préalable et un historique. Ni l’état physique ni un prix de vente ne sont garantis.</string>
     <string name="ok">OK</string>
     <string name="cancel">Annuler</string>
     <string name="permission_camera_rationale">L\'accès à la caméra est nécessaire pour la détection</string>
@@ -737,4 +748,7 @@
     <string name="review_resolution_progress">Total : %1$d\nTraitées : %2$d\nRésolues et enregistrées automatiquement : %3$d\nÀ vérifier manuellement : %4$d\nDont erreurs : %5$d</string>
     <string name="review_resolution_preparing">Préparation ; réutilisation des analyses existantes…</string>
     <string name="review_no_pending">Aucune carte en attente de vérification.</string>
+    <string name="review_compare_proposal">Proposée</string>
+    <string name="review_compare_saved">Enregistrée</string>
+    <string name="review_use_art_proposal">Utiliser la proposition visuelle</string>
 </resources>

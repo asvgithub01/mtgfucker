@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="review_ocr_no_title">OCR abgeschlossen: Titel nicht erkannt</string>
+    <string name="review_edscan_evidence_summary">Gespeichert: %1$s\nOCR: %2$s\nBild: für EdScan nicht erforderlich</string>
+    <string name="review_tab_pending">Offen (%1$d)</string>
+    <string name="review_tab_resolved">Gelöst (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">Noch keine Lösungsversuche.</string>
+    <string name="review_no_resolved">Keine gelösten Fotos für diesen Filter.</string>
+    <string name="review_item_resolved">Gelöst</string>
+    <string name="review_item_pending">Offen</string>
+    <string name="review_rules_title">Regeln der automatischen Auflösung</string>
+    <string name="review_rules_help">ANALYSE UND SPEICHERN\nZuverlässige Fälle auflösen führt fehlende Analysen aus und verwendet gespeicherte OCR- und Bilddaten desselben Fotos erneut. Eine vorherige Gesamtanalyse ist nicht nötig. Die erneute Analyse eines einzelnen Fotos erzwingt eine neue Auswertung und bleibt eine Ausnahme. Die Auflösung umfasst offene Fotos der Bibliothek, nicht nur den sichtbaren Filter.\n\nURSPRUNG OCR\nDas Bild kann den richtigen Druck und das Set vorschlagen sowie Bild und Preis aktualisieren. Automatisches Speichern erfordert übereinstimmende Identität von OCR und Bild, Bildkonfidenz und Abstand über den Schwellenwerten (0,70 und 0,08) sowie eine kompatible Sprache.\n\nURSPRUNG EDSCAN\nDer von EdScan erkannte Druck und das Set bleiben erhalten. OCR prüft Identität und Sprache ohne erneute Bilderkennung. Bei bestätigter Identität und ohne Widerspruch wird ein nur in EN verfügbarer Druck als EN bestätigt, etwa Zombie Master aus LEB. Erkennt OCR Italienisch, obwohl der Druck nur EN erlaubt, bleibt ein manuell zu prüfender Konflikt: EN wird nicht erzwungen und das Set nicht automatisch geändert.\n\nGRENZEN UND MANUELLE PRÜFUNG\nAbweichende Identität, mehrdeutige oder inkompatible Sprache, schwache Bilddaten, unvollständige Kataloge sowie mehrere Exemplare oder Fotos derselben Zeile erfordern Prüfung. Das Finish wird nicht aus dem Bild abgeleitet. Offene manuelle Änderungen werden ausgeschlossen; Mengen und Gruppen bleiben erhalten. Jeder Stapel erhält Sicherung und Verlauf. Zustand und Verkaufspreis werden nicht garantiert.</string>
     <string name="ok">OK</string>
     <string name="cancel">Abbrechen</string>
     <string name="permission_camera_rationale">Zur Erkennung ist Zugriff auf die Kamera erforderlich</string>
@@ -737,4 +748,7 @@
     <string name="review_resolution_progress">Gesamt: %1$d\nVerarbeitet: %2$d\nAutomatisch gelöst und gespeichert: %3$d\nManuelle Prüfung nötig: %4$d\nDavon Fehler: %5$d</string>
     <string name="review_resolution_preparing">Prüfung wird vorbereitet; vorhandene Analysen werden verwendet…</string>
     <string name="review_no_pending">Keine Karten zur Prüfung ausstehend.</string>
+    <string name="review_compare_proposal">Vorschlag</string>
+    <string name="review_compare_saved">Gespeichert</string>
+    <string name="review_use_art_proposal">Bildvorschlag verwenden</string>
 </resources>

@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="review_ocr_no_title">OCR completato: titolo non riconosciuto</string>
+    <string name="review_edscan_evidence_summary">Salvato: %1$s\nOCR: %2$s\nIllustrazione: non necessaria per EdScan</string>
+    <string name="review_tab_pending">In attesa (%1$d)</string>
+    <string name="review_tab_resolved">Risolti (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">Nessun tentativo di risoluzione.</string>
+    <string name="review_no_resolved">Nessuna foto risolta con questo filtro.</string>
+    <string name="review_item_resolved">Risolta</string>
+    <string name="review_item_pending">In attesa</string>
+    <string name="review_rules_title">Regole di risoluzione automatica</string>
+    <string name="review_rules_help">ANALISI E SALVATAGGIO\nRisolvi i casi affidabili esegue le analisi mancanti e riutilizza OCR e illustrazione salvati per la stessa foto. Non serve analizzare prima tutte le foto. Rianalizzare una foto forza una nuova lettura e resta un tentativo eccezionale. La risoluzione tratta i casi in attesa della raccolta, non solo il filtro visibile.\n\nORIGINE OCR\nL’illustrazione può proporre la stampa e l’edizione corrette e aggiornare immagine e prezzo. Il salvataggio automatico richiede concordanza di identità tra OCR e illustrazione, soglie di affidabilità e margine visivo (0,70 e 0,08) e lingua compatibile.\n\nORIGINE EDSCAN\nSi conservano stampa ed edizione identificate da EdScan. L’OCR verifica l’identità e determina la lingua senza richiedere un nuovo riconoscimento visivo. Con identità confermata e senza contraddizioni, una stampa disponibile solo in EN viene confermata come EN, ad esempio Zombie Master di LEB. Se l’OCR rileva italiano ma la stampa ammette solo EN, resta un conflitto da verificare manualmente: EN non viene imposto e l’edizione non cambia automaticamente.\n\nLIMITI E REVISIONE MANUALE\nIdentità diversa, lingua ambigua o incompatibile, prove visive deboli, catalogo incompleto e più copie o foto della stessa riga richiedono revisione. La finitura non viene dedotta dall’immagine. Le modifiche manuali in sospeso sono escluse; quantità e gruppi restano invariati. Ogni lotto conserva una copia precedente e la cronologia. Non sono garantiti stato fisico o prezzo di vendita.</string>
     <string name="ok">OK</string>
     <string name="cancel">Annulla</string>
     <string name="permission_camera_rationale">Per il rilevamento è necessario l\'accesso alla telecamera</string>
@@ -737,4 +748,7 @@
     <string name="review_resolution_progress">Totale: %1$d\nElaborate: %2$d\nRisolte e salvate automaticamente: %3$d\nDa rivedere manualmente: %4$d\nDi cui errori: %5$d</string>
     <string name="review_resolution_preparing">Preparazione; riutilizzo delle analisi esistenti…</string>
     <string name="review_no_pending">Nessuna carta in attesa di revisione.</string>
+    <string name="review_compare_proposal">Proposta</string>
+    <string name="review_compare_saved">Salvata</string>
+    <string name="review_use_art_proposal">Usa proposta visiva</string>
 </resources>

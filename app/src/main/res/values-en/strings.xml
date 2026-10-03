@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="review_ocr_no_title">OCR completed: title not recognised</string>
+    <string name="review_edscan_evidence_summary">Saved: %1$s\nOCR: %2$s\nArtwork: not required for EdScan scans</string>
+    <string name="review_tab_pending">Pending (%1$d)</string>
+    <string name="review_tab_resolved">Resolved (%1$d)</string>
+    <string name="review_filter_ocr">OCR</string>
+    <string name="review_no_attempt">No resolution attempts yet.</string>
+    <string name="review_no_resolved">No resolved photos match this filter.</string>
+    <string name="review_item_resolved">Resolved</string>
+    <string name="review_item_pending">Pending</string>
+    <string name="review_rules_title">How reliable cases are resolved</string>
+    <string name="review_rules_help">ANALYSIS AND SAVING\nResolve reliable cases runs missing analysis and reuses saved OCR and artwork evidence for the same photo. There is no need to analyse all photos first. Reanalysing one photo forces a new reading and remains an exceptional retry. Resolution covers pending photos in the library, not just the visible filter.\n\nOCR ORIGIN\nArtwork can propose the correct printing and set, updating its image and price. Automatic saving requires OCR and artwork to agree on identity, artwork confidence and margin thresholds (0.70 and 0.08), and a compatible language.\n\nEDSCAN ORIGIN\nThe printing and set identified by EdScan are retained. OCR checks identity and determines language without requiring artwork recognition again. With corroborated identity, a printing available only in EN is confirmed as EN if there is no contradictory evidence; for example, Zombie Master from LEB. If OCR detects Italian but that printing only supports EN, it remains a conflict for manual review: EN is not forced and the set is not changed automatically.\n\nLIMITS AND MANUAL REVIEW\nIdentity disagreement, ambiguous or incompatible language, weak artwork evidence, incomplete catalogues and multiple copies or photos of one row require review. Finish is not inferred from the image. Pending manual edits are excluded from automatic resolution; quantities and groups are preserved. Every batch keeps a prior backup and history. Physical condition and a selling price are not guaranteed.</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="permission_camera_rationale">Access to the camera is needed for detection</string>
@@ -737,4 +748,7 @@
     <string name="review_resolution_progress">Total: %1$d\nProcessed: %2$d\nAutomatically resolved and saved: %3$d\nPending manual review: %4$d\nErrors included in pending: %5$d</string>
     <string name="review_resolution_preparing">Preparing review; reusing existing analysis…</string>
     <string name="review_no_pending">No cards pending review.</string>
+    <string name="review_compare_proposal">Proposed</string>
+    <string name="review_compare_saved">Saved</string>
+    <string name="review_use_art_proposal">Use artwork proposal</string>
 </resources>

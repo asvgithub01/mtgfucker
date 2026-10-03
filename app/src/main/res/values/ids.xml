@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <item name="reviewSummary" type="id" />
+    <item name="reviewTabs" type="id" />
+    <item name="reviewSources" type="id" />
+    <item name="reviewSourceAll" type="id" />
+    <item name="reviewSourceEdscan" type="id" />
+    <item name="reviewSourceOcr" type="id" />
+    <item name="reviewList" type="id" />
     <item name="card_image_cache_url" type="id" />
     <item name="hashScanCorrectBorders" type="id" />
 </resources>

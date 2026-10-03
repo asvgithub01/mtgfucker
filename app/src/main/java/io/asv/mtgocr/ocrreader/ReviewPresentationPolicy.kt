@@ -2,6 +2,15 @@ package io.asv.mtgocr.ocrreader
 
 /** One visible item per captured photo, keeping its original evidence key for safe apply checks. */
 object ReviewPresentationPolicy {
+    /** Status belongs to the whole photo, not just its representative evidence row. */
+    fun forTab(entries: List<ScanReviewStore.Entry>, resolved: Boolean, source: String,
+               reopened: Set<String> = emptySet()): List<ScanReviewStore.Entry> {
+        val evidence=entries.groupBy { it.photoKey }
+        return primary(entries).filter { entry ->
+            val done=entry.photoKey !in reopened && reviewed(evidence.getValue(entry.photoKey))
+            done==resolved && (source=="all" || entry.source==source)
+        }
+    }
     fun reviewed(evidence: List<ScanReviewStore.Entry>): Boolean = evidence.isNotEmpty() && evidence.all { it.state=="reviewed" }
     fun candidateState(verified: Boolean, samePrinting: Boolean): String =
         if(!verified) "inconclusive" else if(samePrinting) "consistent" else "conflict"

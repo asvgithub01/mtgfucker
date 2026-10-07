@@ -72,4 +72,3 @@ for(const code of sets){
   catalog.generatedAt=new Date().toISOString();await atomic(join(output,'catalog.json'),JSON.stringify(catalog,null,2)+'\n');
   console.log(`${code}: ${refs.length} references, ${db.length} bytes, ${version}`);
 }
-

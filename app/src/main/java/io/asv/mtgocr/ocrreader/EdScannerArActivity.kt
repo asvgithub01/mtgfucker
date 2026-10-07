@@ -1070,4 +1070,3 @@ class EdScannerArActivity : NativeCollectorVisionActivity() {
     override fun onDestroy() { arPreview?.close(); arPreview=null; clockHandler.removeCallbacks(clockTick); identityResolver.close(); saves.shutdown(); super.onDestroy() }
 
 }
-

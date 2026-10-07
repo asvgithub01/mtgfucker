@@ -1,0 +1,3 @@
+
+# Generated AR manifests are hashed byte-for-byte; keep line endings stable.
+web/public/ar/** -text

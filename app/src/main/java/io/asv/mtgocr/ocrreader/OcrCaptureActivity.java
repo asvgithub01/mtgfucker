@@ -182,6 +182,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private String pendingDetailScrollItemId;
   private int pendingDetailScrollOffset;
   private boolean cardDetailOpen;
+  private long detailPopupFileStamp = -1;
+  private final java.util.Set<String> collectionSelected = new java.util.LinkedHashSet<>();
+  private android.widget.HorizontalScrollView collectionSelectionBar;
+  private boolean collectionBatchDeleting;
 
   Button btnOk, btnCancel;
   private CheckBox closeAfterScanCheck;
@@ -1027,6 +1031,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void setUpRecyclerView() {
     mRecyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+    setUpCollectionSelection();
     // The merged catalog and card grid have responsive/variable row heights.
     mRecyclerView.setHasFixedSize(false);
     if (getPreferences(MODE_PRIVATE).contains(PREF_COLLECTION_VIEW_MODE)) {
@@ -1998,6 +2003,17 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onResume() {
     super.onResume();
+    if (detailPopupFileStamp >= 0) {
+      long previousStamp = detailPopupFileStamp;
+      detailPopupFileStamp = -1;
+      if (mBiblio != null && getFileStreamPath(mBiblio.nameFile).lastModified() == previousStamp) {
+        cardDetailOpen = false;
+        pendingDetailScrollItemId = null;
+        updateSectionBackground();
+        startCameraSource();
+        return; // Closing a read-only popup must not rebuild the home adapter or reload inventory.
+      }
+    }
     ScanReviewStatus.refresh(this, () -> {
       if (!isFinishing() && !isDestroyed() && mRecyclerView != null) { refreshUI(); updateScanSessionUi(); }
     });
@@ -2511,6 +2527,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       sortCards(visibleCards);
       visibleCards = clusterSameNamedCards(visibleCards);
       showTotalPrice(visibleCards);
+      java.util.Set<String> visibleSelectionIds=new java.util.HashSet<>();
+      for(CardInfo visible:visibleCards)visibleSelectionIds.add(visible.getCollectionItemId());
+      collectionSelected.retainAll(visibleSelectionIds);
+      if(collectionSelectionBar!=null)collectionSelectionBar.setVisibility(collectionSelected.isEmpty()?View.GONE:View.VISIBLE);
       mAdapter = new MyAdapter(visibleCards, this, collectionViewMode);
       mRecyclerView.setAdapter(mAdapter);
       restoreCollectionScrollAfterDetail();
@@ -2936,26 +2956,74 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   public void showOrganizerDialog(final CardInfo card) {
-    final List<String> optionList = new ArrayList<>();
-    optionList.add(getString(R.string.add_to_deck));
-    optionList.add(getString(R.string.remove_assignment));
-    boolean premium = PremiumAccess.isEnabled(this);
-    boolean pinned = premium && card.getCollectionItemId().equals(
-        LibraryCatalog.pinnedBackgroundId(this, LibraryCatalog.active(this).getId()));
-    if (premium) {
-      optionList.add(getString(pinned
-          ? R.string.unpin_launch_background : R.string.pin_launch_background));
+    new AlertDialog.Builder(this).setTitle(R.string.organize_card)
+        .setItems(new String[]{getString(R.string.pin_launch_background)}, (dialog,which)-> {
+          CardBackgroundAction.pin(this,card.getCollectionItemId());updateSectionBackground();
+        }).setNegativeButton(android.R.string.cancel,null).show();
+  }
+
+  public boolean isCollectionSelected(String id) { return collectionSelected.contains(id); }
+  public void setCollectionSelected(String id, boolean checked) {
+    if (checked) collectionSelected.add(id); else collectionSelected.remove(id);
+    if(collectionSelectionBar!=null) collectionSelectionBar.setVisibility(collectionSelected.isEmpty()?View.GONE:View.VISIBLE);
+  }
+  private List<CardInfo> selectedCollectionCards() {
+    List<CardInfo> cards=new ArrayList<>();
+    if(mBiblio!=null) for(CardInfo card:mBiblio.cards) if(collectionSelected.contains(card.getCollectionItemId())) cards.add(card);
+    return cards;
+  }
+  private void finishCollectionSelectionEdit() {
+    collectionSelected.clear();collectionSelectionBar.setVisibility(View.GONE);
+    saveCollectionAndRefresh();updateScanSessionUi();
+  }
+  private void setUpCollectionSelection() {
+    collectionSelectionBar=new android.widget.HorizontalScrollView(this);collectionSelectionBar.setVisibility(View.GONE);
+    android.widget.LinearLayout row=new android.widget.LinearLayout(this);collectionSelectionBar.addView(row);
+    android.view.ViewGroup parent=(android.view.ViewGroup)mRecyclerView.getParent();
+    parent.addView(collectionSelectionBar,parent.indexOfChild(mRecyclerView),new android.view.ViewGroup.LayoutParams(-1,-2));
+    int[] labels={R.string.select_all,R.string.collection_deselect_all,R.string.collection_delete_selected,R.string.organize_card};
+    for(int i=0;i<labels.length;i++) {
+      final int action=i;
+      android.widget.Button button=new android.widget.Button(this);button.setText(labels[i]);row.addView(button);
+      button.setOnClickListener(view->{
+        if(action==0) {
+          if(mRecyclerView.getAdapter() instanceof MyAdapter) { MyAdapter adapter=(MyAdapter)mRecyclerView.getAdapter();
+            for(int j=0;j<adapter.getItemCount();j++) collectionSelected.add(adapter.getItem(j).getCollectionItemId());adapter.notifyDataSetChanged(); }
+        } else if(action==1) {
+          collectionSelected.clear();collectionSelectionBar.setVisibility(View.GONE);if(mRecyclerView.getAdapter()!=null)mRecyclerView.getAdapter().notifyDataSetChanged();
+        } else if(action==2) {
+          new AlertDialog.Builder(this).setMessage(getString(R.string.collection_delete_selected_confirm,selectedCollectionCards().size()))
+            .setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{
+              collectionBatchDeleting=true;
+              try { for(CardInfo card:selectedCollectionCards()) { deleteCardFromCollection(card);cardRepository.clearSelectedEdition(card.getCollectionItemId(),()->kotlin.Unit.INSTANCE); } }
+              finally { collectionBatchDeleting=false;finishCollectionSelectionEdit(); }
+            }).show();
+        } else {
+          android.widget.PopupMenu menu=new android.widget.PopupMenu(this,button);
+          menu.getMenu().add(0,1,0,R.string.add_to_deck);menu.getMenu().add(0,2,1,R.string.collection_remove_group);menu.getMenu().add(0,3,2,R.string.collection_remove_deck);
+          menu.setOnMenuItemClickListener(item->{editCollectionAssignments(item.getItemId());return true;});menu.show();
+        }
+      });
     }
-    final String[] options = optionList.toArray(new String[0]);
-    new AlertDialog.Builder(this)
-        .setTitle(R.string.organize_card)
-        .setItems(options, (dialog, which) -> {
-          if (which == 0) showGroupPicker(card, true);
-          if (which == 1) showRemoveAssignmentDialog(card);
-          if (which == 2) updatePinnedLaunchBackground(card, pinned);
-        })
-        .setNegativeButton(android.R.string.cancel, null)
-        .show();
+  }
+  private void editCollectionAssignments(int action) {
+    final List<CardInfo> selected=selectedCollectionCards();
+    java.util.Set<String> names=new java.util.TreeSet<>();
+    if(action==1) { for(DeckDefinition deck:DeckCatalogStore.load(this,mBiblio).decks) names.add(deck.getName()); }
+    else for(CardInfo card:selected) names.addAll(action==2?card.getGroups():card.getDecks());
+    if(names.isEmpty()) { Toast.makeText(this,R.string.no_assignments,Toast.LENGTH_SHORT).show();return; }
+    final String[] options=names.toArray(new String[0]);
+    new AlertDialog.Builder(this).setTitle(action==1?R.string.add_to_deck:R.string.remove_assignment).setItems(options,(dialog,index)->{
+      String name=options[index];
+      if(action==1) {
+        boolean hasSideboard=true;
+        for(DeckDefinition deck:DeckCatalogStore.load(this,mBiblio).decks) if(deck.getName().equals(name)) hasSideboard=DeckFormatRules.byId(deck.getFormatId()).getMaximumSideboard()!=0;
+        if(!hasSideboard) { for(CardInfo card:selected)card.setDeckZone(name,false);finishCollectionSelectionEdit(); }
+        else new AlertDialog.Builder(this).setTitle(R.string.add_to_deck).setItems(new String[]{getString(R.string.main_deck),getString(R.string.sideboard)},(choice,zone)->{
+          for(CardInfo card:selected)card.setDeckZone(name,zone==1);finishCollectionSelectionEdit();
+        }).setNegativeButton(android.R.string.cancel,null).show();
+      } else { for(CardInfo card:selected) { if(action==2)card.removeGroup(name);else card.removeDeck(name); } finishCollectionSelectionEdit(); }
+    }).setNegativeButton(android.R.string.cancel,null).show();
   }
 
   private void updatePinnedLaunchBackground(CardInfo card, boolean currentlyPinned) {
@@ -4392,7 +4460,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   public void openCardDetails(CardInfo card) {
     rememberCollectionScrollForDetail();
     cardDetailOpen = true;
+    detailPopupFileStamp = mBiblio == null ? -1 : getFileStreamPath(mBiblio.nameFile).lastModified();
     Intent intent = new Intent(this, Main2Activity.class);
+    intent.putExtra(Main2Activity.EXTRA_AS_POPUP, true);
     intent.putExtra(Main2Activity.EXTRA_CARD_NAME, card.getName());
     intent.putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, card.getCollectionItemId());
     startActivity(intent);
@@ -4490,6 +4560,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         activeScanSnackbar != null) {
       activeScanSnackbar.dismiss();
     }
+    if (collectionBatchDeleting) return;
     DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
     refreshUI();
     updateScanSessionUi();

@@ -846,4 +846,16 @@
     <string name="triple_languages_loading">A carregar os idiomas da edição…</string>
     <string name="triple_languages_failed">Não foi possível carregar os idiomas. Tenta novamente ou mantém Todos os idiomas.</string>
     <string name="triple_language_scope_help">O idioma fixado aplica-se às novas leituras sem deteção de idioma por OCR. Todos os idiomas deteta-o por carta.</string>
+    <string name="collection_deselect_all">Desselecionar todas</string>
+    <string name="collection_delete_selected">Eliminar</string>
+    <string name="collection_delete_selected_confirm">Eliminar as %1$d cartas selecionadas e todas as cópias?</string>
+    <string name="collection_remove_group">Remover de um grupo</string>
+    <string name="collection_remove_deck">Remover de um deck</string>
+    <string name="review_prices_analyze">Reanalisar preços</string>
+    <string name="review_prices_help">Mesmo acabamento. Diferenças entre preços EUR disponíveis; — indica dados insuficientes, não preços iguais. Valor guardado inalterado.</string>
+    <string name="review_price_both">Ambos</string>
+    <string name="review_price_min_euros">Mín. Δ €</string>
+    <string name="review_price_min_percent">Mín. Δ %</string>
+    <string name="review_prices_row">Edições: %1$s · Idiomas: %2$s\nPreços: %3$d/%4$d variantes</string>
+    <string name="review_prices_progress">Preços: %1$d/%2$d · %3$d erros</string>
 </resources>

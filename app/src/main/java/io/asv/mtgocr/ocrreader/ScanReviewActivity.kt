@@ -1,6 +1,7 @@
 package io.asv.mtgocr.ocrreader
 
 import android.content.Intent
+import androidx.core.widget.doAfterTextChanged
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -98,6 +99,14 @@ class ScanReviewActivity : AppCompatActivity() {
     private var observedBatch: androidx.lifecycle.LiveData<List<androidx.work.WorkInfo>>?=null
     private var analysisRunning=false
     private var signature=""
+    private val priceAnalyzer by lazy { ReviewPriceAnalyzer(this) }
+    private var priceRunning=false
+    private var priceGeneration=0
+    private var priceMode=0
+    private var minPriceEuros=0.0
+    private var minPricePercent=0.0
+    private lateinit var priceButton:Button
+    private lateinit var priceStatus:TextView
     private var restoredListState: android.os.Parcelable?=null
     private val rows=ReviewRows()
     private val tick=object: Runnable { override fun run() { if (active) { reload(); handler.postDelayed(this,2500) } } }
@@ -166,6 +175,20 @@ class ScanReviewActivity : AppCompatActivity() {
             },RadioGroup.LayoutParams(0,-2,1f))
         }
         filterPanel.addView(sources)
+        priceButton=Button(this).apply { setText(R.string.review_prices_analyze);setOnClickListener { analyzePrices() } };filterPanel.addView(priceButton)
+        priceStatus=TextView(this).apply { setText(R.string.review_prices_help);setPadding(dp(12),0,dp(12),dp(4)) };filterPanel.addView(priceStatus)
+        val priceFilters=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL }
+        priceFilters.addView(Spinner(this).apply {
+            adapter=ArrayAdapter(this@ScanReviewActivity,android.R.layout.simple_spinner_dropdown_item,listOf(getString(R.string.review_price_both),getString(R.string.editions),getString(R.string.review_language)))
+            onItemSelectedListener=SimpleItemSelectedListener { priceMode=it;if(::list.isInitialized)render() }
+        },LinearLayout.LayoutParams(0,-2,1f))
+        fun threshold(label:Int,change:(Double)->Unit) {
+            priceFilters.addView(EditText(this).apply { setHint(label);inputType=android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+                doAfterTextChanged { change(it.toString().replace(',','.').toDoubleOrNull()?.takeIf { n->n.isFinite() && n>=0 } ?: 0.0);if(::list.isInitialized)render() }
+            },LinearLayout.LayoutParams(0,-2,1f))
+        }
+        threshold(R.string.review_price_min_euros) { minPriceEuros=it };threshold(R.string.review_price_min_percent) { minPricePercent=it }
+        filterPanel.addView(priceFilters)
         status=TextView(this).apply { setPadding(dp(12),0,dp(12),dp(8)) }; filterPanel.addView(status)
         root.addView(filterPanel)
         val selectionRow=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=android.view.Gravity.CENTER_VERTICAL }
@@ -240,7 +263,7 @@ class ScanReviewActivity : AppCompatActivity() {
     }
     override fun onResume() { super.onResume(); active=true; handler.post(tick); refreshReliableHistory() }
     override fun onPause() { active=false; handler.removeCallbacks(tick); super.onPause() }
-    override fun onDestroy() { historyDialogs.toList().forEach { it.dismiss() }; resolutionDialog?.dismiss(); io.shutdown(); super.onDestroy() }
+    override fun onDestroy() { priceGeneration++;priceAnalyzer.close();historyDialogs.toList().forEach { it.dismiss() }; resolutionDialog?.dismiss(); io.shutdown(); super.onDestroy() }
     private fun reload() {
         if (loading || applying || isDestroyed || isFinishing) return
         loading=true
@@ -260,13 +283,36 @@ class ScanReviewActivity : AppCompatActivity() {
             }
         }
     }
+    private fun analyzePrices() {
+        if(priceRunning) { priceGeneration++;priceAnalyzer.cancel();priceRunning=false;priceButton.setText(R.string.review_prices_analyze);return }
+        val batch=ReviewPresentationPolicy.primary(entries).distinctBy { it.card.name to it.card.finish }
+        if(batch.isEmpty())return
+        val generation=++priceGeneration;priceRunning=true;priceButton.setText(android.R.string.cancel)
+        fun next(index:Int,failed:Int) {
+            if(isDestroyed || isFinishing || generation!=priceGeneration)return
+            priceStatus.text=getString(R.string.review_prices_progress,index,batch.size,failed)
+            if(index==batch.size) { priceRunning=false;priceButton.setText(R.string.review_prices_analyze);render();return }
+            val card=batch[index].card
+            CardRepository.get(this).loadReviewName(card.name) { options,error ->
+                if(isDestroyed || isFinishing || generation!=priceGeneration)return@loadReviewName
+                val canonical=options.firstOrNull()?.cardName
+                if(error!=null || canonical==null)next(index+1,failed+1)
+                else priceAnalyzer.analyze(card.name,canonical,card.finish) { _,failure ->
+                    if(generation==priceGeneration) { render();next(index+1,failed+if(failure==null)0 else 1) }
+                }
+            }
+        }
+        next(0,0)
+    }
     private fun render() {
         val anchor=visible.getOrNull(list.firstVisiblePosition)?.photoKey
         val oldPosition=list.firstVisiblePosition
         val offset=list.getChildAt(0)?.top ?: 0
         val all=ReviewPresentationPolicy.primary(entries)
         val scoped=all.filter { sourceFilter=="all" || it.source==sourceFilter }
-        visible=ReviewPresentationPolicy.forTab(entries,resolvedTab,sourceFilter,reopened)
+        visible=ReviewPresentationPolicy.forTab(entries,resolvedTab,sourceFilter,reopened).filter {
+            ReviewPriceRanges.matches(priceAnalyzer.cached(it.card.name,it.card.finish),priceMode,minPriceEuros,minPricePercent)
+        }
         tabs.getTabAt(0)?.text=getString(R.string.review_tab_pending,all.count { !reviewed(it) })
         tabs.getTabAt(1)?.text=getString(R.string.review_tab_resolved,all.count { reviewed(it) })
         status.text=if(scoped.isEmpty()) getString(R.string.review_no_photos) else getString(R.string.review_photo_counts,
@@ -620,6 +666,10 @@ class ScanReviewActivity : AppCompatActivity() {
             (header.getChildAt(0) as TextView).apply {
                 isEnabled=true; minimumHeight=(48*resources.displayMetrics.density).toInt()
                 if(collapsed) text="${entry.card.name} · ${entry.card.setCode} · "+getString(if(done) R.string.review_item_resolved else R.string.review_item_pending)
+                priceAnalyzer.cached(entry.card.name,entry.card.finish)?.let { ranges ->
+                    fun value(spread:ReviewPriceRanges.Spread?)=spread?.let { "%.2f € · %s".format(it.euros,it.percent?.let { percent->"%.1f%%".format(percent) } ?: "—") } ?: "—"
+                    append("\n"+getString(R.string.review_prices_row,value(ranges.editions),value(ranges.languages),ranges.priced,ranges.total))
+                }
                 val arrow=androidx.appcompat.content.res.AppCompatResources.getDrawable(this@ScanReviewActivity,
                     if(collapsed) R.drawable.ic_review_expand else R.drawable.ic_review_collapse)?.mutate()?.apply {
                     setTint(MagicPalette.primaryColor(this@ScanReviewActivity)); setBounds(0,0,dp(32),dp(32))

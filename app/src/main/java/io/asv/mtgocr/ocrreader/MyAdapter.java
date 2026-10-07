@@ -94,7 +94,12 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
         ? R.layout.card_grid_item
         : CollectionViewMode.usesArtwork(viewMode) ? R.layout.card_art_item : R.layout.card_item;
     View v = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
-    if (v.findViewById(R.id.btnDeleteCard) == null) v = HoldToDelete.wrap(v);
+    if (v.findViewById(R.id.btnDeleteCard) == null) {
+      android.widget.FrameLayout wrapper = new android.widget.FrameLayout(mContext);
+      wrapper.setLayoutParams(v.getLayoutParams()); wrapper.addView(v);
+      android.widget.CheckBox check = new android.widget.CheckBox(mContext);check.setId(R.id.btnDeleteCard);
+      wrapper.addView(check,new android.widget.FrameLayout.LayoutParams(48,48,android.view.Gravity.TOP|android.view.Gravity.START));v=wrapper;
+    }
     // set the view's size, margins, paddings and layout parameters
     //v.setOnClickListener(this);
     ViewHolder vh = new ViewHolder(v);
@@ -179,11 +184,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
   // Replace the contents of a view (invoked by the layout manager)
   @Override public void onBindViewHolder(ViewHolder holder, int position) {
     final CardInfo deleteTarget = mDataset.get(position);
-    HoldToDelete.bind(holder.itemView, deleteTarget.getCollectionItemId(), () -> new android.app.AlertDialog.Builder(mContext)
-        .setMessage(mContext.getString(R.string.delete_session_card_confirm, deleteTarget.getName()))
-        .setNegativeButton(android.R.string.cancel, null)
-        .setPositiveButton(android.R.string.ok, (dialog, which) -> mContext.deleteCardFromCollection(deleteTarget))
-        .show());
+    android.widget.CheckBox selection = holder.itemView.findViewById(R.id.btnDeleteCard);
+    selection.setOnCheckedChangeListener(null);
+    selection.setContentDescription(deleteTarget.getName());
+    selection.setChecked(mContext.isCollectionSelected(deleteTarget.getCollectionItemId()));
+    selection.setOnCheckedChangeListener((button,checked)->mContext.setCollectionSelected(deleteTarget.getCollectionItemId(),checked));
     // - get element from your dataset at this position
     // - replace the contents of the view with that element
     final CardInfo item = mDataset.get(position);

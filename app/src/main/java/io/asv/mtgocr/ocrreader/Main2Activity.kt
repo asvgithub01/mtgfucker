@@ -71,8 +71,19 @@ class Main2Activity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
+        if(intent.getBooleanExtra(EXTRA_AS_POPUP,false)) theme.applyStyle(R.style.ThemeOverlay_Mtg_DetailPopup,true)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main2)
+        findViewById<View>(R.id.btnDetailMenu).setOnClickListener { anchor ->
+            android.widget.PopupMenu(this,anchor).apply {
+                menu.add(R.string.pin_launch_background)
+                setOnMenuItemClickListener { CardBackgroundAction.pin(this@Main2Activity,collectionItemId);true }
+            }.show()
+        }
+        if(intent.getBooleanExtra(EXTRA_AS_POPUP,false)) {
+            window.setLayout((resources.displayMetrics.widthPixels*.95f).toInt(),(resources.displayMetrics.heightPixels*.92f).toInt())
+            findViewById<ImageButton>(R.id.btnBack).setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+        }
         cardName = intent.getStringExtra(EXTRA_CARD_NAME).orEmpty()
         collectionItemId = intent.getStringExtra(EXTRA_COLLECTION_ITEM_ID).orEmpty()
         if (cardName.isBlank() || collectionItemId.isBlank()) {
@@ -226,7 +237,7 @@ class Main2Activity : AppCompatActivity() {
             } ?: options.firstOrNull()
             chosen?.let { option ->
                 showSelectedImage(option)
-                if (selected?.let { it.printingUuid == option.printingUuid && it.finish == option.finish } == true) {
+                if ((!intent.getBooleanExtra(EXTRA_AS_POPUP,false) || forcePriceRefresh) && selected?.let { it.printingUuid == option.printingUuid && it.finish == option.finish } == true) {
                     LegacyCollectionStore.updateSelectedEdition(this, collectionItemId, option)
                     setResult(RESULT_OK)
                 }
@@ -337,7 +348,7 @@ class Main2Activity : AppCompatActivity() {
             languageProgress.visibility = View.GONE
             val savedCard = ownedCard()
             val savedLanguage = CardLanguage.toCode(savedCard?.languageCode)
-            if (savedLanguage.isNotBlank() && savedLanguage != "en" &&
+            if (!intent.getBooleanExtra(EXTRA_AS_POPUP,false) && savedLanguage.isNotBlank() && savedLanguage != "en" &&
                 loaded.none { it.languageCode == savedLanguage } &&
                 !languageEditionReselectAttempted
             ) {
@@ -380,8 +391,11 @@ class Main2Activity : AppCompatActivity() {
                 .takeIf { it >= 0 }
                 ?: loaded.indexOfFirst { it.languageCode == "en" }.coerceAtLeast(0)
             languageSpinner.setSelection(preferred, false)
-            loaded.getOrNull(preferred)?.let { applyLanguageVariant(option, it) }
+            loaded.getOrNull(preferred)?.let { applyLanguageVariant(option, it, !intent.getBooleanExtra(EXTRA_AS_POPUP,false)) }
+            var previousPosition=preferred
             languageSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
+                if(position==previousPosition)return@SimpleItemSelectedListener
+                previousPosition=position
                 languageVariants.getOrNull(position)?.let { variant ->
                     applyLanguageVariant(option, variant)
                 }
@@ -392,12 +406,12 @@ class Main2Activity : AppCompatActivity() {
     private fun ownedCard() = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this))?.cards
         ?.firstOrNull { it.collectionItemId == collectionItemId }
 
-    private fun applyLanguageVariant(option: CardEditionOption, variant: CardImageVariant) {
+    private fun applyLanguageVariant(option: CardEditionOption, variant: CardImageVariant, persist:Boolean=true) {
         CardImageCache.displayKeepingCurrent(this, variant.imageUrl, image)
         val isOwnedPrinting = selected?.let {
             it.printingUuid == option.printingUuid && it.finish == option.finish
         } == true
-        if (!isOwnedPrinting) return
+        if (!isOwnedPrinting || !persist) return
         LegacyCollectionStore.updateLanguageVariant(
             this,
             collectionItemId,
@@ -495,6 +509,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     companion object {
+        const val EXTRA_AS_POPUP="cardDetailPopup"
         const val EXTRA_CARD_NAME = "cardName"
         const val EXTRA_COLLECTION_ITEM_ID = "collectionItemId"
     }

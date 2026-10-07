@@ -846,4 +846,16 @@
     <string name="triple_languages_loading">Loading edition languages…</string>
     <string name="triple_languages_failed">Could not load languages. Retry or leave All languages selected.</string>
     <string name="triple_language_scope_help">A fixed language applies to new readings and skips OCR language detection. All languages detects it per card.</string>
+    <string name="collection_deselect_all">Deselect all</string>
+    <string name="collection_delete_selected">Delete</string>
+    <string name="collection_delete_selected_confirm">Delete the %1$d selected cards and all their copies?</string>
+    <string name="collection_remove_group">Remove from group</string>
+    <string name="collection_remove_deck">Remove from deck</string>
+    <string name="review_prices_analyze">Reanalyze prices</string>
+    <string name="review_prices_help">Same finish. Differences between available EUR prices; — means insufficient data, not equal prices. Saved valuation is unchanged.</string>
+    <string name="review_price_both">Both</string>
+    <string name="review_price_min_euros">Min. Δ €</string>
+    <string name="review_price_min_percent">Min. Δ %</string>
+    <string name="review_prices_row">Editions: %1$s · Languages: %2$s\nPrices: %3$d/%4$d variants</string>
+    <string name="review_prices_progress">Prices: %1$d/%2$d · %3$d errors</string>
 </resources>

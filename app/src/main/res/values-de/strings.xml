@@ -846,4 +846,16 @@
     <string name="triple_languages_loading">Sprachen der Edition werden geladen…</string>
     <string name="triple_languages_failed">Sprachen konnten nicht geladen werden. Erneut versuchen oder Alle Sprachen beibehalten.</string>
     <string name="triple_language_scope_help">Eine feste Sprache gilt für neue Scans und überspringt die OCR-Spracherkennung. Alle Sprachen erkennt sie pro Karte.</string>
+    <string name="collection_deselect_all">Alle abwählen</string>
+    <string name="collection_delete_selected">Löschen</string>
+    <string name="collection_delete_selected_confirm">Die %1$d ausgewählten Karten mit allen Exemplaren löschen?</string>
+    <string name="collection_remove_group">Aus Gruppe entfernen</string>
+    <string name="collection_remove_deck">Aus Deck entfernen</string>
+    <string name="review_prices_analyze">Preise neu analysieren</string>
+    <string name="review_prices_help">Gleiche Ausführung. Unterschiede verfügbarer EUR-Preise; — bedeutet fehlende Daten, nicht gleiche Preise. Gespeicherter Wert bleibt unverändert.</string>
+    <string name="review_price_both">Beide</string>
+    <string name="review_price_min_euros">Min. Δ €</string>
+    <string name="review_price_min_percent">Min. Δ %</string>
+    <string name="review_prices_row">Editionen: %1$s · Sprachen: %2$s\nPreise: %3$d/%4$d Varianten</string>
+    <string name="review_prices_progress">Preise: %1$d/%2$d · %3$d Fehler</string>
 </resources>

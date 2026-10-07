@@ -35,6 +35,9 @@ class CardImageActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var pageStatus: TextView
     private lateinit var price: TextView
+    private lateinit var setSymbol:ImageView
+    private val edits=java.util.concurrent.Executors.newSingleThreadExecutor()
+    private var editionRevision=0
     private lateinit var detailsButton: android.widget.ImageButton
     private lateinit var foilBadge: ImageView
     private lateinit var foilEffectControls: View
@@ -74,12 +77,15 @@ class CardImageActivity : AppCompatActivity() {
             FoilEffectMode.DEFAULT
         ) ?: FoilEffectMode.DEFAULT
         configureFoilEffectControls()
-        findViewById<Button>(R.id.btnCloseCardImage).setOnClickListener { finish() }
-        detailsButton.setOnClickListener { openCurrentCardDetails() }
+        findViewById<View>(R.id.btnCloseCardImage).setOnClickListener { finish() }
+        detailsButton.setOnClickListener { showGalleryMenu() }
+        setSymbol=findViewById(R.id.gallerySetSymbol)
+        setSymbol.setOnClickListener { changeCurrentEdition() }
         val imageUrl = intent.getStringExtra(EXTRA_IMAGE_URL)
         val setCode = intent.getStringExtra(EXTRA_SET_CODE).orEmpty()
         val collectorNumber = intent.getStringExtra(EXTRA_COLLECTOR_NUMBER).orEmpty()
-        galleryToken = intent.getStringExtra(EXTRA_GALLERY_TOKEN).orEmpty()
+        galleryToken = savedInstanceState?.getString(EXTRA_GALLERY_TOKEN)
+            ?: intent.getStringExtra(EXTRA_GALLERY_TOKEN).orEmpty()
         pages = editionPagesFromIntent(imageUrl, setCode, collectorNumber)
         currentPage = (savedInstanceState?.getInt(STATE_CURRENT_PAGE)
             ?: intent.getIntExtra(EXTRA_EDITION_INDEX, 0))
@@ -92,6 +98,14 @@ class CardImageActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        if (pages.isNotEmpty()) {
+            if (galleryToken.isNotBlank()) CardGalleryStore.remove(galleryToken)
+            galleryToken = CardGalleryStore.put(pages.mapIndexed { index, page ->
+                CardGalleryStore.Page(index.toString(), page.cardName, page.collectionItemId,
+                    page.imageUrl, page.label, page.setCode, page.collectorNumber, page.priceLabel, page.finish)
+            })
+            outState.putString(EXTRA_GALLERY_TOKEN, galleryToken)
+        }
         outState.putInt(STATE_CURRENT_PAGE, currentPage)
         outState.putInt(STATE_FOIL_EFFECT_MASK, foilEffectMask)
         super.onSaveInstanceState(outState)
@@ -255,9 +269,10 @@ class CardImageActivity : AppCompatActivity() {
                 }
             )
         )
-        detailsButton.visibility = if (
-            page.cardName.isNotBlank() && page.collectionItemId.isNotBlank()
-        ) View.VISIBLE else View.GONE
+        detailsButton.visibility=if(owned(page)!=null) View.VISIBLE else View.GONE
+        SetSymbolLoader.display(this,page.setCode,setSymbol,android.R.drawable.ic_menu_gallery)
+        setSymbol.contentDescription=getString(R.string.editions)+" · "+page.setCode
+        setSymbol.isEnabled=owned(page)!=null
         val foil = CardFinish.isFoil(page.finish)
         foilBadge.visibility = if (foil) View.VISIBLE else View.GONE
         foilEffectControls.visibility = if (foil) View.VISIBLE else View.GONE
@@ -304,14 +319,67 @@ class CardImageActivity : AppCompatActivity() {
 
     private fun openCurrentCardDetails() {
         val page = pages.getOrNull(currentPage) ?: return
-        if (page.cardName.isBlank() || page.collectionItemId.isBlank()) return
+        if (owned(page)==null) return
         startActivity(Intent(this, Main2Activity::class.java).apply {
+            putExtra(Main2Activity.EXTRA_AS_POPUP,true)
             putExtra(Main2Activity.EXTRA_CARD_NAME, page.cardName)
             putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, page.collectionItemId)
         })
-        // The gallery is only an intermediate view. Removing it from the task means Back from
-        // the detail returns directly to the card list at the position from which it was opened.
-        finish()
+        // Keep the gallery underneath so closing details returns to the same card/language.
+    }
+
+    private fun owned(page:EditionImagePage)=io.asv.mtgocr.ocrreader.data.LegacyCollectionStore.cards(this)
+        .firstOrNull { page.collectionItemId.isNotBlank() && it.collectionItemId==page.collectionItemId }
+
+    private fun showGalleryMenu() {
+        val page=pages.getOrNull(currentPage) ?: return
+        val card=owned(page) ?: return
+        android.widget.PopupMenu(this,detailsButton).apply {
+            menu.add(0,1,0,R.string.view_card_details)
+            menu.add(0,2,1,R.string.pin_launch_background)
+            setOnMenuItemClickListener {
+                when(it.itemId) { 1->openCurrentCardDetails();2->CardBackgroundAction.pin(this@CardImageActivity,card.collectionItemId) }
+                true
+            }
+        }.show()
+    }
+    private fun changeCurrentEdition() {
+        val page=pages.getOrNull(currentPage) ?: return
+        val expected=owned(page)?.snapshotForPersistence() ?: return
+        val library=LibraryCatalog.activeFile(this)
+        val revision=++editionRevision
+        EditionPicker.showGrid(this,expected.name,expected.finish) { option ->
+            fun apply(language:String,imageUrl:String?,printedName:String=expected.name) {
+                if(isFinishing || isDestroyed || revision!=editionRevision) return
+                val localized=option.copy(imageUrl=imageUrl ?: option.imageUrl,displayName=printedName)
+                edits.execute {
+                    val saved=runCatching { synchronized(io.asv.mtgocr.ocrreader.data.LegacyCollectionStore) {
+                        io.asv.mtgocr.ocrreader.data.LegacyCollectionStore.applyReviewedPrinting(this,library,expected,localized,language,allowFinishChange=true)
+                    } }.getOrNull()
+                    if(saved==null) runOnUiThread { if(!isDestroyed) android.widget.Toast.makeText(this,R.string.review_operation_failed,android.widget.Toast.LENGTH_LONG).show() }
+                    else CardRepository.get(this).selectReviewedEdition(saved.collectionItemId,localized) { error ->
+                        if(isFinishing || isDestroyed) return@selectReviewedEdition
+                        if(error!=null) { android.widget.Toast.makeText(this,R.string.review_operation_failed,android.widget.Toast.LENGTH_LONG).show();return@selectReviewedEdition }
+                        pages=pages.map { old -> if(old.collectionItemId!=saved.collectionItemId) old else old.copy(
+                            cardName=saved.name,imageUrl=saved.imgPath.orEmpty(),label="${saved.name} · ${saved.setCode} #${saved.collectorNumber}",
+                            setCode=saved.setCode.orEmpty(),collectorNumber=saved.collectorNumber.orEmpty(),finish=saved.finish.orEmpty(),
+                            priceLabel=io.asv.mtgocr.ocrreader.data.PriceCurrency.format(this,saved)) }
+                        pager.adapter?.notifyDataSetChanged();thumbnailsAdapter.notifyDataSetChanged();onPageSettled()
+                    }
+                }
+            }
+            if(expected.languageCode.isNullOrBlank()) apply("",option.imageUrl)
+            else CardRepository.get(this).loadImageLanguages(option.setCode,option.collectorNumber) { available,error ->
+                if(isFinishing || isDestroyed || revision!=editionRevision) return@loadImageLanguages
+                val matching=available.firstOrNull { it.languageCode==expected.languageCode }
+                if(matching!=null) apply(expected.languageCode,matching.imageUrl,matching.printedName)
+                else if(error!=null || available.isEmpty()) android.widget.Toast.makeText(this,R.string.review_language_unavailable,android.widget.Toast.LENGTH_LONG).show()
+                else androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.review_choose_language)
+                    .setItems(available.map { CardLanguageFlag.label(it.languageCode) }.toTypedArray()) { _,index->
+                        apply(available[index].languageCode,available[index].imageUrl,available[index].printedName)
+                    }.setNegativeButton(android.R.string.cancel,null).show()
+            }
+        }
     }
 
     private fun loadLanguages(page: EditionImagePage) {
@@ -334,8 +402,9 @@ class CardImageActivity : AppCompatActivity() {
             val labels = loaded.map { "${languageLabel(it.languageCode)} — ${it.printedName}" }
             languageSpinner.adapter = GalleryLanguageSpinnerAdapter(this, loaded, labels)
             languageSpinner.visibility = View.VISIBLE
-            val preferred = loaded.indexOfFirst { it.imageUrl == page.imageUrl }
-                .takeIf { it >= 0 }
+            val savedLanguage=owned(page)?.languageCode
+            val preferred = loaded.indexOfFirst { it.languageCode==savedLanguage }.takeIf { it>=0 }
+                ?: loaded.indexOfFirst { it.imageUrl == page.imageUrl }.takeIf { it >= 0 }
                 ?: loaded.indexOfFirst { it.languageCode == "en" }.coerceAtLeast(0)
             languageSpinner.setSelection(preferred)
             languageSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
@@ -347,6 +416,7 @@ class CardImageActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        editionRevision++;edits.shutdown()
         languageLoadTask?.cancel(true)
         boundPages.keys.toList().forEach { Glide.clear(it); it.setImageDrawable(null) }
         boundPages.clear()

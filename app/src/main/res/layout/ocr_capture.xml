@@ -282,6 +282,12 @@
                     android:textColor="#FFFFFF"
                     android:textSize="16sp" />
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnArDownloads"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ar_downloads_title" />
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCreateLibrary"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="match_parent"
@@ -819,6 +825,29 @@
         app:backgroundTint="?attr/colorSecondary"
         app:srcCompat="@drawable/ic_translate"
         app:tint="?attr/colorPrimaryVariant" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabTripleScanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fabEdScannerAr"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="7dp"
+        android:layout_marginBottom="10dp"
+        android:text="@string/triple_title"
+        app:icon="@drawable/ic_experimental_scanner" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabEdScannerAr"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/fabCollectorVision"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="7dp"
+        android:layout_marginBottom="10dp"
+        android:text="@string/edscan_ar_title"
+        android:contentDescription="@string/edscan_ar_title"
+        app:icon="@drawable/ic_experimental_scanner" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabCollectorVision"

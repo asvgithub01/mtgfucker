@@ -381,6 +381,17 @@ object LegacyCollectionStore {
         return current
     }
 
+    /** Scanner provisional status is metadata, never a replacement printing or language. */
+    @Synchronized fun markScanProvisional(context: Context, library: String, itemId: String, provisional: Boolean): CardInfo? {
+        if(fileName(context)!=library) return null
+        val collection=DataUtils.readSerializable<Biblio>(context,library) ?: return null
+        val card=collection.cards.firstOrNull { it.collectionItemId==itemId } ?: return null
+        card.setProvisionalEdition(provisional)
+        DataUtils.saveSerializable(context,collection,library)
+        OcrCaptureActivity.mBiblio=collection
+        return card
+    }
+
     /** Price-only merge: never revert a later edition/finish change or alter quantities. */
     @Synchronized fun applyScanPrice(context: Context, library: String, itemId: String,
         uuid: String, finish: String, amount: Double, currency: String): Boolean = synchronized(DataUtils::class.java) {

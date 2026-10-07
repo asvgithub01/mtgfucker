@@ -475,6 +475,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabHashOnlyScanner.setOnClickListener(this);
     fabRulesScanner.setOnClickListener(this);
     fabCollectorVision.setOnClickListener(this);
+    findViewById(R.id.fabTripleScanner).setOnClickListener(this);
+    findViewById(R.id.fabEdScannerAr).setOnClickListener(this);
     setUpNamePredictor();
     //mnu1
 
@@ -1409,6 +1411,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void setUpPremiumSettings() {
+    findViewById(R.id.btnArDownloads).setOnClickListener(view -> {
+      if (!PremiumAccess.isEnabled(this)) {
+        Toast.makeText(this, R.string.premium_required, Toast.LENGTH_SHORT).show();
+      } else startActivity(new Intent(this, ArDownloadsActivity.class));
+    });
     premiumModeCheck = findViewById(R.id.checkPremiumMode);
     createLibraryButton = findViewById(R.id.btnCreateLibrary);
     cloudAccountButton = findViewById(R.id.btnCloudAccount);
@@ -1555,6 +1562,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabRulesScanner.setVisibility(
         settings || catalog || photos ? View.GONE : View.VISIBLE);
     fabCollectorVision.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
+    findViewById(R.id.fabTripleScanner).setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
+    findViewById(R.id.fabEdScannerAr).setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
     }
@@ -3231,6 +3240,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     } else if (viewId == R.id.fabRapidEditionScanner) {
         startActivityForResult(
             new Intent(this, RapidEditionScanActivity.class), RC_RAPID_EDITION_SCAN);
+    } else if (viewId == R.id.fabTripleScanner) {
+      startActivity(new Intent(this, TripleScanActivity.class));
+    } else if (viewId == R.id.fabEdScannerAr) {
+      Intent scanner = new Intent(this, EdScannerArActivity.class);
+      if (currentFilterKey.startsWith("group:")) {
+        scanner.putExtra(EdScannerArActivity.EXTRA_DESTINATION_GROUP,
+            currentFilterKey.substring("group:".length()));
+      }
+      startActivityForResult(scanner, RC_RAPID_EDITION_SCAN);
     } else if (viewId == R.id.fabCollectorVision) {
       Intent scanner = new Intent(this, CorneliusScanActivity.class);
       if (currentFilterKey.startsWith("group:")) {
@@ -4531,6 +4549,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     fabHashOnlyScanner.setVisibility(View.GONE);
     fabRulesScanner.setVisibility(View.GONE);
     fabCollectorVision.setVisibility(View.GONE);
+    findViewById(R.id.fabTripleScanner).setVisibility(View.GONE);
+    findViewById(R.id.fabEdScannerAr).setVisibility(View.GONE);
     topLayout.setVisibility(View.VISIBLE);
     lytSearch.setVisibility(View.VISIBLE);
     lytSearch.bringToFront();

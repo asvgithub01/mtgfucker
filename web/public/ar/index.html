@@ -1,0 +1,15 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bases AR · MTGFucker</title>
+<style>body{font:16px system-ui;background:#101015;color:#eee;max-width:960px;margin:32px auto;padding:20px}input{padding:12px;width:90%}article{border:1px solid #555;border-radius:12px;padding:16px;margin:16px 0}a{color:#bfe88d;margin-right:16px}small{display:block;overflow-wrap:anywhere;margin-top:8px}</style>
+<a href="../">← Cardmarket Companion</a><h1>Bases AR por edición</h1><p>Paquetes precompilados para el gestor Premium de Android. La cobertura y el idioma se indican por paquete; no todas las ediciones están publicadas todavía. Estos archivos son públicos; Premium se comprueba en la app.</p>
+<input id="search" aria-label="Buscar edición" placeholder="Buscar edición o código"><p id="status">Cargando…</p><main id="list"></main>
+<script type="module">
+const list=document.querySelector('#list'),status=document.querySelector('#status'),search=document.querySelector('#search');
+try {const r=await fetch('./catalog.json',{cache:'no-cache'});if(!r.ok)throw Error();const catalog=await r.json();if(catalog.schemaVersion!==1)throw Error();
+const normalize=s=>s.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase();
+function render(){list.replaceChildren();for(const p of catalog.packages.filter(p=>normalize(p.id+' '+p.name).includes(normalize(search.value)))) {
+const row=document.createElement('article'),title=document.createElement('h2'),detail=document.createElement('p');title.textContent=p.id+' · '+p.name;detail.textContent=p.coverage+' · '+p.referenceCount+' referencias · '+((p.database.bytes+p.metadata.bytes)/1e6).toFixed(2)+' MB';row.append(title,detail);
+for(const [key,label]of [['database','Descargar DB'],['metadata','Metadatos']]){const f=p[key];if(!/^[a-z0-9-]+\.(imgdb|json)$/.test(f.file))throw Error();const a=document.createElement('a');a.href='./'+f.file;a.download=f.file;a.textContent=label;row.append(a);}
+const hash=document.createElement('small');hash.textContent='SHA-256 DB: '+p.database.sha256;row.append(hash);list.append(row);
+}status.textContent=catalog.packages.length+' paquetes publicados';}search.addEventListener('input',render);render();
+}catch{status.textContent='No se pudo cargar el catálogo. Inténtalo más tarde.'}
+</script></html>

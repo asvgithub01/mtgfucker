@@ -770,9 +770,58 @@ class CardRepository private constructor(context: Context) {
         }
     }
 
+    private val scannerPriceExecutor=Executors.newSingleThreadExecutor()
+
+    /** Exact printing/finish fallback, off recognition workers; never downloads the global index. */
+    fun loadScannerPrice(printingUuid:String,finish:String,callback:(CardEditionOption?,Throwable?)->Unit) {
+        scannerPriceExecutor.execute {
+            val result=runCatching {
+                val printing=requireNotNull(dao.printingsByUuids(listOf(printingUuid)).firstOrNull())
+                val order=PriceSourcePreferences.priorityIds(appContext)
+                val local=priceProvider.cachedPrices(setOf(printingUuid),order)+dao.pricesFor(listOf(printingUuid))
+                var option=combine(listOf(printing),local,printing.name).firstOrNull { it.finish==finish }
+                if(option?.price==null && PriceSourcePreferences.SCRYFALL in order) {
+                    val remote=ScryfallPriceDataProvider(client.newBuilder().callTimeout(8,TimeUnit.SECONDS).build()).prices(listOf(printing))
+                    if(remote.isNotEmpty()) dao.savePrices(remote)
+                    option=combine(listOf(printing),local+remote,printing.name).firstOrNull { it.finish==finish }
+                }
+                option
+            }
+            mainHandler.post { callback(result.getOrNull(),result.exceptionOrNull()) }
+        }
+    }
+
     private val exactSetRefreshAt = mutableMapOf<String, Long>()
 
     /** Resolve visual UUID exactly; never substitute first printing with the same name/set. */
+    /** Exact local prices only, never download a catalog or use another finish for AR packages. */
+    fun loadArPackagePrices(ids: Map<String,String>, callback: (Map<String,Pair<Double,String>>) -> Unit) {
+        visualLookupExecutor.execute {
+            val result=runCatching {
+                val printings=ids.keys.toList().chunked(500).flatMap { dao.printingsByScryfallIds(it) }
+                val prices=printings.map { it.uuid }.distinct().chunked(500).flatMap {
+                    priceProvider.cachedPrices(it.toSet(),PriceSourcePreferences.priorityIds(appContext)) + dao.pricesFor(it)
+                }.groupBy { it.printingUuid }
+                val byId=printings.groupBy { it.scryfallId }
+                val priority=PriceSourcePreferences.priorityIds(appContext).withIndex().associate { it.value to it.index }
+                ids.mapNotNull { (id,finish) ->
+                    val price=byId[id].orEmpty().flatMap { prices[it.uuid].orEmpty() }
+                        .filter { it.finish==finish || (finish=="nonfoil" && it.finish=="normal") }
+                        .minByOrNull { priority[it.provider] ?: Int.MAX_VALUE } ?: return@mapNotNull null
+                    id to (price.amount to price.currency)
+                }.toMap()
+            }.getOrDefault(emptyMap())
+            mainHandler.post { callback(result) }
+        }
+    }
+
+    fun loadLocalArReference(scryfallId: String, callback: (String?, String?) -> Unit) {
+        visualLookupExecutor.execute {
+            val printing=runCatching { dao.printingByScryfallId(scryfallId) }.getOrNull()
+            mainHandler.post { callback(printing?.uuid,printing?.imageUrl) }
+        }
+    }
+
     fun loadCollectorVisionPrinting(scryfallId: String, callback: (List<CardEditionOption>, Throwable?) -> Unit) {
         visualLookupExecutor.execute {
             try {
@@ -883,11 +932,21 @@ class CardRepository private constructor(context: Context) {
     }
 
     fun loadSet(setCode: String, callback: (List<SetCardOption>, Throwable?) -> Unit) {
+        loadSetInternal(setCode, false, callback)
+    }
+
+    /** AR preparation must not fetch prices per card or mutate the collection. */
+    fun loadArSet(setCode: String, callback: (List<SetCardOption>, Throwable?) -> Unit) {
+        loadSetInternal(setCode, true, callback)
+    }
+
+    private fun loadSetInternal(setCode: String, localPricesOnly: Boolean, callback: (List<SetCardOption>, Throwable?) -> Unit) {
         executor.execute {
             try {
                 val printings = catalog.setCards(setCode)
                 if (printings.isEmpty()) error("No se encontraron cartas para el set $setCode")
-                val prices = preferredPrices(printings, false)
+                if (localPricesOnly) check(dao.fullSetSync(setCode.uppercase(Locale.US)) != null) { "Incomplete set catalog: $setCode" }
+                val prices = if (localPricesOnly) dao.pricesFor(printings.map { it.uuid }) else preferredPrices(printings, false)
                 val pricesByPrinting = prices.groupBy { it.printingUuid }
                 val cards = printings.map { printing ->
                     val availablePrices = pricesByPrinting[printing.uuid].orEmpty()
@@ -895,7 +954,7 @@ class CardRepository private constructor(context: Context) {
                     val finish = if ("nonfoil" in finishes) "nonfoil" else finishes.firstOrNull() ?: "nonfoil"
                     val priceFinish = if (finish == "nonfoil") "normal" else finish
                     val preferredPrice = availablePrices.firstOrNull { it.finish == priceFinish || (priceFinish == "normal" && it.finish == "nonfoil") }
-                        ?: availablePrices.firstOrNull()
+                        ?: availablePrices.firstOrNull().takeUnless { localPricesOnly }
                     SetCardOption(
                         printing.uuid,
                         printing.name,

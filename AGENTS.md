@@ -43,6 +43,7 @@
 | Vistas de colección y borrado | `FourCardLayoutManager.kt`: completas2×2, arte1×2/2×3 horizontal; `HoldToDelete.kt`: botón inline, mantener1s y confirmar porID. Lista clásica retirada. |
 | CollectorVision nativo aislado | Host `CorneliusScanActivity.kt` guarda en grupos Cornelius N mediante UUID exacta. Módulo `collectorvision-native/`: `NativeCollectorVisionActivity.kt`, `NativeCollectorVisionEngine.kt`, `CollectorVisionAssets.kt`, `CollectorVisionAcceptanceGate.kt`; preview separado del análisis, sonido solo al reconocer; flags persistentes de filtros/rápido y miniatura; precio Scryfall asíncrono por UUID/acabado. Demo WebView sin entrada activa |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
+| POC EdScan + ARCore (cámara única) | `EdScannerArActivity.kt` (host copiado), `EdScannerArPreview.kt`, `EdScannerArSurface.kt`, `EdScannerArOverlay.kt`, `ArCardProjection.kt`, `ArYuvRgb.kt`; consultar `EDSCAN_AR_POC.md`. ARCore proporciona CPU frames al worker de EdScan (usesExternalCamera); un frame en vuelo, cerrar Image tras convertir. Cámara mayoritaria con Opciones plegables; AR opcional, overlay solo FULL_TRACKING. |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
 | Símbolo V2 del laboratorio hash | `SetSymbolHashMatcher.kt`, `SetSymbolHashPolicy.kt`, `PrintedSetSymbolPolicy.kt`, `HashSymbolPrintingEvidence.kt`, `SymbolRetryPolicy.kt`, `SetSymbolSvgSource.kt`, `SymbolScanDiagnostics.kt`; flag persistente `symbol_v2`, apagado por defecto. Últimos 30 intentos privados en `files/symbol_scan_v2/`. |
 | Hash con OCR/símbolo opcionales | `HashScanAnalysis.kt`, `HashScanEvidence.kt`, `HashPrintingVariantPolicy.kt`; controles, sesión y metadatos de captura en `RapidEditionScanActivity.kt`/`activity_rapid_edition_scan.xml`. Ver `ART_HASH_EVALUATION.md`; no atribuir al hash una edición exacta. |
@@ -137,7 +138,9 @@ Actualizar índices visuales no actualiza este diccionario; comprobar también l
 - Un alias de título puede ser idéntico en ES y PT. El scanner conserva la región de reglas
   en `OcrLumaEnhancer`, la extrae sin mezclarla con candidatos de título y clasifica el idioma
   una vez por lectura aceptada. `ScanLanguagePolicy` cubre confianza y habilidades de maná
-  cortas. No deducir idioma físico de la edición ni cambiar masivamente cartas PT existentes.
+  cortas. No deducir idioma físico de una edición provisional ni cambiar masivamente cartas PT existentes.
+  Excepción Triple: impresión AR/arte fiable con catálogo completo de un único idioma;
+  asignarlo sin esperar OCR. OCR posterior contrario marca conflicto de edición, no sobrescribe.
 - El modo lento devuelve UUID, acabado e idioma; no volver a elegir la primera carta del set,
   porque puede tener otro arte. Los submenús muestran miniaturas por impresión.
 - El autoañadido por hash usa el primer candidato de arte cuyo nombre coincida con OCR, aunque sea
@@ -346,3 +349,29 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Postprocesado: `ReviewEvidenceCache.kt` reutiliza OCR/arte por hash de captura, metadata y resultados. Autorresolver omite resultados pendientes sin cambios y distingue presets automáticos de borradores manuales. Reanalizar explícito fuerza nuevas evidencias; no bajar umbrales para vaciar pendientes.
 
 - Autorresolución EdScan: conservar UUID/edición/acabado guardados; OCR con identidad coincidente e idioma disponible resuelve idioma sin exigir otra verificación visual. Origen OCR sí requiere arte. Versionar decisiones (`ReliableReviewPolicy.VERSION`) al cambiar reglas, no recalcular OCR/arte por ese motivo.
+
+
+### Diagnostico de EdScan AR
+- La POC conserva la galeria fuera de Opciones y no aplica el timeout automatico de
+  inactividad; pausas manuales/ciclo de vida siguen vigentes. CameraX no cambia.
+- En debug, `EdScanPerf` registra tiempos agregados por etapa e hilo (motor, conversion,
+  GL, cola/trabajo UI, referencia AR), heartbeat y estado ahorro/termico. Comparar
+  ambos scanners con la misma carta/condiciones antes de cambiar umbrales o resolucion.
+  Consultar `EDSCAN_AR_POC.md`; no guardar fotos ni datos personales en los logs.
+
+
+- La estrategia AR de contorno genérico es solo detección 2D sin identidad/precio:
+  geometría de Frame actual, caducidad250ms y guardas orientación/tamaño. No utilizarla
+  como pose3D ni enlazar precio anterior. Los efectos ArEnergyBorder/ArCardReveal
+  requieren FULL_TRACKING. Opciones experimentales OFF por defecto.
+
+
+- Paquetes AR descargables: `packages/ar-packages/README.md`, generador `npm run build:ar -- --all` (solo cobertura revisada en editions.json), catálogo `web/public/ar`. Gestor `ArDownloadsActivity`/`ArPackageStore`, ajustes Premium; solo nuevo scanner AR los consume. Configurar `-ParPackagesUrl=https://HOST/ar` antes de distribuir. No confundir Premium local con protección de URLs públicas; no publicar sidecars de arcoreimg con rutas locales.
+
+- Descubrimiento AR: `npm run discover:ar` verifica ediciones/DBs; `--generate-missing` genera ausentes (coste alto, explícito). `build:ar -- --sets CODIGO` admite cualquier set, solo principal si falta cobertura en `packages/ar-packages/assets/ar-editions.json`. Asset compartido Android/Node; no adivinar anexos. `ArLocalPackageBuilder` genera en Ajustes cuando no hay paquete publicado; nunca sube a web ni toca colección.
+
+- Laboratorio triple aislado: `TripleScanActivity.kt`, `TripleEncounterGate.kt`, `TripleSnapshotOcr.kt`, `TripleLanguageEvidence.kt`, `TripleScanPolicy.kt`, `TripleCardLookup.kt`, `TripleOcrPrintingResolver.kt`, `TripleOcrPrintingPolicy.kt`, `TripleScanTrace.kt`, `TripleTitleGuide.kt`, `TripleArPreview.kt`, `TripleArSurface.kt`, `TripleConfetti.kt`, `TripleRarityColor.kt`, `TripleArOverlay.kt`, `TripleArImageCache.kt`, `TripleArRenderPolicy.kt`, `TripleEnergyBorder.kt`; botón `fabTripleScanner`. Guarda una fila por encuentro mediante `TripleCollectionSession` (Legacy + Room), con foto inmutable en EdScanJobs para postprocesado. Menú por lectura: idioma manual protegido, acabado, cantidad y borrado confirmado. No cambiar `EdScannerAr*` para experimentar. Prueba de integración aislada: `TripleCollectionSessionTest`; las pruebas antiguas TripleScanSmokeTest asumían no guardar y deben migrarse antes de ejecutarlas contra una colección real. Preferencias `triple_scanner`/`triple_ar`, separadas del comparador. AR con DB tiene prioridad; EdScan global es respaldo (edición fuera de selección = conflicto). OCR observa idioma, no lo deduce del idioma de referencia. Triple combina reglas y `TitleLanguageIndex` sin elegir arbitrariamente entre alias ES/PT; una lectura vacía no borra el consenso. Cuadrilátero OCR AR del mismo Frame convertido VIEW→IMAGE_PIXELS. Un frame worker y un OCR en vuelo; diccionario independiente, nunca bloquear cámara esperando alias. Ver `TRIPLE_SCANNER.md` para pruebas y logs.
+
+- Triple: `TripleReadingPolicy` usa nombre canónico como identidad de encuentro; cambiar impresión no añade copia ni pierde idioma/foto. La ausencia observada sigue habilitando otra copia. `manualEdition`/revisión protegen el selector `EditionPicker.showGrid` frente a callbacks. Idioma: título/alias único validado por TLV1 prevalece sobre inferencia por impresión, marcando conflicto si discrepan; no tomar el primer idioma de un alias ambiguo. Resolver OCR trabaja por fila aunque cambie la carta actual, con fallback global explícito si no coincide el set seleccionado. Filas sin impresión quedan pendientes, con selector/reintento; nunca inventar UUID Scryfall a partir de UUID MTGJSON.
+
+- Idioma fijo del Triple: `TripleLanguageScope`/`TripleSetLanguageResolver` usan SetList.languages, no lenguas de imágenes. Preferencia ligada al conjunto de sets, origen `scope` manual protegido solo para nuevos encuentros; filas históricas no se reescriben. Con idioma fijo se omite clasificación y se limita modelo OCR por alfabeto; no apagar identificación OCR de cartas desconocidas. Selector idioma en Opciones junto a edición; cabecera solo resumen no pulsable. CLAHE sigue pendiente y desactivado (ver TRIPLE_SCANNER.md).

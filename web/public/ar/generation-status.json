@@ -1,0 +1,16 @@
+{
+  "startedAt": "2026-10-05T09:33:31.652Z",
+  "updatedAt": "2026-10-05T14:54:39.824Z",
+  "total": 657,
+  "completed": 657,
+  "current": null,
+  "failures": [
+    "PIP",
+    "WHO",
+    "CMM",
+    "UNK",
+    "PLST",
+    "SLD"
+  ],
+  "finished": true
+}

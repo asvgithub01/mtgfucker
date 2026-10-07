@@ -29,12 +29,47 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Native experimental scanner. Deliberately has no dependency on the app's library/database. */
 open class NativeCollectorVisionActivity : AppCompatActivity() {
     /** Host integration stays outside this module; callback confirms durable persistence. */
+    protected open val usesExternalCamera: Boolean get() = false
+    @Volatile private var externalAnalyzedFrames=0
+    private val externalFrameBusy=AtomicBoolean(false)
+    protected val acceptsExternalFrame: Boolean get() = usesExternalCamera && active && ready && !idlePaused && !externalFrameBusy.get()
+    /** Transfers frame ownership only on true; converts on the existing serial inference worker. */
+    protected fun submitExternalFrame(rotation: Int, decode: () -> Bitmap, release: () -> Unit): Boolean {
+        if(!acceptsExternalFrame || !externalFrameBusy.compareAndSet(false,true)) return false
+        val token=generation
+        val queued=System.nanoTime()
+        try {
+            worker.execute {
+                EdScanPerf.record("AR.workerQueue",System.nanoTime()-queued)
+                var released=false
+                try {
+                    if(active && token==generation && !idlePaused) {
+                        val started=android.os.SystemClock.elapsedRealtime()
+                        val bitmap=EdScanPerf.measure("AR.decode") { decode() }
+                        val decoded=android.os.SystemClock.elapsedRealtime()
+                        release(); released=true
+                        EdScanPerf.measure("AR.pipeline") { analyzeBitmap(bitmap,rotation,token) }
+                        if(externalAnalyzedFrames%15==0) android.util.Log.d("EdScanFrame",
+                            "AR decode=${decoded-started}ms pipeline=${android.os.SystemClock.elapsedRealtime()-decoded}ms")
+                    }
+                } catch(error: Exception) {
+                    android.util.Log.w("EdScanFrame","External frame failed",error)
+                } finally {
+                    if(!released) release()
+                    externalFrameBusy.set(false)
+                }
+            }
+        } catch(_: java.util.concurrent.RejectedExecutionException) { externalFrameBusy.set(false); return false }
+        return true
+    }
     protected open val autoStartEnabled: Boolean get() = false
     protected open val autoSaveEnabled: Boolean get() = false
     protected open val sessionLabel: String? get() = null
     protected open fun addHostControls(container: LinearLayout) = Unit
     protected open fun scanningStateChanged(running: Boolean) = Unit
     protected open fun addHostRecentControls(container: LinearLayout) = Unit
+    /** Speculative preparation only: must not display or save an unaccepted candidate. */
+    protected open fun prepareVisualCandidate(cardId: String) = Unit
     protected open fun acceptedDebug(key: String) = Unit
     protected open fun printingIdentities(): Map<String,String> = emptyMap()
     protected open fun requestPrintingIdentities(ids: List<String>) = Unit
@@ -48,20 +83,34 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             else if (ids != null && ids.isEmpty()) status.setText(R.string.cv_native_scope_wait)
         }
     }
-    private var idlePaused=false
+    @Volatile private var idlePaused=false
     private var lastUse=0L
     private var lastUsefulCard: String?=null
     private val idleHandler=android.os.Handler(android.os.Looper.getMainLooper())
+    private var heartbeatExpected=0L
+    private val heartbeat=object:Runnable {
+        override fun run() {
+            if(!active || !EdScanPerf.enabled) return
+            val now=SystemClock.elapsedRealtime()
+            EdScanPerf.record("UI.heartbeatLate",(now-heartbeatExpected).coerceAtLeast(0)*1_000_000)
+            val pm=getSystemService(POWER_SERVICE) as android.os.PowerManager
+            val battery=registerReceiver(null,android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+            EdScanPerf.event("power saver=${pm.isPowerSaveMode} thermal=${if(android.os.Build.VERSION.SDK_INT>=29) pm.currentThermalStatus else -1} battery=${battery?.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL,-1)} temperatureTenthsC=${battery?.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE,-1)}")
+            heartbeatExpected=SystemClock.elapsedRealtime()+3000
+            idleHandler.postDelayed(this,3000)
+        }
+    }
     private val idleTick=object:Runnable {
         override fun run() {
             if(!active || idlePaused) return
-            if(ScannerIdlePolicy.shouldPause(SystemClock.elapsedRealtime(),lastUse)) pauseScanner()
+            if(ScannerIdlePolicy.shouldPause(SystemClock.elapsedRealtime(),lastUse,automaticIdlePauseEnabled)) pauseScanner()
             else idleHandler.postDelayed(this,1000)
         }
     }
     protected val scanSavePending: Boolean get()=acceptance.isPending()
     protected fun manualScanFeedback() { playScanTone(ToneGenerator.TONE_PROP_BEEP,80) }
     protected fun pauseScanner() {
+        EdScanPerf.event("pause automaticAllowed=$automaticIdlePauseEnabled idleMs=${SystemClock.elapsedRealtime()-lastUse}")
         idlePaused=true; generation++; acceptance.resetStability()
         analysis?.clearAnalyzer()
         val bound=listOfNotNull(analysis,preview)
@@ -69,8 +118,9 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         analysis=null; preview=null
         EdScanInferencePriority.release(this); scanningStateChanged(false)
         status.setText(R.string.cv_native_idle_paused)
-        start.setText(R.string.cv_native_resume); start.visibility=View.VISIBLE; start.isEnabled=true
+        start.setText(R.string.cv_native_resume); start.visibility=if(scanResumeAllowed) View.VISIBLE else View.GONE; start.isEnabled=scanResumeAllowed
     }
+    protected open val automaticIdlePauseEnabled: Boolean get() = true
     protected open val scanResumeAllowed: Boolean get() = true
     protected fun resumeScanner() {
         if (!scanResumeAllowed) return
@@ -148,6 +198,8 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        EdScanPerf.enabled=(applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE)!=0
+        EdScanPerf.event("scanner external=$usesExternalCamera autoIdle=$automaticIdlePauseEnabled")
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(16, 12, 16, 12) }
         root.addView(TextView(this).apply { setText(R.string.cv_native_title); textSize = 20f })
         sessionLabel?.let { label -> root.addView(TextView(this).apply { text = label; textSize = 16f }) }
@@ -270,12 +322,15 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
 
     private fun requestCamera() {
         if (!active || idlePaused) return
+        if(usesExternalCamera) {
+            scanningStateChanged(true); start.visibility=View.GONE; status.setText(R.string.cv_native_running); return
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) bindCamera()
         else permission.launch(Manifest.permission.CAMERA)
     }
 
     private fun bindCamera() {
-        if (!active || idlePaused || !ready || analysis != null) return
+        if (usesExternalCamera || !active || idlePaused || !ready || analysis != null) return
         val token = generation
         val future = ProcessCameraProvider.getInstance(this)
         future.addListener({
@@ -299,7 +354,22 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     }
 
     private fun analyze(image: ImageProxy, token: Int) {
-        var bitmap: Bitmap? = null
+        try {
+            if(!active || token!=generation) return
+            val rotation=image.imageInfo.rotationDegrees
+            val bitmap=EdScanPerf.measure("CameraX.decode") {
+                val raw=image.toBitmap()
+                if(rotation==0) raw else Bitmap.createBitmap(raw,0,0,raw.width,raw.height,
+                    Matrix().apply { postRotate(rotation.toFloat()) },true).also { if(it!==raw) raw.recycle() }
+            }
+            EdScanPerf.measure("CameraX.pipeline") { analyzeBitmap(bitmap,rotation,token) }
+        } catch(error: Exception) {
+            android.util.Log.w("EdScanFrame","CameraX frame failed",error)
+            runOnUiThread { if(active && token==generation) { acceptance.resetStability(); status.text=getString(R.string.cv_native_error,error.message.orEmpty()) } }
+        } finally { image.close() }
+    }
+
+    private fun analyzeBitmap(bitmap: Bitmap, rotation: Int, token: Int) {
         try {
             if (!active || token != generation) return
             val now = SystemClock.elapsedRealtime()
@@ -310,11 +380,8 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             val currentScope=scopeVersion
             val allowed=visualScope
             if(allowed!=null && allowed.isEmpty()) return
-            val raw = image.toBitmap()
-            val rotation = image.imageInfo.rotationDegrees
-            bitmap = if (rotation == 0) raw else Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height,
-                Matrix().apply { postRotate(rotation.toFloat()) }, true).also { if (it !== raw) raw.recycle() }
             val result = engine?.scan(bitmap,allowed) ?: return
+            if(usesExternalCamera) externalAnalyzedFrames++
             val top = result.hits.firstOrNull()
             val id = if (result.present && top != null && top.score >= 0.50f) top.cardId else null
             if (candidate == id && id != null) repetitions++ else { candidate = id; repetitions = if (id == null) 0 else 1 }
@@ -349,8 +416,14 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             val timing = getString(R.string.cv_native_timings, result.detectionMs, result.recognitionMs, result.sharpness)
             val label = if (id == null) getString(R.string.cv_native_no_card) else
                 getString(if (stable) R.string.cv_native_candidate else R.string.cv_native_checking, id, top!!.score)
+            val uiQueued=System.nanoTime()
             runOnUiThread {
+                EdScanPerf.record("UI.resultQueue",System.nanoTime()-uiQueued)
+                val uiStarted=System.nanoTime()
+                try {
                 if (!active || token != generation || currentScope!=scopeVersion || isDestroyed) { shown?.recycle(); photo?.recycle(); return@runOnUiThread }
+                if(id!=null && top!=null && top.score>=.75f &&
+                    result.hits.getOrNull(1)?.let { top.score-it.score>=.08f }==true) prepareVisualCandidate(id)
                 if(stable && id!=null && id!=lastUsefulCard) { lastUsefulCard=id; lastUse=SystemClock.elapsedRealtime() }
                 if (showThumbnail) {
                     frameView.setImageBitmap(shown)
@@ -415,6 +488,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
                         saveReliable(attempt, debugKey)
                     } else photo?.recycle()
                 } else photo?.recycle()
+                } finally { EdScanPerf.record("UI.resultWork",System.nanoTime()-uiStarted) }
             }
         } catch (e: Exception) {
             candidate = null; repetitions = 0
@@ -425,7 +499,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
             } }
         } finally {
             if (active && token == generation) lastFrameFinishedAt = SystemClock.elapsedRealtime()
-            bitmap?.recycle(); image.close()
+            bitmap.recycle()
         }
     }
 
@@ -546,10 +620,12 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart(); active=true; lastUse=SystemClock.elapsedRealtime()
+        if(EdScanPerf.enabled) { heartbeatExpected=SystemClock.elapsedRealtime()+3000; idleHandler.postDelayed(heartbeat,3000) }
         if(!idlePaused) { EdScanInferencePriority.acquire(this); if(ready) requestCamera(); idleHandler.postDelayed(idleTick,1000) }
     }
     override fun onStop() {
         idleHandler.removeCallbacks(idleTick)
+        idleHandler.removeCallbacks(heartbeat)
         scanningStateChanged(false)
         active = false; generation++
         acceptance.resetStability()

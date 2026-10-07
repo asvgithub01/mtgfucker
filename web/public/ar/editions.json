@@ -1,0 +1,4619 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-05T14:54:39.822Z",
+  "editions": [
+    {
+      "id": "FRC",
+      "name": "Reality Fracture Commander",
+      "releasedAt": "2026-10-02",
+      "referenceEstimate": 103,
+      "status": "ready"
+    },
+    {
+      "id": "PFRA",
+      "name": "Reality Fracture Promos",
+      "releasedAt": "2026-10-02",
+      "referenceEstimate": 90,
+      "status": "ready"
+    },
+    {
+      "id": "FRA",
+      "name": "Reality Fracture",
+      "releasedAt": "2026-10-02",
+      "referenceEstimate": 462,
+      "status": "ready"
+    },
+    {
+      "id": "SLZ",
+      "name": "The Zeta Set",
+      "releasedAt": "2026-09-02",
+      "referenceEstimate": 363,
+      "status": "ready"
+    },
+    {
+      "id": "HOC",
+      "name": "The Hobbit Eternal",
+      "releasedAt": "2026-08-14",
+      "referenceEstimate": 158,
+      "status": "ready"
+    },
+    {
+      "id": "HOB",
+      "name": "The Hobbit",
+      "releasedAt": "2026-08-14",
+      "referenceEstimate": 321,
+      "status": "ready"
+    },
+    {
+      "id": "MSC",
+      "name": "Marvel Super Heroes Commander",
+      "releasedAt": "2026-06-26",
+      "referenceEstimate": 866,
+      "status": "ready"
+    },
+    {
+      "id": "MSH",
+      "name": "Marvel Super Heroes",
+      "releasedAt": "2026-06-26",
+      "referenceEstimate": 453,
+      "status": "ready"
+    },
+    {
+      "id": "PSOS",
+      "name": "Secrets of Strixhaven Promos",
+      "releasedAt": "2026-04-24",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "SOC",
+      "name": "Secrets of Strixhaven Commander",
+      "releasedAt": "2026-04-24",
+      "referenceEstimate": 426,
+      "status": "ready"
+    },
+    {
+      "id": "SOS",
+      "name": "Secrets of Strixhaven",
+      "releasedAt": "2026-04-24",
+      "referenceEstimate": 368,
+      "status": "ready"
+    },
+    {
+      "id": "SOA",
+      "name": "Secrets of Strixhaven Mystical Archive",
+      "releasedAt": "2026-04-24",
+      "referenceEstimate": 195,
+      "status": "ready"
+    },
+    {
+      "id": "TMC",
+      "name": "Teenage Mutant Ninja Turtles Eternal",
+      "releasedAt": "2026-03-06",
+      "referenceEstimate": 132,
+      "status": "ready"
+    },
+    {
+      "id": "TMT",
+      "name": "Teenage Mutant Ninja Turtles",
+      "releasedAt": "2026-03-06",
+      "referenceEstimate": 320,
+      "status": "ready"
+    },
+    {
+      "id": "PZA",
+      "name": "Teenage Mutant Ninja Turtles Source Material",
+      "releasedAt": "2026-03-06",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "PL26",
+      "name": "Year of the Horse 2026",
+      "releasedAt": "2026-02-17",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PECL",
+      "name": "Lorwyn Eclipsed Promos",
+      "releasedAt": "2026-01-23",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "ECC",
+      "name": "Lorwyn Eclipsed Commander",
+      "releasedAt": "2026-01-23",
+      "referenceEstimate": 176,
+      "status": "ready"
+    },
+    {
+      "id": "ECL",
+      "name": "Lorwyn Eclipsed",
+      "releasedAt": "2026-01-23",
+      "referenceEstimate": 408,
+      "status": "ready"
+    },
+    {
+      "id": "PW26",
+      "name": "Wizards Play Network 2026",
+      "releasedAt": "2026-01-01",
+      "referenceEstimate": 23,
+      "status": "ready"
+    },
+    {
+      "id": "PF26",
+      "name": "MagicFest 2026",
+      "releasedAt": "2026-01-01",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "PTLA",
+      "name": "Avatar: The Last Airbender Promos",
+      "releasedAt": "2025-11-21",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "TLA",
+      "name": "Avatar: The Last Airbender",
+      "releasedAt": "2025-11-21",
+      "referenceEstimate": 394,
+      "status": "ready"
+    },
+    {
+      "id": "TLE",
+      "name": "Avatar: The Last Airbender Eternal",
+      "releasedAt": "2025-11-21",
+      "referenceEstimate": 317,
+      "status": "ready"
+    },
+    {
+      "id": "LMAR",
+      "name": "Marvel Legends Series Inserts",
+      "releasedAt": "2025-09-30",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "PSPM",
+      "name": "Marvel's Spider-Man Promos",
+      "releasedAt": "2025-09-26",
+      "referenceEstimate": 68,
+      "status": "ready"
+    },
+    {
+      "id": "MAR",
+      "name": "Marvel Universe",
+      "releasedAt": "2025-09-26",
+      "referenceEstimate": 100,
+      "status": "ready"
+    },
+    {
+      "id": "SPE",
+      "name": "Marvel's Spider-Man Eternal",
+      "releasedAt": "2025-09-26",
+      "referenceEstimate": 26,
+      "status": "ready"
+    },
+    {
+      "id": "SPM",
+      "name": "Marvel's Spider-Man",
+      "releasedAt": "2025-09-26",
+      "referenceEstimate": 286,
+      "status": "ready"
+    },
+    {
+      "id": "PH23",
+      "name": "2023 Heroes of the Realm",
+      "releasedAt": "2025-08-24",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PEOE",
+      "name": "Edge of Eternities Promos",
+      "releasedAt": "2025-08-01",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "EOS",
+      "name": "Edge of Eternities: Stellar Sights",
+      "releasedAt": "2025-08-01",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "PBIG",
+      "name": "The Big Score Promos",
+      "releasedAt": "2025-08-01",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "EOE",
+      "name": "Edge of Eternities",
+      "releasedAt": "2025-08-01",
+      "referenceEstimate": 400,
+      "status": "ready"
+    },
+    {
+      "id": "EOC",
+      "name": "Edge of Eternities Commander",
+      "releasedAt": "2025-08-01",
+      "referenceEstimate": 191,
+      "status": "ready"
+    },
+    {
+      "id": "RFIN",
+      "name": "Final Fantasy Regional Promos",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "FCA",
+      "name": "Final Fantasy: Through the Ages",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 65,
+      "status": "ready"
+    },
+    {
+      "id": "PFIN",
+      "name": "Final Fantasy Promos",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 94,
+      "status": "ready"
+    },
+    {
+      "id": "FIC",
+      "name": "Final Fantasy Commander",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 486,
+      "status": "ready"
+    },
+    {
+      "id": "FIN",
+      "name": "Final Fantasy",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 598,
+      "status": "ready"
+    },
+    {
+      "id": "PSS5",
+      "name": "FIN Standard Showdown",
+      "releasedAt": "2025-06-13",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PTDM",
+      "name": "Tarkir: Dragonstorm Promos",
+      "releasedAt": "2025-04-11",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "TDC",
+      "name": "Tarkir: Dragonstorm Commander",
+      "releasedAt": "2025-04-11",
+      "referenceEstimate": 413,
+      "status": "ready"
+    },
+    {
+      "id": "TDM",
+      "name": "Tarkir: Dragonstorm",
+      "releasedAt": "2025-04-11",
+      "referenceEstimate": 426,
+      "status": "ready"
+    },
+    {
+      "id": "PLG25",
+      "name": "Love Your LGS 2025",
+      "releasedAt": "2025-03-26",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PDFT",
+      "name": "Aetherdrift Promos",
+      "releasedAt": "2025-02-14",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "DRC",
+      "name": "Aetherdrift Commander",
+      "releasedAt": "2025-02-14",
+      "referenceEstimate": 184,
+      "status": "ready"
+    },
+    {
+      "id": "DFT",
+      "name": "Aetherdrift",
+      "releasedAt": "2025-02-14",
+      "referenceEstimate": 553,
+      "status": "ready"
+    },
+    {
+      "id": "PL25",
+      "name": "Year of the Snake 2025",
+      "releasedAt": "2025-02-14",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PJSC",
+      "name": "Japan Standard Cup",
+      "releasedAt": "2025-02-09",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "INR",
+      "name": "Innistrad Remastered",
+      "releasedAt": "2025-01-24",
+      "referenceEstimate": 495,
+      "status": "ready"
+    },
+    {
+      "id": "PSPL",
+      "name": "Spotlight Series",
+      "releasedAt": "2025-01-03",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "PW25",
+      "name": "Wizards Play Network 2025",
+      "releasedAt": "2025-01-01",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "PF25",
+      "name": "MagicFest 2025",
+      "releasedAt": "2025-01-01",
+      "referenceEstimate": 19,
+      "status": "ready"
+    },
+    {
+      "id": "PFDN",
+      "name": "Foundations Promos",
+      "releasedAt": "2024-11-15",
+      "referenceEstimate": 106,
+      "status": "ready"
+    },
+    {
+      "id": "J25",
+      "name": "Foundations Jumpstart",
+      "releasedAt": "2024-11-15",
+      "referenceEstimate": 779,
+      "status": "ready"
+    },
+    {
+      "id": "FDN",
+      "name": "Foundations",
+      "releasedAt": "2024-11-15",
+      "referenceEstimate": 771,
+      "status": "ready"
+    },
+    {
+      "id": "FDC",
+      "name": "Foundations Commander",
+      "releasedAt": "2024-11-15",
+      "referenceEstimate": 319,
+      "status": "ready"
+    },
+    {
+      "id": "PLTC",
+      "name": "Tales of Middle-earth Deluxe Commander Kit",
+      "releasedAt": "2024-10-16",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PDSK",
+      "name": "Duskmourn: House of Horror Promos",
+      "releasedAt": "2024-09-27",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "DSK",
+      "name": "Duskmourn: House of Horror",
+      "releasedAt": "2024-09-27",
+      "referenceEstimate": 417,
+      "status": "ready"
+    },
+    {
+      "id": "DSC",
+      "name": "Duskmourn: House of Horror Commander",
+      "releasedAt": "2024-09-27",
+      "referenceEstimate": 373,
+      "status": "ready"
+    },
+    {
+      "id": "PLG24",
+      "name": "Love Your LGS 2024",
+      "releasedAt": "2024-08-06",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "PBLB",
+      "name": "Bloomburrow Promos",
+      "releasedAt": "2024-08-02",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "PCBB",
+      "name": "Cowboy Bebop",
+      "releasedAt": "2024-08-02",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "BLB",
+      "name": "Bloomburrow",
+      "releasedAt": "2024-08-02",
+      "referenceEstimate": 397,
+      "status": "ready"
+    },
+    {
+      "id": "MB2",
+      "name": "Mystery Booster 2",
+      "releasedAt": "2024-08-02",
+      "referenceEstimate": 385,
+      "status": "ready"
+    },
+    {
+      "id": "BLC",
+      "name": "Bloomburrow Commander",
+      "releasedAt": "2024-08-02",
+      "referenceEstimate": 356,
+      "status": "ready"
+    },
+    {
+      "id": "ACR",
+      "name": "Assassin's Creed",
+      "releasedAt": "2024-07-05",
+      "referenceEstimate": 309,
+      "status": "ready"
+    },
+    {
+      "id": "PMH3",
+      "name": "Modern Horizons 3 Promos",
+      "releasedAt": "2024-06-14",
+      "referenceEstimate": 92,
+      "status": "ready"
+    },
+    {
+      "id": "H2R",
+      "name": "Modern Horizons 2 Timeshifts",
+      "releasedAt": "2024-06-14",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "MH3",
+      "name": "Modern Horizons 3",
+      "releasedAt": "2024-06-14",
+      "referenceEstimate": 524,
+      "status": "ready"
+    },
+    {
+      "id": "M3C",
+      "name": "Modern Horizons 3 Commander",
+      "releasedAt": "2024-06-14",
+      "referenceEstimate": 398,
+      "status": "ready"
+    },
+    {
+      "id": "POTJ",
+      "name": "Outlaws of Thunder Junction Promos",
+      "releasedAt": "2024-04-19",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "OTP",
+      "name": "Breaking News",
+      "releasedAt": "2024-04-19",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "OTJ",
+      "name": "Outlaws of Thunder Junction",
+      "releasedAt": "2024-04-19",
+      "referenceEstimate": 374,
+      "status": "ready"
+    },
+    {
+      "id": "BIG",
+      "name": "The Big Score",
+      "releasedAt": "2024-04-19",
+      "referenceEstimate": 95,
+      "status": "ready"
+    },
+    {
+      "id": "OTC",
+      "name": "Outlaws of Thunder Junction Commander",
+      "releasedAt": "2024-04-19",
+      "referenceEstimate": 342,
+      "status": "ready"
+    },
+    {
+      "id": "PIP",
+      "name": "Fallout",
+      "releasedAt": "2024-03-08",
+      "referenceEstimate": 1068,
+      "status": "missing"
+    },
+    {
+      "id": "PUNK",
+      "name": "Black Lotus Unknown Planechase",
+      "releasedAt": "2024-02-24",
+      "referenceEstimate": 52,
+      "status": "ready"
+    },
+    {
+      "id": "CLU",
+      "name": "Ravnica: Clue Edition",
+      "releasedAt": "2024-02-23",
+      "referenceEstimate": 284,
+      "status": "ready"
+    },
+    {
+      "id": "PSS4",
+      "name": "MKM Standard Showdown",
+      "releasedAt": "2024-02-10",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PMKM",
+      "name": "Murders at Karlov Manor Promos",
+      "releasedAt": "2024-02-09",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "MKM",
+      "name": "Murders at Karlov Manor",
+      "releasedAt": "2024-02-09",
+      "referenceEstimate": 451,
+      "status": "ready"
+    },
+    {
+      "id": "MKC",
+      "name": "Murders at Karlov Manor Commander",
+      "releasedAt": "2024-02-09",
+      "referenceEstimate": 358,
+      "status": "ready"
+    },
+    {
+      "id": "PL24",
+      "name": "Year of the Dragon 2024",
+      "releasedAt": "2024-02-08",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "RVR",
+      "name": "Ravnica Remastered",
+      "releasedAt": "2024-01-12",
+      "referenceEstimate": 531,
+      "status": "ready"
+    },
+    {
+      "id": "PW24",
+      "name": "Wizards Play Network 2024",
+      "releasedAt": "2024-01-01",
+      "referenceEstimate": 18,
+      "status": "ready"
+    },
+    {
+      "id": "PF24",
+      "name": "MagicFest 2024",
+      "releasedAt": "2024-01-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PLCI",
+      "name": "The Lost Caverns of Ixalan Promos",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 136,
+      "status": "ready"
+    },
+    {
+      "id": "SPG",
+      "name": "Special Guests",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 175,
+      "status": "ready"
+    },
+    {
+      "id": "LCC",
+      "name": "The Lost Caverns of Ixalan Commander",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 370,
+      "status": "ready"
+    },
+    {
+      "id": "REX",
+      "name": "Jurassic World Collection",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 45,
+      "status": "ready"
+    },
+    {
+      "id": "PMAT",
+      "name": "March of the Machine: The Aftermath Promos",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "LCI",
+      "name": "The Lost Caverns of Ixalan",
+      "releasedAt": "2023-11-17",
+      "referenceEstimate": 415,
+      "status": "ready"
+    },
+    {
+      "id": "WHO",
+      "name": "Doctor Who",
+      "releasedAt": "2023-10-13",
+      "referenceEstimate": 1178,
+      "status": "missing"
+    },
+    {
+      "id": "PWOE",
+      "name": "Wilds of Eldraine Promos",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "WOC",
+      "name": "Wilds of Eldraine Commander",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 173,
+      "status": "ready"
+    },
+    {
+      "id": "WOT",
+      "name": "Wilds of Eldraine: Enchanting Tales",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 103,
+      "status": "ready"
+    },
+    {
+      "id": "PMDA",
+      "name": "Magic × Duel Masters Promos",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PTSR",
+      "name": "Time Spiral Remastered Promos",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "WOE",
+      "name": "Wilds of Eldraine",
+      "releasedAt": "2023-09-08",
+      "referenceEstimate": 381,
+      "status": "ready"
+    },
+    {
+      "id": "P30T",
+      "name": "30th Anniversary Celebration Tokyo",
+      "releasedAt": "2023-09-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "CMM",
+      "name": "Commander Masters",
+      "releasedAt": "2023-08-04",
+      "referenceEstimate": 1067,
+      "status": "missing"
+    },
+    {
+      "id": "PH22",
+      "name": "2022 Heroes of the Realm",
+      "releasedAt": "2023-08-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PF23",
+      "name": "MagicFest 2023",
+      "releasedAt": "2023-07-01",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PLTR",
+      "name": "Tales of Middle-earth Promos",
+      "releasedAt": "2023-06-23",
+      "referenceEstimate": 86,
+      "status": "ready"
+    },
+    {
+      "id": "LTC",
+      "name": "Tales of Middle-earth Commander",
+      "releasedAt": "2023-06-23",
+      "referenceEstimate": 591,
+      "status": "ready"
+    },
+    {
+      "id": "LTR",
+      "name": "The Lord of the Rings: Tales of Middle-earth",
+      "releasedAt": "2023-06-23",
+      "referenceEstimate": 854,
+      "status": "ready"
+    },
+    {
+      "id": "MAT",
+      "name": "March of the Machine: The Aftermath",
+      "releasedAt": "2023-05-12",
+      "referenceEstimate": 230,
+      "status": "ready"
+    },
+    {
+      "id": "PMOM",
+      "name": "March of the Machine Promos",
+      "releasedAt": "2023-04-21",
+      "referenceEstimate": 134,
+      "status": "ready"
+    },
+    {
+      "id": "MUL",
+      "name": "Multiverse Legends",
+      "releasedAt": "2023-04-21",
+      "referenceEstimate": 260,
+      "status": "ready"
+    },
+    {
+      "id": "MOC",
+      "name": "March of the Machine Commander",
+      "releasedAt": "2023-04-21",
+      "referenceEstimate": 450,
+      "status": "ready"
+    },
+    {
+      "id": "MOM",
+      "name": "March of the Machine",
+      "releasedAt": "2023-04-21",
+      "referenceEstimate": 387,
+      "status": "ready"
+    },
+    {
+      "id": "SLP",
+      "name": "Secret Lair Promo",
+      "releasedAt": "2023-02-17",
+      "referenceEstimate": 54,
+      "status": "ready"
+    },
+    {
+      "id": "UNK",
+      "name": "Unknown Event",
+      "releasedAt": "2023-02-15",
+      "referenceEstimate": 527,
+      "status": "missing"
+    },
+    {
+      "id": "ONC",
+      "name": "Phyrexia: All Will Be One Commander",
+      "releasedAt": "2023-02-10",
+      "referenceEstimate": 174,
+      "status": "ready"
+    },
+    {
+      "id": "PONE",
+      "name": "Phyrexia: All Will Be One Promos",
+      "releasedAt": "2023-02-10",
+      "referenceEstimate": 160,
+      "status": "ready"
+    },
+    {
+      "id": "ONE",
+      "name": "Phyrexia: All Will Be One",
+      "releasedAt": "2023-02-10",
+      "referenceEstimate": 479,
+      "status": "ready"
+    },
+    {
+      "id": "PL23",
+      "name": "Year of the Rabbit 2023",
+      "releasedAt": "2023-02-10",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "DMR",
+      "name": "Dominaria Remastered",
+      "releasedAt": "2023-01-13",
+      "referenceEstimate": 457,
+      "status": "ready"
+    },
+    {
+      "id": "PR23",
+      "name": "Regional Championship Qualifiers 2023",
+      "releasedAt": "2023-01-07",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PW23",
+      "name": "Wizards Play Network 2023",
+      "releasedAt": "2023-01-01",
+      "referenceEstimate": 11,
+      "status": "ready"
+    },
+    {
+      "id": "P23",
+      "name": "Judge Gift Cards 2023",
+      "releasedAt": "2023-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "SCD",
+      "name": "Starter Commander Decks",
+      "releasedAt": "2022-12-02",
+      "referenceEstimate": 352,
+      "status": "ready"
+    },
+    {
+      "id": "J22",
+      "name": "Jumpstart 2022",
+      "releasedAt": "2022-12-02",
+      "referenceEstimate": 835,
+      "status": "ready"
+    },
+    {
+      "id": "PEWK",
+      "name": "Eternal Weekend",
+      "releasedAt": "2022-11-26",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "BRC",
+      "name": "The Brothers' War Commander",
+      "releasedAt": "2022-11-18",
+      "referenceEstimate": 209,
+      "status": "ready"
+    },
+    {
+      "id": "BRR",
+      "name": "The Brothers' War Retro Artifacts",
+      "releasedAt": "2022-11-18",
+      "referenceEstimate": 189,
+      "status": "ready"
+    },
+    {
+      "id": "PBRO",
+      "name": "The Brothers' War Promos",
+      "releasedAt": "2022-11-18",
+      "referenceEstimate": 171,
+      "status": "ready"
+    },
+    {
+      "id": "BOT",
+      "name": "Transformers",
+      "releasedAt": "2022-11-18",
+      "referenceEstimate": 29,
+      "status": "ready"
+    },
+    {
+      "id": "BRO",
+      "name": "The Brothers' War",
+      "releasedAt": "2022-11-18",
+      "referenceEstimate": 387,
+      "status": "ready"
+    },
+    {
+      "id": "SLC",
+      "name": "Secret Lair Countdown",
+      "releasedAt": "2022-11-01",
+      "referenceEstimate": 84,
+      "status": "ready"
+    },
+    {
+      "id": "GN3",
+      "name": "Game Night: Free-for-All",
+      "releasedAt": "2022-10-14",
+      "referenceEstimate": 135,
+      "status": "ready"
+    },
+    {
+      "id": "ULST",
+      "name": "The List (Unfinity Foil Edition)",
+      "releasedAt": "2022-10-07",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "UNF",
+      "name": "Unfinity",
+      "releasedAt": "2022-10-07",
+      "referenceEstimate": 639,
+      "status": "ready"
+    },
+    {
+      "id": "SUNF",
+      "name": "Unfinity Sticker Sheets",
+      "releasedAt": "2022-10-07",
+      "referenceEstimate": 48,
+      "status": "ready"
+    },
+    {
+      "id": "40K",
+      "name": "Warhammer 40,000 Commander",
+      "releasedAt": "2022-10-07",
+      "referenceEstimate": 617,
+      "status": "ready"
+    },
+    {
+      "id": "PRCQ",
+      "name": "Regional Championship Qualifiers 2022",
+      "releasedAt": "2022-10-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "P30H",
+      "name": "30th Anniversary History Promos",
+      "releasedAt": "2022-09-09",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "PDMU",
+      "name": "Dominaria United Promos",
+      "releasedAt": "2022-09-09",
+      "referenceEstimate": 161,
+      "status": "ready"
+    },
+    {
+      "id": "DMC",
+      "name": "Dominaria United Commander",
+      "releasedAt": "2022-09-09",
+      "referenceEstimate": 240,
+      "status": "ready"
+    },
+    {
+      "id": "DMU",
+      "name": "Dominaria United",
+      "releasedAt": "2022-09-09",
+      "referenceEstimate": 436,
+      "status": "ready"
+    },
+    {
+      "id": "P30M",
+      "name": "30th Anniversary Misc Promos",
+      "releasedAt": "2022-09-02",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "P30A",
+      "name": "30th Anniversary Play Promos",
+      "releasedAt": "2022-09-02",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "PH21",
+      "name": "2021 Heroes of the Realm",
+      "releasedAt": "2022-08-01",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PSVC",
+      "name": "Summer Vacation Promos 2022",
+      "releasedAt": "2022-08-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "SCH",
+      "name": "Store Championships",
+      "releasedAt": "2022-07-09",
+      "referenceEstimate": 53,
+      "status": "ready"
+    },
+    {
+      "id": "2X2",
+      "name": "Double Masters 2022",
+      "releasedAt": "2022-07-08",
+      "referenceEstimate": 579,
+      "status": "ready"
+    },
+    {
+      "id": "PLG22",
+      "name": "Love Your LGS 2022",
+      "releasedAt": "2022-07-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PCLB",
+      "name": "Battle for Baldur's Gate Promos",
+      "releasedAt": "2022-06-10",
+      "referenceEstimate": 104,
+      "status": "ready"
+    },
+    {
+      "id": "CLB",
+      "name": "Commander Legends: Battle for Baldur's Gate",
+      "releasedAt": "2022-06-10",
+      "referenceEstimate": 936,
+      "status": "ready"
+    },
+    {
+      "id": "PTSNC",
+      "name": "Streets of New Capenna Southeast Asia Tokens",
+      "releasedAt": "2022-04-30",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PNCC",
+      "name": "New Capenna Commander Promos",
+      "releasedAt": "2022-04-29",
+      "referenceEstimate": 75,
+      "status": "ready"
+    },
+    {
+      "id": "SNC",
+      "name": "Streets of New Capenna",
+      "releasedAt": "2022-04-29",
+      "referenceEstimate": 469,
+      "status": "ready"
+    },
+    {
+      "id": "NCC",
+      "name": "New Capenna Commander",
+      "releasedAt": "2022-04-29",
+      "referenceEstimate": 447,
+      "status": "ready"
+    },
+    {
+      "id": "PSNC",
+      "name": "Streets of New Capenna Promos",
+      "releasedAt": "2022-04-29",
+      "referenceEstimate": 161,
+      "status": "ready"
+    },
+    {
+      "id": "GDY",
+      "name": "Game Day Promos",
+      "releasedAt": "2022-04-08",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "Q07",
+      "name": "Challenger Decks 2022",
+      "releasedAt": "2022-04-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PW22",
+      "name": "Wizards Play Network 2022",
+      "releasedAt": "2022-03-05",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "SLX",
+      "name": "Universes Within",
+      "releasedAt": "2022-03-03",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "PL22",
+      "name": "Year of the Tiger 2022",
+      "releasedAt": "2022-02-25",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PNEO",
+      "name": "Kamigawa: Neon Dynasty Promos",
+      "releasedAt": "2022-02-18",
+      "referenceEstimate": 148,
+      "status": "ready"
+    },
+    {
+      "id": "NEO",
+      "name": "Kamigawa: Neon Dynasty",
+      "releasedAt": "2022-02-18",
+      "referenceEstimate": 514,
+      "status": "ready"
+    },
+    {
+      "id": "NEC",
+      "name": "Neon Dynasty Commander",
+      "releasedAt": "2022-02-18",
+      "referenceEstimate": 179,
+      "status": "ready"
+    },
+    {
+      "id": "CC2",
+      "name": "Commander Collection: Black",
+      "releasedAt": "2022-01-28",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "DBL",
+      "name": "Innistrad: Double Feature",
+      "releasedAt": "2022-01-28",
+      "referenceEstimate": 535,
+      "status": "ready"
+    },
+    {
+      "id": "P22",
+      "name": "Judge Gift Cards 2022",
+      "releasedAt": "2022-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "PVOW",
+      "name": "Innistrad: Crimson Vow Promos",
+      "releasedAt": "2021-11-19",
+      "referenceEstimate": 121,
+      "status": "ready"
+    },
+    {
+      "id": "VOW",
+      "name": "Innistrad: Crimson Vow",
+      "releasedAt": "2021-11-19",
+      "referenceEstimate": 412,
+      "status": "ready"
+    },
+    {
+      "id": "VOC",
+      "name": "Crimson Vow Commander",
+      "releasedAt": "2021-11-19",
+      "referenceEstimate": 188,
+      "status": "ready"
+    },
+    {
+      "id": "Q06",
+      "name": "Pioneer Challenger Decks 2021",
+      "releasedAt": "2021-10-15",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "MIC",
+      "name": "Midnight Hunt Commander",
+      "releasedAt": "2021-09-24",
+      "referenceEstimate": 187,
+      "status": "ready"
+    },
+    {
+      "id": "PMID",
+      "name": "Innistrad: Midnight Hunt Promos",
+      "releasedAt": "2021-09-24",
+      "referenceEstimate": 155,
+      "status": "ready"
+    },
+    {
+      "id": "MID",
+      "name": "Innistrad: Midnight Hunt",
+      "releasedAt": "2021-09-24",
+      "referenceEstimate": 392,
+      "status": "ready"
+    },
+    {
+      "id": "CMB2",
+      "name": "Mystery Booster Playtest Cards 2021",
+      "releasedAt": "2021-08-20",
+      "referenceEstimate": 121,
+      "status": "ready"
+    },
+    {
+      "id": "PH20",
+      "name": "2020 Heroes of the Realm",
+      "releasedAt": "2021-08-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PAFR",
+      "name": "Adventures in the Forgotten Realms Promos",
+      "releasedAt": "2021-07-23",
+      "referenceEstimate": 241,
+      "status": "ready"
+    },
+    {
+      "id": "AFC",
+      "name": "Forgotten Realms Commander",
+      "releasedAt": "2021-07-23",
+      "referenceEstimate": 331,
+      "status": "ready"
+    },
+    {
+      "id": "AFR",
+      "name": "Adventures in the Forgotten Realms",
+      "releasedAt": "2021-07-23",
+      "referenceEstimate": 402,
+      "status": "ready"
+    },
+    {
+      "id": "PLG21",
+      "name": "Love Your LGS 2021",
+      "releasedAt": "2021-06-22",
+      "referenceEstimate": 11,
+      "status": "ready"
+    },
+    {
+      "id": "PMH2",
+      "name": "Modern Horizons 2 Promos",
+      "releasedAt": "2021-06-18",
+      "referenceEstimate": 86,
+      "status": "ready"
+    },
+    {
+      "id": "H1R",
+      "name": "Modern Horizons 1 Timeshifts",
+      "releasedAt": "2021-06-18",
+      "referenceEstimate": 40,
+      "status": "ready"
+    },
+    {
+      "id": "PW21",
+      "name": "Wizards Play Network 2021",
+      "releasedAt": "2021-06-18",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "MH2",
+      "name": "Modern Horizons 2",
+      "releasedAt": "2021-06-18",
+      "referenceEstimate": 492,
+      "status": "ready"
+    },
+    {
+      "id": "PSTX",
+      "name": "Strixhaven: School of Mages Promos",
+      "releasedAt": "2021-04-23",
+      "referenceEstimate": 164,
+      "status": "ready"
+    },
+    {
+      "id": "C21",
+      "name": "Commander 2021",
+      "releasedAt": "2021-04-23",
+      "referenceEstimate": 409,
+      "status": "ready"
+    },
+    {
+      "id": "STA",
+      "name": "Strixhaven Mystical Archive",
+      "releasedAt": "2021-04-23",
+      "referenceEstimate": 126,
+      "status": "ready"
+    },
+    {
+      "id": "STX",
+      "name": "Strixhaven: School of Mages",
+      "releasedAt": "2021-04-23",
+      "referenceEstimate": 383,
+      "status": "ready"
+    },
+    {
+      "id": "TSR",
+      "name": "Time Spiral Remastered",
+      "releasedAt": "2021-03-19",
+      "referenceEstimate": 411,
+      "status": "ready"
+    },
+    {
+      "id": "PKHM",
+      "name": "Kaldheim Promos",
+      "releasedAt": "2021-02-05",
+      "referenceEstimate": 158,
+      "status": "ready"
+    },
+    {
+      "id": "KHC",
+      "name": "Kaldheim Commander",
+      "releasedAt": "2021-02-05",
+      "referenceEstimate": 119,
+      "status": "ready"
+    },
+    {
+      "id": "KHM",
+      "name": "Kaldheim",
+      "releasedAt": "2021-02-05",
+      "referenceEstimate": 407,
+      "status": "ready"
+    },
+    {
+      "id": "PL21",
+      "name": "Year of the Ox 2021",
+      "releasedAt": "2021-01-25",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PJ21",
+      "name": "Judge Gift Cards 2021",
+      "releasedAt": "2021-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "CC1",
+      "name": "Commander Collection: Green",
+      "releasedAt": "2020-12-04",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "CMR",
+      "name": "Commander Legends",
+      "releasedAt": "2020-11-20",
+      "referenceEstimate": 718,
+      "status": "ready"
+    },
+    {
+      "id": "PCMR",
+      "name": "Commander Legends Promos",
+      "releasedAt": "2020-11-20",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PLST",
+      "name": "The List",
+      "releasedAt": "2020-09-26",
+      "referenceEstimate": 5663,
+      "status": "missing"
+    },
+    {
+      "id": "PZNR",
+      "name": "Zendikar Rising Promos",
+      "releasedAt": "2020-09-25",
+      "referenceEstimate": 153,
+      "status": "ready"
+    },
+    {
+      "id": "ZNR",
+      "name": "Zendikar Rising",
+      "releasedAt": "2020-09-25",
+      "referenceEstimate": 392,
+      "status": "ready"
+    },
+    {
+      "id": "ZNE",
+      "name": "Zendikar Rising Expeditions",
+      "releasedAt": "2020-09-25",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "ZNC",
+      "name": "Zendikar Rising Commander",
+      "releasedAt": "2020-09-25",
+      "referenceEstimate": 142,
+      "status": "ready"
+    },
+    {
+      "id": "2XM",
+      "name": "Double Masters",
+      "releasedAt": "2020-08-07",
+      "referenceEstimate": 384,
+      "status": "ready"
+    },
+    {
+      "id": "PH19",
+      "name": "2019 Heroes of the Realm",
+      "releasedAt": "2020-08-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "JMP",
+      "name": "Jumpstart",
+      "releasedAt": "2020-07-17",
+      "referenceEstimate": 496,
+      "status": "ready"
+    },
+    {
+      "id": "PM21",
+      "name": "Core Set 2021 Promos",
+      "releasedAt": "2020-07-03",
+      "referenceEstimate": 137,
+      "status": "ready"
+    },
+    {
+      "id": "M21",
+      "name": "Core Set 2021",
+      "releasedAt": "2020-07-03",
+      "referenceEstimate": 397,
+      "status": "ready"
+    },
+    {
+      "id": "SS3",
+      "name": "Signature Spellbook: Chandra",
+      "releasedAt": "2020-06-26",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "SLU",
+      "name": "Secret Lair: Ultimate Edition",
+      "releasedAt": "2020-05-29",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "PLG20",
+      "name": "Love Your LGS 2020",
+      "releasedAt": "2020-05-18",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PIKO",
+      "name": "Ikoria: Lair of Behemoths Promos",
+      "releasedAt": "2020-04-24",
+      "referenceEstimate": 137,
+      "status": "ready"
+    },
+    {
+      "id": "IKO",
+      "name": "Ikoria: Lair of Behemoths",
+      "releasedAt": "2020-04-24",
+      "referenceEstimate": 389,
+      "status": "ready"
+    },
+    {
+      "id": "C20",
+      "name": "Commander 2020",
+      "releasedAt": "2020-04-17",
+      "referenceEstimate": 322,
+      "status": "ready"
+    },
+    {
+      "id": "UND",
+      "name": "Unsanctioned",
+      "releasedAt": "2020-02-29",
+      "referenceEstimate": 96,
+      "status": "ready"
+    },
+    {
+      "id": "PTHB",
+      "name": "Theros Beyond Death Promos",
+      "releasedAt": "2020-01-24",
+      "referenceEstimate": 137,
+      "status": "ready"
+    },
+    {
+      "id": "THB",
+      "name": "Theros Beyond Death",
+      "releasedAt": "2020-01-24",
+      "referenceEstimate": 358,
+      "status": "ready"
+    },
+    {
+      "id": "PF20",
+      "name": "MagicFest 2020",
+      "releasedAt": "2020-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "J20",
+      "name": "Judge Gift Cards 2020",
+      "releasedAt": "2020-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "SLD",
+      "name": "Secret Lair Drop",
+      "releasedAt": "2019-12-02",
+      "referenceEstimate": 2827,
+      "status": "missing"
+    },
+    {
+      "id": "GN2",
+      "name": "Game Night 2019",
+      "releasedAt": "2019-11-15",
+      "referenceEstimate": 64,
+      "status": "ready"
+    },
+    {
+      "id": "CMB1",
+      "name": "Mystery Booster Playtest Cards 2019",
+      "releasedAt": "2019-11-07",
+      "referenceEstimate": 121,
+      "status": "ready"
+    },
+    {
+      "id": "PTG",
+      "name": "Ponies: The Galloping",
+      "releasedAt": "2019-10-22",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PELD",
+      "name": "Throne of Eldraine Promos",
+      "releasedAt": "2019-10-04",
+      "referenceEstimate": 138,
+      "status": "ready"
+    },
+    {
+      "id": "ELD",
+      "name": "Throne of Eldraine",
+      "releasedAt": "2019-10-04",
+      "referenceEstimate": 397,
+      "status": "ready"
+    },
+    {
+      "id": "PWCS",
+      "name": "Planeswalker Championship Promos",
+      "releasedAt": "2019-10-01",
+      "referenceEstimate": 46,
+      "status": "ready"
+    },
+    {
+      "id": "C19",
+      "name": "Commander 2019",
+      "releasedAt": "2019-08-23",
+      "referenceEstimate": 302,
+      "status": "ready"
+    },
+    {
+      "id": "PH18",
+      "name": "2018 Heroes of the Realm",
+      "releasedAt": "2019-08-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PS19",
+      "name": "San Diego Comic-Con 2019",
+      "releasedAt": "2019-07-18",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PM20",
+      "name": "Core Set 2020 Promos",
+      "releasedAt": "2019-07-12",
+      "referenceEstimate": 144,
+      "status": "ready"
+    },
+    {
+      "id": "PPP1",
+      "name": "M20 Promo Packs",
+      "releasedAt": "2019-07-12",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "M20",
+      "name": "Core Set 2020",
+      "releasedAt": "2019-07-12",
+      "referenceEstimate": 345,
+      "status": "ready"
+    },
+    {
+      "id": "SS2",
+      "name": "Signature Spellbook: Gideon",
+      "releasedAt": "2019-06-28",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "PMH1",
+      "name": "Modern Horizons Promos",
+      "releasedAt": "2019-06-14",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "MH1",
+      "name": "Modern Horizons",
+      "releasedAt": "2019-06-14",
+      "referenceEstimate": 255,
+      "status": "ready"
+    },
+    {
+      "id": "PWAR",
+      "name": "War of the Spark Promos",
+      "releasedAt": "2019-05-03",
+      "referenceEstimate": 176,
+      "status": "ready"
+    },
+    {
+      "id": "WAR",
+      "name": "War of the Spark",
+      "releasedAt": "2019-05-03",
+      "referenceEstimate": 311,
+      "status": "ready"
+    },
+    {
+      "id": "J19",
+      "name": "Judge Gift Cards 2019",
+      "releasedAt": "2019-04-10",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "PRW2",
+      "name": "RNA Ravnica Weekend",
+      "releasedAt": "2019-02-16",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "GK2",
+      "name": "RNA Guild Kit",
+      "releasedAt": "2019-02-15",
+      "referenceEstimate": 133,
+      "status": "ready"
+    },
+    {
+      "id": "PRNA",
+      "name": "Ravnica Allegiance Promos",
+      "releasedAt": "2019-01-25",
+      "referenceEstimate": 81,
+      "status": "ready"
+    },
+    {
+      "id": "RNA",
+      "name": "Ravnica Allegiance",
+      "releasedAt": "2019-01-25",
+      "referenceEstimate": 273,
+      "status": "ready"
+    },
+    {
+      "id": "PF19",
+      "name": "MagicFest 2019",
+      "releasedAt": "2019-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "PUMA",
+      "name": "Ultimate Box Topper",
+      "releasedAt": "2018-12-07",
+      "referenceEstimate": 40,
+      "status": "ready"
+    },
+    {
+      "id": "UMA",
+      "name": "Ultimate Masters",
+      "releasedAt": "2018-12-07",
+      "referenceEstimate": 254,
+      "status": "ready"
+    },
+    {
+      "id": "GNT",
+      "name": "Game Night",
+      "releasedAt": "2018-11-16",
+      "referenceEstimate": 68,
+      "status": "ready"
+    },
+    {
+      "id": "G18",
+      "name": "M19 Gift Pack",
+      "releasedAt": "2018-11-16",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PRWK",
+      "name": "GRN Ravnica Weekend",
+      "releasedAt": "2018-11-09",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "GK1",
+      "name": "GRN Guild Kit",
+      "releasedAt": "2018-11-02",
+      "referenceEstimate": 127,
+      "status": "ready"
+    },
+    {
+      "id": "PGRN",
+      "name": "Guilds of Ravnica Promos",
+      "releasedAt": "2018-10-05",
+      "referenceEstimate": 84,
+      "status": "ready"
+    },
+    {
+      "id": "GRN",
+      "name": "Guilds of Ravnica",
+      "releasedAt": "2018-10-05",
+      "referenceEstimate": 273,
+      "status": "ready"
+    },
+    {
+      "id": "MED",
+      "name": "Mythic Edition",
+      "releasedAt": "2018-10-05",
+      "referenceEstimate": 24,
+      "status": "ready"
+    },
+    {
+      "id": "C18",
+      "name": "Commander 2018",
+      "releasedAt": "2018-08-10",
+      "referenceEstimate": 307,
+      "status": "ready"
+    },
+    {
+      "id": "PH17",
+      "name": "2017 Heroes of the Realm",
+      "releasedAt": "2018-08-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PS18",
+      "name": "San Diego Comic-Con 2018",
+      "releasedAt": "2018-07-19",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PM19",
+      "name": "Core Set 2019 Promos",
+      "releasedAt": "2018-07-13",
+      "referenceEstimate": 95,
+      "status": "ready"
+    },
+    {
+      "id": "PSS3",
+      "name": "M19 Standard Showdown",
+      "releasedAt": "2018-07-13",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "M19",
+      "name": "Core Set 2019",
+      "releasedAt": "2018-07-13",
+      "referenceEstimate": 314,
+      "status": "ready"
+    },
+    {
+      "id": "GS1",
+      "name": "Global Series Jiang Yanggu & Mu Yanling",
+      "releasedAt": "2018-06-22",
+      "referenceEstimate": 41,
+      "status": "ready"
+    },
+    {
+      "id": "SS1",
+      "name": "Signature Spellbook: Jace",
+      "releasedAt": "2018-06-15",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "PBBD",
+      "name": "Battlebond Promos",
+      "releasedAt": "2018-06-08",
+      "referenceEstimate": 22,
+      "status": "ready"
+    },
+    {
+      "id": "BBD",
+      "name": "Battlebond",
+      "releasedAt": "2018-06-08",
+      "referenceEstimate": 256,
+      "status": "ready"
+    },
+    {
+      "id": "CM2",
+      "name": "Commander Anthology Volume II",
+      "releasedAt": "2018-06-08",
+      "referenceEstimate": 312,
+      "status": "ready"
+    },
+    {
+      "id": "PDOM",
+      "name": "Dominaria Promos",
+      "releasedAt": "2018-04-27",
+      "referenceEstimate": 118,
+      "status": "ready"
+    },
+    {
+      "id": "DOM",
+      "name": "Dominaria",
+      "releasedAt": "2018-04-27",
+      "referenceEstimate": 280,
+      "status": "ready"
+    },
+    {
+      "id": "DDU",
+      "name": "Duel Decks: Elves vs. Inventors",
+      "releasedAt": "2018-04-06",
+      "referenceEstimate": 76,
+      "status": "ready"
+    },
+    {
+      "id": "A25",
+      "name": "Masters 25",
+      "releasedAt": "2018-03-16",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PLNY",
+      "name": "Lunar New Year 2018",
+      "releasedAt": "2018-02-16",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PNAT",
+      "name": "Nationals Promos",
+      "releasedAt": "2018-01-25",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PRIX",
+      "name": "Rivals of Ixalan Promos",
+      "releasedAt": "2018-01-19",
+      "referenceEstimate": 98,
+      "status": "ready"
+    },
+    {
+      "id": "RIX",
+      "name": "Rivals of Ixalan",
+      "releasedAt": "2018-01-19",
+      "referenceEstimate": 205,
+      "status": "ready"
+    },
+    {
+      "id": "J18",
+      "name": "Judge Gift Cards 2018",
+      "releasedAt": "2018-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "F18",
+      "name": "Friday Night Magic 2018",
+      "releasedAt": "2017-12-27",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PUST",
+      "name": "Unstable Promos",
+      "releasedAt": "2017-12-08",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "UST",
+      "name": "Unstable",
+      "releasedAt": "2017-12-08",
+      "referenceEstimate": 268,
+      "status": "ready"
+    },
+    {
+      "id": "PXTC",
+      "name": "XLN Treasure Chest",
+      "releasedAt": "2017-11-24",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "E02",
+      "name": "Explorers of Ixalan",
+      "releasedAt": "2017-11-24",
+      "referenceEstimate": 48,
+      "status": "ready"
+    },
+    {
+      "id": "V17",
+      "name": "From the Vault: Transform",
+      "releasedAt": "2017-11-24",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "IMA",
+      "name": "Iconic Masters",
+      "releasedAt": "2017-11-17",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "DDT",
+      "name": "Duel Decks: Merfolk vs. Goblins",
+      "releasedAt": "2017-10-24",
+      "referenceEstimate": 63,
+      "status": "ready"
+    },
+    {
+      "id": "G17",
+      "name": "2017 Gift Pack",
+      "releasedAt": "2017-10-20",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PXLN",
+      "name": "Ixalan Promos",
+      "releasedAt": "2017-09-29",
+      "referenceEstimate": 120,
+      "status": "ready"
+    },
+    {
+      "id": "XLN",
+      "name": "Ixalan",
+      "releasedAt": "2017-09-29",
+      "referenceEstimate": 289,
+      "status": "ready"
+    },
+    {
+      "id": "PSS2",
+      "name": "XLN Standard Showdown",
+      "releasedAt": "2017-09-29",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "H17",
+      "name": "HasCon 2017",
+      "releasedAt": "2017-09-20",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PHTR",
+      "name": "2016 Heroes of the Realm",
+      "releasedAt": "2017-09-20",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "C17",
+      "name": "Commander 2017",
+      "releasedAt": "2017-08-25",
+      "referenceEstimate": 309,
+      "status": "ready"
+    },
+    {
+      "id": "PS17",
+      "name": "San Diego Comic-Con 2017",
+      "releasedAt": "2017-07-20",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PHOU",
+      "name": "Hour of Devastation Promos",
+      "releasedAt": "2017-07-14",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "HOU",
+      "name": "Hour of Devastation",
+      "releasedAt": "2017-07-14",
+      "referenceEstimate": 209,
+      "status": "ready"
+    },
+    {
+      "id": "OE01",
+      "name": "Archenemy: Nicol Bolas Schemes",
+      "releasedAt": "2017-06-16",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "E01",
+      "name": "Archenemy: Nicol Bolas",
+      "releasedAt": "2017-06-16",
+      "referenceEstimate": 106,
+      "status": "ready"
+    },
+    {
+      "id": "CMA",
+      "name": "Commander Anthology",
+      "releasedAt": "2017-06-09",
+      "referenceEstimate": 320,
+      "status": "ready"
+    },
+    {
+      "id": "PAKH",
+      "name": "Amonkhet Promos",
+      "releasedAt": "2017-04-28",
+      "referenceEstimate": 77,
+      "status": "ready"
+    },
+    {
+      "id": "MP2",
+      "name": "Amonkhet Invocations",
+      "releasedAt": "2017-04-28",
+      "referenceEstimate": 54,
+      "status": "ready"
+    },
+    {
+      "id": "AKH",
+      "name": "Amonkhet",
+      "releasedAt": "2017-04-28",
+      "referenceEstimate": 287,
+      "status": "ready"
+    },
+    {
+      "id": "W17",
+      "name": "Welcome Deck 2017",
+      "releasedAt": "2017-04-15",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "DDS",
+      "name": "Duel Decks: Mind vs. Might",
+      "releasedAt": "2017-03-31",
+      "referenceEstimate": 65,
+      "status": "ready"
+    },
+    {
+      "id": "MM3",
+      "name": "Modern Masters 2017",
+      "releasedAt": "2017-03-17",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PAER",
+      "name": "Aether Revolt Promos",
+      "releasedAt": "2017-01-20",
+      "referenceEstimate": 65,
+      "status": "ready"
+    },
+    {
+      "id": "AER",
+      "name": "Aether Revolt",
+      "releasedAt": "2017-01-20",
+      "referenceEstimate": 197,
+      "status": "ready"
+    },
+    {
+      "id": "J17",
+      "name": "Judge Gift Cards 2017",
+      "releasedAt": "2017-01-01",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "F17",
+      "name": "Friday Night Magic 2017",
+      "releasedAt": "2017-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "OPCA",
+      "name": "Planechase Anthology Planes",
+      "releasedAt": "2016-11-25",
+      "referenceEstimate": 86,
+      "status": "ready"
+    },
+    {
+      "id": "PCA",
+      "name": "Planechase Anthology",
+      "releasedAt": "2016-11-25",
+      "referenceEstimate": 156,
+      "status": "ready"
+    },
+    {
+      "id": "C16",
+      "name": "Commander 2016",
+      "releasedAt": "2016-11-11",
+      "referenceEstimate": 351,
+      "status": "ready"
+    },
+    {
+      "id": "PS16",
+      "name": "San Diego Comic-Con 2016",
+      "releasedAt": "2016-10-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PKLD",
+      "name": "Kaladesh Promos",
+      "releasedAt": "2016-09-30",
+      "referenceEstimate": 83,
+      "status": "ready"
+    },
+    {
+      "id": "KLD",
+      "name": "Kaladesh",
+      "releasedAt": "2016-09-30",
+      "referenceEstimate": 278,
+      "status": "ready"
+    },
+    {
+      "id": "MPS",
+      "name": "Kaladesh Inventions",
+      "releasedAt": "2016-09-30",
+      "referenceEstimate": 54,
+      "status": "ready"
+    },
+    {
+      "id": "DDR",
+      "name": "Duel Decks: Nissa vs. Ob Nixilis",
+      "releasedAt": "2016-09-02",
+      "referenceEstimate": 76,
+      "status": "ready"
+    },
+    {
+      "id": "CN2",
+      "name": "Conspiracy: Take the Crown",
+      "releasedAt": "2016-08-26",
+      "referenceEstimate": 222,
+      "status": "ready"
+    },
+    {
+      "id": "V16",
+      "name": "From the Vault: Lore",
+      "releasedAt": "2016-08-19",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "PEMN",
+      "name": "Eldritch Moon Promos",
+      "releasedAt": "2016-07-22",
+      "referenceEstimate": 77,
+      "status": "ready"
+    },
+    {
+      "id": "EMN",
+      "name": "Eldritch Moon",
+      "releasedAt": "2016-07-22",
+      "referenceEstimate": 208,
+      "status": "ready"
+    },
+    {
+      "id": "EMA",
+      "name": "Eternal Masters",
+      "releasedAt": "2016-06-10",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PSOI",
+      "name": "Shadows over Innistrad Promos",
+      "releasedAt": "2016-04-08",
+      "referenceEstimate": 90,
+      "status": "ready"
+    },
+    {
+      "id": "SOI",
+      "name": "Shadows over Innistrad",
+      "releasedAt": "2016-04-08",
+      "referenceEstimate": 302,
+      "status": "ready"
+    },
+    {
+      "id": "W16",
+      "name": "Welcome Deck 2016",
+      "releasedAt": "2016-04-08",
+      "referenceEstimate": 16,
+      "status": "ready"
+    },
+    {
+      "id": "DDQ",
+      "name": "Duel Decks: Blessed vs. Cursed",
+      "releasedAt": "2016-02-26",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "POGW",
+      "name": "Oath of the Gatewatch Promos",
+      "releasedAt": "2016-01-22",
+      "referenceEstimate": 65,
+      "status": "ready"
+    },
+    {
+      "id": "OGW",
+      "name": "Oath of the Gatewatch",
+      "releasedAt": "2016-01-22",
+      "referenceEstimate": 187,
+      "status": "ready"
+    },
+    {
+      "id": "F16",
+      "name": "Friday Night Magic 2016",
+      "releasedAt": "2016-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "J16",
+      "name": "Judge Gift Cards 2016",
+      "releasedAt": "2016-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "C15",
+      "name": "Commander 2015",
+      "releasedAt": "2015-11-13",
+      "referenceEstimate": 342,
+      "status": "ready"
+    },
+    {
+      "id": "PBFZ",
+      "name": "Battle for Zendikar Promos",
+      "releasedAt": "2015-10-02",
+      "referenceEstimate": 90,
+      "status": "ready"
+    },
+    {
+      "id": "PSS1",
+      "name": "BFZ Standard Series",
+      "releasedAt": "2015-10-02",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "EXP",
+      "name": "Zendikar Expeditions",
+      "releasedAt": "2015-10-02",
+      "referenceEstimate": 45,
+      "status": "ready"
+    },
+    {
+      "id": "BFZ",
+      "name": "Battle for Zendikar",
+      "releasedAt": "2015-10-02",
+      "referenceEstimate": 299,
+      "status": "ready"
+    },
+    {
+      "id": "DDP",
+      "name": "Duel Decks: Zendikar vs. Eldrazi",
+      "releasedAt": "2015-08-28",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "V15",
+      "name": "From the Vault: Angels",
+      "releasedAt": "2015-08-21",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "CP3",
+      "name": "Magic Origins Clash Pack",
+      "releasedAt": "2015-07-17",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PORI",
+      "name": "Magic Origins Promos",
+      "releasedAt": "2015-07-17",
+      "referenceEstimate": 54,
+      "status": "ready"
+    },
+    {
+      "id": "ORI",
+      "name": "Magic Origins",
+      "releasedAt": "2015-07-17",
+      "referenceEstimate": 288,
+      "status": "ready"
+    },
+    {
+      "id": "PS15",
+      "name": "San Diego Comic-Con 2015",
+      "releasedAt": "2015-07-09",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "MM2",
+      "name": "Modern Masters 2015",
+      "releasedAt": "2015-05-22",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PTKDF",
+      "name": "Tarkir Dragonfury",
+      "releasedAt": "2015-04-03",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PDTK",
+      "name": "Dragons of Tarkir Promos",
+      "releasedAt": "2015-03-27",
+      "referenceEstimate": 51,
+      "status": "ready"
+    },
+    {
+      "id": "DTK",
+      "name": "Dragons of Tarkir",
+      "releasedAt": "2015-03-27",
+      "referenceEstimate": 264,
+      "status": "ready"
+    },
+    {
+      "id": "DDO",
+      "name": "Duel Decks: Elspeth vs. Kiora",
+      "releasedAt": "2015-02-27",
+      "referenceEstimate": 67,
+      "status": "ready"
+    },
+    {
+      "id": "PFRF",
+      "name": "Fate Reforged Promos",
+      "releasedAt": "2015-01-23",
+      "referenceEstimate": 43,
+      "status": "ready"
+    },
+    {
+      "id": "CP2",
+      "name": "Fate Reforged Clash Pack",
+      "releasedAt": "2015-01-23",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "FRF",
+      "name": "Fate Reforged",
+      "releasedAt": "2015-01-23",
+      "referenceEstimate": 191,
+      "status": "ready"
+    },
+    {
+      "id": "UGIN",
+      "name": "Ugin's Fate",
+      "releasedAt": "2015-01-17",
+      "referenceEstimate": 26,
+      "status": "ready"
+    },
+    {
+      "id": "J15",
+      "name": "Judge Gift Cards 2015",
+      "releasedAt": "2015-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "F15",
+      "name": "Friday Night Magic 2015",
+      "releasedAt": "2015-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "EVG",
+      "name": "Duel Decks Anthology: Elves vs. Goblins",
+      "releasedAt": "2014-12-05",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "JVC",
+      "name": "Duel Decks Anthology: Jace vs. Chandra",
+      "releasedAt": "2014-12-05",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "GVL",
+      "name": "Duel Decks Anthology: Garruk vs. Liliana",
+      "releasedAt": "2014-12-05",
+      "referenceEstimate": 63,
+      "status": "ready"
+    },
+    {
+      "id": "DVD",
+      "name": "Duel Decks Anthology: Divine vs. Demonic",
+      "releasedAt": "2014-12-05",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "C14",
+      "name": "Commander 2014",
+      "releasedAt": "2014-11-07",
+      "referenceEstimate": 337,
+      "status": "ready"
+    },
+    {
+      "id": "PKTK",
+      "name": "Khans of Tarkir Promos",
+      "releasedAt": "2014-09-26",
+      "referenceEstimate": 56,
+      "status": "ready"
+    },
+    {
+      "id": "KTK",
+      "name": "Khans of Tarkir",
+      "releasedAt": "2014-09-26",
+      "referenceEstimate": 293,
+      "status": "ready"
+    },
+    {
+      "id": "DDN",
+      "name": "Duel Decks: Speed vs. Cunning",
+      "releasedAt": "2014-09-05",
+      "referenceEstimate": 82,
+      "status": "ready"
+    },
+    {
+      "id": "V14",
+      "name": "From the Vault: Annihilation",
+      "releasedAt": "2014-08-22",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "M15",
+      "name": "Magic 2015",
+      "releasedAt": "2014-07-18",
+      "referenceEstimate": 284,
+      "status": "ready"
+    },
+    {
+      "id": "CP1",
+      "name": "Magic 2015 Clash Pack",
+      "releasedAt": "2014-07-18",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PM15",
+      "name": "Magic 2015 Promos",
+      "releasedAt": "2014-07-17",
+      "referenceEstimate": 14,
+      "status": "ready"
+    },
+    {
+      "id": "PDP15",
+      "name": "Duels of the Planeswalkers 2015 Promos",
+      "releasedAt": "2014-07-09",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PS14",
+      "name": "San Diego Comic-Con 2014",
+      "releasedAt": "2014-07-08",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PCNS",
+      "name": "Conspiracy Promos",
+      "releasedAt": "2014-06-06",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "CNS",
+      "name": "Conspiracy",
+      "releasedAt": "2014-06-06",
+      "referenceEstimate": 210,
+      "status": "ready"
+    },
+    {
+      "id": "MD1",
+      "name": "Modern Event Deck 2014",
+      "releasedAt": "2014-05-30",
+      "referenceEstimate": 26,
+      "status": "ready"
+    },
+    {
+      "id": "JOU",
+      "name": "Journey into Nyx",
+      "releasedAt": "2014-05-02",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PJOU",
+      "name": "Journey into Nyx Promos",
+      "releasedAt": "2014-04-26",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "DDM",
+      "name": "Duel Decks: Jace vs. Vraska",
+      "releasedAt": "2014-03-14",
+      "referenceEstimate": 88,
+      "status": "ready"
+    },
+    {
+      "id": "BNG",
+      "name": "Born of the Gods",
+      "releasedAt": "2014-02-07",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PBNG",
+      "name": "Born of the Gods Promos",
+      "releasedAt": "2014-02-01",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "J14",
+      "name": "Judge Gift Cards 2014",
+      "releasedAt": "2014-01-01",
+      "referenceEstimate": 14,
+      "status": "ready"
+    },
+    {
+      "id": "F14",
+      "name": "Friday Night Magic 2014",
+      "releasedAt": "2014-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "C13",
+      "name": "Commander 2013",
+      "releasedAt": "2013-11-01",
+      "referenceEstimate": 356,
+      "status": "ready"
+    },
+    {
+      "id": "THS",
+      "name": "Theros",
+      "releasedAt": "2013-09-27",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PTHS",
+      "name": "Theros Promos",
+      "releasedAt": "2013-09-21",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "DDL",
+      "name": "Duel Decks: Heroes vs. Monsters",
+      "releasedAt": "2013-09-06",
+      "referenceEstimate": 81,
+      "status": "ready"
+    },
+    {
+      "id": "V13",
+      "name": "From the Vault: Twenty",
+      "releasedAt": "2013-08-23",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "M14",
+      "name": "Magic 2014",
+      "releasedAt": "2013-07-19",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PM14",
+      "name": "Magic 2014 Promos",
+      "releasedAt": "2013-07-18",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PSDC",
+      "name": "San Diego Comic-Con 2013",
+      "releasedAt": "2013-07-18",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "MMA",
+      "name": "Modern Masters",
+      "releasedAt": "2013-06-07",
+      "referenceEstimate": 229,
+      "status": "ready"
+    },
+    {
+      "id": "DGM",
+      "name": "Dragon's Maze",
+      "releasedAt": "2013-05-03",
+      "referenceEstimate": 156,
+      "status": "ready"
+    },
+    {
+      "id": "PDGM",
+      "name": "Dragon's Maze Promos",
+      "releasedAt": "2013-04-27",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "WMC",
+      "name": "World Magic Cup Qualifiers",
+      "releasedAt": "2013-04-06",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "DDK",
+      "name": "Duel Decks: Sorin vs. Tibalt",
+      "releasedAt": "2013-03-15",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "GTC",
+      "name": "Gatecrash",
+      "releasedAt": "2013-02-01",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PGTC",
+      "name": "Gatecrash Promos",
+      "releasedAt": "2013-01-26",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "PDP14",
+      "name": "Duels of the Planeswalkers 2014 Promos",
+      "releasedAt": "2013-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "J13",
+      "name": "Judge Gift Cards 2013",
+      "releasedAt": "2013-01-01",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "F13",
+      "name": "Friday Night Magic 2013",
+      "releasedAt": "2013-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "CM1",
+      "name": "Commander's Arsenal",
+      "releasedAt": "2012-11-02",
+      "referenceEstimate": 18,
+      "status": "ready"
+    },
+    {
+      "id": "RTR",
+      "name": "Return to Ravnica",
+      "releasedAt": "2012-10-05",
+      "referenceEstimate": 274,
+      "status": "ready"
+    },
+    {
+      "id": "PRTR",
+      "name": "Return to Ravnica Promos",
+      "releasedAt": "2012-10-05",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "DDJ",
+      "name": "Duel Decks: Izzet vs. Golgari",
+      "releasedAt": "2012-09-07",
+      "referenceEstimate": 90,
+      "status": "ready"
+    },
+    {
+      "id": "V12",
+      "name": "From the Vault: Realms",
+      "releasedAt": "2012-08-31",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "M13",
+      "name": "Magic 2013",
+      "releasedAt": "2012-07-13",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PM13",
+      "name": "Magic 2013 Promos",
+      "releasedAt": "2012-07-12",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "OPC2",
+      "name": "Planechase 2012 Planes",
+      "releasedAt": "2012-06-01",
+      "referenceEstimate": 40,
+      "status": "ready"
+    },
+    {
+      "id": "PC2",
+      "name": "Planechase 2012",
+      "releasedAt": "2012-06-01",
+      "referenceEstimate": 156,
+      "status": "ready"
+    },
+    {
+      "id": "AVR",
+      "name": "Avacyn Restored",
+      "releasedAt": "2012-05-04",
+      "referenceEstimate": 244,
+      "status": "ready"
+    },
+    {
+      "id": "PAVR",
+      "name": "Avacyn Restored Promos",
+      "releasedAt": "2012-04-28",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "DDI",
+      "name": "Duel Decks: Venser vs. Koth",
+      "releasedAt": "2012-03-30",
+      "referenceEstimate": 77,
+      "status": "ready"
+    },
+    {
+      "id": "DKA",
+      "name": "Dark Ascension",
+      "releasedAt": "2012-02-03",
+      "referenceEstimate": 158,
+      "status": "ready"
+    },
+    {
+      "id": "PDKA",
+      "name": "Dark Ascension Promos",
+      "releasedAt": "2012-01-28",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PW12",
+      "name": "Wizards Play Network 2012",
+      "releasedAt": "2012-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PIDW",
+      "name": "IDW Comics Inserts",
+      "releasedAt": "2012-01-01",
+      "referenceEstimate": 17,
+      "status": "ready"
+    },
+    {
+      "id": "PDP13",
+      "name": "Duels of the Planeswalkers 2013 Promos",
+      "releasedAt": "2012-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "F12",
+      "name": "Friday Night Magic 2012",
+      "releasedAt": "2012-01-01",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "J12",
+      "name": "Judge Gift Cards 2012",
+      "releasedAt": "2012-01-01",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "PD3",
+      "name": "Premium Deck Series: Graveborn",
+      "releasedAt": "2011-11-18",
+      "referenceEstimate": 30,
+      "status": "ready"
+    },
+    {
+      "id": "ISD",
+      "name": "Innistrad",
+      "releasedAt": "2011-09-30",
+      "referenceEstimate": 264,
+      "status": "ready"
+    },
+    {
+      "id": "PISD",
+      "name": "Innistrad Promos",
+      "releasedAt": "2011-09-24",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "DDH",
+      "name": "Duel Decks: Ajani vs. Nicol Bolas",
+      "releasedAt": "2011-09-02",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "V11",
+      "name": "From the Vault: Legends",
+      "releasedAt": "2011-08-26",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "M12",
+      "name": "Magic 2012",
+      "releasedAt": "2011-07-15",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PM12",
+      "name": "Magic 2012 Promos",
+      "releasedAt": "2011-07-14",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "CMD",
+      "name": "Commander 2011",
+      "releasedAt": "2011-06-17",
+      "referenceEstimate": 318,
+      "status": "ready"
+    },
+    {
+      "id": "NPH",
+      "name": "New Phyrexia",
+      "releasedAt": "2011-05-13",
+      "referenceEstimate": 175,
+      "status": "ready"
+    },
+    {
+      "id": "PNPH",
+      "name": "New Phyrexia Promos",
+      "releasedAt": "2011-05-12",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "DDG",
+      "name": "Duel Decks: Knights vs. Dragons",
+      "releasedAt": "2011-04-01",
+      "referenceEstimate": 81,
+      "status": "ready"
+    },
+    {
+      "id": "MBS",
+      "name": "Mirrodin Besieged",
+      "releasedAt": "2011-02-04",
+      "referenceEstimate": 155,
+      "status": "ready"
+    },
+    {
+      "id": "PMBS",
+      "name": "Mirrodin Besieged Promos",
+      "releasedAt": "2011-02-03",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS11",
+      "name": "Magic Premiere Shop 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PW11",
+      "name": "Wizards Play Network 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PDP12",
+      "name": "Duels of the Planeswalkers 2012 Promos",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PS11",
+      "name": "Salvat 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 224,
+      "status": "ready"
+    },
+    {
+      "id": "F11",
+      "name": "Friday Night Magic 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "G11",
+      "name": "Judge Gift Cards 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "P11",
+      "name": "Magic Player Rewards 2011",
+      "releasedAt": "2011-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "PD2",
+      "name": "Premium Deck Series: Fire and Lightning",
+      "releasedAt": "2010-11-19",
+      "referenceEstimate": 34,
+      "status": "ready"
+    },
+    {
+      "id": "SOM",
+      "name": "Scars of Mirrodin",
+      "releasedAt": "2010-10-01",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PSOM",
+      "name": "Scars of Mirrodin Promos",
+      "releasedAt": "2010-09-30",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "DDF",
+      "name": "Duel Decks: Elspeth vs. Tezzeret",
+      "releasedAt": "2010-09-03",
+      "referenceEstimate": 79,
+      "status": "ready"
+    },
+    {
+      "id": "V10",
+      "name": "From the Vault: Relics",
+      "releasedAt": "2010-08-27",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "M11",
+      "name": "Magic 2011",
+      "releasedAt": "2010-07-16",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PM11",
+      "name": "Magic 2011 Promos",
+      "releasedAt": "2010-07-15",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "OARC",
+      "name": "Archenemy Schemes",
+      "releasedAt": "2010-06-18",
+      "referenceEstimate": 45,
+      "status": "ready"
+    },
+    {
+      "id": "ARC",
+      "name": "Archenemy",
+      "releasedAt": "2010-06-18",
+      "referenceEstimate": 150,
+      "status": "ready"
+    },
+    {
+      "id": "DPA",
+      "name": "Duels of the Planeswalkers",
+      "releasedAt": "2010-06-04",
+      "referenceEstimate": 113,
+      "status": "ready"
+    },
+    {
+      "id": "PROE",
+      "name": "Rise of the Eldrazi Promos",
+      "releasedAt": "2010-04-23",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "ROE",
+      "name": "Rise of the Eldrazi",
+      "releasedAt": "2010-04-23",
+      "referenceEstimate": 248,
+      "status": "ready"
+    },
+    {
+      "id": "DDE",
+      "name": "Duel Decks: Phyrexia vs. the Coalition",
+      "releasedAt": "2010-03-19",
+      "referenceEstimate": 71,
+      "status": "ready"
+    },
+    {
+      "id": "PWWK",
+      "name": "Worldwake Promos",
+      "releasedAt": "2010-02-05",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "WWK",
+      "name": "Worldwake",
+      "releasedAt": "2010-02-05",
+      "referenceEstimate": 145,
+      "status": "ready"
+    },
+    {
+      "id": "PDP10",
+      "name": "Duels of the Planeswalkers 2010 Promos",
+      "releasedAt": "2010-01-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS10",
+      "name": "Magic Premiere Shop 2010",
+      "releasedAt": "2010-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "G10",
+      "name": "Judge Gift Cards 2010",
+      "releasedAt": "2010-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "F10",
+      "name": "Friday Night Magic 2010",
+      "releasedAt": "2010-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "P10",
+      "name": "Magic Player Rewards 2010",
+      "releasedAt": "2010-01-01",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "H09",
+      "name": "Premium Deck Series: Slivers",
+      "releasedAt": "2009-11-20",
+      "referenceEstimate": 41,
+      "status": "ready"
+    },
+    {
+      "id": "DDD",
+      "name": "Duel Decks: Garruk vs. Liliana",
+      "releasedAt": "2009-10-30",
+      "referenceEstimate": 63,
+      "status": "ready"
+    },
+    {
+      "id": "PZEN",
+      "name": "Zendikar Promos",
+      "releasedAt": "2009-10-02",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "ZEN",
+      "name": "Zendikar",
+      "releasedAt": "2009-10-02",
+      "referenceEstimate": 269,
+      "status": "ready"
+    },
+    {
+      "id": "OHOP",
+      "name": "Planechase Planes",
+      "releasedAt": "2009-09-04",
+      "referenceEstimate": 40,
+      "status": "ready"
+    },
+    {
+      "id": "HOP",
+      "name": "Planechase",
+      "releasedAt": "2009-09-04",
+      "referenceEstimate": 169,
+      "status": "ready"
+    },
+    {
+      "id": "PHOP",
+      "name": "Planechase Promos",
+      "releasedAt": "2009-09-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "V09",
+      "name": "From the Vault: Exiled",
+      "releasedAt": "2009-08-28",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "M10",
+      "name": "Magic 2010",
+      "releasedAt": "2009-07-17",
+      "referenceEstimate": 249,
+      "status": "ready"
+    },
+    {
+      "id": "PM10",
+      "name": "Magic 2010 Promos",
+      "releasedAt": "2009-07-16",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PARB",
+      "name": "Alara Reborn Promos",
+      "releasedAt": "2009-04-30",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "ARB",
+      "name": "Alara Reborn",
+      "releasedAt": "2009-04-30",
+      "referenceEstimate": 145,
+      "status": "ready"
+    },
+    {
+      "id": "DDC",
+      "name": "Duel Decks: Divine vs. Demonic",
+      "releasedAt": "2009-04-10",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "PURL",
+      "name": "URL/Convention Promos",
+      "releasedAt": "2009-02-08",
+      "referenceEstimate": 18,
+      "status": "ready"
+    },
+    {
+      "id": "PCON",
+      "name": "Conflux Promos",
+      "releasedAt": "2009-02-06",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "CON",
+      "name": "Conflux",
+      "releasedAt": "2009-02-06",
+      "referenceEstimate": 145,
+      "status": "ready"
+    },
+    {
+      "id": "PDTP",
+      "name": "Duels of the Planeswalkers 2009 Promos",
+      "releasedAt": "2009-01-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS09",
+      "name": "Magic Premiere Shop 2009",
+      "releasedAt": "2009-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "F09",
+      "name": "Friday Night Magic 2009",
+      "releasedAt": "2009-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "G09",
+      "name": "Judge Gift Cards 2009",
+      "releasedAt": "2009-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "P09",
+      "name": "Magic Player Rewards 2009",
+      "releasedAt": "2009-01-01",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "DD2",
+      "name": "Duel Decks: Jace vs. Chandra",
+      "releasedAt": "2008-11-07",
+      "referenceEstimate": 64,
+      "status": "ready"
+    },
+    {
+      "id": "PALA",
+      "name": "Shards of Alara Promos",
+      "releasedAt": "2008-10-03",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "ALA",
+      "name": "Shards of Alara",
+      "releasedAt": "2008-10-03",
+      "referenceEstimate": 250,
+      "status": "ready"
+    },
+    {
+      "id": "DRB",
+      "name": "From the Vault: Dragons",
+      "releasedAt": "2008-08-29",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "PEVE",
+      "name": "Eventide Promos",
+      "releasedAt": "2008-07-25",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "EVE",
+      "name": "Eventide",
+      "releasedAt": "2008-07-25",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "PSHM",
+      "name": "Shadowmoor Promos",
+      "releasedAt": "2008-05-02",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "SHM",
+      "name": "Shadowmoor",
+      "releasedAt": "2008-05-02",
+      "referenceEstimate": 302,
+      "status": "ready"
+    },
+    {
+      "id": "P15A",
+      "name": "15th Anniversary Cards",
+      "releasedAt": "2008-04-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PMOR",
+      "name": "Morningtide Promos",
+      "releasedAt": "2008-02-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "MOR",
+      "name": "Morningtide",
+      "releasedAt": "2008-02-01",
+      "referenceEstimate": 150,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS08",
+      "name": "Magic Premiere Shop 2008",
+      "releasedAt": "2008-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "F08",
+      "name": "Friday Night Magic 2008",
+      "releasedAt": "2008-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "P08",
+      "name": "Magic Player Rewards 2008",
+      "releasedAt": "2008-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "G08",
+      "name": "Judge Gift Cards 2008",
+      "releasedAt": "2008-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "DD1",
+      "name": "Duel Decks: Elves vs. Goblins",
+      "releasedAt": "2007-11-16",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "PLRW",
+      "name": "Lorwyn Promos",
+      "releasedAt": "2007-10-12",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "LRW",
+      "name": "Lorwyn",
+      "releasedAt": "2007-10-12",
+      "referenceEstimate": 301,
+      "status": "ready"
+    },
+    {
+      "id": "10E",
+      "name": "Tenth Edition",
+      "releasedAt": "2007-07-13",
+      "referenceEstimate": 510,
+      "status": "ready"
+    },
+    {
+      "id": "P10E",
+      "name": "Tenth Edition Promos",
+      "releasedAt": "2007-07-13",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PFUT",
+      "name": "Future Sight Promos",
+      "releasedAt": "2007-05-04",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "FUT",
+      "name": "Future Sight",
+      "releasedAt": "2007-05-04",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "PGPX",
+      "name": "Grand Prix Promos",
+      "releasedAt": "2007-02-24",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "PPRO",
+      "name": "Pro Tour Promos",
+      "releasedAt": "2007-02-09",
+      "referenceEstimate": 18,
+      "status": "ready"
+    },
+    {
+      "id": "PPLC",
+      "name": "Planar Chaos Promos",
+      "releasedAt": "2007-02-02",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PLC",
+      "name": "Planar Chaos",
+      "releasedAt": "2007-02-02",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "F07",
+      "name": "Friday Night Magic 2007",
+      "releasedAt": "2007-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS07",
+      "name": "Magic Premiere Shop 2007",
+      "releasedAt": "2007-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "G07",
+      "name": "Judge Gift Cards 2007",
+      "releasedAt": "2007-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "P07",
+      "name": "Magic Player Rewards 2007",
+      "releasedAt": "2007-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "HHO",
+      "name": "Happy Holidays",
+      "releasedAt": "2006-12-31",
+      "referenceEstimate": 23,
+      "status": "ready"
+    },
+    {
+      "id": "PTSP",
+      "name": "Time Spiral Promos",
+      "releasedAt": "2006-10-06",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "TSP",
+      "name": "Time Spiral",
+      "releasedAt": "2006-10-06",
+      "referenceEstimate": 301,
+      "status": "ready"
+    },
+    {
+      "id": "TSB",
+      "name": "Time Spiral Timeshifted",
+      "releasedAt": "2006-10-06",
+      "referenceEstimate": 121,
+      "status": "ready"
+    },
+    {
+      "id": "PCSP",
+      "name": "Coldsnap Promos",
+      "releasedAt": "2006-07-21",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "CSP",
+      "name": "Coldsnap",
+      "releasedAt": "2006-07-21",
+      "referenceEstimate": 155,
+      "status": "ready"
+    },
+    {
+      "id": "CST",
+      "name": "Coldsnap Theme Decks",
+      "releasedAt": "2006-07-21",
+      "referenceEstimate": 62,
+      "status": "ready"
+    },
+    {
+      "id": "PDIS",
+      "name": "Dissension Promos",
+      "releasedAt": "2006-05-05",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "DIS",
+      "name": "Dissension",
+      "releasedAt": "2006-05-05",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "PCMP",
+      "name": "Champs and States",
+      "releasedAt": "2006-03-18",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "PGPT",
+      "name": "Guildpact Promos",
+      "releasedAt": "2006-02-03",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "GPT",
+      "name": "Guildpact",
+      "releasedAt": "2006-02-03",
+      "referenceEstimate": 167,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS06",
+      "name": "Magic Premiere Shop 2006",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PAL06",
+      "name": "Arena League 2006",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 9,
+      "status": "ready"
+    },
+    {
+      "id": "PJAS",
+      "name": "Junior APAC Series",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "G06",
+      "name": "Judge Gift Cards 2006",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "DCI",
+      "name": "DCI Promos",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 80,
+      "status": "ready"
+    },
+    {
+      "id": "F06",
+      "name": "Friday Night Magic 2006",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "P06",
+      "name": "Magic Player Rewards 2006",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "PHUK",
+      "name": "Hachette UK",
+      "releasedAt": "2006-01-01",
+      "referenceEstimate": 60,
+      "status": "ready"
+    },
+    {
+      "id": "P2HG",
+      "name": "Two-Headed Giant Tournament",
+      "releasedAt": "2005-12-09",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PRAV",
+      "name": "Ravnica: City of Guilds Promos",
+      "releasedAt": "2005-10-07",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PMPS",
+      "name": "Magic Premiere Shop 2005",
+      "releasedAt": "2005-10-07",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "RAV",
+      "name": "Ravnica: City of Guilds",
+      "releasedAt": "2005-10-07",
+      "referenceEstimate": 306,
+      "status": "ready"
+    },
+    {
+      "id": "PSAL",
+      "name": "Salvat 2005",
+      "releasedAt": "2005-08-22",
+      "referenceEstimate": 720,
+      "status": "ready"
+    },
+    {
+      "id": "P9ED",
+      "name": "Ninth Edition Promos",
+      "releasedAt": "2005-07-29",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "9ED",
+      "name": "Ninth Edition",
+      "releasedAt": "2005-07-29",
+      "referenceEstimate": 710,
+      "status": "ready"
+    },
+    {
+      "id": "PSOK",
+      "name": "Saviors of Kamigawa Promos",
+      "releasedAt": "2005-06-03",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "SOK",
+      "name": "Saviors of Kamigawa",
+      "releasedAt": "2005-06-03",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PBOK",
+      "name": "Betrayers of Kamigawa Promos",
+      "releasedAt": "2005-02-04",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "BOK",
+      "name": "Betrayers of Kamigawa",
+      "releasedAt": "2005-02-04",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PAL05",
+      "name": "Arena League 2005",
+      "releasedAt": "2005-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "PJSE",
+      "name": "Junior Series Europe",
+      "releasedAt": "2005-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "G05",
+      "name": "Judge Gift Cards 2005",
+      "releasedAt": "2005-01-01",
+      "referenceEstimate": 4,
+      "status": "ready"
+    },
+    {
+      "id": "F05",
+      "name": "Friday Night Magic 2005",
+      "releasedAt": "2005-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "P05",
+      "name": "Magic Player Rewards 2005",
+      "releasedAt": "2005-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "PUNH",
+      "name": "Unhinged Promos",
+      "releasedAt": "2004-11-19",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "UNH",
+      "name": "Unhinged",
+      "releasedAt": "2004-11-19",
+      "referenceEstimate": 168,
+      "status": "ready"
+    },
+    {
+      "id": "PCHK",
+      "name": "Champions of Kamigawa Promos",
+      "releasedAt": "2004-10-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "CHK",
+      "name": "Champions of Kamigawa",
+      "releasedAt": "2004-10-01",
+      "referenceEstimate": 307,
+      "status": "ready"
+    },
+    {
+      "id": "P5DN",
+      "name": "Fifth Dawn Promos",
+      "releasedAt": "2004-06-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PMRD",
+      "name": "Mirrodin Promos",
+      "releasedAt": "2004-06-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "5DN",
+      "name": "Fifth Dawn",
+      "releasedAt": "2004-06-04",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PDST",
+      "name": "Darksteel Promos",
+      "releasedAt": "2004-02-06",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "DST",
+      "name": "Darksteel",
+      "releasedAt": "2004-02-06",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PAL04",
+      "name": "Arena League 2004",
+      "releasedAt": "2004-01-01",
+      "referenceEstimate": 14,
+      "status": "ready"
+    },
+    {
+      "id": "G04",
+      "name": "Judge Gift Cards 2004",
+      "releasedAt": "2004-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "P04",
+      "name": "Magic Player Rewards 2004",
+      "releasedAt": "2004-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "F04",
+      "name": "Friday Night Magic 2004",
+      "releasedAt": "2004-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "MRD",
+      "name": "Mirrodin",
+      "releasedAt": "2003-10-02",
+      "referenceEstimate": 306,
+      "status": "ready"
+    },
+    {
+      "id": "P8ED",
+      "name": "Eighth Edition Promos",
+      "releasedAt": "2003-07-28",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "8ED",
+      "name": "Eighth Edition",
+      "releasedAt": "2003-07-28",
+      "referenceEstimate": 711,
+      "status": "ready"
+    },
+    {
+      "id": "PSCG",
+      "name": "Scourge Promos",
+      "releasedAt": "2003-05-26",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "SCG",
+      "name": "Scourge",
+      "releasedAt": "2003-05-26",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PLGN",
+      "name": "Legions Promos",
+      "releasedAt": "2003-02-03",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "LGN",
+      "name": "Legions",
+      "releasedAt": "2003-02-03",
+      "referenceEstimate": 145,
+      "status": "ready"
+    },
+    {
+      "id": "PJJT",
+      "name": "Japan Junior Tournament",
+      "releasedAt": "2003-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "PAL03",
+      "name": "Arena League 2003",
+      "releasedAt": "2003-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "F03",
+      "name": "Friday Night Magic 2003",
+      "releasedAt": "2003-01-01",
+      "referenceEstimate": 13,
+      "status": "ready"
+    },
+    {
+      "id": "P03",
+      "name": "Magic Player Rewards 2003",
+      "releasedAt": "2003-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "G03",
+      "name": "Judge Gift Cards 2003",
+      "releasedAt": "2003-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "ONS",
+      "name": "Onslaught",
+      "releasedAt": "2002-10-07",
+      "referenceEstimate": 351,
+      "status": "ready"
+    },
+    {
+      "id": "PONS",
+      "name": "Onslaught Promos",
+      "releasedAt": "2002-09-28",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "JP1",
+      "name": "Hobby Japan Promos",
+      "releasedAt": "2002-07-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PJUD",
+      "name": "Judgment Promos",
+      "releasedAt": "2002-05-27",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "JUD",
+      "name": "Judgment",
+      "releasedAt": "2002-05-27",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PTOR",
+      "name": "Torment Promos",
+      "releasedAt": "2002-02-04",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "TOR",
+      "name": "Torment",
+      "releasedAt": "2002-02-04",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PAL02",
+      "name": "Arena League 2002",
+      "releasedAt": "2002-01-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "PR2",
+      "name": "Magic Player Rewards 2002",
+      "releasedAt": "2002-01-01",
+      "referenceEstimate": 6,
+      "status": "ready"
+    },
+    {
+      "id": "G02",
+      "name": "Judge Gift Cards 2002",
+      "releasedAt": "2002-01-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "F02",
+      "name": "Friday Night Magic 2002",
+      "releasedAt": "2002-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "DKM",
+      "name": "Deckmasters",
+      "releasedAt": "2001-12-01",
+      "referenceEstimate": 58,
+      "status": "ready"
+    },
+    {
+      "id": "PODY",
+      "name": "Odyssey Promos",
+      "releasedAt": "2001-10-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "ODY",
+      "name": "Odyssey",
+      "releasedAt": "2001-10-01",
+      "referenceEstimate": 353,
+      "status": "ready"
+    },
+    {
+      "id": "PAPC",
+      "name": "Apocalypse Promos",
+      "releasedAt": "2001-06-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "APC",
+      "name": "Apocalypse",
+      "releasedAt": "2001-06-04",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "7ED",
+      "name": "Seventh Edition",
+      "releasedAt": "2001-04-11",
+      "referenceEstimate": 708,
+      "status": "ready"
+    },
+    {
+      "id": "PPLS",
+      "name": "Planeshift Promos",
+      "releasedAt": "2001-02-05",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PLS",
+      "name": "Planeshift",
+      "releasedAt": "2001-02-05",
+      "referenceEstimate": 146,
+      "status": "ready"
+    },
+    {
+      "id": "PAL01",
+      "name": "Arena League 2001",
+      "releasedAt": "2001-01-01",
+      "referenceEstimate": 12,
+      "status": "ready"
+    },
+    {
+      "id": "MPR",
+      "name": "Magic Player Rewards 2001",
+      "releasedAt": "2001-01-01",
+      "referenceEstimate": 8,
+      "status": "ready"
+    },
+    {
+      "id": "F01",
+      "name": "Friday Night Magic 2001",
+      "releasedAt": "2001-01-01",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "G01",
+      "name": "Judge Gift Cards 2001",
+      "releasedAt": "2001-01-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PINV",
+      "name": "Invasion Promos",
+      "releasedAt": "2000-10-02",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "INV",
+      "name": "Invasion",
+      "releasedAt": "2000-10-02",
+      "referenceEstimate": 354,
+      "status": "ready"
+    },
+    {
+      "id": "BTD",
+      "name": "Beatdown Box Set",
+      "releasedAt": "2000-10-01",
+      "referenceEstimate": 90,
+      "status": "ready"
+    },
+    {
+      "id": "PPCY",
+      "name": "Prophecy Promos",
+      "releasedAt": "2000-06-05",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PCY",
+      "name": "Prophecy",
+      "releasedAt": "2000-06-05",
+      "referenceEstimate": 144,
+      "status": "ready"
+    },
+    {
+      "id": "S00",
+      "name": "Starter 2000",
+      "releasedAt": "2000-04-01",
+      "referenceEstimate": 20,
+      "status": "ready"
+    },
+    {
+      "id": "PNEM",
+      "name": "Nemesis Promos",
+      "releasedAt": "2000-02-14",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "NEM",
+      "name": "Nemesis",
+      "releasedAt": "2000-02-14",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PELP",
+      "name": "European Land Program",
+      "releasedAt": "2000-02-05",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "PAL00",
+      "name": "Arena League 2000",
+      "releasedAt": "2000-01-01",
+      "referenceEstimate": 11,
+      "status": "ready"
+    },
+    {
+      "id": "FNM",
+      "name": "Friday Night Magic 2000",
+      "releasedAt": "2000-01-01",
+      "referenceEstimate": 11,
+      "status": "ready"
+    },
+    {
+      "id": "G00",
+      "name": "Judge Gift Cards 2000",
+      "releasedAt": "2000-01-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PSUS",
+      "name": "Junior Super Series",
+      "releasedAt": "1999-12-01",
+      "referenceEstimate": 18,
+      "status": "ready"
+    },
+    {
+      "id": "BRB",
+      "name": "Battle Royale Box Set",
+      "releasedAt": "1999-11-12",
+      "referenceEstimate": 136,
+      "status": "ready"
+    },
+    {
+      "id": "PMMQ",
+      "name": "Mercadian Masques Promos",
+      "releasedAt": "1999-10-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "MMQ",
+      "name": "Mercadian Masques",
+      "releasedAt": "1999-10-04",
+      "referenceEstimate": 350,
+      "status": "ready"
+    },
+    {
+      "id": "PWOS",
+      "name": "Wizards of the Coast Online Store",
+      "releasedAt": "1999-09-04",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PWOR",
+      "name": "World Championship Promos",
+      "releasedAt": "1999-08-04",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PGRU",
+      "name": "Guru",
+      "releasedAt": "1999-07-12",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "S99",
+      "name": "Starter 1999",
+      "releasedAt": "1999-07-01",
+      "referenceEstimate": 173,
+      "status": "ready"
+    },
+    {
+      "id": "PUDS",
+      "name": "Urza's Destiny Promos",
+      "releasedAt": "1999-06-07",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "UDS",
+      "name": "Urza's Destiny",
+      "releasedAt": "1999-06-07",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PPTK",
+      "name": "Portal Three Kingdoms Promos",
+      "releasedAt": "1999-05-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "PTK",
+      "name": "Portal Three Kingdoms",
+      "releasedAt": "1999-05-01",
+      "referenceEstimate": 180,
+      "status": "ready"
+    },
+    {
+      "id": "6ED",
+      "name": "Classic Sixth Edition",
+      "releasedAt": "1999-04-21",
+      "referenceEstimate": 351,
+      "status": "ready"
+    },
+    {
+      "id": "PULG",
+      "name": "Urza's Legacy Promos",
+      "releasedAt": "1999-02-15",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "ULG",
+      "name": "Urza's Legacy",
+      "releasedAt": "1999-02-15",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PAL99",
+      "name": "Arena League 1999",
+      "releasedAt": "1999-01-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "G99",
+      "name": "Judge Gift Cards 1999",
+      "releasedAt": "1999-01-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "ATH",
+      "name": "Anthologies",
+      "releasedAt": "1998-11-01",
+      "referenceEstimate": 85,
+      "status": "ready"
+    },
+    {
+      "id": "PUSG",
+      "name": "Urza's Saga Promos",
+      "releasedAt": "1998-10-12",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "USG",
+      "name": "Urza's Saga",
+      "releasedAt": "1998-10-12",
+      "referenceEstimate": 357,
+      "status": "ready"
+    },
+    {
+      "id": "PALP",
+      "name": "Asia Pacific Land Program",
+      "releasedAt": "1998-09-01",
+      "referenceEstimate": 15,
+      "status": "ready"
+    },
+    {
+      "id": "UGL",
+      "name": "Unglued",
+      "releasedAt": "1998-08-11",
+      "referenceEstimate": 88,
+      "status": "ready"
+    },
+    {
+      "id": "P02",
+      "name": "Portal Second Age",
+      "releasedAt": "1998-06-24",
+      "referenceEstimate": 165,
+      "status": "ready"
+    },
+    {
+      "id": "PEXO",
+      "name": "Exodus Promos",
+      "releasedAt": "1998-06-15",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "EXO",
+      "name": "Exodus",
+      "releasedAt": "1998-06-15",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "PSTH",
+      "name": "Stronghold Promos",
+      "releasedAt": "1998-03-02",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "STH",
+      "name": "Stronghold",
+      "releasedAt": "1998-03-02",
+      "referenceEstimate": 143,
+      "status": "ready"
+    },
+    {
+      "id": "JGP",
+      "name": "Judge Gift Cards 1998",
+      "releasedAt": "1998-01-01",
+      "referenceEstimate": 3,
+      "status": "ready"
+    },
+    {
+      "id": "PTMP",
+      "name": "Tempest Promos",
+      "releasedAt": "1997-10-14",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "TMP",
+      "name": "Tempest",
+      "releasedAt": "1997-10-14",
+      "referenceEstimate": 350,
+      "status": "ready"
+    },
+    {
+      "id": "WTH",
+      "name": "Weatherlight",
+      "releasedAt": "1997-06-09",
+      "referenceEstimate": 167,
+      "status": "ready"
+    },
+    {
+      "id": "PVAN",
+      "name": "Vanguard Series",
+      "releasedAt": "1997-05-01",
+      "referenceEstimate": 32,
+      "status": "ready"
+    },
+    {
+      "id": "POR",
+      "name": "Portal",
+      "releasedAt": "1997-05-01",
+      "referenceEstimate": 257,
+      "status": "ready"
+    },
+    {
+      "id": "5ED",
+      "name": "Fifth Edition",
+      "releasedAt": "1997-03-24",
+      "referenceEstimate": 460,
+      "status": "ready"
+    },
+    {
+      "id": "VIS",
+      "name": "Visions",
+      "releasedAt": "1997-02-03",
+      "referenceEstimate": 167,
+      "status": "ready"
+    },
+    {
+      "id": "ITP",
+      "name": "Introductory Two-Player Set",
+      "releasedAt": "1996-12-31",
+      "referenceEstimate": 67,
+      "status": "ready"
+    },
+    {
+      "id": "MGB",
+      "name": "Multiverse Gift Box",
+      "releasedAt": "1996-11-01",
+      "referenceEstimate": 10,
+      "status": "ready"
+    },
+    {
+      "id": "MIR",
+      "name": "Mirage",
+      "releasedAt": "1996-10-08",
+      "referenceEstimate": 353,
+      "status": "ready"
+    },
+    {
+      "id": "PRED",
+      "name": "Redemption Program",
+      "releasedAt": "1996-10-01",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "PARL",
+      "name": "Arena League 1996",
+      "releasedAt": "1996-08-02",
+      "referenceEstimate": 7,
+      "status": "ready"
+    },
+    {
+      "id": "PLGM",
+      "name": "DCI Legend Membership",
+      "releasedAt": "1996-07-01",
+      "referenceEstimate": 2,
+      "status": "ready"
+    },
+    {
+      "id": "RQS",
+      "name": "Rivals Quick Start Set",
+      "releasedAt": "1996-07-01",
+      "referenceEstimate": 65,
+      "status": "ready"
+    },
+    {
+      "id": "ALL",
+      "name": "Alliances",
+      "releasedAt": "1996-06-10",
+      "referenceEstimate": 199,
+      "status": "ready"
+    },
+    {
+      "id": "HML",
+      "name": "Homelands",
+      "releasedAt": "1995-10-01",
+      "referenceEstimate": 140,
+      "status": "ready"
+    },
+    {
+      "id": "RIN",
+      "name": "Rinascimento",
+      "releasedAt": "1995-08-01",
+      "referenceEstimate": 69,
+      "status": "ready"
+    },
+    {
+      "id": "REN",
+      "name": "Renaissance",
+      "releasedAt": "1995-08-01",
+      "referenceEstimate": 122,
+      "status": "ready"
+    },
+    {
+      "id": "BCHR",
+      "name": "Chronicles Foreign Black Border",
+      "releasedAt": "1995-07-01",
+      "referenceEstimate": 125,
+      "status": "ready"
+    },
+    {
+      "id": "CHR",
+      "name": "Chronicles",
+      "releasedAt": "1995-07-01",
+      "referenceEstimate": 125,
+      "status": "ready"
+    },
+    {
+      "id": "ICE",
+      "name": "Ice Age",
+      "releasedAt": "1995-06-03",
+      "referenceEstimate": 383,
+      "status": "ready"
+    },
+    {
+      "id": "4BB",
+      "name": "Fourth Edition Foreign Black Border",
+      "releasedAt": "1995-04-01",
+      "referenceEstimate": 378,
+      "status": "ready"
+    },
+    {
+      "id": "4ED",
+      "name": "Fourth Edition",
+      "releasedAt": "1995-04-01",
+      "referenceEstimate": 380,
+      "status": "ready"
+    },
+    {
+      "id": "PMEI",
+      "name": "Media and Collaboration Promos",
+      "releasedAt": "1995-01-01",
+      "referenceEstimate": 112,
+      "status": "ready"
+    },
+    {
+      "id": "FEM",
+      "name": "Fallen Empires",
+      "releasedAt": "1994-11-01",
+      "referenceEstimate": 187,
+      "status": "ready"
+    },
+    {
+      "id": "PHPR",
+      "name": "HarperPrism Book Promos",
+      "releasedAt": "1994-09-01",
+      "referenceEstimate": 5,
+      "status": "ready"
+    },
+    {
+      "id": "DRK",
+      "name": "The Dark",
+      "releasedAt": "1994-08-01",
+      "referenceEstimate": 122,
+      "status": "ready"
+    },
+    {
+      "id": "PDRC",
+      "name": "Dragon Con",
+      "releasedAt": "1994-07-15",
+      "referenceEstimate": 1,
+      "status": "ready"
+    },
+    {
+      "id": "SUM",
+      "name": "Summer Magic / Edgar",
+      "releasedAt": "1994-06-21",
+      "referenceEstimate": 306,
+      "status": "ready"
+    },
+    {
+      "id": "LEG",
+      "name": "Legends",
+      "releasedAt": "1994-06-01",
+      "referenceEstimate": 310,
+      "status": "ready"
+    },
+    {
+      "id": "3ED",
+      "name": "Revised Edition",
+      "releasedAt": "1994-04-11",
+      "referenceEstimate": 306,
+      "status": "ready"
+    },
+    {
+      "id": "FBB",
+      "name": "Foreign Black Border",
+      "releasedAt": "1994-04-11",
+      "referenceEstimate": 307,
+      "status": "ready"
+    },
+    {
+      "id": "ATQ",
+      "name": "Antiquities",
+      "releasedAt": "1994-03-04",
+      "referenceEstimate": 102,
+      "status": "ready"
+    },
+    {
+      "id": "ARN",
+      "name": "Arabian Nights",
+      "releasedAt": "1993-12-17",
+      "referenceEstimate": 92,
+      "status": "ready"
+    },
+    {
+      "id": "2ED",
+      "name": "Unlimited Edition",
+      "releasedAt": "1993-12-01",
+      "referenceEstimate": 302,
+      "status": "ready"
+    },
+    {
+      "id": "LEB",
+      "name": "Limited Edition Beta",
+      "releasedAt": "1993-10-04",
+      "referenceEstimate": 302,
+      "status": "ready"
+    },
+    {
+      "id": "LEA",
+      "name": "Limited Edition Alpha",
+      "releasedAt": "1993-08-05",
+      "referenceEstimate": 295,
+      "status": "ready"
+    }
+  ]
+}

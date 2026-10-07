@@ -35,12 +35,18 @@ android {
         applicationId "io.asv.mtgocr.ocrreader"
         minSdkVersion 23
         targetSdkVersion 33
+        buildConfigField "String", "AR_PACKAGES_URL", "\"${(project.findProperty('arPackagesUrl') ?: '').toString()}\""
         versionCode 10
         versionName "2.8"
         buildConfigField "String", "GIT_BRANCH", "\"${escapedGitBranchName}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        if (project.hasProperty('testApplicationIdOverride')) {
+            testApplicationId project.property('testApplicationIdOverride')
+        }
     }
+
+    sourceSets { main.assets.srcDir "$rootDir/packages/ar-packages/assets"; androidTest.assets.srcDir "$rootDir/build/ar-test-assets" }
 
     buildTypes {
         release {
@@ -70,6 +76,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.ar:core:1.48.0'
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -92,6 +99,8 @@ dependencies {
     // Both scripts are bundled so the maintained scanner can choose one immediately and offline.
     implementation 'com.google.mlkit:text-recognition:16.0.1'
     implementation 'com.google.mlkit:text-recognition-japanese:16.0.1'
+    implementation 'com.google.mlkit:text-recognition-korean:16.0.1'
+    implementation 'com.google.mlkit:text-recognition-chinese:16.0.1'
     implementation 'com.google.mlkit:language-id:17.0.6'
 
     // Isolated next-generation scanner. The maintained scanner still uses the legacy camera.

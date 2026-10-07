@@ -16,7 +16,7 @@ data class CardTextLanguageResult(
 )
 
 /** Reads the rules box, then identifies its language instead of inferring it from the card name. */
-class CardTextLanguageDetector {
+class CardTextLanguageDetector(private val useShortRules: Boolean = true) {
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private val languageIdentifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         LanguageIdentification.getClient(
@@ -61,7 +61,7 @@ class CardTextLanguageDetector {
         val text = rawText.lineSequence().map(String::trim)
             .filter { it.count(Char::isLetter) >= 3 }.joinToString(" ").take(MAX_LANGUAGE_TEXT)
         val identifier = languageIdentifier
-        val shortLanguage = ScanLanguagePolicy.shortRulesLanguage(text)
+        val shortLanguage = if (useShortRules) ScanLanguagePolicy.shortRulesLanguage(text) else null
         // A distinctive rules word is stronger evidence than statistical identification,
         // especially between Italian, Spanish and Portuguese.
         if (shortLanguage != null) {

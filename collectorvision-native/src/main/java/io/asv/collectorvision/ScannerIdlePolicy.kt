@@ -1,7 +1,7 @@
 package io.asv.collectorvision
 
 internal object ScannerIdlePolicy {
-    fun shouldPause(now: Long, lastUse: Long): Boolean = now - lastUse >= 30_000L
+    fun shouldPause(now: Long, lastUse: Long, enabled: Boolean = true): Boolean = enabled && now - lastUse >= 30_000L
 }
 
 internal object VisualSearchScope {

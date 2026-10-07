@@ -138,6 +138,13 @@ class OpenCvCardDetector(
         }
     }
 
+    /** Independent, bounded AR preview contour pass; input is already downsampled luma. */
+    fun detectLuma(pixels: ByteArray,width: Int,height: Int): OpenCvDetectedQuad? {
+        require(width>0 && height>0 && pixels.size==width*height)
+        val gray=Mat(height,width,CvType.CV_8UC1)
+        return try { gray.put(0,0,pixels); detectGray(gray) } finally { gray.release() }
+    }
+
     private fun detectGray(original: Mat): OpenCvDetectedQuad? {
         val sourceWidth = original.cols()
         val sourceHeight = original.rows()

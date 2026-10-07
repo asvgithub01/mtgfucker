@@ -110,6 +110,9 @@ interface CardDao {
     @Query("SELECT * FROM card_printings WHERE scryfallId = :scryfallId LIMIT 1")
     fun printingByScryfallId(scryfallId: String): CardPrintingEntity?
 
+    @Query("SELECT * FROM card_printings WHERE scryfallId IN (:ids)")
+    fun printingsByScryfallIds(ids: List<String>): List<CardPrintingEntity>
+
     @Query("SELECT DISTINCT name FROM card_printings WHERE setCode IN (:setCodes)")
     fun cardNamesBySetCodes(setCodes: List<String>): List<String>
 

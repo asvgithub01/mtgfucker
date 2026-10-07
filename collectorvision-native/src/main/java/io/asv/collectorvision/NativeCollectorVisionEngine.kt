@@ -74,22 +74,22 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             searchRows=VisualSearchScope.rows(ids,allowedIds)
         }
         val start=SystemClock.elapsedRealtime()
-        val outputs=run(detector,bitmap,384,listOf("corners","sharpness"))
+        val outputs=EdScanPerf.measure("engine.detect") { run(detector,bitmap,384,listOf("corners","sharpness")) }
         val corners=CollectorVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
         val sharpness=outputs[1].single()
         val present=sharpness.isFinite() && sharpness>=.02f && CollectorVisionMath.usable(corners)
         val detectionMs=SystemClock.elapsedRealtime()-start
         if (!present) return ScanResult(corners,false,sharpness,emptyList(),detectionMs,0)
         val recStart=SystemClock.elapsedRealtime()
-        val crop=warp(bitmap,corners)
+        val crop=EdScanPerf.measure("engine.warp") { warp(bitmap,corners) }
         var photoRotated = false
         val hits=try {
-            val normal=search(CollectorVisionMath.normalize(run(embedder,crop,448,listOf("embedding"))[0]))
+            val normal=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.normal") { run(embedder,crop,448,listOf("embedding")) }[0]))
             // Shortest-edge canonicalization can reverse the card. Test both orientations.
             val matrix=android.graphics.Matrix().apply { postRotate(180f) }
             val rotated=Bitmap.createBitmap(crop,0,0,crop.width,crop.height,matrix,true)
             try {
-                val upsideDown=search(CollectorVisionMath.normalize(run(embedder,rotated,448,listOf("embedding"))[0]))
+                val upsideDown=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.rotated") { run(embedder,rotated,448,listOf("embedding")) }[0]))
                 photoRotated = CollectorVisionMath.prefersRotated(normal, upsideDown)
                 (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
                     .sortedByDescending { it.score }.take(8)
@@ -98,6 +98,8 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0)
     }
     private fun run(session: OrtSession, bitmap: Bitmap, size: Int, names: List<String>): List<FloatArray> {
+        val prepStarted=System.nanoTime()
+        val model=if(size==384) "detector" else "embedder"
         val scaled=Bitmap.createScaledBitmap(bitmap,size,size,true)
         val pixels=IntArray(size*size)
         try { scaled.getPixels(pixels,0,size,0,0,size,size) }
@@ -108,8 +110,11 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             val byte=(pixels[i] ushr (16-c*8)) and 255
             data[c*pixels.size+i]=(byte/255f-means[c])/std[c]
         }
-        OnnxTensor.createTensor(env,FloatBuffer.wrap(data),longArrayOf(1,3,size.toLong(),size.toLong())).use { tensor ->
-            session.run(mapOf("image" to tensor)).use { result ->
+        EdScanPerf.record("model.$model.preprocess",System.nanoTime()-prepStarted)
+        EdScanPerf.measure("model.$model.tensor") {
+            OnnxTensor.createTensor(env,FloatBuffer.wrap(data),longArrayOf(1,3,size.toLong(),size.toLong()))
+        }.use { tensor ->
+            EdScanPerf.measure("model.$model.onnx") { session.run(mapOf("image" to tensor)) }.use { result ->
                 return names.map { name ->
                     val output=result.get(name).orElseThrow { IllegalStateException("Missing ONNX output $name") } as OnnxTensor
                     val floats=output.floatBuffer
@@ -129,7 +134,8 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             return Bitmap.createBitmap(448,448,Bitmap.Config.ARGB_8888).also { Utils.matToBitmap(dst,it) }
         } finally { transform.release(); from.release(); to.release(); src.release(); dst.release() }
     }
-    private fun search(query: FloatArray): List<Hit> {
+    private fun search(query: FloatArray): List<Hit> = EdScanPerf.measure("engine.search") { searchUntimed(query) }
+    private fun searchUntimed(query: FloatArray): List<Hit> {
         require(query.size==128)
         val bestScores=FloatArray(8) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(8) { -1 }
         val selected=searchRows

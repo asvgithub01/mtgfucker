@@ -1,0 +1,38 @@
+{
+  "FRA": {
+    "name": "Reality Fracture completa",
+    "sources": [
+      {
+        "set": "FRA"
+      },
+      {
+        "set": "FRC"
+      },
+      {
+        "set": "SPG",
+        "numbers": [
+          "159",
+          "160",
+          "161",
+          "162",
+          "163",
+          "164",
+          "165",
+          "166",
+          "167",
+          "168"
+        ]
+      }
+    ],
+    "coverage": "FRA + FRC + SPG 159–168; imágenes EN; sin fichas"
+  },
+  "FRC": {
+    "name": "Reality Fracture Commander",
+    "sources": [
+      {
+        "set": "FRC"
+      }
+    ],
+    "coverage": "FRC; imágenes EN; sin fichas"
+  }
+}

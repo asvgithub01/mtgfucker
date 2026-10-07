@@ -57,6 +57,7 @@ if (!app) throw new Error("No se pudo iniciar la web.");
 
 app.innerHTML = `
   <header class="hero compact-hero">
+    <a href="${import.meta.env.BASE_URL}ar/">Descargar bases AR por edición</a>
     <div class="brand"><span class="brand-mark">M</span><span>MTGFucker</span></div>
     <div class="hero-copy">
       <p class="eyebrow">Cardmarket Companion</p>

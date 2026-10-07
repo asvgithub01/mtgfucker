@@ -15,6 +15,9 @@
     "scrape:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper run update --",
     "publish:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper run publish --",
     "refresh:itaca": "npm run scrape:itaca -- --all --resume --output build/itaca-buylist-full.json && npm run publish:itaca",
-    "test:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper test && vitest run web/test/itacaCatalog.test.ts"
+    "test:itaca": "npm --workspace @mtgfucker/itaca-buylist-scraper test && vitest run web/test/itacaCatalog.test.ts",
+    "build:ar": "node packages/ar-packages/src/build.mjs",
+    "test:ar": "node --test packages/ar-packages/test/*.test.mjs",
+    "discover:ar": "node packages/ar-packages/src/discover.mjs"
   }
 }

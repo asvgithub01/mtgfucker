@@ -9,6 +9,10 @@ class ScannerScopeTest {
         assertTrue(ScannerIdlePolicy.shouldPause(31_000, 1000))
         assertFalse(ScannerIdlePolicy.shouldPause(31_000, 30_000))
     }
+    @Test fun continuousArDoesNotAutoPause() {
+        assertFalse(ScannerIdlePolicy.shouldPause(120_000,0,enabled=false))
+        assertTrue(ScannerIdlePolicy.shouldPause(120_000,0,enabled=true))
+    }
     @Test fun scopeKeepsExactRowsAndFailsClosed() {
         val ids = listOf("a", "b", "c")
         assertNull(VisualSearchScope.rows(ids, null))

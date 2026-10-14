@@ -44,6 +44,7 @@ class Main2Activity : AppCompatActivity() {
     private lateinit var editionSearch: AutoCompleteTextView
     private lateinit var adapter: EditionAdapter
     private lateinit var cardName: String
+    private val browseOnly get() = intent.getBooleanExtra("browseOnly",false)
     private lateinit var collectionItemId: String
     private lateinit var title: TextView
     private lateinit var status: TextView
@@ -71,22 +72,26 @@ class Main2Activity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         MagicPalette.applyTheme(this)
-        if(intent.getBooleanExtra(EXTRA_AS_POPUP,false)) theme.applyStyle(R.style.ThemeOverlay_Mtg_DetailPopup,true)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main2)
         findViewById<View>(R.id.btnDetailMenu).setOnClickListener { anchor ->
             android.widget.PopupMenu(this,anchor).apply {
-                menu.add(R.string.pin_launch_background)
-                setOnMenuItemClickListener { CardBackgroundAction.pin(this@Main2Activity,collectionItemId);true }
+                if(!browseOnly)menu.add(0,1,0,R.string.pin_launch_background)
+                menu.add(0,2,1,R.string.buy_add)
+                setOnMenuItemClickListener {
+                    if(it.itemId==2)displayedOption?.let { option -> BuylistActions.add(this@Main2Activity,listOf(BuylistStore.entry(option))) }
+                    else CardBackgroundAction.pin(this@Main2Activity,collectionItemId)
+                    true
+                }
             }.show()
         }
         if(intent.getBooleanExtra(EXTRA_AS_POPUP,false)) {
-            window.setLayout((resources.displayMetrics.widthPixels*.95f).toInt(),(resources.displayMetrics.heightPixels*.92f).toInt())
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             findViewById<ImageButton>(R.id.btnBack).setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
         }
         cardName = intent.getStringExtra(EXTRA_CARD_NAME).orEmpty()
         collectionItemId = intent.getStringExtra(EXTRA_COLLECTION_ITEM_ID).orEmpty()
-        if (cardName.isBlank() || collectionItemId.isBlank()) {
+        if (cardName.isBlank() || (!browseOnly && collectionItemId.isBlank())) {
             finish()
             return
         }
@@ -125,6 +130,7 @@ class Main2Activity : AppCompatActivity() {
             resources.getStringArray(R.array.card_condition_labels).toList()
         ).also { it.setDropDownViewResource(R.layout.spinner_item) }
         conditionSpinner.setSelection(CardCondition.indexOf(ownedCondition), false)
+        conditionSpinner.isEnabled=!browseOnly
         refreshOwnedConditionPrice()
         conditionSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
             val codes = CardCondition.codes()
@@ -145,10 +151,17 @@ class Main2Activity : AppCompatActivity() {
         // A MATCH_PARENT sheet moved down by expandedOffset would extend the same amount below
         // the screen. RecyclerView would then consider that invisible area part of its viewport,
         // leaving the final edition partly cut and impossible to reveal completely.
-        findViewById<View>(R.id.cardDetailRoot).doOnLayout { root ->
+        fun resizeEditionSheet(root: View) {
             val visibleSheetHeight = (root.height - expandedOffset).coerceAtLeast(1)
             if (sheetView.layoutParams.height != visibleSheetHeight) {
                 sheetView.layoutParams = sheetView.layoutParams.apply { height = visibleSheetHeight }
+            }
+        }
+        findViewById<View>(R.id.cardDetailRoot).apply {
+            doOnLayout(::resizeEditionSheet)
+            // Keyboard/window resizing must not leave the sheet at its first, shorter height.
+            addOnLayoutChangeListener { view, _, top, _, bottom, _, oldTop, _, oldBottom ->
+                if (bottom-top != oldBottom-oldTop) resizeEditionSheet(view)
             }
         }
         bottomSheet.state = BottomSheetBehavior.STATE_COLLAPSED
@@ -166,7 +179,8 @@ class Main2Activity : AppCompatActivity() {
         })
 
         adapter = EditionAdapter(
-            onSelected = { option ->
+            onSelected = select@{ option ->
+                if(browseOnly) { showSelectedImage(option);return@select }
                 repository.selectEdition(collectionItemId, option) {
                     LegacyCollectionStore.updateSelectedEdition(this, collectionItemId, option)
                     selected = OwnedPrintingEntity(
@@ -187,7 +201,8 @@ class Main2Activity : AppCompatActivity() {
             },
             onImageClicked = ::openCardImage,
             onAddCopy = ::addCopy,
-            onRemoveCopy = ::removeCopy
+            onRemoveCopy = ::removeCopy,
+            browseOnly = browseOnly
         )
         editionSearch = findViewById(R.id.detailEditionSearch)
         editionSearch.threshold = 1
@@ -204,7 +219,7 @@ class Main2Activity : AppCompatActivity() {
         findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnRefreshPrices).setOnClickListener { loadCard(forcePriceRefresh = true) }
 
-        repository.selectedEdition(collectionItemId) {
+        if(browseOnly)loadCard(false) else repository.selectedEdition(collectionItemId) {
             selected = it
             adapter.setSelected(it)
             loadCard(forcePriceRefresh = false)
@@ -234,7 +249,10 @@ class Main2Activity : AppCompatActivity() {
             status.text = resources.getQuantityString(R.plurals.editions_found, options.size, options.size)
             val chosen = selected?.let { own ->
                 options.firstOrNull { it.printingUuid == own.printingUuid && it.finish == own.finish }
-            } ?: options.firstOrNull()
+            } ?: displayedOption?.takeIf { browseOnly }?.let { shown -> options.firstOrNull { it.printingUuid==shown.printingUuid && it.finish==shown.finish } }
+                ?: options.firstOrNull { it.printingUuid==intent.getStringExtra("printingUuid") && it.finish==intent.getStringExtra("finish") }
+                ?: options.firstOrNull { it.setCode==intent.getStringExtra("setCode") && it.collectorNumber==intent.getStringExtra("collectorNumber") && it.finish==intent.getStringExtra("finish") }
+                ?: options.firstOrNull()
             chosen?.let { option ->
                 showSelectedImage(option)
                 if ((!intent.getBooleanExtra(EXTRA_AS_POPUP,false) || forcePriceRefresh) && selected?.let { it.printingUuid == option.printingUuid && it.finish == option.finish } == true) {
@@ -269,7 +287,24 @@ class Main2Activity : AppCompatActivity() {
     private fun refreshOwnedConditionPrice() {
         val card = DataUtils.readSerializable<Biblio>(this, LibraryCatalog.activeFile(this))?.cards
             ?.firstOrNull { it.collectionItemId == collectionItemId }
+        card?.let { owned ->
+            io.asv.mtgocr.ocrreader.data.SelectedPrices.ensure(this, listOf(owned), Runnable {
+                if (!isFinishing && !isDestroyed) refreshOwnedConditionPrice()
+            })
+        }
+        conditionPrice.setOnClickListener {
+            val uuid = displayedOption?.printingUuid ?: card?.printingUuid ?: selected?.printingUuid
+            if (uuid != null) PriceHistoryDialog.showCard(this, uuid, displayedOption?.finish ?: card?.finish ?: selected?.finish ?: "nonfoil")
+        }
+        val historyUuid=displayedOption?.printingUuid ?: card?.printingUuid ?: selected?.printingUuid
+        val historyFinish=displayedOption?.finish ?: card?.finish ?: selected?.finish ?: "nonfoil"
+        val quote=historyUuid?.let { io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(this,it,historyFinish) }
+        findViewById<TextView>(R.id.txtPriceProvider).text=quote?.let {
+            getString(R.string.price_provider_value,PriceSourcePresentation.label(this,it.provider),it.priceDate)
+        } ?: displayedOption?.let { o -> o.priceProvider?.let { getString(R.string.price_provider_value,PriceSourcePresentation.label(this,it),o.priceDate.orEmpty()) } }.orEmpty()
+        historyUuid?.let { findViewById<PriceHistorySection>(R.id.cardPriceHistory).bind(it,historyFinish,quote) }
         val value = card?.let { PriceCurrency.format(this, it) }?.takeIf { it.isNotBlank() }
+            ?: displayedOption?.let { o -> o.price?.let { PriceCurrency.format(this,it,o.currency ?: "EUR") } }
             ?: getString(R.string.no_price)
         conditionPrice.text = getString(R.string.card_condition_price, value) +
             (if (card?.isProvisionalEdition == true) "\n" + getString(R.string.edition_provisional) else "") +
@@ -277,6 +312,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun addCopy(option: CardEditionOption) {
+        if(browseOnly)return
         val added = runCatching { LegacyCollectionStore.addCopy(this, option) }.getOrElse { error ->
             Snackbar.make(
                 findViewById(R.id.cardDetailRoot),
@@ -306,6 +342,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun removeCopy(option: CardEditionOption) {
+        if(browseOnly)return
         val removed = LegacyCollectionStore.removeCopy(this, option, collectionItemId) ?: run {
             Snackbar.make(findViewById(R.id.cardDetailRoot), R.string.no_copies_to_remove, Snackbar.LENGTH_SHORT).show()
             return
@@ -411,7 +448,7 @@ class Main2Activity : AppCompatActivity() {
         val isOwnedPrinting = selected?.let {
             it.printingUuid == option.printingUuid && it.finish == option.finish
         } == true
-        if (!isOwnedPrinting || !persist) return
+        if (browseOnly || !isOwnedPrinting || !persist) return
         LegacyCollectionStore.updateLanguageVariant(
             this,
             collectionItemId,
@@ -520,7 +557,8 @@ private class EditionAdapter(
     private val onSetClicked: (CardEditionOption) -> Unit,
     private val onImageClicked: (CardEditionOption) -> Unit,
     private val onAddCopy: (CardEditionOption) -> Unit,
-    private val onRemoveCopy: (CardEditionOption) -> Unit
+    private val onRemoveCopy: (CardEditionOption) -> Unit,
+    private val browseOnly: Boolean = false
 ) : RecyclerView.Adapter<EditionAdapter.Holder>() {
     private var items: List<CardEditionOption> = emptyList()
     private var selected: OwnedPrintingEntity? = null
@@ -550,6 +588,15 @@ private class EditionAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val option = items[position]
+        listOf(R.id.btnAddEditionCopy,R.id.btnRemoveEditionCopy,R.id.txtEditionCopyCount).forEach {
+            holder.itemView.findViewById<View>(it).visibility=if(browseOnly)View.GONE else View.VISIBLE
+        }
+        holder.itemView.setOnLongClickListener { view ->
+            android.widget.PopupMenu(view.context,view).apply {
+                menu.add(R.string.buy_add)
+                setOnMenuItemClickListener { BuylistActions.add(view.context as android.app.Activity,listOf(BuylistStore.entry(option)));true }
+            }.show();true
+        }
         val isSelected = selected?.let { it.printingUuid == option.printingUuid && it.finish == option.finish } == true
         holder.bind(
             option,
@@ -596,7 +643,7 @@ private class EditionAdapter(
             val priceValue = option.price?.let { amount ->
                 PriceCurrency.format(itemView.context, amount, option.currency ?: PriceCurrency.EUR)
             } ?: itemView.context.getString(R.string.no_price)
-            price.text = itemView.context.getString(R.string.near_mint_price_value, priceValue)
+            price.text = PriceSourcePresentation.append(itemView.context,itemView.context.getString(R.string.near_mint_price_value, priceValue),option.priceProvider)
             CardImageCache.display(itemView.context, option.imageUrl, image)
             foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
             image.setFoilEffect(option.isFoil)

@@ -35,7 +35,7 @@ android {
         applicationId "io.asv.mtgocr.ocrreader"
         minSdkVersion 23
         targetSdkVersion 33
-        buildConfigField "String", "AR_PACKAGES_URL", "\"${(project.findProperty('arPackagesUrl') ?: '').toString()}\""
+        buildConfigField "String", "AR_PACKAGES_URL", "\"${(project.findProperty('arPackagesUrl') ?: 'https://asvgithub01.github.io/nuborisar.github.io/mtgbiblio/ar').toString()}\""
         versionCode 10
         versionName "2.8"
         buildConfigField "String", "GIT_BRANCH", "\"${escapedGitBranchName}\""

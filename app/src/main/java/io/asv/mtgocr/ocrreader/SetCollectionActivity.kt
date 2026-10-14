@@ -26,6 +26,7 @@ import io.asv.mtgocr.ocrreader.data.CardRepository
 import io.asv.mtgocr.ocrreader.data.LegacyCollectionStore
 import io.asv.mtgocr.ocrreader.data.SetCardOption
 import io.asv.mtgocr.ocrreader.data.PriceCurrency
+import io.asv.mtgocr.ocrreader.data.PhysicalPrintings
 import io.asv.mtgocr.ocrreader.model.CardInfo
 
 class SetCollectionActivity : AppCompatActivity() {
@@ -101,7 +102,13 @@ class SetCollectionActivity : AppCompatActivity() {
             }
         }
         selectAll.setOnClickListener { adapter.selectAll(selectAll.isChecked) }
-        addButton.setOnClickListener { addSelectedCards() }
+        addButton.setOnClickListener {
+            androidx.appcompat.app.AlertDialog.Builder(this).setTitle(R.string.collection_add_destination)
+                .setItems(arrayOf(getString(R.string.collection_add_biblio),getString(R.string.collection_add_buylist))) { _,which ->
+                    if(which==0) addSelectedCards()
+                    else BuylistActions.add(this,adapter.selectedItems().map(BuylistStore::entry))
+                }.show()
+        }
         findViewById<Button>(R.id.btnCloseSetCollection).setOnClickListener { finish() }
         loadSet()
     }
@@ -124,7 +131,7 @@ class SetCollectionActivity : AppCompatActivity() {
                 .filter { it.printingUuid.orEmpty().isNotBlank() }
                 .associateBy { it.printingUuid.orEmpty() }
             adapter.submit(cards, ownedCards)
-            val ownedCount = cards.count { it.printingUuid in ownedCards }
+            val ownedCount = PhysicalPrintings.ownedByVisiblePrinting(cards, ownedCards).size
             status.text = getString(
                 R.string.owned_and_missing_cards,
                 cards.size,
@@ -149,6 +156,7 @@ class SetCollectionActivity : AppCompatActivity() {
             .setTitle(card.cardName)
             .setMessage(details)
             .setPositiveButton(R.string.close, null)
+            .setNeutralButton(R.string.buy_add) { _,_->BuylistActions.add(this,listOf(BuylistStore.entry(card))) }
             .show()
     }
 
@@ -224,9 +232,9 @@ private class SetCardAdapter(
 
     fun submit(cards: List<SetCardOption>, owned: Map<String, CardInfo>) {
         sourceItems = cards
-        ownedCardsByPrinting = owned
+        ownedCardsByPrinting = PhysicalPrintings.ownedByVisiblePrinting(cards, owned)
         ownedUuids.clear()
-        ownedUuids += owned.keys.intersect(cards.map { it.printingUuid }.toSet())
+        ownedUuids += ownedCardsByPrinting.keys
         selectedUuids.clear()
         selectedUuids += ownedUuids
         applySort()
@@ -280,7 +288,9 @@ private class SetCardAdapter(
     fun ownedCollectionItemIds(): Map<String, String> = ownedCardsByPrinting
         .mapValues { (_, card) -> card.collectionItemId }
 
-    fun areAllSelected(): Boolean = items.isNotEmpty() && items.all { it.printingUuid in selectedUuids }
+    fun areAllSelected(): Boolean = items.filter { it.printingUuid !in ownedUuids }.let { missing ->
+        missing.isNotEmpty() && missing.all { it.printingUuid in selectedUuids }
+    }
 
     private fun newSelectionCount(): Int = selectedUuids.count { it !in ownedUuids }
 
@@ -332,7 +342,7 @@ private class SetCardAdapter(
             toggle: () -> Unit
         ) {
             price.text = item.price?.let { amount ->
-                PriceCurrency.format(itemView.context, amount, item.currency ?: PriceCurrency.EUR)
+                PriceSourcePresentation.append(itemView.context, PriceCurrency.format(itemView.context, amount, item.currency ?: PriceCurrency.EUR),item.priceProvider)
             } ?: itemView.context.getString(R.string.no_price)
             check.text = if (owned) {
                 "${item.cardName} · #${item.collectorNumber} · ${itemView.context.getString(R.string.already_owned)}"

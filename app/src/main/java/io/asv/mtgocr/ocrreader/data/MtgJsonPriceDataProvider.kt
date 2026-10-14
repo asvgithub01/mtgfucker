@@ -33,6 +33,10 @@ class MtgJsonPriceDataProvider(
         if (!forceRefresh && indexReady) return
         if (forceRefresh || !priceFile.exists()) downloadPriceSnapshot()
         indexPriceSnapshot()
+        if(forceRefresh)io.asv.mtgocr.ocrreader.BuylistStore.worker.execute {
+            runCatching { io.asv.mtgocr.ocrreader.BuylistStore.read(appContext).forEach { io.asv.mtgocr.ocrreader.BuylistStore.snapshot(appContext,it.id) } }
+                .onFailure { Log.w(TAG,"Shopping history could not be saved",it) }
+        }
     }
 
     @Synchronized
@@ -41,10 +45,11 @@ class MtgJsonPriceDataProvider(
         forceRefresh: Boolean = false,
         providerOrder: List<String> = PriceSourcePreferences.priorityIds(appContext)
     ): List<CardPriceEntity> {
-        if (printingUuids.isEmpty()) return emptyList()
+        if (printingUuids.isEmpty() || providerOrder.isEmpty()) return emptyList()
         prepare(forceRefresh)
         val priority = providerOrder.withIndex().associate { it.value to it.index }
         val selected = snapshotPricesFor(printingUuids)
+            .filter { it.provider in priority }
             .groupBy { it.printingUuid to it.finish }
             .mapNotNull { (_, candidates) ->
                 candidates.minByOrNull { priority[it.provider] ?: Int.MAX_VALUE }
@@ -72,7 +77,7 @@ class MtgJsonPriceDataProvider(
         printingUuids: Set<String>,
         providerOrder: List<String>
     ): List<CardPriceEntity> {
-        if (printingUuids.isEmpty()) return emptyList()
+        if (printingUuids.isEmpty() || providerOrder.isEmpty()) return emptyList()
         val priority = providerOrder.withIndex().associate { it.value to it.index }
         if (priority.isEmpty()) return cardPricesFor(printingUuids)
         val snapshot = snapshotPricesFor(printingUuids)
@@ -93,7 +98,7 @@ class MtgJsonPriceDataProvider(
                     it.updatedAt
                 )
             }
-        return snapshot.ifEmpty { cardPricesFor(printingUuids) }
+        return snapshot.ifEmpty { cardPricesFor(printingUuids).filter { it.provider in priority } }
     }
 
     // Basic lands and cards with many promos can exceed SQLite's bind-variable limit if every

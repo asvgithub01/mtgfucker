@@ -21,6 +21,10 @@ import java.util.concurrent.Executors
 
 /** Review is explicit: photo analysis never silently changes inventory. */
 class ScanReviewActivity : AppCompatActivity() {
+    companion object { const val EXTRA_GROUP="review_group" }
+    private var collectionGroup: String?=null
+    private fun inCollectionScope(rows: List<ScanReviewStore.Entry>)=
+        rows.filter { ReviewCollectionScope.includes(it.card,collectionGroup) }
     private val io=Executors.newSingleThreadExecutor()
     private val handler=Handler(Looper.getMainLooper())
     private lateinit var library: String
@@ -113,6 +117,7 @@ class ScanReviewActivity : AppCompatActivity() {
     override fun onCreate(state: Bundle?) {
         MagicPalette.applyTheme(this); super.onCreate(state)
         library=LibraryCatalog.activeFile(this)
+        collectionGroup=intent.getStringExtra(EXTRA_GROUP)?.takeIf { it.isNotBlank() }
         resolvedTab=state?.getBoolean("reviewResolvedTab") ?: false
         sourceFilters[false]=state?.getString("reviewPendingSource") ?: "all"
         sourceFilters[true]=state?.getString("reviewResolvedSource") ?: "all"
@@ -120,7 +125,7 @@ class ScanReviewActivity : AppCompatActivity() {
         state?.getStringArrayList("reviewOrder")?.forEach { rowOrder[it]=rowOrder.size }
         retained.addAll(state?.getStringArrayList("reviewRetained").orEmpty())
         restoredListState=state?.getParcelable("reviewScroll")
-        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(12),dp(12),dp(12),dp(8)) }
+        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(0,0,0,0) }
         val summary=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL; gravity=android.view.Gravity.CENTER_VERTICAL
             setPadding(dp(12),dp(8),dp(4),dp(8)); background=panelBackground()
@@ -137,6 +142,12 @@ class ScanReviewActivity : AppCompatActivity() {
         summary.addView(reviewIcon(R.drawable.ic_review_history,R.string.review_history) { showReliableReport() },
             LinearLayout.LayoutParams(dp(48),dp(48)))
         root.addView(summary)
+        collectionGroup?.let { group ->
+            root.addView(TextView(this).apply {
+                text=getString(R.string.group_filter,group)
+                setPadding(dp(12),dp(8),dp(12),dp(8))
+            })
+        }
         reliableButton=Button(this).apply {
             setText(R.string.review_resolve_reliable)
             setOnClickListener {
@@ -268,7 +279,7 @@ class ScanReviewActivity : AppCompatActivity() {
         if (loading || applying || isDestroyed || isFinishing) return
         loading=true
         io.execute {
-            val result=runCatching { ScanReviewStore.read(applicationContext,library) }.getOrDefault(emptyList())
+            val result=runCatching { inCollectionScope(ScanReviewStore.read(applicationContext,library)) }.getOrDefault(emptyList())
             runOnUiThread {
                 loading=false
                 if (!active || isDestroyed || LibraryCatalog.activeFile(this)!=library) return@runOnUiThread
@@ -942,7 +953,7 @@ class ScanReviewActivity : AppCompatActivity() {
                                     if(isDestroyed || isFinishing) return@runOnUiThread
                                     applying=false
                                     if(reviewed.isSuccess) {
-                                        entries=reviewed.getOrThrow().sortedBy { rowOrder[it.photoKey] }
+                                        entries=inCollectionScope(reviewed.getOrThrow()).sortedBy { rowOrder[it.photoKey] }
                                         drafts.remove(id); proposalOriginals.remove(id); selected.remove(entry.key)
                                         reopened.remove(entry.photoKey); retained.remove(entry.photoKey); rowErrors.remove(id)
                                         signature=""; render()

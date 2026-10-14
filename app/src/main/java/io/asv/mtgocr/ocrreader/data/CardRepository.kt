@@ -60,7 +60,9 @@ data class SetCardOption(
     val mcmMetaId: String? = null,
     val mcmSetId: Int? = null,
     val mcmSetIdExtras: Int? = null,
-    val mcmSetName: String? = null
+    val mcmSetName: String? = null,
+    val printingUuids: Set<String> = setOf(printingUuid),
+    val priceProvider: String? = null
 )
 
 data class MagicSetOption(
@@ -780,8 +782,8 @@ class CardRepository private constructor(context: Context) {
                 val order=PriceSourcePreferences.priorityIds(appContext)
                 val local=priceProvider.cachedPrices(setOf(printingUuid),order)+dao.pricesFor(listOf(printingUuid))
                 var option=combine(listOf(printing),local,printing.name).firstOrNull { it.finish==finish }
-                if(option?.price==null && PriceSourcePreferences.SCRYFALL in order) {
-                    val remote=ScryfallPriceDataProvider(client.newBuilder().callTimeout(8,TimeUnit.SECONDS).build()).prices(listOf(printing))
+                if(PriceSourcePreferences.SCRYFALL in order && (option?.priceProvider == null || order.indexOf(PriceSourcePreferences.SCRYFALL) < order.indexOf(option.priceProvider))) {
+                    val remote=runCatching { ScryfallPriceDataProvider(client.newBuilder().callTimeout(8,TimeUnit.SECONDS).build()).prices(listOf(printing)) }.getOrDefault(emptyList())
                     if(remote.isNotEmpty()) dao.savePrices(remote)
                     option=combine(listOf(printing),local+remote,printing.name).firstOrNull { it.finish==finish }
                 }
@@ -806,7 +808,7 @@ class CardRepository private constructor(context: Context) {
                 val priority=PriceSourcePreferences.priorityIds(appContext).withIndex().associate { it.value to it.index }
                 ids.mapNotNull { (id,finish) ->
                     val price=byId[id].orEmpty().flatMap { prices[it.uuid].orEmpty() }
-                        .filter { it.finish==finish || (finish=="nonfoil" && it.finish=="normal") }
+                        .filter { it.provider in priority && (it.finish==finish || (finish=="nonfoil" && it.finish=="normal")) }
                         .minByOrNull { priority[it.provider] ?: Int.MAX_VALUE } ?: return@mapNotNull null
                     id to (price.amount to price.currency)
                 }.toMap()
@@ -859,6 +861,7 @@ class CardRepository private constructor(context: Context) {
         try {
             kotlinx.coroutines.runBlocking { io.asv.collectorvision.EdScanInferencePriority.awaitIdle() }
             priceProvider.prepare(true)
+            val provider = PriceSourcePreferences.orderKey(appContext)
             val result = mutableListOf<CardEditionOption>()
             uuids.filter { it.isNotBlank() }.distinct().chunked(75).forEach { batch ->
                 if (Thread.currentThread().isInterrupted) return@submit
@@ -867,6 +870,7 @@ class CardRepository private constructor(context: Context) {
                 val prices = preferredPrices(printings, false)
                 printings.forEach { printing -> result += combine(listOf(printing), prices.filter { it.printingUuid == printing.uuid }, printing.name) }
             }
+            check(provider == PriceSourcePreferences.orderKey(appContext)) { "Price provider changed" }
             mainHandler.post { callback(result, null) }
         } catch (e: Exception) { if (!Thread.currentThread().isInterrupted) mainHandler.post { callback(emptyList(), e) } }
     }
@@ -947,14 +951,14 @@ class CardRepository private constructor(context: Context) {
                 if (printings.isEmpty()) error("No se encontraron cartas para el set $setCode")
                 if (localPricesOnly) check(dao.fullSetSync(setCode.uppercase(Locale.US)) != null) { "Incomplete set catalog: $setCode" }
                 val prices = if (localPricesOnly) dao.pricesFor(printings.map { it.uuid }) else preferredPrices(printings, false)
-                val pricesByPrinting = prices.groupBy { it.printingUuid }
-                val cards = printings.map { printing ->
-                    val availablePrices = pricesByPrinting[printing.uuid].orEmpty()
+                val pricesByPrinting = prices.filter { it.provider in PriceSourcePreferences.priorityIds(appContext) }.groupBy { it.printingUuid }
+                val cards = PhysicalPrintings.groups(printings).map { group ->
+                    val printing = group.primary
+                    val availablePrices = group.parts.flatMap { pricesByPrinting[it.uuid].orEmpty() }
                     val finishes = printing.finishes.split(',').filter { it.isNotBlank() }
                     val finish = if ("nonfoil" in finishes) "nonfoil" else finishes.firstOrNull() ?: "nonfoil"
                     val priceFinish = if (finish == "nonfoil") "normal" else finish
                     val preferredPrice = availablePrices.firstOrNull { it.finish == priceFinish || (priceFinish == "normal" && it.finish == "nonfoil") }
-                        ?: availablePrices.firstOrNull().takeUnless { localPricesOnly }
                     SetCardOption(
                         printing.uuid,
                         printing.name,
@@ -971,7 +975,9 @@ class CardRepository private constructor(context: Context) {
                         printing.mcmMetaId,
                         printing.mcmSetId,
                         printing.mcmSetIdExtras,
-                        printing.mcmSetName
+                        printing.mcmSetName,
+                        group.uuids,
+                        preferredPrice?.provider
                     )
                 }
                 mainHandler.post { callback(cards, null) }
@@ -1111,12 +1117,13 @@ class CardRepository private constructor(context: Context) {
         prices: List<CardPriceEntity>,
         displayName: String
     ): List<CardEditionOption> {
-        val pricesByPrinting = prices.groupBy { it.printingUuid }
+        val pricesByPrinting = prices.filter { it.provider in PriceSourcePreferences.priorityIds(appContext) }.groupBy { it.printingUuid }
         return printings.flatMap { printing ->
             val finishes = printing.finishes.split(',').filter { it.isNotBlank() }.ifEmpty { listOf("nonfoil") }
             finishes.map { finish ->
                 val priceFinish = if (finish == "nonfoil") "normal" else finish
-                val price = pricesByPrinting[printing.uuid]?.firstOrNull { it.finish == priceFinish || (priceFinish == "normal" && it.finish == "nonfoil") }
+                val price = SelectedPrices.choose(pricesByPrinting[printing.uuid].orEmpty(), PriceSourcePreferences.priorityIds(appContext), printing.uuid, finish)
+                SelectedPrices.publish(appContext, printing.uuid, finish, price)
                 CardEditionOption(
                     printingUuid = printing.uuid,
                     cardName = printing.name,
@@ -1147,7 +1154,7 @@ class CardRepository private constructor(context: Context) {
 
     @Synchronized
     private fun cachedOptions(cardName: String): List<CardEditionOption>? =
-        optionCache[MtgJsonCatalogDataProvider.normalize(cardName)]
+        optionCache[PriceSourcePreferences.orderKey(appContext)+"|"+MtgJsonCatalogDataProvider.normalize(cardName)]
 
     private fun hasReadyRepresentative(options: List<CardEditionOption>): Boolean {
         val representative = ScanPrintingPolicy.preferred(options) ?: return false
@@ -1219,6 +1226,7 @@ class CardRepository private constructor(context: Context) {
     /** Clears presentation caches after the user changes the provider priority. */
     fun invalidatePriceSourceOrder() {
         synchronized(this) { optionCache.clear() }
+        SelectedPrices.invalidate()
     }
 
     private fun preferredPrices(
@@ -1230,7 +1238,7 @@ class CardRepository private constructor(context: Context) {
         val uuids = printings.map { it.uuid }.toSet()
         val mtgPrices = runCatching { priceProvider.prices(uuids, forceRefresh, mtgOrder) }
             .onFailure { Log.w(TAG, "No se pudieron obtener precios MTGJSON", it) }
-            .getOrElse { dao.pricesFor(uuids.toList()) }
+            .getOrElse { if (forceRefresh) throw it else dao.pricesFor(uuids.toList()).filter { it.provider in order } }
         val priority = order.withIndex().associate { it.value to it.index }
         val mtgByPrintingAndFinish = mtgPrices.associateBy { it.printingUuid to it.finish }
         val scryfallPriority = priority[PriceSourcePreferences.SCRYFALL]
@@ -1250,16 +1258,19 @@ class CardRepository private constructor(context: Context) {
                 .getOrDefault(emptyList())
         } else emptyList()
         return (mtgPrices + scryfallPrices)
+            .filter { it.provider in priority }
             .groupBy { it.printingUuid to it.finish }
             .mapNotNull { (_, candidates) ->
                 candidates.minByOrNull { priority[it.provider] ?: Int.MAX_VALUE }
             }
+            .also { if (it.isNotEmpty()) { dao.savePrices(it); PriceHistoryStore.recordQuotes(appContext, it) } }
     }
 
     @Synchronized
     private fun cacheOptions(requestedName: String, canonicalName: String, options: List<CardEditionOption>) {
-        optionCache[MtgJsonCatalogDataProvider.normalize(requestedName)] = options
-        optionCache[MtgJsonCatalogDataProvider.normalize(canonicalName)] = options
+        if (options.any { it.priceProvider != null && it.priceProvider !in PriceSourcePreferences.priorityIds(appContext) }) return
+        optionCache[PriceSourcePreferences.orderKey(appContext)+"|"+MtgJsonCatalogDataProvider.normalize(requestedName)] = options
+        optionCache[PriceSourcePreferences.orderKey(appContext)+"|"+MtgJsonCatalogDataProvider.normalize(canonicalName)] = options
     }
 
     companion object {

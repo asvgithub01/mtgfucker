@@ -1,3 +1,4 @@
+import { mountShopping } from "./shopping";
 import "./styles.css";
 import {
   CARDMARKET_CONDITIONS,
@@ -629,3 +630,5 @@ copyButton.addEventListener("click", async () => {
 
 LEGACY_PLAN_STORAGE_KEYS.forEach(key => localStorage.removeItem(key));
 restorePlan();
+
+mountShopping(document.querySelector("main")!);

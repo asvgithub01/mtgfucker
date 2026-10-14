@@ -18,11 +18,23 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
         val selectedOption:CardEditionOption?=null,val languageOrigin:String="",val manualEdition:Boolean=false)
     private val app=context.applicationContext
     private val library=LibraryCatalog.activeFile(app)
-    private val group="Triple " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.ROOT).format(java.util.Date())
+    private var group="Triple " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.ROOT).format(java.util.Date())
     private val main=Handler(Looper.getMainLooper())
     private val versions=ConcurrentHashMap<Long,Int>()
     private val saved=mutableMapOf<Long,CardInfo>() // confined to writer
     private val options=mutableMapOf<String,List<CardEditionOption>>() // main thread
+    fun restore(groupName:String,cards:List<CardInfo>,callback:(Throwable?)->Unit) {
+        writer.execute {
+            val error=runCatching {
+                check(saved.isEmpty() && versions.isEmpty() && cards.isNotEmpty())
+                check(LibraryCatalog.activeFile(app)==library && groupName.startsWith("Triple "))
+                check(cards.all { groupName in it.groups })
+                group=groupName
+                cards.forEachIndexed { index,card -> saved[index+1L]=card.snapshotForPersistence() }
+            }.exceptionOrNull()
+            main.post { callback(error) }
+        }
+    }
     fun submit(state:State, callback:(CardInfo?,CardEditionOption?,Throwable?)->Unit) {
         val version=versions.merge(state.event,1) { a,b->a+b }!!
         fun apply(choices:List<CardEditionOption>,error:Throwable?) {
@@ -59,11 +71,11 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
                         // The source describes evidence, not the UI engine label. Weak visual/OCR must be verified by art.
                         val source=if(state.target.source=="OCR" || state.target.provisional) "ocr" else "edscan"
                         val dir=EdScanJobs.directory(app)
-                        state.photo?.let { jpeg ->
+                        if(state.photo!=null || File(dir,"${state.photoKey}.jpg").isFile) {
                             val file=File(dir,"${state.photoKey}.jpg")
-                            if(!file.exists()) {
+                            if(!file.exists() && state.photo!=null) {
                                 val atomic=android.util.AtomicFile(file);val out=atomic.startWrite()
-                                try { out.write(jpeg);atomic.finishWrite(out) } catch(e:Exception) { atomic.failWrite(out);throw e }
+                                try { out.write(state.photo);atomic.finishWrite(out) } catch(e:Exception) { atomic.failWrite(out);throw e }
                             }
                             ScanReviewStore.write(File(dir,"${state.photoKey}.json"),JSONObject()
                                 .put("id",state.target.id).put("source",source).put("scanner","triple")

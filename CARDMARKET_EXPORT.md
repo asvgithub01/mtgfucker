@@ -74,3 +74,45 @@ La valoración usa la oferta base visible en el listado de Itaca, normalmente in
 foil. Idioma, estado y acabado se muestran para revisar la colección, pero todavía no ajustan
 esa oferta; obtener precios exactos de cada variante requerirá una integración acordada con
 Itaca o consultas puntuales posteriores.
+
+## Compras / Wants Lists (no venta)
+
+La pestaña **Compras** mantiene listas independientes del inventario. Desde una colección,
+**Exportar buylist MKM · cartas faltantes** permite crear o elegir una lista. El buscador
+flotante consulta cartas y reimpresiones sin añadir copias poseídas; los menús permiten
+agregar la impresión concreta a una buylist. Selección múltiple y borrado afectan solo a Compras.
+
+Los totales son **referencias MKM en EUR**, sin portes. NM es el estado solicitado; MTGJSON
+no proporciona aquí ofertas disponibles de vendedores filtradas por NM. No confundir esta
+referencia con el precio final del Shopping Wizard. El índice actualizado registra cada
+entrada (también ausencias) y el total; los cambios de miembros/cantidad no se presentan
+como una variación de mercado comparable.
+
+### Intercambio app y web
+
+- Exportar **JSON · app / web** conserva impresión, acabado, idioma, condición NM, cantidad e
+  histórico. La web importa ese JSON y permite selección/borrado, refresco MKM e histórico.
+- Exportar desde la web e importar en Android crea una copia independiente, sin sobrescribir
+  listas anteriores. No hay sincronización automática de Compras con Firebase.
+- La web guarda listas en localStorage. Exportar JSON antes de limpiar datos del navegador.
+- El refresco web descarga `AllPricesToday.json.gz` de MTGJSON; puede consumir datos y memoria.
+
+### Crear la lista también en Cardmarket
+
+1. Exportar texto MKM desde Android o abrir los bloques de la lista en la web.
+2. Crear una Wants List vacía en Cardmarket; cada bloque tiene como máximo150 entradas.
+3. Pegar el bloque en el importador de decklists. El texto usa cantidad, nombre y expansión
+   cuando esta se conoce. Revisar la respuesta de Cardmarket, incluidos posibles duplicados.
+4. **Revisar/fijar manualmente NM, expansión, versión/número, idioma y foil/etched.** El formato
+   oficial de texto no conserva todos estos filtros. No garantizar coincidencia por mcmId
+   con este flujo manual ni sustituirlo por el importador de venta BulkListing.
+
+La extensión0.2.0 añade un asistente en páginas `/Magic/Wants*`: carga JSON, divide y copia
+bloques. No modifica formularios Cardmarket ni crea listas automáticamente. El flujo contra
+una cuenta real y el DOM actual de MKM queda pendiente de validación manual. No se ha
+publicado la web ni instalado la extensión automáticamente.
+
+Fuentes oficiales revisadas:
+- https://help.cardmarket.com/en/wants-list (límite150 entradas)
+- https://help.cardmarket.com/en/how-to-add-a-mtg-decklist-to-wants (formato de importación)
+- https://help.cardmarket.com/en/add-cards-to-wants (filtros de condición, idioma y acabado)

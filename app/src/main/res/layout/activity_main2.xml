@@ -26,7 +26,13 @@
                     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/card_condition" android:textColor="#FFFFFF" android:textSize="15sp" android:textStyle="bold" />
                     <Spinner android:id="@+id/detailConditionSpinner" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="6dp" android:background="@drawable/spinner_background" android:contentDescription="@string/card_condition" />
                     <TextView android:id="@+id/txtConditionPrice" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="?attr/colorSecondary" android:textSize="18sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/txtPriceProvider" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="#FFE2A0" android:textSize="13sp" />
                 </io.asv.mtgocr.ocrreader.ArcaneGlassLayout>
+                <io.asv.mtgocr.ocrreader.PriceHistorySection
+                    android:id="@+id/cardPriceHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" />
                 <io.asv.mtgocr.ocrreader.ArcaneGlassLayout
                     android:id="@+id/scanEvidenceCard"
                     android:layout_width="match_parent"

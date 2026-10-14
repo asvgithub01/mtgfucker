@@ -3,10 +3,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingStart="3dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="3dp"
-    android:paddingBottom="10dp">
+    android:paddingStart="0dp"
+    android:paddingTop="0dp"
+    android:paddingEnd="0dp"
+    android:paddingBottom="0dp">
 
     <TextView
         android:id="@+id/txtSetCollectionTitle"
@@ -44,7 +44,7 @@
             android:id="@+id/checkSelectAllSetCards"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/select_all" />
+            android:text="@string/collection_select_missing" />
 
         <ImageButton
             android:id="@+id/btnSetViewMode"

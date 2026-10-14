@@ -6,6 +6,8 @@ internal class TripleEncounterGate {
     private var missingSince:Long?=null
     private var armed=true
     var event=0L; private set
+    fun restoreLastEvent(last:Long,id:String="") { require(last>=0);event=last;identity=id;armed=id.isBlank();missingSince=null }
+    fun nextEncounter() { armed=true }
     fun rebindIdentity(id:String) { identity=id }
     fun present() { missingSince=null }
     fun missing(now:Long) {

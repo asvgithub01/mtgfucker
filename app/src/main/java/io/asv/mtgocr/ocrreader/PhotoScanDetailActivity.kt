@@ -44,6 +44,13 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         entry = PhotoScanStore.find(this, id) ?: run { finish(); return }
         repository = CardRepository.get(this)
         total = findViewById(R.id.txtPhotoDetailTotal)
+        total.setOnClickListener {
+            PriceDetailsDialog.showInputs(this, entry.cards.map {
+                io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(this,it.printingUuid,it.finish).let { quote ->
+                    PriceOriginPolicy.Input(it.printingUuid, it.finish, quote?.amount, quote?.currency.orEmpty(), it.detectedQuantity)
+                }
+            })
+        }
         summary = findViewById(R.id.txtPhotoDetailSummary)
         Glide.with(this).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).error(R.drawable.backmtg).dontAnimate().centerCrop()
             .into(findViewById(R.id.imgPhotoDetail))
@@ -74,10 +81,18 @@ class PhotoScanDetailActivity : AppCompatActivity() {
     }
 
     private fun render() {
+        val valuationCards = entry.cards.map { photo -> io.asv.mtgocr.ocrreader.model.CardInfo("", "", "", "", "1").apply {
+            printingUuid = photo.printingUuid; finish = photo.finish
+        } }
+        io.asv.mtgocr.ocrreader.data.SelectedPrices.ensure(this, valuationCards, Runnable {
+            if (!isFinishing && !isDestroyed) render()
+        })
         val owned = LegacyCollectionStore.cards(this)
         adapter.submit(entry.cards, owned)
         val convertedTotal = entry.cards.sumOf { card ->
-            PriceCurrency.convert(this, (card.price ?: 0.0) * card.detectedQuantity, card.currency)
+            io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(this,card.printingUuid,card.finish)?.let {
+                PriceCurrency.convert(this,it.amount * card.detectedQuantity,it.currency)
+            } ?: 0.0
         }
         val formatted = PriceCurrency.format(this, convertedTotal, PriceCurrency.preferred(this))
         total.text = getString(R.string.photo_total_price, formatted)
@@ -306,8 +321,8 @@ private class DetectedCardAdapter(
             removeCard: (PhotoScanCard) -> Unit
         ) {
             name.text = card.displayName
-            val price = card.price?.let {
-                PriceCurrency.format(itemView.context, it, card.currency)
+            val price = io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(itemView.context,card.printingUuid,card.finish)?.let {
+                PriceSourcePresentation.append(itemView.context,PriceCurrency.format(itemView.context, it.amount, it.currency),it.provider)
             }
                 ?: itemView.context.getString(R.string.no_price)
             meta.text = itemView.context.getString(

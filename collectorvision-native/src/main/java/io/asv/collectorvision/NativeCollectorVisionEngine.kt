@@ -17,7 +17,7 @@ import java.nio.FloatBuffer
 import kotlin.math.min
 
 /** Blocking CPU pipeline. Own on a single worker; never call on the camera/UI thread. */
-class NativeCollectorVisionEngine private constructor(private val directory: File, includeFra: Boolean) : AutoCloseable {
+class NativeCollectorVisionEngine private constructor(private val directory: File, includeFra: Boolean, cameraFriendly:Boolean=false) : AutoCloseable {
     private val env = OrtEnvironment.getEnvironment()
     private val detector: OrtSession
     private val embedder: OrtSession
@@ -28,8 +28,12 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     init {
         check(OpenCVLoader.initLocal()) { "OpenCV initialization failed" }
         val options = OrtSession.SessionOptions()
-        options.setIntraOpNumThreads(min(4, Runtime.getRuntime().availableProcessors()))
+        options.setIntraOpNumThreads(min(if(cameraFriendly) 2 else 4, Runtime.getRuntime().availableProcessors()))
         options.setInterOpNumThreads(1)
+        if(cameraFriendly) {
+            options.addConfigEntry("session.intra_op.allow_spinning","0")
+            options.addConfigEntry("session.inter_op.allow_spinning","0")
+        }
         // No NNAPI/GPU provider: numerical correctness before acceleration.
         try {
             detector = env.createSession(File(directory,"detector.onnx").absolutePath, options)
@@ -56,6 +60,8 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         } catch (error: Throwable) { detector.close(); embedder.close(); throw error }
     }
     companion object {
+        fun prepareForCamera(context:Context):NativeCollectorVisionEngine =
+            NativeCollectorVisionEngine(CollectorVisionAssets.prepare(context) {},true,true)
         fun prepareCatalogComparison(context: Context, includeFra: Boolean): NativeCollectorVisionEngine =
             NativeCollectorVisionEngine(CollectorVisionAssets.prepare(context) {},includeFra)
         fun prepare(context: Context, onProgress: (String)->Unit = {}): NativeCollectorVisionEngine {
@@ -66,6 +72,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     }
     private var scope: Set<String>? = null
     private var searchRows: IntArray? = null
+    private var searchNanos=0L
     @Synchronized
     fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null): ScanResult {
         check(!closed)
@@ -73,14 +80,13 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             scope=allowedIds
             searchRows=VisualSearchScope.rows(ids,allowedIds)
         }
-        val start=SystemClock.elapsedRealtime()
-        val outputs=EdScanPerf.measure("engine.detect") { run(detector,bitmap,384,listOf("corners","sharpness")) }
-        val corners=CollectorVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
-        val sharpness=outputs[1].single()
-        val present=sharpness.isFinite() && sharpness>=.02f && CollectorVisionMath.usable(corners)
-        val detectionMs=SystemClock.elapsedRealtime()-start
-        if (!present) return ScanResult(corners,false,sharpness,emptyList(),detectionMs,0)
+        val detection=detect(bitmap)
+        if(!detection.present) return detection
+        val corners=detection.corners
+        val sharpness=detection.sharpness
+        val detectionMs=detection.detectionMs
         val recStart=SystemClock.elapsedRealtime()
+        searchNanos=0L
         val crop=EdScanPerf.measure("engine.warp") { warp(bitmap,corners) }
         var photoRotated = false
         val hits=try {
@@ -95,7 +101,19 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
                     .sortedByDescending { it.score }.take(8)
             } finally { if (rotated !== crop) rotated.recycle() }
         } finally { crop.recycle() }
-        return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0)
+        return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0,
+            searchNanos/1000000,searchRows?.size ?: ids.size)
+    }
+    /** Fresh OCR geometry without running either embedding orientation or catalog search. */
+    @Synchronized
+    fun detect(bitmap: Bitmap): ScanResult {
+        check(!closed)
+        val start=SystemClock.elapsedRealtime()
+        val outputs=EdScanPerf.measure("engine.detect") { run(detector,bitmap,384,listOf("corners","sharpness")) }
+        val corners=CollectorVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
+        val sharpness=outputs[1].single()
+        val present=sharpness.isFinite() && sharpness>=.02f && CollectorVisionMath.usable(corners)
+        return ScanResult(corners,present,sharpness,emptyList(),SystemClock.elapsedRealtime()-start,0)
     }
     private fun run(session: OrtSession, bitmap: Bitmap, size: Int, names: List<String>): List<FloatArray> {
         val prepStarted=System.nanoTime()
@@ -134,7 +152,10 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             return Bitmap.createBitmap(448,448,Bitmap.Config.ARGB_8888).also { Utils.matToBitmap(dst,it) }
         } finally { transform.release(); from.release(); to.release(); src.release(); dst.release() }
     }
-    private fun search(query: FloatArray): List<Hit> = EdScanPerf.measure("engine.search") { searchUntimed(query) }
+    private fun search(query: FloatArray): List<Hit> = EdScanPerf.measure("engine.search") {
+        val started=System.nanoTime()
+        try { searchUntimed(query) } finally { searchNanos+=System.nanoTime()-started }
+    }
     private fun searchUntimed(query: FloatArray): List<Hit> {
         require(query.size==128)
         val bestScores=FloatArray(8) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(8) { -1 }

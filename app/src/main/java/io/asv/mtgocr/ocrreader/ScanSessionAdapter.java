@@ -124,10 +124,13 @@ final class ScanSessionAdapter extends BaseAdapter {
     increase.setOnClickListener(clicked -> listener.onIncreaseQuantity(card));
     String value = PriceCurrency.format(context, card);
     boolean hasPrice = !value.isEmpty();
-    price.setText(hasPrice ? value : context.getString(R.string.scan_session_price_unavailable));
+    price.setText(hasPrice ? PriceSourcePresentation.format(context, card) : context.getString(R.string.scan_session_price_unavailable));
     price.setTextColor(ContextCompat.getColor(context,
         hasPrice ? android.R.color.white : R.color.scan_total_incomplete));
     price.setVisibility(View.VISIBLE);
+    price.setOnClickListener(v -> {
+      if (context instanceof android.app.Activity) PriceHistoryDialog.showCard((android.app.Activity)context, card.getPrintingUuid(), card.getFinish());
+    });
     String imageUrl = card.getImgPath() == null ? "" : card.getImgPath().trim();
     image.setFoilEffect(CardFinish.isFoil(card.getFinish()));
     if (listener.isImageLoading(card) || (loading && imageUrl.isEmpty())) {

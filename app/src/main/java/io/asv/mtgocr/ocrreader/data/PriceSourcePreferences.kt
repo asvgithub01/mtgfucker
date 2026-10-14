@@ -50,6 +50,10 @@ object PriceSourcePreferences {
     @JvmStatic
     fun priorityIds(context: Context): List<String> = load(context).map { it.id }
 
+    @JvmStatic fun orderKey(context: Context): String = priorityIds(context).joinToString(">")
+
+    @JvmStatic fun selectedId(context: Context): String = load(context).first().id
+
     @JvmStatic
     fun save(context: Context, sources: List<PriceSourceDefinition>) {
         val valid = sources.map { it.id }.filter { id -> available.any { it.id == id } }.distinct()

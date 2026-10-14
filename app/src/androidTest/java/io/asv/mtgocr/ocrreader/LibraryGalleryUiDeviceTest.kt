@@ -25,6 +25,8 @@ class LibraryGalleryUiDeviceTest {
                 assertTrue(activity.findViewById<View>(R.id.btnCloseCardImage) is ImageButton)
                 assertTrue(activity.findViewById<View>(R.id.gallerySetSymbol).isEnabled)
                 assertEquals(View.VISIBLE,activity.findViewById<View>(R.id.btnCardImageDetails).visibility)
+                val menu=activity.findViewById<View>(R.id.btnCardImageDetails)
+                assertTrue("Action must have a real touch target on the first page",menu.width >= (48*activity.resources.displayMetrics.density).toInt())
                 val price=activity.findViewById<TextView>(R.id.txtCardImagePrice)
                 val language=activity.findViewById<Spinner>(R.id.cardLanguageSpinner)
                 val a=IntArray(2);val b=IntArray(2);price.getLocationOnScreen(a);language.getLocationOnScreen(b)
@@ -41,7 +43,9 @@ class LibraryGalleryUiDeviceTest {
             Thread.sleep(2500);instrumentation.waitForIdleSync()
             scenario.onActivity { activity ->
                 val attrs=activity.theme.obtainStyledAttributes(intArrayOf(android.R.attr.windowIsFloating))
-                assertTrue(attrs.getBoolean(0,false));attrs.recycle()
+                assertFalse(attrs.getBoolean(0,false));attrs.recycle()
+                assertEquals(android.view.ViewGroup.LayoutParams.MATCH_PARENT, activity.window.attributes.width)
+                assertEquals(android.view.ViewGroup.LayoutParams.MATCH_PARENT, activity.window.attributes.height)
                 assertNotNull(activity.findViewById<View>(R.id.btnDetailMenu))
                 for(layout in listOf(R.layout.card_grid_item,R.layout.card_art_item)) {
                     assertTrue(activity.layoutInflater.inflate(layout,null).findViewById<View>(R.id.btnDeleteCard) is CheckBox)

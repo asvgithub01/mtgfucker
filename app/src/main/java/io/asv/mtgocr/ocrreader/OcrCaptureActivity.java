@@ -106,6 +106,8 @@ import io.asv.mtgocr.ocrreader.data.IDataProvider;
 import io.asv.mtgocr.ocrreader.data.MtgJsonRoomDataProvider;
 import io.asv.mtgocr.ocrreader.data.MagicSetOption;
 import io.asv.mtgocr.ocrreader.data.PriceSourcePreferences;
+import io.asv.mtgocr.ocrreader.data.SelectedPrices;
+import io.asv.mtgocr.ocrreader.data.PriceHistoryStore;
 import io.asv.mtgocr.ocrreader.data.PriceCurrency;
 import io.asv.mtgocr.ocrreader.data.PhotoCardNameMatch;
 import io.asv.mtgocr.ocrreader.model.Biblio;
@@ -183,6 +185,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private int pendingDetailScrollOffset;
   private boolean cardDetailOpen;
   private long detailPopupFileStamp = -1;
+  private long pausedCollectionLength = -1;
+  private String pausedCollectionFile;
+  private android.os.Parcelable pausedCollectionLayout;
   private final java.util.Set<String> collectionSelected = new java.util.LinkedHashSet<>();
   private android.widget.HorizontalScrollView collectionSelectionBar;
   private boolean collectionBatchDeleting;
@@ -374,6 +379,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     speakCardNameButton = (ImageButton) findViewById(R.id.btnSpeakCardName);
     addTypedCardButton = (ImageButton) findViewById(R.id.btnAddTypedCard);
     scanSessionTotalText = (TextView) findViewById(R.id.txtScanSessionTotal);
+    scanSessionTotalText.setOnClickListener(v -> PriceDetailsDialog.show(this, new ArrayList<>(scannedSessionCards)));
     fabOcr = (FloatingActionButton) findViewById(R.id.fabOcr);
     fabOcrMlKit = (FloatingActionButton) findViewById(R.id.fabOcrMlKit);
     fabRapidEditionScanner =
@@ -498,6 +504,17 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
     setUpRecyclerView();
     setUpCollectionControls();
+    if (icicle == null && getIntent().getBooleanExtra("askStartupPriceRefresh", false)
+        && StartupPriceRefreshPolicy.shouldPrompt(getSharedPreferences("mtgjson_price_index", MODE_PRIVATE)
+            .getLong("updated_at", 0L), System.currentTimeMillis())) {
+      getIntent().removeExtra("askStartupPriceRefresh");
+      new android.app.AlertDialog.Builder(this)
+          .setTitle(R.string.startup_price_refresh_title)
+          .setMessage(R.string.startup_price_refresh_message)
+          .setPositiveButton(R.string.startup_price_refresh_yes, (dialog, which) -> refreshAllCollectionPrices())
+          .setNegativeButton(R.string.startup_price_refresh_later, null)
+          .show();
+    }
     setUpSetCatalog();
     setUpPhotos();
     setUpBottomNavigation();
@@ -1381,8 +1398,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Select before attaching the listener. Otherwise setSelectedItemId() can synchronously call
     // showSelectedSection(), and onCreate() refreshes the entire collection twice before drawing.
     bottomNavigation.setSelectedItemId(selectedNavigation);
+    findViewById(R.id.fabCardSearch).setOnClickListener(v -> startActivity(new Intent(this, CardSearchActivity.class)));
     bottomNavigation.setOnItemSelectedListener(item -> {
       int itemId = item.getItemId();
+      if (itemId == R.id.nav_shopping) { startActivity(new Intent(this, BuylistActivity.class)); return false; }
       if (itemId == R.id.nav_library) currentSection = SECTION_LIBRARY;
       else if (itemId == R.id.nav_groups) currentSection = SECTION_GROUPS;
       else if (itemId == R.id.nav_catalog) currentSection = SECTION_CATALOG;
@@ -1552,6 +1571,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     boolean settings = currentSection == SECTION_SETTINGS;
     boolean catalog = currentSection == SECTION_CATALOG;
     boolean photos = currentSection == SECTION_PHOTOS;
+    findViewById(R.id.fabCardSearch).setVisibility(catalog ? View.VISIBLE : View.GONE);
     lytRecycler.setVisibility(settings ? View.GONE : View.VISIBLE);
     settingsPlaceholder.setVisibility(settings ? View.VISIBLE : View.GONE);
     collectionControls.setVisibility(!settings && !catalog && !photos ? View.VISIBLE : View.GONE);
@@ -1689,8 +1709,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       sum += PriceCurrency.amount(this, card) * card.getQuantityCount();
     }
     TextView txtTotal = (TextView) findViewById(R.id.txtTotal);
+    final List<CardInfo> priceInfoCards = new ArrayList<>(lstGrp);
+    txtTotal.setOnClickListener(v -> PriceDetailsDialog.showCollection(this, priceInfoCards,
+        mBiblio.nameFile, currentFilterKey));
     txtTotal.setText(getString(R.string.collection_total_price,
         PriceCurrency.format(this, sum, PriceCurrency.preferred(this))));
+
   }
 
   private void setUpItemTouchHelper() {
@@ -2003,28 +2027,27 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onResume() {
     super.onResume();
-    if (detailPopupFileStamp >= 0) {
-      long previousStamp = detailPopupFileStamp;
-      detailPopupFileStamp = -1;
-      if (mBiblio != null && getFileStreamPath(mBiblio.nameFile).lastModified() == previousStamp) {
-        cardDetailOpen = false;
-        pendingDetailScrollItemId = null;
-        updateSectionBackground();
-        startCameraSource();
-        return; // Closing a read-only popup must not rebuild the home adapter or reload inventory.
+    boolean unchangedCollection = pausedCollectionFile != null && mBiblio != null
+        && pausedCollectionFile.equals(mBiblio.nameFile)
+        && pausedCollectionFile.equals(LibraryCatalog.activeFile(this))
+        && getFileStreamPath(pausedCollectionFile).lastModified() == detailPopupFileStamp
+        && getFileStreamPath(pausedCollectionFile).length() == pausedCollectionLength;
+    pausedCollectionFile = null;
+    detailPopupFileStamp = -1;
+    ScanReviewStatus.refreshIfChanged(this, () -> {
+      if (!isFinishing() && !isDestroyed() && mRecyclerView != null) {
+        // Only conflict badges changed: do not replace the adapter or reset scroll.
+        if (mAdapter instanceof MyAdapter) mAdapter.notifyDataSetChanged();
+        updateScanSessionUi();
       }
-    }
-    ScanReviewStatus.refresh(this, () -> {
-      if (!isFinishing() && !isDestroyed() && mRecyclerView != null) { refreshUI(); updateScanSessionUi(); }
     });
     if (premiumModeCheck != null) updatePremiumSettingsUi();
-    boolean returningFromCardDetail = cardDetailOpen;
     boolean returningToScanSession = reopenScanSessionAfterDetail;
     if (firstResume) {
       // onCreate() has just loaded and rendered this same collection. Reading the serialized file
       // and rebuilding the adapter again here delayed the first frame and compounded startup ANRs.
       firstResume = false;
-    } else if ("0".equals(mPersistorMode) && mBiblio != null) {
+    } else if (!unchangedCollection && "0".equals(mPersistorMode) && mBiblio != null) {
       Biblio persisted = DataUtils.readSerializable(this, mBiblio.nameFile);
       if (persisted != null) {
         mBiblio = persisted;
@@ -2037,10 +2060,14 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         if (mRecyclerView != null) refreshUI();
       }
     }
-    if (returningFromCardDetail) {
-      cardDetailOpen = false;
-      pendingDetailScrollItemId = null;
-    }
+    // Photos have their own store, independent of the Biblio file fingerprint.
+    if (unchangedCollection && currentSection == SECTION_PHOTOS) showPhotos();
+    if (pausedCollectionLayout != null && mRecyclerView != null && mRecyclerView.getLayoutManager() != null
+        && pendingDetailScrollItemId == null) mRecyclerView.getLayoutManager().onRestoreInstanceState(pausedCollectionLayout);
+    pausedCollectionLayout = null;
+    pendingDetailScrollItemId = null;
+    cardDetailOpen = false;
+    updateSectionBackground();
     updateScanSessionUi();
     if (returningToScanSession) {
       reopenScanSessionAfterDetail = false;
@@ -2076,11 +2103,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void refreshAllCollectionPrices() {
     if (mBiblio == null || (collectionPriceTask != null && !collectionPriceTask.isDone())) return;
     final String library = mBiblio.nameFile;
+    final String provider = PriceSourcePreferences.orderKey(this);
     java.util.ArrayList<String> uuids = new java.util.ArrayList<>();
     for (CardInfo card : mBiblio.cards) if (card.getPrintingUuid() != null) uuids.add(card.getPrintingUuid());
     collectionPriceTask = cardRepository.refreshCollectionPrices(uuids, (options, error) -> {
       if (isDestroyed() || isFinishing()) return kotlin.Unit.INSTANCE;
-      if (error != null || mBiblio == null || !library.equals(mBiblio.nameFile)) {
+      if (error != null || mBiblio == null || !library.equals(mBiblio.nameFile) || !provider.equals(PriceSourcePreferences.orderKey(this))) {
         Toast.makeText(this, R.string.collection_prices_error, Toast.LENGTH_LONG).show();
         return kotlin.Unit.INSTANCE;
       }
@@ -2089,9 +2117,15 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       for (CardEditionOption option : options) indexed.put(option.getPrintingUuid()+"|"+option.getFinish(), option);
       for (CardInfo card : mBiblio.cards) {
         CardEditionOption option = indexed.get(card.getPrintingUuid()+"|"+(safe(card.getFinish()).isEmpty() || "normal".equals(card.getFinish()) ? "nonfoil" : card.getFinish()));
-        if (option != null && option.getPrice() != null) { applyEditionPrice(card, option); updated++; }
+        if (option != null) { applyEditionPrice(card, option); if (option.getPrice() != null) updated++; }
+        else { card.setPrice(""); card.setPriceM(""); card.setPriceL(""); card.setPriceH(""); }
+
       }
       persistCollectionWithoutBlockingScanner();
+      PriceHistoryStore.recordCollection(this, library, new ArrayList<>(mBiblio.cards), success -> {
+        if (!success && !isDestroyed()) Toast.makeText(this, R.string.price_history_error, Toast.LENGTH_LONG).show();
+        return kotlin.Unit.INSTANCE;
+      });
       refreshUI(); updateScanSessionUi();
       Toast.makeText(this, getString(R.string.collection_prices_done, updated, mBiblio.cards.size()), Toast.LENGTH_LONG).show();
       return kotlin.Unit.INSTANCE;
@@ -2106,7 +2140,13 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     if (PremiumAccess.isEnabled(this)) popup.getMenu().add(0, 3, 2, R.string.cardmarket_export);
     popup.setOnMenuItemClickListener(item -> {
       switch (item.getItemId()) {
-        case 1: startActivity(new Intent(this, ScanReviewActivity.class)); return true;
+        case 1:
+          Intent review = new Intent(this, ScanReviewActivity.class);
+          if (currentFilterKey.startsWith("group:")) {
+            review.putExtra(ScanReviewActivity.EXTRA_GROUP, currentFilterKey.substring("group:".length()));
+          }
+          startActivity(review);
+          return true;
         case 2: refreshAllCollectionPrices(); return true;
         case 3: if (PremiumAccess.isEnabled(this)) showCardmarketExportDialog(); return true;
         default: return false;
@@ -2151,6 +2191,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
    */
   @Override protected void onPause() {
     flushPendingCollectionSave();
+    rememberCollectionScrollForDetail();
+    pausedCollectionLayout = mRecyclerView == null || mRecyclerView.getLayoutManager() == null
+        ? null : mRecyclerView.getLayoutManager().onSaveInstanceState();
+    pausedCollectionFile = mBiblio == null ? null : mBiblio.nameFile;
+    detailPopupFileStamp = pausedCollectionFile == null ? -1 : getFileStreamPath(pausedCollectionFile).lastModified();
+    pausedCollectionLength = pausedCollectionFile == null ? -1 : getFileStreamPath(pausedCollectionFile).length();
     dismissDuplicateScanDialog();
     super.onPause();
     if (mPreview != null) {
@@ -2504,6 +2550,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   //region tontimenu
 
   private void refreshUI() {
+    if (mBiblio != null) SelectedPrices.ensure(this, new ArrayList<>(mBiblio.cards), () -> {
+      if (!isFinishing() && !isDestroyed()) { refreshUI(); updateScanSessionUi(); }
+    });
     if (mPersistorMode.equals("0"))//biblio
     {
       if (currentSection == SECTION_CATALOG) {
@@ -2957,7 +3006,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   public void showOrganizerDialog(final CardInfo card) {
     new AlertDialog.Builder(this).setTitle(R.string.organize_card)
-        .setItems(new String[]{getString(R.string.pin_launch_background)}, (dialog,which)-> {
+        .setItems(new String[]{getString(R.string.pin_launch_background),getString(R.string.buy_add)}, (dialog,which)-> {
+          if(which==1) { BuylistActions.addCard(this,card); return; }
           CardBackgroundAction.pin(this,card.getCollectionItemId());updateSectionBackground();
         }).setNegativeButton(android.R.string.cancel,null).show();
   }
@@ -3368,6 +3418,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         PriceSourcePreferences.load(this), ordered -> {
           PriceSourcePreferences.save(this, ordered);
           cardRepository.invalidatePriceSourceOrder();
+          refreshUI(); updateScanSessionUi();
           return kotlin.Unit.INSTANCE;
         });
     sources.setAdapter(adapter);
@@ -3521,6 +3572,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void updateScanSessionUi() {
+    SelectedPrices.ensure(this, new ArrayList<>(scannedSessionCards), () -> {
+      if (!isDestroyed() && !isFinishing()) updateScanSessionUi();
+    });
     RecentScansView recent = findViewById(R.id.recentOcrScans);
     if (recent != null) recent.submit(scannedSessionCards, card -> RecentScanActions.show(this, card, action -> {
       CardInfo current = findCollectionCard(card.getCollectionItemId());
@@ -4478,7 +4532,9 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void rememberCollectionScrollForDetail() {
-    if (!(mLayoutManager instanceof LinearLayoutManager) || !(mAdapter instanceof MyAdapter)) return;
+    if (mRecyclerView == null || mRecyclerView.getAdapter() != mAdapter
+        || mRecyclerView.getLayoutManager() != mLayoutManager
+        || !(mLayoutManager instanceof LinearLayoutManager) || !(mAdapter instanceof MyAdapter)) return;
     LinearLayoutManager layout = (LinearLayoutManager) mLayoutManager;
     int position = layout.findFirstVisibleItemPosition();
     if (position == RecyclerView.NO_POSITION || position >= mAdapter.getItemCount()) return;

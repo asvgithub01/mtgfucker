@@ -32,7 +32,8 @@ data class CardPrintingEntity(
     val typeLine: String,
     val rulesText: String,
     val imageUrl: String?,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val side: String? = null
 )
 
 @Entity(tableName = "card_prices", primaryKeys = ["printingUuid", "finish"])
@@ -98,6 +99,24 @@ data class MagicSetEntity(
 
 @Dao
 interface CardDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    fun savePriceHistory(rows: List<PriceHistoryEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    fun saveGroupPriceHistory(rows: List<GroupPriceHistoryEntity>)
+
+    @Query("SELECT * FROM price_history WHERE printingUuid = :uuid AND finish = :finish AND provider = :provider ORDER BY observedAt DESC, priceDate DESC LIMIT 100")
+    fun priceHistory(uuid: String, finish: String, provider: String): List<PriceHistoryEntity>
+
+    @Query("SELECT * FROM group_price_history WHERE library = :library AND scope = :scope AND provider = :provider ORDER BY observedAt DESC LIMIT 100")
+    fun groupPriceHistory(library: String, scope: String, provider: String): List<GroupPriceHistoryEntity>
+
+    @Query("SELECT * FROM price_history WHERE printingUuid = :uuid AND finish = :finish ORDER BY priceDate DESC, observedAt DESC LIMIT 1000")
+    fun priceHistoryForPrinting(uuid: String, finish: String): List<PriceHistoryEntity>
+
+    @Query("SELECT * FROM group_price_history WHERE library = :library AND scope = :scope ORDER BY observedAt DESC LIMIT 100")
+    fun groupPriceHistoryAll(library: String, scope: String): List<GroupPriceHistoryEntity>
+
     @Query("SELECT * FROM card_printings WHERE normalizedName = :name ORDER BY releaseDate DESC, setCode, collectorNumber")
     fun printingsByName(name: String): List<CardPrintingEntity>
 
@@ -107,7 +126,7 @@ interface CardDao {
     @Query("SELECT * FROM card_printings WHERE uuid IN (:uuids)")
     fun printingsByUuids(uuids: List<String>): List<CardPrintingEntity>
 
-    @Query("SELECT * FROM card_printings WHERE scryfallId = :scryfallId LIMIT 1")
+    @Query("SELECT * FROM card_printings WHERE scryfallId = :scryfallId ORDER BY CASE WHEN side = 'a' THEN 0 WHEN side IS NULL THEN 1 ELSE 2 END, uuid LIMIT 1")
     fun printingByScryfallId(scryfallId: String): CardPrintingEntity?
 
     @Query("SELECT * FROM card_printings WHERE scryfallId IN (:ids)")
@@ -211,9 +230,11 @@ interface CardDao {
         CardSetSyncEntity::class,
         OwnedPrintingEntity::class,
         CardNameAliasEntity::class,
-        MagicSetEntity::class
+        MagicSetEntity::class,
+        PriceHistoryEntity::class,
+        GroupPriceHistoryEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class CardDatabase : RoomDatabase() {
@@ -227,7 +248,7 @@ abstract class CardDatabase : RoomDatabase() {
                 context.applicationContext,
                 CardDatabase::class.java,
                 "mtg_catalog.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build().also { instance = it }
         }
 
@@ -276,6 +297,20 @@ abstract class CardDatabase : RoomDatabase() {
                         PRIMARY KEY(`printingUuid`, `finish`, `provider`)
                     )""".trimIndent()
                 )
+            }
+        }
+
+        internal val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `price_history` (`printingUuid` TEXT NOT NULL, `finish` TEXT NOT NULL, `provider` TEXT NOT NULL, `priceDate` TEXT NOT NULL, `amount` REAL NOT NULL, `currency` TEXT NOT NULL, `observedAt` INTEGER NOT NULL, PRIMARY KEY(`printingUuid`, `finish`, `provider`, `priceDate`, `amount`, `currency`))")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `group_price_history` (`id` TEXT NOT NULL, `library` TEXT NOT NULL, `scope` TEXT NOT NULL, `provider` TEXT NOT NULL, `observedAt` INTEGER NOT NULL, `currency` TEXT NOT NULL, `total` REAL NOT NULL, `missing` INTEGER NOT NULL, `composition` TEXT NOT NULL, PRIMARY KEY(`id`))")
+            }
+        }
+
+        internal val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Keep every historical UUID: owned copies and prices may still reference it.
+                database.execSQL("ALTER TABLE `card_printings` ADD COLUMN `side` TEXT")
             }
         }
 

@@ -82,12 +82,13 @@ object PriceCurrency {
     /** Parsed and condition-adjusted amount converted to an explicit target currency. */
     @JvmStatic
     fun amountIn(context: Context, card: CardInfo, targetCurrency: String): Double? {
-        val rawAmount = rawAmount(card) ?: return null
+        val quote = SelectedPrices.quote(context, card) ?: return null
+        val rawAmount = quote.amount
         val adjusted = CardCondition.adjustedAmount(rawAmount, card.condition)
         val target = targetCurrency.uppercase(Locale.ROOT).takeIf { it == EUR || it == USD } ?: EUR
         return PriceMath.convert(
             adjusted,
-            sourceCurrency(card.basePrice),
+            quote.currency,
             target,
             eurToUsd(context)
         )
@@ -99,8 +100,8 @@ object PriceCurrency {
 
     @JvmStatic
     fun format(context: Context, card: CardInfo): String {
-        if (!hasAmount(card)) return ""
-        return formatAmount(amount(context, card), preferred(context))
+        val amount = amountOrNull(context, card) ?: return ""
+        return formatAmount(amount, preferred(context))
     }
 
     @JvmStatic

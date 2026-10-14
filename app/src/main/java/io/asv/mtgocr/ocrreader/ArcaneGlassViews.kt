@@ -216,6 +216,7 @@ class ArcaneBottomNavigationView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : BottomNavigationView(context, attrs, defStyleAttr) {
+    override fun getMaxItemCount() = 6
     private val glass = ArcaneGlassPainter(context, resources.displayMetrics.density, ArcaneGlassPainter.Style.NAVIGATION, ::invalidate)
 
     init {

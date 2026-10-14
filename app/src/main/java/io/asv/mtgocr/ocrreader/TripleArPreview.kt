@@ -440,7 +440,7 @@ class TripleArPreview(private val host: AppCompatActivity, private var intent: a
                         val config=ar.config; config.augmentedImageDatabase=database; ar.configure(config)
                         camera.preloadedCards=(pendingBatch?.second ?: successes).filter { it.printing in valid }.associateBy { it.printing }
                         batchReadyCount=valid.size
-                        EdScanPerf.event("AR.batchReady count=${valid.size} totalMs=${(System.nanoTime()-started)/1_000_000}")
+                        diagnostics("AR.batchReady count=${valid.size} totalMs=${(System.nanoTime()-started)/1_000_000}")
                         runOnUiThread {
                             if(!destroyed && batchMode && token==targetGeneration) {
                                 drainSessionReferences()

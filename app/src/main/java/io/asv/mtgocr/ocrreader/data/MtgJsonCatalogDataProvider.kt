@@ -142,6 +142,7 @@ class MtgJsonCatalogDataProvider(
         val sync = dao.fullSetSync(normalizedSetCode)
         val staleBefore = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
         if (!forceRefresh && cached.isNotEmpty() && cached.any { !it.mcmId.isNullOrBlank() } &&
+            !PhysicalPrintings.needsFaceMetadata(cached) &&
             sync != null && sync.updatedAt >= staleBefore
         ) return cached
         return try {
@@ -193,7 +194,8 @@ class MtgJsonCatalogDataProvider(
                         typeLine = card.type,
                         rulesText = card.text,
                         imageUrl = hint?.imageUrl,
-                        updatedAt = now
+                        updatedAt = now,
+                        side = card.side
                     )
                 }
             if (entities.isNotEmpty()) dao.savePrintings(entities)

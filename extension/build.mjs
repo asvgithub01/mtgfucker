@@ -13,3 +13,5 @@ await build({
   format: "iife"
 });
 await cp("manifest.json", "dist/manifest.json");
+
+await build({ entryPoints:["src/wants.ts"],outfile:"dist/wants.js",bundle:true,minify:false,sourcemap:true,target:"chrome120",format:"iife" });

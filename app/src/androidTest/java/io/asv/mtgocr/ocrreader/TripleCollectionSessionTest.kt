@@ -72,12 +72,29 @@ class TripleCollectionSessionTest {
             state=state.copy(count=0);assertNull(submit());assertEquals(1,LegacyCollectionStore.cards(context).size)
             assertEquals(3,LegacyCollectionStore.cards(context).single().quantityCount)
             assertEquals(userBefore,LegacyCollectionStore.cards(real).map { it.collectionItemId to it.quantity })
+            val resumeRows=LegacyCollectionStore.cards(context)
+            val restoredWriter=TripleCollectionSession(context) {}
+            val restored=CountDownLatch(1);var resumeError:Throwable?=null
+            restoredWriter.restore(resumeRows.single().groups.single(),resumeRows) { error -> resumeError=error;restored.countDown() }
+            assertTrue(restored.await(15,TimeUnit.SECONDS));assertNull(resumeError)
+            for(quantity in listOf(4,3)) {
+                val done=CountDownLatch(1);var changed:CardInfo?=null
+                instrumentation.runOnMainSync {
+                    restoredWriter.submit(state.copy(event=1,count=quantity,photoKey=review.single().photoKey,manualLanguage=true)) { card,_,error ->
+                        changed=card;resumeError=error;done.countDown()
+                    }
+                }
+                assertTrue(done.await(20,TimeUnit.SECONDS));assertNull(resumeError)
+                assertEquals(first.collectionItemId,changed?.collectionItemId)
+                assertEquals(quantity,changed?.quantityCount)
+                assertEquals(1,LegacyCollectionStore.cards(context).size)
+            }
             // Launch with all recognition disabled, then inject only the isolated writer before any fixture.
             val prefs=real.getSharedPreferences("triple_scanner",0)
             val oldScope=prefs.getString("locked_set",null)
             val oldLanguagePrefs=listOf("scope_language","language_scope_sets").associateWith { prefs.getString(it,null) }
             val old=listOf("ar","art","ocr").associateWith { if(prefs.contains(it)) prefs.getBoolean(it,true) else null }
-            prefs.edit().remove("scope_language").remove("language_scope_sets").putBoolean("ar",false).putBoolean("art",false).putBoolean("ocr",false).commit()
+            prefs.edit().putString("locked_set","FRA").remove("scope_language").remove("language_scope_sets").putBoolean("ar",false).putBoolean("art",false).putBoolean("ocr",false).commit()
             try {
                 androidx.test.core.app.ActivityScenario.launch<TripleScanActivity>(android.content.Intent(real,TripleScanActivity::class.java).putExtra("triple_set","FRA")).use { scenario ->
                     scenario.onActivity { activity ->
@@ -111,11 +128,16 @@ class TripleCollectionSessionTest {
                     instrumentation.waitForIdleSync()
                     val image=instrumentation.uiAutomation.takeScreenshot()
                     File(real.cacheDir,"triple-menu-proof.png").outputStream().use { image.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) };image.recycle()
-                    // Real PT alias + failed selected-set lookup -> global provisional printing on the SAME event.
+                    // Real PT alias + failed selected-set lookup stays unresolved; no silent global fallback.
                     var medusaEvent=0L
                     scenario.onActivity { activity ->
                         fun set(name:String,value:Any) { TripleScanActivity::class.java.getDeclaredField(name).apply { isAccessible=true }.set(activity,value) }
-                        TripleScanActivity::class.java.getDeclaredMethod("proposeOcrName",String::class.java).apply { isAccessible=true }.invoke(activity,"Coils of the Medusa")
+                        val before=TripleScanActivity::class.java.getDeclaredField("currentEncounter").apply { isAccessible=true }.getLong(activity)
+                        val propose=TripleScanActivity::class.java.getDeclaredMethod("proposeOcrName",String::class.java,Long::class.javaPrimitiveType).apply { isAccessible=true }
+                        val now=android.os.SystemClock.elapsedRealtime()
+                        propose.invoke(activity,"Coils of the Medusa",now-700)
+                        assertEquals(before,TripleScanActivity::class.java.getDeclaredField("currentEncounter").apply { isAccessible=true }.getLong(activity))
+                        propose.invoke(activity,"Coils of the Medusa",now)
                         medusaEvent=TripleScanActivity::class.java.getDeclaredField("currentEncounter").apply { isAccessible=true }.getLong(activity)
                         val entries=TripleScanActivity::class.java.getDeclaredField("galleryEntries").apply { isAccessible=true }.get(activity) as Map<*,*>
                         val entry=entries[medusaEvent.toString()]!!
@@ -127,13 +149,13 @@ class TripleCollectionSessionTest {
                             Long::class.javaPrimitiveType,String::class.java,String::class.java).apply { isAccessible=true }
                             .invoke(activity,"Coils of the Medusa",listOf("Madeixas da Medvsa"),generation,medusaEvent,"Madeixas da Medusa","pt")
                     }
-                    var ready=false;val deadline=android.os.SystemClock.elapsedRealtime()+90000
+                    var ready=false;val deadline=android.os.SystemClock.elapsedRealtime()+15000
                     while(!ready && android.os.SystemClock.elapsedRealtime()<deadline) {
                         scenario.onActivity { activity ->
                             val entries=TripleScanActivity::class.java.getDeclaredField("galleryEntries").apply { isAccessible=true }.get(activity) as Map<*,*>
                             val entry=entries[medusaEvent.toString()]!!
                             fun field(name:String)=entry.javaClass.getDeclaredField(name).apply { isAccessible=true }.get(entry)
-                            ready=field("language")=="pt" && field("savedId")!=null && (field("target") as TripleScanActivity.Target).printing.isNotBlank()
+                            ready=field("language")=="pt" && field("savedId")==null && field("scopeConflict")==true && (field("target") as TripleScanActivity.Target).printing.isBlank()
                             if(ready) {
                                 assertEquals("title",field("languageOrigin"));assertEquals(true,field("scopeConflict"))
                                 assertEquals(medusaEvent,TripleScanActivity::class.java.getDeclaredField("currentEncounter").apply { isAccessible=true }.getLong(activity))
@@ -142,20 +164,25 @@ class TripleCollectionSessionTest {
                         }
                         if(!ready) Thread.sleep(100)
                     }
-                    assertTrue("PT title + global fallback must be stored",ready)
-                    assertEquals("pt",LegacyCollectionStore.cards(context).first { it.name.contains("Medusa",true) }.languageCode)
+                    assertTrue("PT title must remain pending without saving a printing outside FRA",ready)
+                    assertFalse(LegacyCollectionStore.cards(context).any { it.name.contains("Medusa",true) })
+                    // A global lookup is permitted only as the explicit manual edition action.
+                    var manualOption:CardEditionOption?=null
+                    val manualLoaded=CountDownLatch(1)
+                    repository.quickScanCard("Coils of the Medusa",emptySet(),false) { option,_ -> manualOption=option;manualLoaded.countDown() }
+                    assertTrue(manualLoaded.await(30,TimeUnit.SECONDS));assertNotNull(manualOption)
                     var chosenUuid=""
                     scenario.onActivity { activity ->
                         val entries=TripleScanActivity::class.java.getDeclaredField("galleryEntries").apply { isAccessible=true }.get(activity) as Map<*,*>
                         val entry=entries[medusaEvent.toString()]!!
-                        val option=entry.javaClass.getDeclaredField("editionOption").apply { isAccessible=true }.get(entry) as CardEditionOption
+                        val option=requireNotNull(manualOption)
                         chosenUuid=option.printingUuid
                         TripleScanActivity::class.java.getDeclaredMethod("applyEditionToEntry",entry.javaClass,CardEditionOption::class.java,
                             Boolean::class.javaPrimitiveType,Boolean::class.javaPrimitiveType).apply { isAccessible=true }.invoke(activity,entry,option,true,false)
                         val current=entry.javaClass.getDeclaredField("target").apply { isAccessible=true }.get(entry) as TripleScanActivity.Target
                         TripleScanActivity::class.java.getDeclaredMethod("accept",TripleScanActivity.Target::class.java).apply { isAccessible=true }
                             .invoke(activity,current.copy(id="late-art",printing="late-art",source="EdScan",provisional=false))
-                        assertEquals(chosenUuid,(entry.javaClass.getDeclaredField("target").apply { isAccessible=true }.get(entry) as TripleScanActivity.Target).printing)
+                        assertEquals(current.printing,(entry.javaClass.getDeclaredField("target").apply { isAccessible=true }.get(entry) as TripleScanActivity.Target).printing)
                     }
                     var selected=false;val selectionDeadline=android.os.SystemClock.elapsedRealtime()+15000
                     while(!selected && android.os.SystemClock.elapsedRealtime()<selectionDeadline) {
@@ -164,6 +191,20 @@ class TripleCollectionSessionTest {
                     }
                     assertTrue("Manual edition must persist without losing PT or adding a copy",selected)
                     assertEquals(2,LegacyCollectionStore.cards(context).size)
+
+                    scenario.onActivity { activity ->
+                        val entries=TripleScanActivity::class.java.getDeclaredField("galleryEntries").apply { isAccessible=true }.get(activity) as Map<*,*>
+                        val entry=entries.values.first()!!
+                        val anchor=entry.javaClass.getDeclaredField("root").apply { isAccessible=true }.get(entry) as android.view.View
+                        TripleScanActivity::class.java.getDeclaredMethod("showEntryMenu",entry.javaClass,android.view.View::class.java,Boolean::class.javaPrimitiveType!!)
+                            .apply { isAccessible=true }.invoke(activity,entry,anchor,true)
+                    }
+                    instrumentation.waitForIdleSync()
+                    Thread.sleep(700) // Let cached artwork and popup positioning settle for visual QA.
+                    val galleryImage=instrumentation.uiAutomation.takeScreenshot()
+                    File(real.cacheDir,"triple-gallery-popup-proof.png").outputStream().use { galleryImage.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) };galleryImage.recycle()
+                    instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+                    instrumentation.waitForIdleSync()
 
                     // Fixed scope affects NEW encounters only, remains manual against late OCR,
                     // and survives printing updates without creating copies.

@@ -15,7 +15,8 @@ internal data class ParsedMtgJsonCard(
     val finishes: List<String>,
     val availability: List<String>,
     val type: String,
-    val text: String
+    val text: String,
+    val side: String? = null
 )
 
 internal data class ParsedMtgJsonSet(
@@ -91,6 +92,7 @@ internal object MtgJsonParsers {
         var uuid = ""
         var name = ""
         var faceName: String? = null
+        var side: String? = null
         var number = ""
         var rarity = ""
         var scryfallId: String? = null
@@ -106,6 +108,7 @@ internal object MtgJsonParsers {
                 "uuid" -> uuid = reader.nextString()
                 "name" -> name = reader.nextString()
                 "faceName" -> faceName = reader.nextString()
+                "side" -> side = if (reader.peek() == JsonReader.Token.NULL) reader.nextNull() else reader.nextString()
                 "number" -> number = reader.nextString()
                 "rarity" -> rarity = reader.nextString()
                 "type" -> type = reader.nextString()
@@ -130,7 +133,7 @@ internal object MtgJsonParsers {
         reader.endObject()
         return if (uuid.isBlank() || name.isBlank()) null else ParsedMtgJsonCard(
             uuid, name, faceName, number, rarity, scryfallId, mcmId, mcmMetaId,
-            finishes, availability, type, text
+            finishes, availability, type, text, side
         )
     }
 

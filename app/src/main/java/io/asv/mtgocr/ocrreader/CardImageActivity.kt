@@ -91,6 +91,9 @@ class CardImageActivity : AppCompatActivity() {
             ?: intent.getIntExtra(EXTRA_EDITION_INDEX, 0))
             .coerceIn(0, pages.lastIndex.coerceAtLeast(0))
         if (pages.isNotEmpty()) {
+            // Bind header before the first layout; changing GONE during pager layout can
+            // leave the action measured at zero width until another page triggers layout.
+            onPageSettled()
             setupPager()
         } else {
             progress.visibility = View.GONE
@@ -192,7 +195,7 @@ class CardImageActivity : AppCompatActivity() {
             override fun onViewAttachedToWindow(holder: ImageHolder) {
                 if (holder.bindingAdapterPosition == currentPage) {
                     image = holder.photo
-                    onPageSettled()
+                    pager.post { if (!isDestroyed && holder.bindingAdapterPosition == currentPage) onPageSettled() }
                 }
             }
             override fun onViewRecycled(holder: ImageHolder) {
@@ -269,7 +272,7 @@ class CardImageActivity : AppCompatActivity() {
                 }
             )
         )
-        detailsButton.visibility=if(owned(page)!=null) View.VISIBLE else View.GONE
+        detailsButton.visibility=if(page.cardName.isNotBlank()) View.VISIBLE else View.INVISIBLE
         SetSymbolLoader.display(this,page.setCode,setSymbol,android.R.drawable.ic_menu_gallery)
         setSymbol.contentDescription=getString(R.string.editions)+" · "+page.setCode
         setSymbol.isEnabled=owned(page)!=null
@@ -319,8 +322,12 @@ class CardImageActivity : AppCompatActivity() {
 
     private fun openCurrentCardDetails() {
         val page = pages.getOrNull(currentPage) ?: return
-        if (owned(page)==null) return
+
         startActivity(Intent(this, Main2Activity::class.java).apply {
+            putExtra("setCode",page.setCode)
+            putExtra("collectorNumber",page.collectorNumber)
+            putExtra("finish",page.finish)
+            putExtra("browseOnly",owned(page)==null)
             putExtra(Main2Activity.EXTRA_AS_POPUP,true)
             putExtra(Main2Activity.EXTRA_CARD_NAME, page.cardName)
             putExtra(Main2Activity.EXTRA_COLLECTION_ITEM_ID, page.collectionItemId)
@@ -333,12 +340,13 @@ class CardImageActivity : AppCompatActivity() {
 
     private fun showGalleryMenu() {
         val page=pages.getOrNull(currentPage) ?: return
-        val card=owned(page) ?: return
+        val card=owned(page)
         android.widget.PopupMenu(this,detailsButton).apply {
             menu.add(0,1,0,R.string.view_card_details)
-            menu.add(0,2,1,R.string.pin_launch_background)
+            if(card!=null)menu.add(0,2,1,R.string.pin_launch_background)
+            menu.add(0,3,2,R.string.buy_add)
             setOnMenuItemClickListener {
-                when(it.itemId) { 1->openCurrentCardDetails();2->CardBackgroundAction.pin(this@CardImageActivity,card.collectionItemId) }
+                when(it.itemId) { 1->openCurrentCardDetails();2->card?.let { CardBackgroundAction.pin(this@CardImageActivity,it.collectionItemId) };3->BuylistActions.addExact(this@CardImageActivity,page.cardName,page.setCode,page.collectorNumber,page.finish) }
                 true
             }
         }.show()

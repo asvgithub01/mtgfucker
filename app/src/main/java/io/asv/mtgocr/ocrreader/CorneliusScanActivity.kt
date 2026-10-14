@@ -116,6 +116,7 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
 
     override fun addHostRecentControls(container: LinearLayout) {
         totalView = TextView(this).apply { textSize = 14f }
+        totalView.setOnClickListener { PriceDetailsDialog.show(this, addedIds.mapNotNull { sessionCards[it] }) }
         container.addView(totalView)
         recent = RecentScansView(this)
         container.addView(recent, LinearLayout.LayoutParams(-1,(104*resources.displayMetrics.density).toInt()))
@@ -283,6 +284,9 @@ class CorneliusScanActivity : NativeCollectorVisionActivity() {
     override fun onResume() { super.onResume(); if (::recent.isInitialized) refreshRecent() }
     private fun renderRecent() {
         val cards = addedIds.mapNotNull { sessionCards[it] }
+        io.asv.mtgocr.ocrreader.data.SelectedPrices.ensure(this, cards, Runnable {
+            if (!isFinishing && !isDestroyed) renderRecent()
+        })
         recent.submit(cards) { card -> RecentScanActions.show(this, card) { action -> editRecent(card, action) } }
         val priced = cards.map { card -> card.quantityCount to io.asv.mtgocr.ocrreader.data.PriceCurrency.amountOrNull(this, card) }
         sessionSummary = EdScanSessionTotal.calculate(priced)

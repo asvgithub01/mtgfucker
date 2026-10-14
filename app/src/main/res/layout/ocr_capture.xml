@@ -914,6 +914,11 @@
         app:srcCompat="@drawable/ic_scan"
         app:tint="#FFFFFF" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabCardSearch" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_above="@id/bottomNavigation" android:layout_alignParentEnd="true"
+        android:layout_margin="16dp" android:visibility="gone" android:src="@android:drawable/ic_menu_search"
+        android:contentDescription="@string/buy_search" />
     <io.asv.mtgocr.ocrreader.ArcaneBottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
@@ -929,6 +934,7 @@
         app:itemRippleColor="?attr/colorSecondary"
         app:itemTextColor="@color/bottom_nav_item_color"
         app:labelVisibilityMode="labeled"
+        app:itemHorizontalTranslationEnabled="false"
         app:menu="@menu/menu_bottom_navigation" />
 
     <LinearLayout

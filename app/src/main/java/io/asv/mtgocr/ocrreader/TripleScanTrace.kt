@@ -13,12 +13,13 @@ class TripleScanTrace(context:Context) {
     private val worker=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue(64),ThreadPoolExecutor.DiscardPolicy())
     fun event(message:String) {
         if(!BuildConfig.DEBUG) return
+        val at=System.currentTimeMillis()
         EdScanPerf.event(message)
         worker.execute {
             runCatching {
                 directory.mkdirs();val file=File(directory,"current.log")
-                if(file.length()>1024*1024) { val previous=File(directory,"previous.log");previous.delete();file.renameTo(previous) }
-                file.appendText("${System.currentTimeMillis()} $message\n")
+                if(file.length()>8*1024*1024) { val previous=File(directory,"previous.log");previous.delete();file.renameTo(previous) }
+                file.appendText("$at $message\n")
             }
         }
     }

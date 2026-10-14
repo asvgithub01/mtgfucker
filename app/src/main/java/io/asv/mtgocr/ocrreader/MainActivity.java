@@ -27,10 +27,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
   private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
   private int backgroundRequest;
   private boolean updatingPicker;
+  private boolean pricePromptSent;
 
   @Override protected void onCreate(Bundle savedInstanceState) {
     MagicPalette.applyTheme(this);
     super.onCreate(savedInstanceState);
+    pricePromptSent = savedInstanceState != null && savedInstanceState.getBoolean("pricePromptSent");
     setContentView(R.layout.activity_main);
     ((TextView) findViewById(R.id.txtLaunchTitle)).setTypeface(
         Typeface.createFromAsset(getAssets(), "title_font.ttf"));
@@ -105,7 +107,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
     intent.putExtra(App.INTENT_AUTO_FOCUS, ScannerSettings.autoFocus(this));
     intent.putExtra(App.INTENT_USE_FLASH, ScannerSettings.flash(this));
     intent.putExtra(App.INTENT_PERSISTOR_MODE, "0");
+    intent.putExtra("askStartupPriceRefresh", !pricePromptSent);
+    pricePromptSent = true;
     startActivity(intent);
+  }
+
+  @Override protected void onSaveInstanceState(Bundle state) {
+    state.putBoolean("pricePromptSent", pricePromptSent);
+    super.onSaveInstanceState(state);
   }
 
   @Override protected void onDestroy() {

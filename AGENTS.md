@@ -97,10 +97,19 @@ Actualizar índices visuales no actualiza este diccionario; comprobar también l
 
 - Una fila se identifica por `collectionItemId`, no por la posición de una lista que puede
   ordenarse o cambiar mientras llega una respuesta asíncrona.
+- El catálogo de una edición agrupa partes MTGJSON por `scryfallId` con `PhysicalPrintings`:
+  una entrada por impresión, preferencia `side=a`, UUID secundarios como alias de posesión.
+  Room v6 conserva todos los UUID y añade `side`; no borrar filas ni fusionar inventario por
+  nombre/número. Sin red también se filtra la caché antigua; las caras se completan al cargar el set.
 - Impresión (`printingUuid`), acabado (`nonfoil`, `foil`, `etched`), idioma, condición y
   cantidad son conceptos diferentes. Cambiar edición no debe perder cantidades ni grupos.
 - Un precio corresponde a una impresión y acabado concretos. Al cambiar acabado, limpiar
   el precio anterior; antes de aplicar respuestas tardías, comprobar UUID y acabado actuales.
+- `PriceDetailsDialog` consulta referencias locales de los totales sin red ni escrituras;
+  `PriceOriginPolicy` exige UUID, acabado, importe base y moneda coincidentes. No atribuir la
+  fecha del snapshot actual a un importe legacy antiguo. Triple conserva estos datos también
+  para encuentros fuera de la tira visible. El launcher pregunta por el refresco al abrir
+  Biblio una vez por inicio; no repetir al volver de un detalle ni descargar por cada carta.
 - La selección de edición vive en Room y la colección también utiliza persistencia legacy.
   Seguir las rutas existentes de `CardRepository.selectEdition` y actualización de colección;
   no actualizar solo una de las dos representaciones.
@@ -275,6 +284,18 @@ debe reproducir `decodePhoto` antes de detectar bordes.
 
 ## Instalación y protección de datos
 
+- `TripleSessionMaintenanceTest` es una herramienta instrumentada **opt-in**, omitida en
+  pruebas normales. `tripleMaintenance=inspect` solo informa; `remove` requiere biblioteca,
+  grupo e IDs exactos. Usar borrado únicamente con autorización del usuario y backup previo;
+  verifica que las filas restantes no cambian y archiva las evidencias vinculadas.
+- La misma herramienta permite `verifyResume` (comprueba IDs, total y SHA de todas las
+  bibliotecas sin escanear) y `resumeNext` (prepara reanudar exactamente ese grupo al abrir
+  Triple). `TripleCameraLoadTest`, opt-in `liveTriple=true`, perfila 30 s de cámara con
+  persistencia deshabilitada por `triple_diagnostic_only` en debug; no usar como escaneo real.
+- Rendimiento/total Triple: `TripleSlowFramePolicy`, `TriplePersistencePolicy`,
+  `TripleSessionTotals` y `NativeCollectorVisionEngine.prepareForCamera`. No ampliar la
+  caducidad de lecturas sin validar contra un fotograma fresco; no sumar solo la galería.
+
 ```sh
 adb devices -l
 adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
@@ -370,14 +391,61 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - Descubrimiento AR: `npm run discover:ar` verifica ediciones/DBs; `--generate-missing` genera ausentes (coste alto, explícito). `build:ar -- --sets CODIGO` admite cualquier set, solo principal si falta cobertura en `packages/ar-packages/assets/ar-editions.json`. Asset compartido Android/Node; no adivinar anexos. `ArLocalPackageBuilder` genera en Ajustes cuando no hay paquete publicado; nunca sube a web ni toca colección.
 
-- Laboratorio triple aislado: `TripleScanActivity.kt`, `TripleEncounterGate.kt`, `TripleSnapshotOcr.kt`, `TripleLanguageEvidence.kt`, `TripleScanPolicy.kt`, `TripleCardLookup.kt`, `TripleOcrPrintingResolver.kt`, `TripleOcrPrintingPolicy.kt`, `TripleScanTrace.kt`, `TripleTitleGuide.kt`, `TripleArPreview.kt`, `TripleArSurface.kt`, `TripleConfetti.kt`, `TripleRarityColor.kt`, `TripleArOverlay.kt`, `TripleArImageCache.kt`, `TripleArRenderPolicy.kt`, `TripleEnergyBorder.kt`; botón `fabTripleScanner`. Guarda una fila por encuentro mediante `TripleCollectionSession` (Legacy + Room), con foto inmutable en EdScanJobs para postprocesado. Menú por lectura: idioma manual protegido, acabado, cantidad y borrado confirmado. No cambiar `EdScannerAr*` para experimentar. Prueba de integración aislada: `TripleCollectionSessionTest`; las pruebas antiguas TripleScanSmokeTest asumían no guardar y deben migrarse antes de ejecutarlas contra una colección real. Preferencias `triple_scanner`/`triple_ar`, separadas del comparador. AR con DB tiene prioridad; EdScan global es respaldo (edición fuera de selección = conflicto). OCR observa idioma, no lo deduce del idioma de referencia. Triple combina reglas y `TitleLanguageIndex` sin elegir arbitrariamente entre alias ES/PT; una lectura vacía no borra el consenso. Cuadrilátero OCR AR del mismo Frame convertido VIEW→IMAGE_PIXELS. Un frame worker y un OCR en vuelo; diccionario independiente, nunca bloquear cámara esperando alias. Ver `TRIPLE_SCANNER.md` para pruebas y logs.
+- Laboratorio triple aislado: `TripleScanActivity.kt`, `TripleEncounterGate.kt`, `TripleSnapshotOcr.kt`, `TripleLanguageEvidence.kt`, `TripleScanPolicy.kt`, `TripleArConsensus.kt`, `TripleCardLookup.kt`, `TripleOcrPrintingResolver.kt`, `TripleOcrPrintingPolicy.kt`, `TripleScanTrace.kt`, `TripleTitleGuide.kt`, `TripleArPreview.kt`, `TripleArSurface.kt`, `TripleConfetti.kt`, `TripleRarityColor.kt`, `TripleArOverlay.kt`, `TripleArImageCache.kt`, `TripleArRenderPolicy.kt`, `TripleEnergyBorder.kt`; botón `fabTripleScanner`. Guarda una fila por encuentro mediante `TripleCollectionSession` (Legacy + Room), con foto inmutable en EdScanJobs para postprocesado. Menú por lectura: idioma manual protegido, acabado, cantidad y borrado confirmado. No cambiar `EdScannerAr*` para experimentar. Prueba de integración aislada: `TripleCollectionSessionTest`; las pruebas antiguas TripleScanSmokeTest asumían no guardar y deben migrarse antes de ejecutarlas contra una colección real. Preferencias `triple_scanner`/`triple_ar`, separadas del comparador. AR ofrece preview inmediato; `TripleRecognitionArbiter` confirma encuentros, EdScan fuerte y fresco prevalece sobre AR; nunca conservar un veto histórico tras cambiar carta o desactivar motores. `TripleScanScopePolicy` aplica los sets a los tres motores. Un paquete AR compilado puede cubrir varias ediciones: `TripleArPackagePolicy` comprueba metadatos; conservar todas las entradas al cargar la DB y filtrar identidades recibidas por selección. EdScan filtra por IDs exactos de las ediciones seleccionadas; carga/error con scope vacío nunca usa catálogo global. OCR observa idioma, no lo deduce del idioma de referencia. Triple combina reglas y `TitleLanguageIndex` sin elegir arbitrariamente entre alias ES/PT; una lectura vacía no borra el consenso. Cuadrilátero OCR AR del mismo Frame convertido VIEW→IMAGE_PIXELS. Un frame worker y un OCR en vuelo; diccionario independiente, nunca bloquear cámara esperando alias. Ver `TRIPLE_SCANNER.md` para pruebas y logs.
 
-- Triple: `TripleReadingPolicy` usa nombre canónico como identidad de encuentro; cambiar impresión no añade copia ni pierde idioma/foto. La ausencia observada sigue habilitando otra copia. `manualEdition`/revisión protegen el selector `EditionPicker.showGrid` frente a callbacks. Idioma: título/alias único validado por TLV1 prevalece sobre inferencia por impresión, marcando conflicto si discrepan; no tomar el primer idioma de un alias ambiguo. Resolver OCR trabaja por fila aunque cambie la carta actual, con fallback global explícito si no coincide el set seleccionado. Filas sin impresión quedan pendientes, con selector/reintento; nunca inventar UUID Scryfall a partir de UUID MTGJSON.
+- Triple: `TripleReadingPolicy` usa nombre canónico como identidad de encuentro; cambiar impresión no añade copia ni pierde idioma/foto. La ausencia sostenida (tres muestras/1500ms) habilita otra copia; una identidad distinta estable inicia otro encuentro, pero otra impresión del mismo nombre no añade copias. `TripleFrameSignature` detecta cambio estable de apariencia, no identidad; dos copias idénticas sin retirada requieren cantidad explícita. Umbrales físicos experimentales: validar en cámara. `manualEdition`/revisión protegen el selector `EditionPicker.showGrid` frente a callbacks. Idioma: título/alias único validado por TLV1 prevalece sobre inferencia por impresión, marcando conflicto si discrepan; no tomar el primer idioma de un alias ambiguo. Resolver OCR trabaja por fila aunque cambie la carta actual, sin fallback global automático si no coincide el set seleccionado (solo búsqueda manual explícita). Filas sin impresión quedan pendientes, con selector/reintento; nunca inventar UUID Scryfall a partir de UUID MTGJSON.
 
 - Idioma fijo del Triple: `TripleLanguageScope`/`TripleSetLanguageResolver` usan SetList.languages, no lenguas de imágenes. Preferencia ligada al conjunto de sets, origen `scope` manual protegido solo para nuevos encuentros; filas históricas no se reescriben. Con idioma fijo se omite clasificación y se limita modelo OCR por alfabeto; no apagar identificación OCR de cartas desconocidas. Selector idioma en Opciones junto a edición; cabecera solo resumen no pulsable. CLAHE sigue pendiente y desactivado (ver TRIPLE_SCANNER.md).
 
 ## Revisión de precios y galería
 
 - `ReviewPriceAnalyzer.kt` obtiene cotizaciones EUR explícitamente; `ReviewPriceRanges.kt` calcula máximos de euros y porcentaje por separado, sin mezclar acabados ni imputar precios ausentes. `ScanReviewActivity.kt` expone reanálisis y filtros.
-- `Main2Activity.EXTRA_AS_POPUP` reutiliza el detalle como ventana flotante: abrir sin editar no debe escribir la colección. Home conserva el adaptador cuando no cambia el archivo.
+- Al abrir postprocesado desde una agrupación de Biblio, `ScanReviewActivity.EXTRA_GROUP` y `ReviewCollectionScope` limitan las entradas antes de pestañas, contadores y operaciones por lote. Conservar el filtro tras guardar/releer; una agrupación sin fotos no debe mostrar toda la biblioteca.
+- `Main2Activity.EXTRA_AS_POPUP` abre el detalle a pantalla completa sobre la pantalla anterior, sin tema flotante ni margen de ventana; conserva el modo de solo lectura hasta editar explícitamente. Home guarda ancla/estado al pausar y conserva el adaptador si no cambia biblioteca/archivo (fecha+tamaño); los conflictos actualizan solo las filas y solo si cambian. No reconstruir el adaptador desde callbacks de estado. La galería reserva el hueco de acciones desde el primer layout; no alternar GONE durante el layout del pager. Pruebas: `HomeNavigationDeviceTest`, `LibraryGalleryUiDeviceTest`.
 - `CardImageActivity.kt` permite cambiar edición de cartas guardadas verificando disponibilidad del idioma, con persistencia Legacy + Room. `CardBackgroundAction.kt` centraliza fijar fondo. La selección múltiple usa `collectionItemId`, nunca posición.
+
+- Triple v7: `TripleVisualConfirmation` exige dos frames individualmente fuertes (.70/.08), no dos top1 con solo el último fuerte. `triple.confirmation` separa razones/tiempos y `scripts/analyze_triple_confirmation.py` resume p50/p95 y casos lentos. Constantes en `TripleScanPolicy`; no bajar umbrales sin evaluar aciertos. Idioma fijo conserva OCR del título. Prueba de rendimiento sin inventario: `TripleRecognitionPerformanceTest`; runner alternativo con `-PtestApplicationIdOverride=io.asv.mtgocr.ocrreader.symbolv2test` si existe firma antigua.
+
+- Triple captura fresca: `TripleFrameScheduler` arbitra lanes seriales OCR/EdScan;
+  OCR usa `NativeCollectorVisionEngine.detect` sin embeddings previos y geometría
+  `TripleOcrGeometry`. No volver a encadenar OCR al bitmap ya analizado por EdScan.
+  `TripleOcrStageGate` evita bloqueo por nombre y doble liberación tardía. Preparación
+  del índice no bloquea AR/EdScan. Apariencia conserva evidencia independiente;
+  ausencia/generación la limpian. Continuidad6s no amplía frescura2500ms.
+  `TripleAdaptiveVisualPolicy` es solo sombra, sin autoridad de guardado: falta
+  contraste global por identidad/cobertura y validación física. Ver sección v13 de
+  `TRIPLE_SCANNER.md` y pruebas `TripleFreshFrameRegressionTest`/`TripleAdaptiveVisualPolicyTest`.
+
+## Prioridad de proveedores e histórico
+
+- `PriceSourcePreferences.priorityIds` devuelve todas las fuentes en orden; `selectedId` es solo la primera, no una restricción exclusiva. Tocar una fuente la sube al primer puesto y arrastrar reordena. Usar la primera cotización válida para el mismo UUID/acabado, no la más barata ni otro acabado. `SelectedPrices` cachea por orden completo y conserva el proveedor real; `PriceCurrency` no reetiqueta importes legacy. `PriceSourcePresentation` muestra origen y destaca fallback.
+- Room 7 añade históricos sin borrar inventario. `PriceHistoryStore` conserva cotizaciones observadas por UUID/acabado/proveedor/fecha/importe; cada refresco completo registra biblioteca/grupos con las fuentes reales. Totales mixtos se convierten a moneda visible; fingerprint incluye fuentes y tasa de cambio para no etiquetar cambios de fuente/FX como evolución comparable de mercado. No reconstruir fechas desconocidas.
+- `PriceHistorySection` y `PriceHistoryChart` muestran gráfico nativo en el detalle y al tocar precio. Series separadas por proveedor/moneda/acabado; `PriceTrendPolicy` usa último dato observado de cada fecha. Subida verde↑, bajada roja↓; sin dos fechas no inventar porcentaje. Histórico agrupación vía total→Histórico; contador sinprecio solo dentro del diálogo, no añadirlo bajo el total de Biblio.
+- Pruebas: `SelectedPriceHistoryTest`, `PriceFallbackTrendTest`, `PriceHistoryDatabaseTest`. Para firma antigua del paquete test en Sony, usar `'-PtestApplicationIdOverride=io.asv.mtgocr.ocrreader.pricehistorytest'`, no desinstalar. Pruebas de render sintético se ejecutan en emulador, no se insertan en histórico real.
+
+## Compras y búsqueda de catálogo
+
+- `BuylistStore.kt` guarda `files/shopping-lists-v1.json` con AtomicFile y ejecutor serial, separado del inventario/Room. `BuylistActivity`, `BuylistActions`, `CardSearchActivity` son puntos de entrada. Importar crea copia nueva, nunca sobrescribe por ID externo. Incluir este archivo en backups de `files`.
+- `Main2Activity` con `browseOnly=true` permite consultar sin ID de colección ni guardar selección/condición/idioma. Conservar este límite al ampliar la búsqueda. `ArcaneBottomNavigationView` soporta seis destinos; no quitar Fotos ni Ajustes para añadir Compras.
+- Cada refresco completo exitoso del índice MTGJSON registra una observación por entrada de cada buylist, incluso cuando falta precio. Solo MKM/EUR y UUID/acabado exactos; NM es condición solicitada, no oferta de vendedor verificada. Cambios de composición no son variación de precio comparable; no sumar ausencias como cartas gratis.
+- Contrato app/web v1: `packages/cardmarket-protocol/src/buylist.ts`, `web/src/shopping.ts`. Históricos viajan en JSON; no hay sincronización Firebase automática. La web conserva listas en localStorage, exportables a Android. `extension/src/wants.ts` es asistente de copia manual, separado de BulkListing, sin APIs privadas ni envíos de formularios.
+- Texto MKM: máximo150 entradas por bloque y lista vacía por bloque. El usuario debe comprobar NM/expansión/versión/número/idioma/acabado después de importar. Ver `CARDMARKET_EXPORT.md`. Pruebas: `BuyPolicyTest`, `BuylistDeviceTest` (emulador), `npm run test:browser`.
+
+- Aviso de precios al arrancar: `StartupPriceRefreshPolicy` usa `mtgjson_price_index.updated_at` (indexado exitoso), solo tras más de7 días o sin actualización previa. No renovar fecha al descartar aviso.
+- Galería Triple: cargar `SelectedPrices.ensurePrintings` fuera de UI, con UUID exacto resuelto y acabado actual; no usar pares legacy sin proveedor. `TriplePricePopupTest` valida caché fría y +/−/foil con autocierre reiniciable de1s (solo emulador, modo diagnóstico sin inventario).
+
+## Publicación web en GitHub Pages
+
+- Destino: `C:/Users/nubor/Documents/GitHub/nuborisar.github.io/mtgbiblio`, remoto `asvgithub01/nuborisar.github.io`, rama `master`. URL: `https://asvgithub01.github.io/nuborisar.github.io/mtgbiblio/`. No tocar otras carpetas del sitio.
+- Compilar con las seis variables públicas Firebase de `web/config.txt` y `npm --workspace @mtgfucker/web run build -- --base=/nuborisar.github.io/mtgbiblio/`. El script raíz `npm run build:web -- --base=...` NO reenvía correctamente ese argumento; verificar prefijo en dist/index.html.
+- Publicación completa: copiar index/assets/data y web/public/ar (~610MB,653 paquetes). AR_PACKAGES_URL por defecto apunta a https://asvgithub01.github.io/nuborisar.github.io/mtgbiblio/ar. Validar bytes/SHA256 de binarios y metadatos; no modificar formato ni finales de línea de artefactos. Mantener todos los archivos referenciados por catalog.json.
+- Firebase ya autoriza `asvgithub01.github.io`; no cambiar authDomain a Pages ni abrir reglas Firestore. Verificar Actions Pages y HTTP200 de HTML/JS/CSS/catálogo tras push; el login de cuenta queda para el usuario.
+
+- Todas las pantallas nuevas deben conservar el fondo de carta compartido (`CollectionScreenBackground.install` después de setContentView); no usar fondo sólido en Buscar/Compras.
+- Detalle: la altura de editionsBottomSheet debe ajustarse también al cambiar tamaño raíz/teclado, no solo en primera medida. Colecciones usa único Añadir→Biblio/Buylist y check de faltantes (no vuelve a añadir cartas poseídas).
+
+## Coherencia visual y deuda de arquitectura
+
+- Fondo de carta NO equivale a identidad visual completa. Antes de crear una pantalla, reutilizar o extraer cabecera, paneles glass, botones, tipografía, espaciado y estados del área existente; no montar una Activity de controles genéricos como diseño final.
+- Validar capturas de la pantalla con datos y vacía, teclado visible/oculto y navegación/sheets antes de dar por terminada UI. Las pruebas funcionales no sustituyen esta revisión.
+- Trabajo pendiente solicitado: unificar shell/componentes de Buscar y Compras; después extraer estado/presentación y casos de uso fuera de Activities de manera incremental. No reescribir escáneres ni persistencia sin pruebas de contrato y migración. Conservar Room+legacy y las invariantes de impresión/acabado/idioma/cantidad.

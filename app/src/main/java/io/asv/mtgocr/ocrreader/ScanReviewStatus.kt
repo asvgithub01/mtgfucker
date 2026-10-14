@@ -13,6 +13,10 @@ object ScanReviewStatus {
     private fun key(library: String, item: String, printing: String) = "$library|$item|$printing"
     @JvmStatic fun hasConflict(context: Context, card: CardInfo): Boolean =
         key(LibraryCatalog.activeFile(context), card.collectionItemId, card.printingUuid.orEmpty()) in conflicts
+    @JvmStatic fun refreshIfChanged(context: Context, done: Runnable) {
+        val previous = conflicts
+        refresh(context, Runnable { if (previous != conflicts) done.run() })
+    }
     @JvmStatic fun refresh(context: Context, done: Runnable) {
         val app = context.applicationContext
         worker.execute {

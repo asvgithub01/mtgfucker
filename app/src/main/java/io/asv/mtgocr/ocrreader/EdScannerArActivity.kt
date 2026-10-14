@@ -562,6 +562,7 @@ class EdScannerArActivity : NativeCollectorVisionActivity() {
     override fun addHostRecentControls(container: LinearLayout) {
 
         totalView = TextView(this).apply { textSize = 14f }
+        totalView.setOnClickListener { PriceDetailsDialog.show(this, addedIds.mapNotNull { sessionCards[it] }) }
 
         container.addView(totalView)
 
@@ -920,6 +921,9 @@ class EdScannerArActivity : NativeCollectorVisionActivity() {
     private fun renderRecent() {
 
         val cards = addedIds.mapNotNull { sessionCards[it] }
+        io.asv.mtgocr.ocrreader.data.SelectedPrices.ensure(this, cards, Runnable {
+            if (!isFinishing && !isDestroyed) renderRecent()
+        })
 
         recent.submit(cards) { card -> RecentScanActions.show(this, card) { action -> editRecent(card, action) } }
 

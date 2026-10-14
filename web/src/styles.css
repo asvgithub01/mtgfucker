@@ -106,3 +106,10 @@ textarea { min-height: 160px; resize: vertical; font-family: ui-monospace, SFMon
   .itaca-summary { grid-template-columns: 1fr; }
   .itaca-panel .section-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
 }
+
+.shopping-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin:16px 0; }
+.shopping-cards img { display:block;width:100%;max-height:300px;object-fit:contain; }
+.shopping textarea { display:block;width:100%;margin:8px 0; }
+.shopping select,.shopping button { margin:6px; }
+
+.shopping { padding:28px; }

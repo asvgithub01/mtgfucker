@@ -1,0 +1,10 @@
+<resources>
+    <string name="buy_premium_note">Einkäufe sind eine Premium-Funktion. Deine Listen bleiben beim Deaktivieren von Premium erhalten.</string>
+    <string name="buy_sync_web">Mit dem Web synchronisieren</string>
+    <string name="buy_sync_note">Synchronisiere dein Konto, um Listen und Verlauf im Web zu sehen.</string>
+    <string name="buy_list_summary">%1$d Karten · %2$s</string>
+    <string name="buy_sync_conflict">Die Kauflisten wurden gleichzeitig in Android und im Web geändert. Die Synchronisierung wurde angehalten, um beide Änderungen zu erhalten. Keine Liste wurde überschrieben oder dupliziert.</string>
+    <string name="shopping_create_short">Neue Liste</string>
+    <string name="shopping_import_short">JSON importieren</string>
+    <string name="buy_sync_error">Einkäufe konnten nicht synchronisiert werden. Lokale Änderungen bleiben erhalten. Konto und mögliche Konflikte vor einem erneuten Versuch prüfen.</string>
+</resources>

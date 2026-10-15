@@ -18,6 +18,11 @@ object PriceHistoryStore {
         }.map { PriceHistoryEntity(it.printingUuid,SelectedPrices.finish(it.finish),it.provider,it.priceDate,it.amount,it.currency,now) })
     }
 
+    internal fun refreshObservations(prices: List<CardPriceEntity>, now: Long): List<PriceHistoryEntity> =
+        prices.filter { it.amount.isFinite() && it.amount >= 0 && it.priceDate.isNotBlank() }
+            .map { PriceHistoryEntity(it.printingUuid, SelectedPrices.finish(it.finish), it.provider,
+                it.priceDate, it.amount, it.currency, now, refreshAt = now) }.distinct()
+
     /** Capture immutable membership/values before dispatch, not mutable CardInfo objects. */
     @JvmStatic fun recordCollection(context: Context, library: String, cards: List<CardInfo>, done: (Boolean) -> Unit) {
         val app = context.applicationContext
@@ -32,6 +37,8 @@ object PriceHistoryStore {
             Entry(listOf(it.collectionItemId,it.printingUuid,SelectedPrices.finish(it.finish),it.quantityCount,it.condition,amount != null,quote?.provider,quote?.currency,quote?.let { q -> PriceCurrency.convert(app,1.0,q.currency) }).joinToString("\u001f"),
                 it.quantityCount,amount,it.groups.toList(),quote?.provider)
         }
+        val observations = refreshObservations(cards.filter { it.quantityCount > 0 }
+            .mapNotNull { SelectedPrices.quote(app, it) }, now)
         val scopes = linkedMapOf("all" to entries)
         entries.flatMap { it.groups }.distinct().forEach { group -> scopes["group:$group"] = entries.filter { group in it.groups } }
         val rows = scopes.map { (scope, members) ->
@@ -42,7 +49,11 @@ object PriceHistoryStore {
         }
         worker.execute {
             val success = runCatching {
-                CardDatabase.get(app).runInTransaction { CardDatabase.get(app).cardDao().saveGroupPriceHistory(rows) }
+                CardDatabase.get(app).runInTransaction {
+                    val dao = CardDatabase.get(app).cardDao()
+                    dao.savePriceHistory(observations)
+                    dao.saveGroupPriceHistory(rows)
+                }
             }.isSuccess
             Handler(Looper.getMainLooper()).post { done(success) }
         }

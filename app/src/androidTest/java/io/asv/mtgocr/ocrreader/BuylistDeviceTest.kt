@@ -20,7 +20,14 @@ class BuylistDeviceTest {
     @Test fun atomicStoreRoundtripAndImportValidation() {
         val app=InstrumentationRegistry.getInstrumentation().targetContext
         val dir=File(app.cacheDir,"shopping-test-${UUID.randomUUID()}").apply { mkdirs() }
-        val isolated=object:ContextWrapper(app) { override fun getFilesDir()=dir }
+        val prefix="shopping-test-${UUID.randomUUID()}"
+        val isolated=object:ContextWrapper(app) {
+            override fun getFilesDir()=dir
+            override fun getApplicationContext():Context=this
+            override fun getSharedPreferences(name:String,mode:Int)=app.getSharedPreferences("$prefix-$name",mode)
+        }
+        isolated.getSharedPreferences("premium_access",0).edit().putBoolean("premium_enabled",true).commit()
+        CloudLibrarySync.setAutoSyncEnabled(isolated,false)
         BuylistStore.worker.submit {
             val entry=BuyEntry(uuid=UUID.randomUUID().toString(),name="Card",set="FRA",number="3",finish="nonfoil",image="",mcmId="123")
             val created=BuylistStore.create(isolated,"Test",listOf(entry))
@@ -28,6 +35,15 @@ class BuylistDeviceTest {
             val snapshot=BuySnapshot(1,BuyPolicy.composition(created.entries),listOf(BuyQuote(entry.id,45.0,"2026-10-14")))
             val updated=BuylistStore.update(isolated,created.id) { it.copy(history=listOf(snapshot)) }
             assertEquals(updated,BuylistStore.decode(BuylistStore.encode(updated)))
+            val cloud=BuylistStore.cloudState(isolated)!!
+            assertEquals(listOf(updated),BuylistStore.decodeAll(cloud))
+            assertTrue(runCatching { BuylistStore.restoreCloud(isolated,cloud,"stale hash") }.isFailure)
+            BuylistStore.restoreCloud(isolated,cloud,CloudSnapshotCodec.sha256(cloud))
+            assertEquals(updated,BuylistStore.read(isolated).single())
+            isolated.getSharedPreferences("premium_access",0).edit().putBoolean("premium_enabled",false).commit()
+            assertTrue(runCatching { BuylistStore.create(isolated,"Blocked") }.isFailure)
+            assertEquals(updated,BuylistStore.read(isolated).single())
+            isolated.getSharedPreferences("premium_access",0).edit().putBoolean("premium_enabled",true).commit()
             val imported=BuylistStore.importList(isolated,updated);assertNotEquals(imported.id,updated.id);assertEquals(updated.history,imported.history)
             BuylistStore.remove(isolated,imported.id)
             val invalid=BuylistStore.encode(updated).put("version",2)
@@ -37,28 +53,38 @@ class BuylistDeviceTest {
             BuylistStore.remove(isolated,created.id);assertTrue(BuylistStore.read(isolated).isEmpty())
         }.get()
     }
-    @Test fun shoppingCardsShowUpAndDownWithoutWritingSyntheticPrices() {
+    @Test fun searchUsesFloatingGlassAndRightAlignedIcon() {
         val c=InstrumentationRegistry.getInstrumentation().targetContext
-        val entries=listOf(BuyEntry(uuid=UUID.randomUUID().toString(),name="Synthetic decrease",set="FRA",number="1",finish="nonfoil",image="",mcmId=""),BuyEntry(uuid=UUID.randomUUID().toString(),name="Synthetic increase",set="FRA",number="2",finish="foil",image="",mcmId=""))
-        val composition=BuyPolicy.composition(entries)
-        val list=BuyList(name="QA · synthetic only",entries=entries,history=listOf(
-            BuySnapshot(1,composition,listOf(BuyQuote(entries[0].id,50.0,"2026-10-13"),BuyQuote(entries[1].id,20.0,"2026-10-13"))),
-            BuySnapshot(2,composition,listOf(BuyQuote(entries[0].id,45.0,"2026-10-14"),BuyQuote(entries[1].id,22.0,"2026-10-14")))))
-        ActivityScenario.launch<BuylistActivity>(Intent(c,BuylistActivity::class.java)).use { scenario ->
-            Thread.sleep(500)
+        ActivityScenario.launch<CardSearchActivity>(Intent(c,CardSearchActivity::class.java)).use { scenario ->
             scenario.onActivity { a ->
-                BuylistActivity::class.java.getDeclaredField("current").apply { isAccessible=true }.set(a,list)
-                BuylistActivity::class.java.getDeclaredMethod("render",List::class.java).apply { isAccessible=true }.invoke(a,listOf(list))
-            }
-            Thread.sleep(300)
-            scenario.onActivity { a ->
-                val root=a.window.decorView
-                fun labels(v:View):List<String> = (if(v is TextView)listOf(v.text.toString()) else emptyList())+if(v is ViewGroup)(0 until v.childCount).flatMap { labels(v.getChildAt(it)) } else emptyList()
-                assertTrue(labels(root).any { it.contains("↓") });assertTrue(labels(root).any { it.contains("↑") })
-                val bitmap=Bitmap.createBitmap(root.width,root.height,Bitmap.Config.ARGB_8888);root.draw(Canvas(bitmap))
-                File(a.cacheDir,"shopping-cards.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
+                val query=a.findViewById<View>(R.id.txtCardSearch)
+                val search=a.findViewById<View>(R.id.btnCardSearch)
+                assertNotNull(a.findViewById<View>(R.id.btnClosePopup))
+                assertTrue(search.left>=query.right)
+                val attrs=a.obtainStyledAttributes(intArrayOf(android.R.attr.windowIsFloating))
+                assertTrue(attrs.getBoolean(0,false));attrs.recycle()
             }
         }
+    }
+    @Test fun premiumGateHidesShoppingActionsOnEmulator() {
+        org.junit.Assume.assumeTrue(android.os.Build.FINGERPRINT.contains("generic"))
+        val c=InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs=c.getSharedPreferences("premium_access",0)
+        val previous=prefs.getBoolean("premium_enabled",false)
+        try {
+            prefs.edit().putBoolean("premium_enabled",false).commit()
+            ActivityScenario.launch<OcrCaptureActivity>(Intent(c,OcrCaptureActivity::class.java).putExtra(App.INTENT_PERSISTOR_MODE,"0")).use { scenario ->
+                scenario.onActivity { a ->
+                    val nav=a.findViewById<ArcaneBottomNavigationView>(R.id.bottomNavigation)
+                    nav.selectedItemId=R.id.nav_shopping
+                    assertNull(a.findViewById<View>(R.id.btnShoppingCreate))
+                    prefs.edit().putBoolean("premium_enabled",true).commit()
+                    nav.selectedItemId=R.id.nav_catalog
+                    nav.selectedItemId=R.id.nav_shopping
+                    assertNotNull(a.findViewById<View>(R.id.btnShoppingCreate))
+                }
+            }
+        } finally { prefs.edit().putBoolean("premium_enabled",previous).commit() }
     }
     @Test fun browsingDoesNotCreateOwnedPrinting() {
         val c=InstrumentationRegistry.getInstrumentation().targetContext
@@ -76,15 +102,15 @@ class BuylistDeviceTest {
                 File(a.cacheDir,"shopping-navigation.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
                 assertEquals(View.VISIBLE,a.findViewById<View>(R.id.fabCardSearch).visibility) }
         }
-        ActivityScenario.launch<BuylistActivity>(Intent(context,BuylistActivity::class.java)).use { s ->
-            Thread.sleep(800)
+        ActivityScenario.launch<OcrCaptureActivity>(Intent(context,OcrCaptureActivity::class.java).putExtra(App.INTENT_PERSISTOR_MODE,"0")).use { s ->
             s.onActivity { a ->
-                val root=a.window.decorView
-                assertTrue(root.width>0 && root.height>0)
-                val bitmap=Bitmap.createBitmap(root.width,root.height,Bitmap.Config.ARGB_8888);root.draw(Canvas(bitmap))
-                File(a.cacheDir,"shopping-screen.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
-                fun labels(v:View):List<String> = (if(v is TextView)listOf(v.text.toString()) else emptyList())+if(v is ViewGroup)(0 until v.childCount).flatMap { labels(v.getChildAt(it)) } else emptyList()
-                assertTrue(labels(root).contains(a.getString(R.string.buy_title)))
+                val nav=a.findViewById<ArcaneBottomNavigationView>(R.id.bottomNavigation)
+                nav.selectedItemId=R.id.nav_shopping
+                assertEquals(R.id.nav_shopping,nav.selectedItemId)
+                assertEquals(View.VISIBLE,a.findViewById<View>(R.id.shoppingSection).visibility)
+                assertEquals(View.GONE,a.findViewById<View>(R.id.fabCardSearch).visibility)
+                nav.selectedItemId=R.id.nav_catalog
+                assertEquals(View.GONE,a.findViewById<View>(R.id.shoppingSection).visibility)
             }
         }
     }

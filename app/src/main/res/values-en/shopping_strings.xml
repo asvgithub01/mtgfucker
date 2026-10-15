@@ -1,0 +1,10 @@
+<resources>
+    <string name="buy_premium_note">Shopping is a Premium feature. Your lists are kept when Premium is disabled.</string>
+    <string name="buy_sync_web">Sync with the web</string>
+    <string name="buy_sync_note">Sync your account to see your lists and history on the web.</string>
+    <string name="buy_list_summary">%1$d cards · %2$s</string>
+    <string name="buy_sync_conflict">Buylists changed in Android and on the web at the same time. Sync has stopped to preserve both changes; no list was overwritten or duplicated.</string>
+    <string name="shopping_create_short">New list</string>
+    <string name="shopping_import_short">Import JSON</string>
+    <string name="buy_sync_error">Shopping could not sync. Local changes are preserved. Check your account and possible conflicts before retrying.</string>
+</resources>

@@ -260,6 +260,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private static final int SECTION_CATALOG = 3;
   private static final int SECTION_SETTINGS = 4;
   private static final int SECTION_PHOTOS = 5;
+  private static final int SECTION_SHOPPING = 6;
+  private ShoppingSection shoppingSection;
   private int currentSection = SECTION_LIBRARY;
   private final Handler autoOcrHandler = new Handler(Looper.getMainLooper());
   private final ExecutorService collectionSaveExecutor = Executors.newSingleThreadExecutor();
@@ -357,6 +359,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Expansiones and Colecciones now share the complete collection catalog.
     if (currentSection == SECTION_SETS) currentSection = SECTION_CATALOG;
     setContentView(R.layout.ocr_capture);
+    shoppingSection = new ShoppingSection(this, findViewById(R.id.shoppingSection));
     cardRepository = CardRepository.get(this);
     //region asv
 
@@ -1393,6 +1396,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     int selectedNavigation = currentSection == SECTION_GROUPS ? R.id.nav_groups
         : currentSection == SECTION_CATALOG ? R.id.nav_catalog
         : currentSection == SECTION_PHOTOS ? R.id.nav_photos
+        : currentSection == SECTION_SHOPPING ? R.id.nav_shopping
         : currentSection == SECTION_SETTINGS ? R.id.nav_settings
         : R.id.nav_library;
     // Select before attaching the listener. Otherwise setSelectedItemId() can synchronously call
@@ -1401,8 +1405,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     findViewById(R.id.fabCardSearch).setOnClickListener(v -> startActivity(new Intent(this, CardSearchActivity.class)));
     bottomNavigation.setOnItemSelectedListener(item -> {
       int itemId = item.getItemId();
-      if (itemId == R.id.nav_shopping) { startActivity(new Intent(this, BuylistActivity.class)); return false; }
-      if (itemId == R.id.nav_library) currentSection = SECTION_LIBRARY;
+      if (itemId == R.id.nav_shopping) currentSection = SECTION_SHOPPING;
+      else if (itemId == R.id.nav_library) currentSection = SECTION_LIBRARY;
       else if (itemId == R.id.nav_groups) currentSection = SECTION_GROUPS;
       else if (itemId == R.id.nav_catalog) currentSection = SECTION_CATALOG;
       else if (itemId == R.id.nav_photos) currentSection = SECTION_PHOTOS;
@@ -1568,35 +1572,38 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   }
 
   private void showSelectedSection() {
+    boolean shopping = currentSection == SECTION_SHOPPING;
+    findViewById(R.id.shoppingSection).setVisibility(shopping ? View.VISIBLE : View.GONE);
+    if (shopping) shoppingSection.reload();
     boolean settings = currentSection == SECTION_SETTINGS;
     boolean catalog = currentSection == SECTION_CATALOG;
     boolean photos = currentSection == SECTION_PHOTOS;
     findViewById(R.id.fabCardSearch).setVisibility(catalog ? View.VISIBLE : View.GONE);
-    lytRecycler.setVisibility(settings ? View.GONE : View.VISIBLE);
+    lytRecycler.setVisibility(settings || shopping ? View.GONE : View.VISIBLE);
     settingsPlaceholder.setVisibility(settings ? View.VISIBLE : View.GONE);
-    collectionControls.setVisibility(!settings && !catalog && !photos ? View.VISIBLE : View.GONE);
-    setCatalogControls.setVisibility(!settings && catalog ? View.VISIBLE : View.GONE);
-    photoControls.setVisibility(!settings && photos ? View.VISIBLE : View.GONE);
-    totalText.setVisibility(!settings && !catalog && !photos ? View.VISIBLE : View.GONE);
+    collectionControls.setVisibility(!settings && !shopping && !catalog && !photos ? View.VISIBLE : View.GONE);
+    setCatalogControls.setVisibility(!settings && !shopping && catalog ? View.VISIBLE : View.GONE);
+    photoControls.setVisibility(!settings && !shopping && photos ? View.VISIBLE : View.GONE);
+    totalText.setVisibility(!settings && !shopping && !catalog && !photos ? View.VISIBLE : View.GONE);
     fabOcr.setVisibility(View.GONE);
-    fabOcrMlKit.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
+    fabOcrMlKit.setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
     fabRapidEditionScanner.setVisibility(
-        settings || catalog || photos ? View.GONE : View.VISIBLE);
+        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
     fabHashOnlyScanner.setVisibility(
-        settings || catalog || photos ? View.GONE : View.VISIBLE);
+        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
     fabRulesScanner.setVisibility(
-        settings || catalog || photos ? View.GONE : View.VISIBLE);
-    fabCollectorVision.setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
-    findViewById(R.id.fabTripleScanner).setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
-    findViewById(R.id.fabEdScannerAr).setVisibility(settings || catalog || photos ? View.GONE : View.VISIBLE);
+        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
+    fabCollectorVision.setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
+    findViewById(R.id.fabTripleScanner).setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
+    findViewById(R.id.fabEdScannerAr).setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
     if (createGroupButton != null) {
-      createGroupButton.setVisibility(!settings && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
+      createGroupButton.setVisibility(!settings && !shopping && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
     }
     if (collectionActionsButton != null) {
-      collectionActionsButton.setVisibility(!settings && currentSection == SECTION_LIBRARY
+      collectionActionsButton.setVisibility(!settings && !shopping && currentSection == SECTION_LIBRARY
           ? View.VISIBLE : View.GONE);
     }
-    if (!settings) {
+    if (!settings && !shopping) {
       if (catalog || photos) mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
       else applyCollectionLayoutMode();
       refreshUI();
@@ -2062,6 +2069,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     // Photos have their own store, independent of the Biblio file fingerprint.
     if (unchangedCollection && currentSection == SECTION_PHOTOS) showPhotos();
+    if (currentSection == SECTION_SHOPPING) shoppingSection.reload();
     if (pausedCollectionLayout != null && mRecyclerView != null && mRecyclerView.getLayoutManager() != null
         && pendingDetailScrollItemId == null) mRecyclerView.getLayoutManager().onRestoreInstanceState(pausedCollectionLayout);
     pausedCollectionLayout = null;
@@ -2550,6 +2558,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   //region tontimenu
 
   private void refreshUI() {
+    if (currentSection == SECTION_SHOPPING && "0".equals(mPersistorMode)) { shoppingSection.reload(); return; }
     if (mBiblio != null) SelectedPrices.ensure(this, new ArrayList<>(mBiblio.cards), () -> {
       if (!isFinishing() && !isDestroyed()) { refreshUI(); updateScanSessionUi(); }
     });

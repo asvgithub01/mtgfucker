@@ -1053,8 +1053,8 @@
     <string name="price_history_group_note">Valores registrados al actualizar toda la biblioteca. Cada registro muestra sus proveedores. No se comparan cambios de composición, fuente o tipo de cambio.</string>
     <string name="price_history_composition_changed">No comparable: cambió la composición, condición, moneda o cobertura de precios.</string>
     <string name="price_history_source">Proveedor del histórico</string>
-    <string name="price_history_chart_note">Cotizaciones observadas, sin ajuste por condición. Cada curva corresponde a un proveedor, moneda y acabado. No se inventan días sin datos.</string>
-    <string name="price_history_need_two">Se necesitan dos fechas con precio para calcular la variación.</string>
+    <string name="price_history_chart_note">Cotizaciones por fecha del proveedor y actualizaciones por fecha de consulta, incluso sin cambios. Cada curva usa un proveedor, moneda y acabado, sin ajuste por condición.</string>
+    <string name="price_history_need_two">Se necesitan dos observaciones con precio para calcular la variación.</string>
     <string name="price_history_change">Última variación: %1$s</string>
     <string name="price_provider_value">Proveedor: %1$s · %2$s</string>
 

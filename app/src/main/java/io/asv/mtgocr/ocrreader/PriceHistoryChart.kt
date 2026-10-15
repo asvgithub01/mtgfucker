@@ -7,9 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.util.AttributeSet
 import android.view.View
-import java.text.SimpleDateFormat
 import java.util.Locale
-import java.util.TimeZone
 import kotlin.math.*
 
 /** Native, read-only chart; all plotted samples are actual stored observations. */
@@ -18,11 +16,8 @@ class PriceHistoryChart @JvmOverloads constructor(context: Context, attrs: Attri
     private val density = resources.displayMetrics.density
     private var points = emptyList<PriceTrendPolicy.Point>()
     private var currency = "EUR"
-    private var times = emptyList<Long>()
     fun submit(values: List<PriceTrendPolicy.Point>, currency: String) {
         points=values;this.currency=currency
-        val parser=SimpleDateFormat("yyyy-MM-dd",Locale.ROOT).apply { timeZone=TimeZone.getTimeZone("UTC");isLenient=false }
-        times=values.mapIndexed { index, it -> runCatching { parser.parse(it.date)!!.time }.getOrDefault(index.toLong()) }
         contentDescription=values.joinToString("; ") { "${it.date}: ${it.amount} $currency" }
         invalidate()
     }
@@ -30,7 +25,7 @@ class PriceHistoryChart @JvmOverloads constructor(context: Context, attrs: Attri
         super.onDraw(canvas)
         canvas.drawColor(Color.rgb(29,32,39))
         if(points.isEmpty()) return
-        val symbol=when(currency) { "EUR" -> "€"; "USD" -> "$"; else -> currency }
+        val symbol=when(currency) { "EUR" -> "\u20AC"; "USD" -> "$"; else -> currency }
         val smallest=points.minOf { it.amount };val largest=points.maxOf { it.amount }
         val margin=max((largest-smallest)*.12,max(largest*.02,.05))
         val rawStep=(largest-smallest+2*margin)/4
@@ -43,8 +38,9 @@ class PriceHistoryChart @JvmOverloads constructor(context: Context, attrs: Attri
         val left=ink.measureText(String.format(Locale.getDefault(),"%.2f %s",maximum,symbol))+10*density
         val right=width-12*density;val top=14*density;val bottom=height-66*density
         if(right<=left || bottom<=top) return
+        // This is an observation axis: even spacing keeps rapid unchanged refreshes visible.
         fun x(index:Int):Float = if(points.size==1) (left+right)/2 else
-            left+(right-left)*((times[index]-times.first()).toDouble()/max(1L,times.last()-times.first())).toFloat()
+            left+(right-left)*index/points.lastIndex
         fun y(value:Double)=bottom-(bottom-top)*((value-minimum)/(maximum-minimum)).toFloat()
         ink.strokeWidth=density
         for(i in 0..ticks) {
@@ -58,9 +54,9 @@ class PriceHistoryChart @JvmOverloads constructor(context: Context, attrs: Attri
         labels.forEach { index ->
             val xx=x(index)
             ink.color=Color.rgb(60,63,70);canvas.drawLine(xx,top,xx,bottom,ink)
-            canvas.save();canvas.rotate(-42f,xx,bottom+12*density)
-            ink.color=Color.LTGRAY;ink.textAlign=Paint.Align.RIGHT
-            canvas.drawText(points[index].date,xx,bottom+12*density,ink);canvas.restore()
+            canvas.save();canvas.rotate(if (index == 0) 42f else -42f,xx,bottom+12*density)
+            ink.color=Color.LTGRAY;ink.textAlign=if (index == 0) Paint.Align.LEFT else Paint.Align.RIGHT
+            canvas.drawText(points[index].date.let { if (it.length > 10) it.substring(5, 16) else it },xx,bottom+12*density,ink);canvas.restore()
         }
         val path=Path()
         points.forEachIndexed { index, p -> if(index==0)path.moveTo(x(index),y(p.amount)) else path.lineTo(x(index),y(p.amount)) }

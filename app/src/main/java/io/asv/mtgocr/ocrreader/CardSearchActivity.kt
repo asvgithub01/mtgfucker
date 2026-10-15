@@ -16,12 +16,19 @@ class CardSearchActivity:AppCompatActivity() {
     private var generation=0
     private var suggestions=emptyList<CardNameSuggestion>()
     override fun onCreate(savedInstanceState:Bundle?) {
-        MagicPalette.applyTheme(this);super.onCreate(savedInstanceState)
-        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL;setPadding(24,24,24,24) };setContentView(root)
-        CollectionScreenBackground.install(this)
-        root.addView(Button(this).apply { setText(R.string.close);setOnClickListener { finish() } })
-        root.addView(TextView(this).apply { setText(R.string.buy_search);textSize=24f })
-        val query=AutoCompleteTextView(this).apply { hint=getString(R.string.buy_search);threshold=2;isSingleLine=true };root.addView(query)
+        CollectionPopupChrome.prepare(this);super.onCreate(savedInstanceState)
+        val root=CollectionPopupChrome.install(this,R.string.buy_search,compact=true)
+        val searchPanel=CollectionPopupChrome.panel(this)
+        searchPanel.addView(CollectionPopupChrome.label(this,getString(R.string.buy_search)))
+        val inputRow=LinearLayout(this).apply { gravity=android.view.Gravity.CENTER_VERTICAL }
+        val query=AutoCompleteTextView(this).apply {
+            id=R.id.txtCardSearch;hint=getString(R.string.search_collection_hint);threshold=2;isSingleLine=true
+            imeOptions=android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+            setTextColor(CollectionPopupChrome.color(this@CardSearchActivity,R.attr.appGlassTextColor))
+            setHintTextColor(android.graphics.Color.LTGRAY)
+        }
+        inputRow.addView(query,LinearLayout.LayoutParams(0,CollectionPopupChrome.dp(this,48),1f))
+        searchPanel.addView(inputRow);root.addView(searchPanel)
         query.doAfterTextChanged { text ->
             val expected=++generation;handler.removeCallbacksAndMessages(null)
             if(text.toString().trim().length>=2)handler.postDelayed({
@@ -37,7 +44,7 @@ class CardSearchActivity:AppCompatActivity() {
             val value=parent.getItemAtPosition(position).toString()
             open(suggestions.firstOrNull { it.displayName==value }?.canonicalName ?: value)
         }
-        root.addView(Button(this).apply { setText(R.string.buy_search);setOnClickListener { open(query.text.toString()) } })
+        inputRow.addView(CollectionPopupChrome.icon(this,android.R.drawable.ic_menu_search,R.string.buy_search) { open(query.text.toString()) }.apply { id=R.id.btnCardSearch })
         query.setOnEditorActionListener { _,_,_->open(query.text.toString());true }
     }
     override fun onDestroy() { generation++;handler.removeCallbacksAndMessages(null);super.onDestroy() }

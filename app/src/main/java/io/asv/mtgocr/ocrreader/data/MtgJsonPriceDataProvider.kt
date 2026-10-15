@@ -33,7 +33,7 @@ class MtgJsonPriceDataProvider(
         if (!forceRefresh && indexReady) return
         if (forceRefresh || !priceFile.exists()) downloadPriceSnapshot()
         indexPriceSnapshot()
-        if(forceRefresh)io.asv.mtgocr.ocrreader.BuylistStore.worker.execute {
+        if(forceRefresh && io.asv.mtgocr.ocrreader.PremiumAccess.isEnabled(appContext))io.asv.mtgocr.ocrreader.BuylistStore.worker.execute {
             runCatching { io.asv.mtgocr.ocrreader.BuylistStore.read(appContext).forEach { io.asv.mtgocr.ocrreader.BuylistStore.snapshot(appContext,it.id) } }
                 .onFailure { Log.w(TAG,"Shopping history could not be saved",it) }
         }

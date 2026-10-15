@@ -881,8 +881,8 @@
     <string name="price_history_group_note">Values recorded when refreshing the entire library. Each record shows its providers. Changes in membership, source or exchange rate are not compared.</string>
     <string name="price_history_composition_changed">Not comparable: membership, condition, currency or price coverage changed.</string>
     <string name="price_history_source">History provider</string>
-    <string name="price_history_chart_note">Observed quotes, without condition adjustment. Each curve uses one provider, currency and finish. Missing days are not invented.</string>
-    <string name="price_history_need_two">Two priced dates are needed to calculate the change.</string>
+    <string name="price_history_chart_note">Quotes by provider date and refreshes by query time, including unchanged prices. Each curve uses one provider, currency and finish, without condition adjustment.</string>
+    <string name="price_history_need_two">Two priced observations are needed to calculate the change.</string>
     <string name="price_history_change">Latest change: %1$s</string>
     <string name="price_provider_value">Provider: %1$s · %2$s</string>
 

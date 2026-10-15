@@ -81,7 +81,7 @@ class PriceHistoryDatabaseTest {
                 old.version = 6
             }
             Room.databaseBuilder(context,CardDatabase::class.java,name)
-                .addMigrations(CardDatabase.MIGRATION_6_7).build().use { db ->
+                .addMigrations(CardDatabase.MIGRATION_6_7, CardDatabase.MIGRATION_7_8).build().use { db ->
                     val dao = db.cardDao()
                     assertEquals(128.0,dao.pricesFor(listOf("uuid")).single().amount,0.0)
                     assertTrue(dao.priceHistory("uuid","nonfoil","cardmarket").isEmpty())
@@ -99,6 +99,45 @@ class PriceHistoryDatabaseTest {
                 assertEquals(2,db.cardDao().priceHistory("uuid","nonfoil","cardmarket").size)
                 assertEquals(27.39,db.cardDao().groupPriceHistory("library","group:test","cardmarket").single().total,0.0)
                 assertTrue(db.cardDao().groupPriceHistory("other","group:test","cardmarket").isEmpty())
+            }
+        } finally { context.deleteDatabase(name) }
+    }
+    @Test fun migrationSevenToEightPreservesQuotesAndStoresIdenticalRefreshes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val name = "price-refresh-test-${UUID.randomUUID()}.db"
+        val file = context.getDatabasePath(name)
+        val quote = PriceHistoryEntity("uuid", "nonfoil", "cardmarket", "2026-10-14", 10.0, "EUR", 1)
+        try {
+            Room.databaseBuilder(context, CardDatabase::class.java, name).build().use { db ->
+                db.cardDao().savePriceHistory(listOf(quote))
+                db.cardDao().savePrices(listOf(CardPriceEntity("uuid", "normal", 10.0, "EUR", "cardmarket", quote.priceDate, 1)))
+                db.cardDao().saveGroupPriceHistory(listOf(GroupPriceHistoryEntity("group", "library", "all", "cardmarket", 1, "EUR", 10.0, 0, "same")))
+            }
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READWRITE).use { old ->
+                old.execSQL("ALTER TABLE price_history RENAME TO price_history_new")
+                old.execSQL("CREATE TABLE price_history (printingUuid TEXT NOT NULL, finish TEXT NOT NULL, provider TEXT NOT NULL, priceDate TEXT NOT NULL, amount REAL NOT NULL, currency TEXT NOT NULL, observedAt INTEGER NOT NULL, PRIMARY KEY(printingUuid, finish, provider, priceDate, amount, currency))")
+                old.execSQL("INSERT INTO price_history SELECT printingUuid, finish, provider, priceDate, amount, currency, observedAt FROM price_history_new")
+                old.execSQL("DROP TABLE price_history_new")
+                old.version = 7
+            }
+            Room.databaseBuilder(context, CardDatabase::class.java, name)
+                .addMigrations(CardDatabase.MIGRATION_7_8).build().use { db ->
+                    val dao = db.cardDao()
+                    assertEquals(quote, dao.priceHistoryForPrinting("uuid", "nonfoil").single())
+                    val price = dao.pricesFor(listOf("uuid")).single()
+                    val first = PriceHistoryStore.refreshObservations(listOf(price, price), 1792058400000)
+                    val second = PriceHistoryStore.refreshObservations(listOf(price), 1792058460000)
+                    dao.savePriceHistory(first + second + first + listOf(quote.copy(observedAt=999)))
+                    assertEquals(3, dao.priceHistoryForPrinting("uuid", "nonfoil").size)
+                    assertEquals(1L, dao.priceHistoryForPrinting("uuid", "nonfoil").single { it.refreshAt==0L }.observedAt)
+                    assertEquals(1, dao.groupPriceHistoryAll("library", "all").size)
+                    assertEquals(10.0, dao.pricesFor(listOf("uuid")).single().amount, 0.0)
+                }
+            Room.databaseBuilder(context, CardDatabase::class.java, name).build().use { db ->
+                val rows = db.cardDao().priceHistoryForPrinting("uuid", "nonfoil")
+                assertEquals(3, rows.size)
+                assertEquals(0.0 to 0.0, PriceTrendPolicy.delta(PriceTrendPolicy.points(rows, "uuid", "nonfoil", "cardmarket", "EUR")))
+                assertTrue(db.cardDao().priceHistoryForPrinting("uuid", "foil").isEmpty())
             }
         } finally { context.deleteDatabase(name) }
     }

@@ -92,6 +92,7 @@ object CloudLibrarySync {
 
     @JvmStatic
     fun onPremiumChanged(context: Context, enabled: Boolean) {
+        currentUser(context)?.let { user -> scope.launch { runCatching { CloudBuylistSync.publishAccess(context.applicationContext,user) }.onFailure(::logFailure) } }
         if (!enabled) {
             pendingUploads.values.forEach { it.cancel() }
             pendingUploads.clear()
@@ -99,6 +100,27 @@ object CloudLibrarySync {
         }
         if (isAutoSyncEnabled(context) && currentUser(context) != null) {
             scope.launch { runCatching { reconcile(context.applicationContext) }.onFailure(::logFailure) }
+        }
+    }
+
+    internal suspend fun syncBuylists(context: Context, expectedUid: String) = syncMutex.withLock {
+        if(PremiumAccess.isEnabled(context) && isAutoSyncEnabled(context)) {
+            currentUser(context)?.takeIf { it.uid==expectedUid }?.let { user ->
+                withContext(kotlinx.coroutines.NonCancellable) { CloudBuylistSync.sync(context.applicationContext,user) }
+            }
+        }
+    }
+
+    /** Buylists use the same opt-in, account and debounce as collection changes. */
+    @JvmStatic fun onLocalBuylistsSaved(context: Context) {
+        if(!PremiumAccess.isEnabled(context) || !isAutoSyncEnabled(context))return
+        val user=currentUser(context) ?: return
+        val key="${user.uid}:shopping"
+        pendingUploads.remove(key)?.cancel()
+        pendingUploads[key]=scope.launch {
+            delay(UPLOAD_DELAY_MS)
+            io.asv.collectorvision.EdScanInferencePriority.awaitIdle()
+            runCatching { withContext(kotlinx.coroutines.NonCancellable) { syncMutex.withLock { CloudBuylistSync.sync(context.applicationContext,user) } } }.onFailure(::logFailure)
         }
     }
 
@@ -205,6 +227,7 @@ object CloudLibrarySync {
             upload(context, user, library, local)
             uploaded++
         }
+        CloudBuylistSync.sync(context.applicationContext, user)
         val now = recordLastSync(context, user.uid)
         if (uploaded == 0 && newestRemoteBackup > 0L) recordCloudBackup(context, user.uid, newestRemoteBackup)
         CloudSyncResult(
@@ -238,6 +261,7 @@ object CloudLibrarySync {
                 head.getString("activeSnapshotId").orEmpty()
             )
         }
+        CloudBuylistSync.sync(context.applicationContext, user)
         val now = recordLastSync(context, user.uid)
         val backupAt = heads.maxOfOrNull { it.getLong("clientUpdatedAt") ?: 0L } ?: now
         recordCloudBackup(context, user.uid, backupAt)

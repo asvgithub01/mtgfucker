@@ -90,3 +90,21 @@ del registro Web.
 
 Para esta primera prueba, la extensión no necesita otro cliente OAuth ni acceso a la cuenta de
 Google: la web genera un código que contiene únicamente la fila de venta revisada.
+
+
+### Compras Premium
+
+`CloudBuylistSync` publica listas y todos sus históricos en `users/{uid}/shopping/state`.
+La cabecera solo cambia después de guardar metadatos y chunks gzip (SHA-256 del JSON sin comprimir).
+La reconciliación usa el hash de la última copia sincronizada: conserva borrados intencionales,
+restaura instalaciones nuevas y rechaza conflictos simultáneos en vez de sobrescribir listas.
+Las copias ya publicadas se conservan para lectores en curso. Se aplica el mismo interruptor
+de sincronización automática; el botón de cuenta sincroniza también Compras.
+
+La web escucha la cabecera de la cuenta autenticada, valida hash y formato, y permite editar las mismas listas (nombre, cantidades, idioma, acabado y borrado).
+Cada escritura valida snapshotId/hash y Premium en una transacción antes de publicar. No hay
+copias locales independientes; exportar JSON queda como backup opcional. Android escucha
+cambios cloud con la pantalla activa y autosync habilitado. Las bases local/remota se guardan
+por separado para tolerar diferencias de serialización JSON sin falsos conflictos. Los datos antiguos del navegador se recuperan explícitamente, sin borrarlos.
+El acceso utiliza **el Premium local provisional existente**, reflejado en la cabecera cloud;
+no es validación de suscripción por servidor. Las reglas continúan limitando acceso al dueño.

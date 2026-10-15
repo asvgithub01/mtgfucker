@@ -1,0 +1,10 @@
+<resources>
+    <string name="buy_premium_note">Compras es una función Premium. Tus listas se conservan aunque desactives Premium.</string>
+    <string name="buy_sync_web">Sincronizar con la web</string>
+    <string name="buy_sync_note">Sincroniza con tu cuenta para ver tus listas e históricos en la web.</string>
+    <string name="buy_list_summary">%1$d cartas · %2$s</string>
+    <string name="buy_sync_conflict">Las buylists cambiaron a la vez en Android y web. La sincronización se ha detenido para conservar ambos cambios; no se ha sobrescrito ni duplicado ninguna lista.</string>
+    <string name="shopping_create_short">Nueva lista</string>
+    <string name="shopping_import_short">Importar JSON</string>
+    <string name="buy_sync_error">No se pudo sincronizar Compras. Los cambios locales se conservan. Revisa la cuenta y los posibles conflictos antes de reintentar.</string>
+</resources>

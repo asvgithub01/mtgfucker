@@ -42,7 +42,7 @@ object BuyPolicy {
 object BuylistStore {
     val worker=Executors.newSingleThreadExecutor()
     private fun file(c:Context)=AtomicFile(File(c.filesDir,"shopping-lists-v1.json"))
-    fun read(c:Context):List<BuyList> {
+    @Synchronized fun read(c:Context):List<BuyList> {
         val f=file(c)
         if(!f.baseFile.exists() && !File(f.baseFile.path+".bak").exists()) return emptyList()
         val root=JSONObject(f.openRead().bufferedReader().use { it.readText() })
@@ -50,25 +50,27 @@ object BuylistStore {
         val rows=root.getJSONArray("lists")
         return (0 until rows.length()).map { decode(rows.getJSONObject(it)) }
     }
-    private fun save(c:Context,lists:List<BuyList>) {
-        val bytes=JSONObject().put("version",1).put("lists",JSONArray(lists.map(::encode))).toString().toByteArray()
+    private fun save(c:Context,lists:List<BuyList>, notify: Boolean = true) {
+        check(PremiumAccess.isEnabled(c)) { c.getString(R.string.premium_required) }
+        val bytes=encodeAll(lists)
         val f=file(c);val stream=f.startWrite()
         try { stream.write(bytes);f.finishWrite(stream) } catch(e:Exception) { f.failWrite(stream);throw e }
+        if(notify)CloudLibrarySync.onLocalBuylistsSaved(c.applicationContext)
     }
-    fun create(c:Context,name:String,entries:List<BuyEntry> = emptyList()):BuyList {
+    @Synchronized fun create(c:Context,name:String,entries:List<BuyEntry> = emptyList()):BuyList {
         require(name.trim().isNotEmpty());val lists=read(c)
         val list=BuyList(name=name.trim().take(120),entries=BuyPolicy.add(emptyList(),entries))
         save(c,lists+list);return list
     }
-    fun update(c:Context,id:String,change:(BuyList)->BuyList):BuyList {
+    @Synchronized fun update(c:Context,id:String,change:(BuyList)->BuyList):BuyList {
         val lists=read(c);val old=lists.first { it.id==id };val new=change(old)
         save(c,lists.map { if(it.id==id)new else it });return new
     }
-    fun importList(c:Context,list:BuyList):BuyList {
+    @Synchronized fun importList(c:Context,list:BuyList):BuyList {
         val copy=list.copy(id=UUID.randomUUID().toString());save(c,read(c)+copy);return copy
     }
-    fun remove(c:Context,id:String) { save(c,read(c).filterNot { it.id==id }) }
-    fun snapshot(c:Context,id:String):BuyList {
+    @Synchronized fun remove(c:Context,id:String) { save(c,read(c).filterNot { it.id==id }) }
+    @Synchronized fun snapshot(c:Context,id:String):BuyList {
         val dao=CardDatabase.get(c).cardDao()
         return update(c,id) { list ->
             val rows=list.entries.map { it.uuid }.distinct().chunked(400).flatMap { dao.snapshotPricesFor(it) }
@@ -78,6 +80,22 @@ object BuylistStore {
             }
             list.copy(history=list.history+BuySnapshot(System.currentTimeMillis(),BuyPolicy.composition(list.entries),quotes))
         }
+    }
+    internal fun encodeAll(lists: List<BuyList>): ByteArray = JSONObject().put("version",1)
+        .put("lists",JSONArray(lists.sortedBy { it.id }.map(::encode))).toString().toByteArray(Charsets.UTF_8)
+    internal fun decodeAll(bytes: ByteArray): List<BuyList> {
+        val root=JSONObject(bytes.toString(Charsets.UTF_8));require(root.getInt("version")==1)
+        val lists=root.getJSONArray("lists");require(lists.length()<=10000)
+        return (0 until lists.length()).map { decode(lists.getJSONObject(it)) }.also { require(it.map { l -> l.id }.distinct().size==it.size) }
+    }
+    @Synchronized internal fun cloudState(c: Context): ByteArray? =
+        if(file(c).baseFile.exists() || File(file(c).baseFile.path+".bak").exists())encodeAll(read(c)) else null
+    @Synchronized internal fun restoreCloud(c: Context, bytes: ByteArray, expectedHash: String?): String {
+        val current=cloudState(c)?.let(CloudSnapshotCodec::sha256)
+        check(current==expectedHash) { c.getString(R.string.buy_sync_conflict) }
+        val lists=decodeAll(bytes)
+        save(c,lists,notify=false)
+        return CloudSnapshotCodec.sha256(encodeAll(lists))
     }
     fun entry(o:CardEditionOption)=BuyEntry(uuid=o.printingUuid,name=o.cardName,set=o.setCode,number=o.collectorNumber,
         finish=SelectedPrices.finish(o.finish),image=o.imageUrl.orEmpty().takeIf { it.startsWith("https://") }.orEmpty(),mcmId=o.mcmId.orEmpty(),setName=o.mcmSetName ?: o.setName)

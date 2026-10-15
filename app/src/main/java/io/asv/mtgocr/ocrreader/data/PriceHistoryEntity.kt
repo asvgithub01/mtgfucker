@@ -3,9 +3,11 @@ package io.asv.mtgocr.ocrreader.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "price_history", primaryKeys = ["printingUuid", "finish", "provider", "priceDate", "amount", "currency"])
+@Entity(tableName = "price_history", primaryKeys = ["printingUuid", "finish", "provider", "priceDate", "amount", "currency", "refreshAt"])
 data class PriceHistoryEntity(val printingUuid: String, val finish: String, val provider: String,
-    val priceDate: String, val amount: Double, val currency: String, val observedAt: Long)
+    val priceDate: String, val amount: Double, val currency: String, val observedAt: Long,
+    // Zero identifies a deduplicated provider quote; positive values identify explicit refreshes.
+    val refreshAt: Long = 0)
 
 @Entity(tableName = "group_price_history")
 data class GroupPriceHistoryEntity(@PrimaryKey val id: String, val library: String, val scope: String,

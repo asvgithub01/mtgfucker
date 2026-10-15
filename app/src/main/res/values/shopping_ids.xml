@@ -1,0 +1,27 @@
+<resources>
+    <item name="btnClosePopup" type="id" />
+    <item name="txtCardSearch" type="id" />
+    <item name="btnCardSearch" type="id" />
+    <item name="buylistBody" type="id" />
+    <item name="buylistList" type="id" />
+    <item name="btnShoppingCreate" type="id" />
+    <style name="ThemeOverlay.Mtg.CollectionPopup" parent="ThemeOverlay.Mtg.DetailPopup">
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
+    <style name="Theme.Mtg.CollectionPopup" parent="Theme.Mtg">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.65</item>
+        <item name="android:windowCloseOnTouchOutside">true</item>
+    </style>
+    <item name="buylistTotal" type="id" />
+    <item name="buylistSelectAll" type="id" />
+    <item name="buylistDeleteSelected" type="id" />
+    <style name="ThemeOverlay.Mtg.BuylistFullscreen" parent="">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+</resources>

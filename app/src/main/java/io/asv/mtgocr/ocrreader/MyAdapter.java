@@ -217,7 +217,9 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ViewHolder>
       holder.mtxtName.setText(item.getName());
       holder.mtxtName.setVisibility(viewMode == CollectionViewMode.CARD_GRID ? View.GONE : View.VISIBLE);
       String priceText = PriceCurrency.format(mContext, item);
-      holder.mtxtPrice.setText(priceText.isEmpty() ? mContext.getString(R.string.no_price) : PriceSourcePresentation.format(mContext, item));
+      holder.mtxtPrice.setText(android.text.TextUtils.concat(
+          priceText.isEmpty() ? mContext.getString(R.string.no_price) : PriceSourcePresentation.format(mContext, item),
+          "  ", TripleLanguageBadge.INSTANCE.label(io.asv.mtgocr.ocrreader.data.CardLanguage.toCode(item.getLanguageCode()))));
       holder.mtxtPrice.setOnClickListener(v -> {
         if (mContext instanceof android.app.Activity) PriceHistoryDialog.showCard((android.app.Activity)mContext, item.getPrintingUuid(), item.getFinish());
       });

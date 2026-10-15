@@ -41,4 +41,24 @@ class PriceFallbackTrendTest {
         val a=point()
         assertTrue(PriceTrendPolicy.points(listOf(a.copy(amount=Double.NaN),a.copy(priceDate="unknown"),a.copy(amount=-1.0)),"uuid","nonfoil","cardmarket","EUR").isEmpty())
     }
+    @Test fun unchangedRefreshesOnSameDayRemainSeparateAndHaveZeroDelta() {
+        val original = point()
+        val first = original.copy(observedAt=1792058400000, refreshAt=1792058400000)
+        val second = first.copy(observedAt=1792058460000, refreshAt=1792058460000)
+        val points = PriceTrendPolicy.points(listOf(second, original, first), "uuid", "nonfoil", "cardmarket", "EUR")
+        assertEquals(3, points.size)
+        assertEquals(listOf(first.refreshAt, second.refreshAt), points.takeLast(2).map { it.timestamp })
+        assertEquals(0.0 to 0.0, PriceTrendPolicy.delta(points))
+    }
+    @Test fun refreshRowsNormalizeDeduplicateAndPreserveProviderDate() {
+        val original = quote("cardmarket")
+        val rows = PriceHistoryStore.refreshObservations(listOf(original, original.copy(finish="nonfoil"),
+            original.copy(amount=Double.NaN), original.copy(amount=-1.0), original.copy(priceDate="")), 100)
+        assertEquals(1, rows.size)
+        assertEquals("nonfoil", rows.single().finish)
+        assertEquals(original.priceDate, rows.single().priceDate)
+        assertEquals(100L, rows.single().refreshAt)
+        assertEquals(100L, rows.single().observedAt)
+        assertEquals(0.0, PriceHistoryStore.refreshObservations(listOf(original.copy(amount=0.0)), 200).single().amount, 0.0)
+    }
 }

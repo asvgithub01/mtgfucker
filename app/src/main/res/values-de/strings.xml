@@ -881,8 +881,8 @@
     <string name="price_history_group_note">Werte bei Aktualisierung der gesamten Bibliothek mit den jeweiligen Anbietern. Änderungen von Bestand, Quelle oder Wechselkurs werden nicht verglichen.</string>
     <string name="price_history_composition_changed">Nicht vergleichbar: Bestand, Zustand, Währung oder Preisabdeckung geändert.</string>
     <string name="price_history_source">Anbieter im Verlauf</string>
-    <string name="price_history_chart_note">Beobachtete Preise ohne Zustandsanpassung. Jede Kurve gilt für einen Anbieter, eine Währung und Ausführung. Fehlende Tage werden nicht ergänzt.</string>
-    <string name="price_history_need_two">Zwei Preisdatierungen sind für die Änderung erforderlich.</string>
+    <string name="price_history_chart_note">Preise nach Anbieterdatum und Aktualisierungen nach Abfragezeit, auch bei unverändertem Preis. Jede Kurve verwendet einen Anbieter, eine Währung und Ausführung, ohne Zustandsanpassung.</string>
+    <string name="price_history_need_two">Zwei Preisbeobachtungen sind zur Berechnung der Änderung erforderlich.</string>
     <string name="price_history_change">Letzte Änderung: %1$s</string>
     <string name="price_provider_value">Anbieter: %1$s · %2$s</string>
 

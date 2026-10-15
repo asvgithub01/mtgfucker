@@ -113,3 +113,8 @@ textarea { min-height: 160px; resize: vertical; font-family: ui-monospace, SFMon
 .shopping select,.shopping button { margin:6px; }
 
 .shopping { padding:28px; }
+
+.shopping-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin:1rem 0; }
+.shopping-editor { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; margin:.75rem 0; }
+.shopping-editor input, .shopping-editor select { min-width:0; width:100%; }
+.shopping-editor button { grid-column:1 / -1; }

@@ -243,6 +243,10 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <LinearLayout android:id="@+id/shoppingSection" android:layout_width="match_parent"
+        android:layout_height="match_parent" android:layout_above="@id/bottomNavigation"
+        android:orientation="vertical" android:padding="12dp" android:visibility="gone" />
+
     <ScrollView
         android:id="@+id/settingsPlaceholder"
         android:layout_width="match_parent"

@@ -111,7 +111,7 @@ interface CardDao {
     @Query("SELECT * FROM group_price_history WHERE library = :library AND scope = :scope AND provider = :provider ORDER BY observedAt DESC LIMIT 100")
     fun groupPriceHistory(library: String, scope: String, provider: String): List<GroupPriceHistoryEntity>
 
-    @Query("SELECT * FROM price_history WHERE printingUuid = :uuid AND finish = :finish ORDER BY priceDate DESC, observedAt DESC LIMIT 1000")
+    @Query("SELECT * FROM price_history WHERE printingUuid = :uuid AND finish = :finish ORDER BY observedAt DESC, priceDate DESC LIMIT 1000")
     fun priceHistoryForPrinting(uuid: String, finish: String): List<PriceHistoryEntity>
 
     @Query("SELECT * FROM group_price_history WHERE library = :library AND scope = :scope ORDER BY observedAt DESC LIMIT 100")
@@ -234,7 +234,7 @@ interface CardDao {
         PriceHistoryEntity::class,
         GroupPriceHistoryEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class CardDatabase : RoomDatabase() {
@@ -248,7 +248,7 @@ abstract class CardDatabase : RoomDatabase() {
                 context.applicationContext,
                 CardDatabase::class.java,
                 "mtg_catalog.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .build().also { instance = it }
         }
 
@@ -297,6 +297,15 @@ abstract class CardDatabase : RoomDatabase() {
                         PRIMARY KEY(`printingUuid`, `finish`, `provider`)
                     )""".trimIndent()
                 )
+            }
+        }
+
+        internal val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE `price_history_v8` (`printingUuid` TEXT NOT NULL, `finish` TEXT NOT NULL, `provider` TEXT NOT NULL, `priceDate` TEXT NOT NULL, `amount` REAL NOT NULL, `currency` TEXT NOT NULL, `observedAt` INTEGER NOT NULL, `refreshAt` INTEGER NOT NULL, PRIMARY KEY(`printingUuid`, `finish`, `provider`, `priceDate`, `amount`, `currency`, `refreshAt`))")
+                database.execSQL("INSERT INTO `price_history_v8` SELECT printingUuid, finish, provider, priceDate, amount, currency, observedAt, 0 FROM price_history")
+                database.execSQL("DROP TABLE price_history")
+                database.execSQL("ALTER TABLE price_history_v8 RENAME TO price_history")
             }
         }
 

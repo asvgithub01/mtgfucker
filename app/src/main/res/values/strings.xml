@@ -1088,7 +1088,7 @@
     <string name="edfast_back">Volver al modo lento/completo</string>
     <string name="edfast_capture">Guardar foto del fallo (solo diagnóstico)</string>
     <string name="edfast_capture_wait">Esperando la siguiente captura…</string>
-    <string name="edfast_capture_saved">Foto privada guardada. No se añadió ninguna carta.</string>
+    <string name="edfast_capture_saved">Foto privada guardada para diagnóstico.</string>
     <string name="edfast_capture_failed">No se pudo guardar la foto. Reintenta.</string>
     <string name="edfast_permission">Permite la cámara para iniciar la prueba.</string>
     <string name="edfast_candidate">Candidato: %1$s</string>

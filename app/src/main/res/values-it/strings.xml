@@ -916,7 +916,7 @@
     <string name="edfast_back">Torna alla modalità lenta/completa</string>
     <string name="edfast_capture">Salva foto del problema (solo diagnostica)</string>
     <string name="edfast_capture_wait">In attesa della prossima acquisizione…</string>
-    <string name="edfast_capture_saved">Foto privata salvata. Nessuna carta aggiunta.</string>
+    <string name="edfast_capture_saved">Foto privata salvata per la diagnostica.</string>
     <string name="edfast_capture_failed">Impossibile salvare la foto. Riprova.</string>
     <string name="edfast_permission">Consenti la fotocamera per avviare il test.</string>
     <string name="edfast_candidate">Candidato: %1$s</string>

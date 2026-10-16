@@ -916,7 +916,7 @@
     <string name="edfast_back">Revenir au mode lent/complet</string>
     <string name="edfast_capture">Enregistrer la photo du défaut (diagnostic)</string>
     <string name="edfast_capture_wait">En attente de la prochaine capture…</string>
-    <string name="edfast_capture_saved">Photo privée enregistrée. Aucune carte ajoutée.</string>
+    <string name="edfast_capture_saved">Photo privée enregistrée pour le diagnostic.</string>
     <string name="edfast_capture_failed">Impossible de sauvegarder la photo. Réessayez.</string>
     <string name="edfast_permission">Autorisez la caméra pour commencer le test.</string>
     <string name="edfast_candidate">Candidat : %1$s</string>

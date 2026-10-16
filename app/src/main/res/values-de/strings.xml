@@ -916,7 +916,7 @@
     <string name="edfast_back">Zurück zum langsamen/vollständigen Modus</string>
     <string name="edfast_capture">Fehlerfoto speichern (nur Diagnose)</string>
     <string name="edfast_capture_wait">Warte auf die nächste Aufnahme…</string>
-    <string name="edfast_capture_saved">Privates Foto gespeichert. Keine Karte hinzugefügt.</string>
+    <string name="edfast_capture_saved">Privates Foto zur Diagnose gespeichert.</string>
     <string name="edfast_capture_failed">Foto konnte nicht gespeichert werden. Erneut versuchen.</string>
     <string name="edfast_permission">Kamerazugriff für den Test erlauben.</string>
     <string name="edfast_candidate">Kandidat: %1$s</string>

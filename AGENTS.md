@@ -466,3 +466,20 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Fondo de carta NO equivale a identidad visual completa. Antes de crear una pantalla, reutilizar o extraer cabecera, paneles glass, botones, tipografía, espaciado y estados del área existente; no montar una Activity de controles genéricos como diseño final.
 - Validar capturas de la pantalla con datos y vacía, teclado visible/oculto y navegación/sheets antes de dar por terminada UI. Las pruebas funcionales no sustituyen esta revisión.
 - Buscar y Compras reutilizan CollectionPopupChrome; Buscar declara también Theme.Mtg.CollectionPopup en AndroidManifest para conservar la Activity inferior visible (el overlay aplicado solo en onCreate no basta). Buylist usa ventana completa no flotante y header único con nota/precio; seleccionar todo es checkbox, historial al tocar precio. Trabajo posterior: extraer estado/presentación y casos de uso fuera de Activities de manera incremental. No reescribir escáneres ni persistencia sin pruebas de contrato y migración. Conservar Room+legacy y las invariantes de impresión/acabado/idioma/cantidad.
+
+
+### Modo rápido EdScan aislado
+
+- `EdScanFastActivity.kt`/`EdScanFastPolicy.kt`: entrada desde Triple, CameraX+motor
+  nativo sin OCR/AR. Scope global explícito; no hereda preferencias de otros scanners.
+  Dos lecturas .70/.08; no bajar umbrales para obtener un benchmark favorable.
+- Altas únicamente nuevas mediante `TripleCollectionSession` (constructor original
+  conservado), grupo EdScan Fast, edición provisional e idioma desconocido. Foto del
+  mismo frame aceptado. No convertir metadatos de referencia en idioma físico.
+  Límite8pendientes/fallos y reintento por mismo evento; retirar carta para otra copia.
+- `edfast.frame`/`edfast.accept` y lifecycle en traza privada; `candidateSpanMs` no mide
+  entrada física de la carta. Botón de fallo conserva hasta30JPEG privados en
+  `files/edfast-diagnostics`, sin alta ni subida remota por pulsarlo.
+- Pruebas `EdScanFastPolicyTest`, `EdScanFastIntegrationTest` y
+  `EdScanFastPersistenceTest`: estas dos últimas solo emulador, inventario aislado.
+  La prueba UI exige un frame inferido real, no basta ver pantalla de carga.

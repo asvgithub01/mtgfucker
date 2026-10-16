@@ -18,6 +18,7 @@
         <meta-data android:name="com.google.ar.core" android:value="optional" />
         <activity android:name=".BuylistActivity" android:exported="false" android:theme="@style/Theme.Mtg" />
         <activity android:name=".CardSearchActivity" android:exported="false" android:theme="@style/Theme.Mtg.CollectionPopup" />
+        <activity android:name=".EdScanFastActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.Mtg" />
         <activity android:name=".TripleScanActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.Mtg" />
         <activity android:name=".EdScannerArActivity" android:exported="false"
             android:screenOrientation="portrait" android:theme="@style/Theme.Mtg" />

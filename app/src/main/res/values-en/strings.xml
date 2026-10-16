@@ -910,4 +910,18 @@
     <string name="collection_add_biblio">Library</string>
     <string name="collection_add_buylist">Buylist</string>
     <string name="collection_select_missing">Select missing cards</string>
+    <string name="edfast_open">Fast · EdScan only (test)</string>
+    <string name="edfast_title">Fast mode · EdScan</string>
+    <string name="edfast_help">Adds to a new group with provisional printing and unknown language. Global catalog, no OCR or AR; two readings at 0.70 / 0.08. Remove the card to add another identical copy.</string>
+    <string name="edfast_back">Back to slow/full mode</string>
+    <string name="edfast_capture">Save failure photo (diagnostics only)</string>
+    <string name="edfast_capture_wait">Waiting for the next capture…</string>
+    <string name="edfast_capture_saved">Private photo saved. No card was added.</string>
+    <string name="edfast_capture_failed">Could not save photo. Try again.</string>
+    <string name="edfast_permission">Allow camera access to start the test.</string>
+    <string name="edfast_candidate">Candidate: %1$s</string>
+    <string name="edfast_confirmed">Stable visual match: %1$s</string>
+    <string name="edfast_retry">Retry saves</string>
+    <string name="edfast_saved">Saved: %1$d · Queued: %2$d · Failed: %3$d</string>
+    <string name="edfast_group">EdScan Fast</string>
 </resources>

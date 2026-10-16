@@ -910,4 +910,18 @@
     <string name="collection_add_biblio">Bibliothèque</string>
     <string name="collection_add_buylist">Liste d’achat</string>
     <string name="collection_select_missing">Sélectionner les cartes manquantes</string>
+    <string name="edfast_open">Rapide · EdScan seul (test)</string>
+    <string name="edfast_title">Mode rapide · EdScan</string>
+    <string name="edfast_help">Ajoute dans un nouveau groupe avec impression provisoire et langue inconnue. Catalogue global, sans OCR ni AR ; deux lectures à 0,70 / 0,08. Retirez la carte pour ajouter un exemplaire identique.</string>
+    <string name="edfast_back">Revenir au mode lent/complet</string>
+    <string name="edfast_capture">Enregistrer la photo du défaut (diagnostic)</string>
+    <string name="edfast_capture_wait">En attente de la prochaine capture…</string>
+    <string name="edfast_capture_saved">Photo privée enregistrée. Aucune carte ajoutée.</string>
+    <string name="edfast_capture_failed">Impossible de sauvegarder la photo. Réessayez.</string>
+    <string name="edfast_permission">Autorisez la caméra pour commencer le test.</string>
+    <string name="edfast_candidate">Candidat : %1$s</string>
+    <string name="edfast_confirmed">Correspondance visuelle stable : %1$s</string>
+    <string name="edfast_retry">Réessayer les sauvegardes</string>
+    <string name="edfast_saved">Enregistrées : %1$d · En attente : %2$d · Erreurs : %3$d</string>
+    <string name="edfast_group">EdScan Fast</string>
 </resources>

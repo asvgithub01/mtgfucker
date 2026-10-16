@@ -169,6 +169,10 @@ class TripleScanActivity:AppCompatActivity() {
         toolbar.addView(Button(this).apply { setText(R.string.triple_title);setOnClickListener { scroll.visibility=if(scroll.visibility==View.GONE) View.VISIBLE else View.GONE } },LinearLayout.LayoutParams(0,-2,1f))
         toolbar.addView(Button(this).apply { setText(android.R.string.cancel);setOnClickListener { finish() } })
         root.addView(toolbar)
+        root.addView(Button(this).apply {
+            tag="triple_fast_mode";setText(R.string.edfast_open)
+            setOnClickListener { startActivity(Intent(this@TripleScanActivity,EdScanFastActivity::class.java)) }
+        })
         val scopeRow=LinearLayout(this).apply { gravity=android.view.Gravity.CENTER_VERTICAL;setPadding(dp(8),dp(4),dp(8),dp(4)) }
         scopeSymbols=LinearLayout(this).apply { tag="triple_scope_symbols" };scopeRow.addView(scopeSymbols)
         scopeStatus=TextView(this).apply { setPadding(dp(6),0,0,0);tag="triple_scope" }
@@ -1429,9 +1433,9 @@ class TripleScanActivity:AppCompatActivity() {
         recent.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
     }
     private fun finishOcr() { ocrScheduled.set(false);if(closed) { text.close();languages.close() } }
-    override fun onResume() { super.onResume();io.asv.collectorvision.EdScanInferencePriority.acquire(this);resumed=true;logHandler.removeCallbacks(heartbeat);logHandler.post(heartbeat); }
+    override fun onResume() { super.onResume();trace.event("triple.lifecycle state=resume");io.asv.collectorvision.EdScanInferencePriority.acquire(this);resumed=true;logHandler.removeCallbacks(heartbeat);logHandler.post(heartbeat); }
     override fun onPause() {
-        entryPopup?.dismiss(); io.asv.collectorvision.EdScanInferencePriority.release(this);resumed=false;logHandler.removeCallbacks(heartbeat);invalidateEvidence();super.onPause() }
+        trace.event("triple.lifecycle state=pause");entryPopup?.dismiss(); io.asv.collectorvision.EdScanInferencePriority.release(this);resumed=false;logHandler.removeCallbacks(heartbeat);invalidateEvidence();super.onPause() }
     override fun onDestroy() {
         languagePickerRevision++;languagePicker?.dismiss()
         if(setLanguagesLazy.isInitialized()) setLanguages.close()

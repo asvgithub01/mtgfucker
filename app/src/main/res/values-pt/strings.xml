@@ -910,4 +910,18 @@
     <string name="collection_add_biblio">Biblioteca</string>
     <string name="collection_add_buylist">Lista de compras</string>
     <string name="collection_select_missing">Selecionar cartas em falta</string>
+    <string name="edfast_open">Rápido · só EdScan (teste)</string>
+    <string name="edfast_title">Modo rápido · EdScan</string>
+    <string name="edfast_help">Adiciona a um novo grupo com edição provisória e idioma pendente. Catálogo global, sem OCR nem AR; duas leituras a 0,70 / 0,08. Retire a carta para adicionar outra cópia idêntica.</string>
+    <string name="edfast_back">Voltar ao modo lento/completo</string>
+    <string name="edfast_capture">Guardar foto da falha (só diagnóstico)</string>
+    <string name="edfast_capture_wait">À espera da próxima captura…</string>
+    <string name="edfast_capture_saved">Foto privada guardada. Nenhuma carta adicionada.</string>
+    <string name="edfast_capture_failed">Não foi possível guardar a foto. Tente novamente.</string>
+    <string name="edfast_permission">Permita a câmara para iniciar o teste.</string>
+    <string name="edfast_candidate">Candidato: %1$s</string>
+    <string name="edfast_confirmed">Correspondência visual estável: %1$s</string>
+    <string name="edfast_retry">Repetir gravações</string>
+    <string name="edfast_saved">Guardadas: %1$d · Em fila: %2$d · Erros: %3$d</string>
+    <string name="edfast_group">EdScan Fast</string>
 </resources>

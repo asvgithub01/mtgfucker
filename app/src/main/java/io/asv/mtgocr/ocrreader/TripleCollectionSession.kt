@@ -12,14 +12,16 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 /** One durable collection row per encounter. All mutations are serialized, never on the camera thread. */
-internal class TripleCollectionSession(context:Context, private val log:(String)->Unit) {
+internal class TripleCollectionSession(context:Context, private val log:(String)->Unit,
+    private val scanner:String, groupLabel:String) {
+    constructor(context:Context,log:(String)->Unit):this(context,log,"triple","Triple")
     data class State(val event:Long,val target:TripleScanActivity.Target,val language:String?,val finish:String,
         val count:Int,val photo:ByteArray?,val manualLanguage:Boolean,val photoKey:String,
         val selectedOption:CardEditionOption?=null,val languageOrigin:String="",val manualEdition:Boolean=false,
         val physicalLanguage:String?=null,val languageConflict:Boolean=false)
     private val app=context.applicationContext
     private val library=LibraryCatalog.activeFile(app)
-    private var group="Triple " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.ROOT).format(java.util.Date())
+    private var group=groupLabel + " " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.ROOT).format(java.util.Date())
     private val main=Handler(Looper.getMainLooper())
     private val versions=ConcurrentHashMap<Long,Int>()
     private val saved=mutableMapOf<Long,CardInfo>() // confined to writer
@@ -79,7 +81,7 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
                                 try { out.write(state.photo);atomic.finishWrite(out) } catch(e:Exception) { atomic.failWrite(out);throw e }
                             }
                             ScanReviewStore.write(File(dir,"${state.photoKey}.json"),JSONObject()
-                                .put("id",state.target.id).put("source",source).put("scanner","triple")
+                                .put("id",state.target.id).put("source",source).put("scanner",scanner)
                                 .put("finish",state.finish).put("createdAt",card.addedAt).put("languageStatus","pending")
                                 .put("languageOrigin",state.languageOrigin).put("manualEdition",state.manualEdition)
                                 .put("manualLanguage",state.manualLanguage).put("observedLanguage",state.language.orEmpty())

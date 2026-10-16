@@ -910,4 +910,18 @@
     <string name="collection_add_biblio">Bibliothek</string>
     <string name="collection_add_buylist">Einkaufsliste</string>
     <string name="collection_select_missing">Fehlende Karten auswählen</string>
+    <string name="edfast_open">Schnell · nur EdScan (Test)</string>
+    <string name="edfast_title">Schnellmodus · EdScan</string>
+    <string name="edfast_help">Fügt einer neuen Gruppe Karten mit vorläufigem Druck und unbekannter Sprache hinzu. Gesamtkatalog, ohne OCR/AR; zwei Messungen bei 0,70 / 0,08. Karte entfernen, um ein identisches Exemplar hinzuzufügen.</string>
+    <string name="edfast_back">Zurück zum langsamen/vollständigen Modus</string>
+    <string name="edfast_capture">Fehlerfoto speichern (nur Diagnose)</string>
+    <string name="edfast_capture_wait">Warte auf die nächste Aufnahme…</string>
+    <string name="edfast_capture_saved">Privates Foto gespeichert. Keine Karte hinzugefügt.</string>
+    <string name="edfast_capture_failed">Foto konnte nicht gespeichert werden. Erneut versuchen.</string>
+    <string name="edfast_permission">Kamerazugriff für den Test erlauben.</string>
+    <string name="edfast_candidate">Kandidat: %1$s</string>
+    <string name="edfast_confirmed">Stabiler visueller Treffer: %1$s</string>
+    <string name="edfast_retry">Speichern erneut versuchen</string>
+    <string name="edfast_saved">Gespeichert: %1$d · Wartend: %2$d · Fehler: %3$d</string>
+    <string name="edfast_group">EdScan Fast</string>
 </resources>

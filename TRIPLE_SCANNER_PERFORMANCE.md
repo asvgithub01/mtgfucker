@@ -201,3 +201,142 @@ python -m unittest discover -s scripts -p 'test_analyze_triple*.py'
    inventada antes de tener el baseline físico posterior a la corrección.
 5. Rechazar una optimización si mejora latencia a costa de cualquiera de las
    regresiones de seguridad, aunque pase un benchmark de cartas fáciles.
+
+
+## Auditoría Sony del 15 de octubre de 2026 y primer modo rápido
+
+Evidencia privada: `~/.codex/backups/mtgfucker/sony-scan-audit-20261016/`.
+TAR 527.161.344 bytes; 139 archivos (68 fotos, sus metadatos, trazas y preferencias)
+contrastados SHA256 con el Sony. No se ha instalado esta nueva rama ni modificado
+el inventario del teléfono durante la auditoría. Horas Europe/Madrid (UTC+2).
+
+### Dos sesiones distintas
+
+- Triple v14, 20:04:29–20:26:43: 80 encuentros, 50 iniciados por OCR y 30 por EdScan;
+  ninguno por AR. Las 32 transiciones de rechazo `ar_unverified` no equivalen a
+  32 cartas físicas erróneas. Hay 68 pares foto/metadatos; no usar 80 como corpus
+  completo de imágenes ni como número de cartas únicas.
+- EdScan independiente, alrededor de 23:35–23:40: preferencias fast_score=.50,
+  fast_margin=.20, fast_two_readings=false, safety_filters=false, save_photos=false.
+  Estos ajustes NO afectan los umbrales fijos del Triple. .20 no es .02: exige
+  veinte puntos de separación frente a dos, por lo que endurece la aceptación.
+
+### Casos comprobados y límites
+
+- 23:38:26–23:38:31: ocho lecturas presentes con top1 Cyclopean Mummy en LEG/4ED/REN,
+  score .456–.514, casi empatadas; seis no superan ni .50. En la última, .514 frente
+  a .512. Usuario confirma que era Cyclopean Mummy JP. Detector sí funciona;
+  no había guardado pendiente ni marca sameSavedCard. No basta bajar el score:
+  faltaba separación entre candidatos y muchas lecturas seguían por debajo.
+- 23:40:07–23:40:08: ocho `present=false`, sin embeddings. Puede ser carta fuera
+  de cuadro, contorno inválido o detección fallida; NO prueba un bloqueo ni permite
+  nombrar la segunda carta que el usuario recuerda china/coreana.
+- 20:12:25–20:13:19: diez rechazos por margen con Cuombajj Witches CHR como top1
+  entre .879 y .959. Fotos confirman Cuombajj. La identidad puede ser correcta y
+  aun así no separar impresiones. OCR abre evento35; después EdScan evento39.
+- 20:19:04–20:20:35: 32 lecturas; 28 top1 Repentant Blacksmith CHR/RIN. Predomina
+  score bajo y empate entre impresiones; tras seleccionar CHR se reconoce a20:21:02.
+  Foto de ese evento confirma Blacksmith, pero no prueba que todos los frames del
+  intervalo fueran la misma carta.
+- 20:10:27–20:11:28: repetidos candidatos Frozen Shade y otras identidades con
+  score bajo; se termina reconociendo Will-o-the-Wisp. Sin foto de cada rechazo
+  no atribuir todos los candidatos a la carta guardada después.
+- Will-o-the-Wisp IT (evento28) y EN (29) tienen filas y fotos distintas: el split
+  de idioma ya funciona en este caso. ZHS→ZHT eventos31/32 es sospechoso: raw vacío,
+  alias zhs inicial y alias zht repetido; fotos casi idénticas. Confirmar con usuario
+  si hubo dos ejemplares. No reparar la colección ni afirmar ausencia de errores.
+- Hay un hueco de traza de17,484s a20:22:15–20:22:32, seguido de recarga CHR.
+  v14 no registra pause/resume; no permite distinguir salida de pantalla de un
+  bloqueo real. La nueva rama registra ambos estados. Heartbeat máximo22,008s.
+- El standalone sobrescribe su archivo `.frames.json` con las últimas8 muestras.
+  No conserva toda la sesión fallida; fotos estaban desactivadas. Los hashCode de
+  Triple son reversibles solo contrastándolos con el catálogo y posibles colisiones;
+  no son nombres ni prueba de la carta fotografiada.
+
+### Mediciones de Triple (no latencia total por carta)
+
+| Etapa | n | p50 ms | p95 ms |
+|---|---:|---:|---:|
+| Frame visual |438|855|1068|
+| Detector |546|173|263|
+| Embeddings y preparación (sin búsqueda) |438|519|622|
+| Búsqueda catálogo (dos orientaciones) |438|70|71|
+| Cola y preproceso visual |438|88|156|
+| Lane OCR completa |445|1129|1804|
+| Modelos OCR |445|834|1273|
+| Resolver nombre OCR |339|405|1062|
+| Clasificación de idioma |287|6|124|
+| Metadata impresión |37|57|87|
+| Guardado |128|342|512|
+
+Todas las37 consultas de metadata registradas fueron locales. Ocho de445 OCR
+caducaron; traceDropped=0, térmico=0 en264 muestras. Rechazos:299score,54margin,
+108no_detection;47esperando lecturas y38confirmaciones (son frames, no cartas).
+No sumar percentiles de etapas solapadas. Preparar cuatro alfabetos y resolver
+nombres pesa mucho más que la clasificación final de idioma. No se observa red
+como cuello en esas37consultas; esto no caracteriza todas las rutas de la app.
+
+### Funcionamiento técnico actual (verificado contra código)
+
+1. Triple obtiene YUV de ARCore y convierte a RGB; un worker y un OCR en vuelo.
+   Su scheduler alterna OCR y EdScan; OCR ocupa su lane hasta liberar callbacks.
+2. `NativeCollectorVisionEngine`: ONNX Runtime CPU, 2hilos intraop/1inter en
+   prepareForCamera, sin spinning; el EdScan standalone usa4intra como máximo.
+3. Cornelius detector: tensor RGB NCHW384×384 normalizado ImageNet; devuelve
+   cuatro esquinas y sharpness. Requiere geometría usable y sharpness>=.02.
+4. Perspectiva a448×448. Milo genera vector128 para imagen normal y girada180°;
+   se normalizan ambos. No es OCR ni un hash del arte: ve la carta rectificada
+   completa. Título extranjero, recorte, reflejos y marco pueden alterar similitud.
+5. Catálogo110.278 filas:109.711base +454FRA +113suplemento. Embeddingsfloat16;
+   producto escalar contra cada fila y top8 por orientación, fusión por UUID y top8
+   final. Índice global estático, no búsqueda web ni catálogo actualizado en vivo.
+6. Triple exige score>=.70, top1-top2>=.08 y dos frames individualmente fuertes.
+   El runner es otra impresión, no necesariamente otra identidad. Se añaden gates
+   de frescura2500ms, cambio de escena, scope y arbitraje. Hay descansos150–650ms.
+7. Metadata local/caché/red resuelve UUID/nombre; foto y persistencia van aparte.
+   Idioma físico requiere evidencia OCR/manual: similitud visual no lo confirma.
+   Tampoco demuestra inequívocamente edición cuando existen reimpresiones iguales.
+
+### Modo rápido inicial implementado (rama codex/edscan-fast-mode)
+
+Botón en Triple abre `EdScanFastActivity`; volver conserva el modo completo.
+Cámara CameraX latest-only, misma resolución solicitada1280×960 y motor2hilos,
+catálogo global sin heredar filtros, ambos embeddings y umbrales estrictos intactos.
+Sin AR, OCR, entrenamiento de referencias ni resolución de idioma. Descanso150ms.
+Esto cambia captura y scheduling; no atribuir todo incremento al modelo ni prometer
+un tiempo Sony antes de medir. El engine de Triple puede seguir cargado en memoria
+mientras su Activity está detenida; no está inferiendo, pero comparar memoria con cuidado.
+
+Por petición explícita del usuario, añade nuevas filas en grupo `EdScan Fast ...`
+mediante `TripleCollectionSession`: cantidad1, ediciónprovisional=true, idioma vacío,
+acabado del checkfoil, foto rectificada del frame aceptado y enlace de revisión.
+No modifica filas antiguas. Confirmación por identidad canónica y captura fresca;
+misma identidad sostenida no crea copias. Retirada>=1500ms/3muestras permite otra.
+Sin OCR no diferencia dos idiomas del mismo arte sin retirada. Metadata asíncrona
+no bloquea inferencia; guardado usa el writer existente, máximo8pendientes/fallos.
+Error permite retry del mismo evento, nunca nueva copia automática.
+
+Logs `edfast.frame`: UUIDs/score top8, reason, decode/detect/feature/search, frameMs,
+candidateSpanMs (desde primer top1, NO desde entrada física), timestamp del sensor,
+temperatura; `edfast.accept` separa metadata de inferencia. Captura manual de fallo:
+30fotos privadas rotativas en files/edfast-diagnostics, sin alta por ese botón.
+Sin envío remoto de fotos. Preferencias de otros scanners intactas.
+
+### Próximos experimentos, por orden
+
+1. Sony A/B mismo lote/luz/batería: completo vsrápido, orden alternado y calentamiento.
+   Medir entrada visible→resultado, captura→aceptación y aceptación→guardado, p50/p95,
+   aciertos/rechazos/falsasaltas y temperatura; no solo tiempo de un frame.
+2. Corpus JP/CH/KO incluyendo Mummy con captura manual: comprobar esquinas, nitidez,
+   reflejos, orientación y cobertura del índice antes de tocar mínimos.
+3. Separar score/margen de IDENTIDAD frente a margen de IMPRESIÓN usando mapeo local
+   completo UUID→identidad. Agrupar solo nombres/oracle exactos; tailtop8 separado,
+   sin datos faltantes ni exclusiones ocultas. No aceptar el primer alias de red.
+4. Perfilar y reducir tensor/conversiones; probar búsqueda nativa/SIMD después. Buscar
+   solo cuesta70ms aquí, frente a519ms de embeddings: no es primera prioridad ANN.
+5. Medir orientación única con fallback seguro y detección de inversión de carta;
+   no quitar el segundo embedding sin corpus180° y validación de falsospositivos.
+6. Cuantización/NNAPI/GPU solo experimental tras comparar scores contra baseline:
+   cambiar modelo exige revalidar embeddings/catálogo, no solo bajarlatencia.
+
+No se rebajaron umbrales ni se cambiaron modelos para aparentar una mejora.

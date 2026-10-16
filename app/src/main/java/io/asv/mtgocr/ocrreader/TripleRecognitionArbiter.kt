@@ -56,7 +56,13 @@ internal class TripleRecognitionArbiter {
             startScene(now,afterAbsence,preserveEvidence=true);reference=signature
         }
     }
-    fun observe(id: String, source: String, strong: Boolean, sampleAt: Long, now: Long, pairedVisual:Boolean=false): Decision {
+    /** A confirmed language change is a new physical copy, not a correction of the old row. */
+    fun separateLanguageCopy(sampleAt:Long, now:Long) {
+        startScene(sampleAt);newScene=false;afterAbsence=false;authority="OCR"
+        committedAt=now;committedSampleAt=sampleAt
+    }
+    fun observe(id: String, source: String, strong: Boolean, sampleAt: Long, now: Long, pairedVisual:Boolean=false,
+                requireIndependentAr:Boolean=false): Decision {
         fun reject(reason: String): Decision { lastReason=reason;return Decision(false,reason=reason) }
         if(id.isBlank() || sampleAt<sceneAt || now-sampleAt>2500 || sampleAt>now) return reject("stale")
         val old=evidence[source]
@@ -68,6 +74,16 @@ internal class TripleRecognitionArbiter {
         val stable=when(source) {
             "EdScan" -> strong
             else -> item.samples>=2 && sampleAt-item.since>=600
+        }
+        // Repeated FULL_TRACKING callbacks are ONE recognizer, not independent votes.
+        // In mixed mode AR may track an accepted card, but cannot introduce a new one
+        // (or consume an appearance/absence boundary) without a fresh independent read.
+        if(source=="AR" && requireIndependentAr && (identity!=id || newScene || afterAbsence)) {
+            val corroborated=evidence.any { (engine, vote) ->
+                engine!="AR" && vote.id==id && vote.at>=sceneAt && vote.at>=item.since &&
+                    now-vote.at<=2500 && (if(engine=="EdScan") vote.strong else vote.samples>=2 && vote.at-vote.since>=600)
+            }
+            if(!corroborated) return reject("ar_unverified")
         }
         // Identity and physical copies are separate. A noisy fingerprint must not strand
         // AR-only mode waiting for a disabled recognizer to confirm the same card.
@@ -82,7 +98,7 @@ internal class TripleRecognitionArbiter {
         // The winner from a previous card is history, never an indefinite lock.
         if(source!="EdScan" && art!=null && art.strong && art.id!=id &&
             art.at>=item.since && now-art.at<=2500) return reject("edscan_priority")
-        if(source=="OCR" && ar!=null && ar.id!=id && ar.samples>=2 && ar.at-ar.since>=600 &&
+        if(source=="OCR" && !requireIndependentAr && ar!=null && ar.id!=id && ar.samples>=2 && ar.at-ar.since>=600 &&
             ar.at>=item.since && now-ar.at<=1000) return reject("visual_priority")
 
         // Correct an AR hypothesis only using a capture made BEFORE that acceptance.

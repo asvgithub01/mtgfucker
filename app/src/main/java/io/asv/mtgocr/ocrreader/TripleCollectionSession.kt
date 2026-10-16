@@ -15,7 +15,8 @@ import java.util.concurrent.Executors
 internal class TripleCollectionSession(context:Context, private val log:(String)->Unit) {
     data class State(val event:Long,val target:TripleScanActivity.Target,val language:String?,val finish:String,
         val count:Int,val photo:ByteArray?,val manualLanguage:Boolean,val photoKey:String,
-        val selectedOption:CardEditionOption?=null,val languageOrigin:String="",val manualEdition:Boolean=false)
+        val selectedOption:CardEditionOption?=null,val languageOrigin:String="",val manualEdition:Boolean=false,
+        val physicalLanguage:String?=null,val languageConflict:Boolean=false)
     private val app=context.applicationContext
     private val library=LibraryCatalog.activeFile(app)
     private var group="Triple " + java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.ROOT).format(java.util.Date())
@@ -82,6 +83,7 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
                                 .put("finish",state.finish).put("createdAt",card.addedAt).put("languageStatus","pending")
                                 .put("languageOrigin",state.languageOrigin).put("manualEdition",state.manualEdition)
                                 .put("manualLanguage",state.manualLanguage).put("observedLanguage",state.language.orEmpty())
+                                .put("physicalLanguage",state.physicalLanguage.orEmpty()).put("languageConflict",state.languageConflict)
                                 .put("provisional",state.target.provisional).put("event",state.event))
                             ScanReviewStore.write(File(dir,"${state.photoKey}.link.json"),JSONObject()
                                 .put("library",library).put("collectionItemId",card.collectionItemId).put("printingUuid",selected.printingUuid))

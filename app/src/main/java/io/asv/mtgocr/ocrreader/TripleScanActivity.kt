@@ -61,6 +61,7 @@ class TripleScanActivity:AppCompatActivity() {
     private val text=TripleSnapshotOcr()
     private val languages=CardTextLanguageDetector(useShortRules=false)
     private val languageConsensus=TripleLanguageConsensus()
+    private val languageCopies=TripleLanguageCopyPolicy()
     private val languageWorker=Executors.newSingleThreadExecutor()
     private val titleLanguageIndex by lazy { runCatching { TitleLanguageIndex.read(assets.open(TitleLanguageIndex.ASSET)) }.getOrNull() }
     private var languageConflict=false
@@ -128,6 +129,7 @@ class TripleScanActivity:AppCompatActivity() {
     private var packageVisualIds=emptySet<String>()
     private data class GalleryEntry(var target:Target,val root:LinearLayout,val image:ImageView,val flag:TextView,val edition:TextView,val price:TextView,var language:String?=null,
         var manualLanguage:Boolean=false,var languageOrigin:String="",var manualEdition:Boolean=false,
+        var physicalLanguage:String?=null,var languageMismatch:Boolean=false,
         var editionOption:io.asv.mtgocr.ocrreader.data.CardEditionOption?=null,var editionRevision:Int=0,var resolvingEdition:Boolean=false,var scopeConflict:Boolean=false,
         var recognitionConflict:Boolean=false,var manualFinish:Boolean=false,var selectedFinish:String=target.finish,var count:Int=1,
         var photo:ByteArray?=null,var photoKey:String=java.util.UUID.randomUUID().toString(),
@@ -142,7 +144,7 @@ class TripleScanActivity:AppCompatActivity() {
             val power=getSystemService(POWER_SERVICE) as android.os.PowerManager
             val thermal=if(android.os.Build.VERSION.SDK_INT>=29) power.currentThermalStatus else -1
             val runtime=Runtime.getRuntime()
-            trace.event("triple.health visualFrames=$visualFrames ocrCompleted=$ocrCompleted busy=${busy.get()} heapMb=${(runtime.totalMemory()-runtime.freeMemory())/1048576} powerSave=${power.isPowerSaveMode} thermal=$thermal")
+            trace.event("triple.health visualFrames=$visualFrames ocrCompleted=$ocrCompleted busy=${busy.get()} heapMb=${(runtime.totalMemory()-runtime.freeMemory())/1048576} powerSave=${power.isPowerSaveMode} thermal=$thermal ocrBusy=${ocrScheduled.get()} traceDropped=${trace.droppedEvents}")
             logHandler.postDelayed(this,5000)
         }
     }
@@ -159,7 +161,7 @@ class TripleScanActivity:AppCompatActivity() {
             }
         }
         restoringSession=intent.hasExtra("triple_resume_group")
-        trace=TripleScanTrace(applicationContext);collectionSession=TripleCollectionSession(applicationContext,trace::event);lookup=TripleCardLookup(applicationContext,trace::event);trace.event("triple.session v=12 score=${TripleScanPolicy.VISUAL_MIN_SCORE} margin=${TripleScanPolicy.VISUAL_MIN_MARGIN} strongReadings=${TripleScanPolicy.VISUAL_STRONG_READINGS} copyIntervalMs=600");runStartedAt=SystemClock.elapsedRealtime()
+        trace=TripleScanTrace(applicationContext);collectionSession=TripleCollectionSession(applicationContext,trace::event);lookup=TripleCardLookup(applicationContext,trace::event);trace.event("triple.session v=14 score=${TripleScanPolicy.VISUAL_MIN_SCORE} margin=${TripleScanPolicy.VISUAL_MIN_MARGIN} strongReadings=${TripleScanPolicy.VISUAL_STRONG_READINGS} copyIntervalMs=600 independentAr=true");runStartedAt=SystemClock.elapsedRealtime()
         val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         val toolbar=LinearLayout(this)
         val options=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -319,6 +321,8 @@ class TripleScanActivity:AppCompatActivity() {
                             entry.language=card.languageCode.takeIf { !it.isNullOrBlank() }
                             entry.manualLanguage=metadata?.optBoolean("manualLanguage") ?: true
                             entry.languageOrigin=metadata?.optString("languageOrigin").orEmpty()
+                            entry.physicalLanguage=metadata?.optString("physicalLanguage")?.takeIf { it.isNotBlank() }
+                            entry.languageMismatch=metadata?.optBoolean("languageConflict") ?: false
                             entry.manualEdition=metadata?.optBoolean("manualEdition") ?: false
                             entry.manualFinish=true;entry.selectedFinish=card.finish.orEmpty()
                             photo?.first?.let { entry.photoKey=it }
@@ -368,7 +372,7 @@ class TripleScanActivity:AppCompatActivity() {
     }
     private fun dp(value:Int)=(value*resources.displayMetrics.density).toInt()
     private fun ui(action:()->Unit)=runOnUiThread { if(!closed && !isDestroyed) action() }
-    private fun invalidateEvidence() { arConsensus.reset();liveArTarget=null;lastAcceptedVisualId="";clearCurrentLanguage();languageConsensus.reset();rarityRequested.clear();generation++;proposedVisualTargets.clear();arbiter.resetPending();confirmationPending=true;candidate=null;frameKey="";lastOcrKey="";lastOcrCanonical="";observedLanguage=null;observedName=null;preferGlobalUntil=0L;arReadyAt=0L;if(::result.isInitialized) result.setText(R.string.triple_waiting) }
+    private fun invalidateEvidence() { languageCopies.reset();arConsensus.reset();liveArTarget=null;lastAcceptedVisualId="";clearCurrentLanguage();languageConsensus.reset();rarityRequested.clear();generation++;proposedVisualTargets.clear();arbiter.resetPending();confirmationPending=true;candidate=null;frameKey="";lastOcrKey="";lastOcrCanonical="";observedLanguage=null;observedName=null;preferGlobalUntil=0L;arReadyAt=0L;if(::result.isInitialized) result.setText(R.string.triple_waiting) }
     private fun updateScopeStatus() {
         val codes=sets.codes().sorted()
         val codeLabel=codes.joinToString(", ").ifBlank { getString(R.string.triple_all_editions) }
@@ -567,12 +571,14 @@ class TripleScanActivity:AppCompatActivity() {
                     frameKey=target?.id ?: "ocr"
                     val captured=crop;crop=null;handedOff=true
                     captureReviewPhoto(captured,frameKey,token)
+                    // A second language belongs to this capture, never to the previous immutable photo.
+                    val languagePhoto=if(fixedLanguage==null) captured?.let { EdScanPerf.measure("triple.languagePhoto") { jpeg(it) } } else null
                     // Keep appearance from a single producer (EdScan when enabled).
                     val signature=if(!artEnabled) TripleFrameSignature.read(captured) else null
                     runOnUiThread {
                         if(token!=generation || !resumed) { captured?.recycle();busy.set(false);return@runOnUiThread }
                         observeAppearance(signature,sampleAt,token)
-                        ocr(captured,target,token,sampleAt=sampleAt)
+                        ocr(captured,target,token,sampleAt=sampleAt,languagePhoto=languagePhoto)
                     }
                     return@execute
                 }
@@ -761,16 +767,17 @@ class TripleScanActivity:AppCompatActivity() {
     }
     @Volatile private var lastOcrCanonical=""
     private var lastOcrNameAt=0L
-    @JvmOverloads private fun proposeOcrName(name:String,sampleAt:Long=SystemClock.elapsedRealtime()) {
+    @JvmOverloads private fun proposeOcrName(name:String,sampleAt:Long=SystemClock.elapsedRealtime()):Boolean {
         lastOcrCanonical=name;lastOcrNameAt=SystemClock.elapsedRealtime()
         val known=proposedVisualTargets[TripleReadingPolicy.identity(name)]?.takeIf {
             it.scene==arbiter.scene && SystemClock.elapsedRealtime()-it.at<=2500
         }?.target ?: candidate?.takeIf { arbiter.hasConfirmedScene && TripleScanPolicy.agrees(it.name,name) }
             ?: galleryEntries[currentEncounter.toString()]?.target?.takeIf { arbiter.hasConfirmedScene && TripleScanPolicy.agrees(it.name,name) }
         val proposed=known ?: Target("ocr-name:"+TripleReadingPolicy.identity(name),"",name,"",name,"","nonfoil","OCR",true)
-        if(!offer(proposed,sampleAt,"OCR")) return
+        if(!offer(proposed,sampleAt,"OCR")) return false
         if(known==null) frameKey=proposed.id
         galleryEntries[currentEncounter.toString()]?.takeIf { it.target.printing.isBlank() }?.let { resolveOcrEntry(it,sets.codes()) }
+        return true
     }
     private fun resolveOcrEntry(entry:GalleryEntry,locked:Set<String>) {
         if(entry.resolvingEdition || entry.manualEdition || entry.count<=0) return
@@ -823,7 +830,8 @@ class TripleScanActivity:AppCompatActivity() {
             }
         }
     }
-    private fun applyTitleLanguage(name:String,lines:List<String>,token:Int,event:Long,alias:String?=null,hint:String?=null) {
+    @JvmOverloads private fun applyTitleLanguage(name:String,lines:List<String>,token:Int,event:Long,alias:String?=null,hint:String?=null,
+                                   sampleAt:Long=SystemClock.elapsedRealtime(),photo:ByteArray?=null) {
         val entry=galleryEntries[event.toString()] ?: return
         if(fixedLanguage!=null || entry.manualLanguage) return
         languageWorker.execute {
@@ -831,20 +839,43 @@ class TripleScanActivity:AppCompatActivity() {
             val localized=alias?.let { titleLanguageIndex?.lookup(listOf(it),listOf(name)) } ?: TitleLanguageIndex.Evidence()
             val code=TripleReadingPolicy.titleLanguage(raw,localized,hint)
             ui {
-                if(closed || token!=generation || fixedLanguage!=null || entry.count<=0 || !TripleScanPolicy.agrees(entry.target.name,name) || entry.manualLanguage) return@ui
+                if(closed || !resumed || token!=generation || event!=currentEncounter || sampleAt<arbiter.sceneAt ||
+                    SystemClock.elapsedRealtime()-sampleAt>2500 || fixedLanguage!=null || entry.count<=0 ||
+                    !TripleScanPolicy.agrees(entry.target.name,name) || entry.manualLanguage) return@ui
                 trace.event("triple.titleLanguage event=$event raw=${raw.candidates.sorted().joinToString(",")} alias=${localized.candidates.sorted().joinToString(",")} selected=${code ?: "und"}")
                 if(code!=null) {
-                    entry.language=code;entry.languageOrigin="title"
-                    if(event==currentEncounter) {
-                        languageConflict=languageConflict || TriplePrintingLanguagePolicy.conflicts(printingLanguage,code)
-                        languageConsensus.confirmExactTitle(event.toString(),code);observedLanguage=code;evidenceKey=entry.target.id
-                        identifiedLanguages[entry.target.id]=code;preview.setImageLanguage(entry.target.printing,code)
-                        renderResult()
-                    }
-                    bindGallery(entry);saveEntry(entry)
+                    applyPhysicalLanguage(name,code,"title",event,token,sampleAt,photo)
                 }
             }
         }
+    }
+    /** Only current, same-snapshot title-bound evidence may complete or split a physical copy. */
+    private fun applyPhysicalLanguage(name:String,code:String,origin:String,event:Long,token:Int,sampleAt:Long,photo:ByteArray?) {
+        val entry=galleryEntries[event.toString()] ?: return
+        val now=SystemClock.elapsedRealtime()
+        if(closed || !resumed || token!=generation || event!=currentEncounter || entry.count<=0 || sampleAt<arbiter.sceneAt ||
+            !TripleScanPolicy.agrees(entry.target.name,name)) return
+        val action=languageCopies.observe(event,entry.language,entry.languageOrigin,entry.manualLanguage,code,
+            origin=="title",true,photo!=null,sampleAt,now)
+        trace.event("triple.languageCopy event=$event action=$action origin=$origin captureAgeMs=${now-sampleAt}")
+        if(action==TripleLanguageCopyPolicy.Action.KEEP || action==TripleLanguageCopyPolicy.Action.WAIT) return
+        if(action==TripleLanguageCopyPolicy.Action.CONFLICT) {
+            entry.physicalLanguage=code;entry.languageMismatch=true;languageConflict=true
+            bindGallery(entry);saveEntry(entry);renderResult();return
+        }
+        val destination=if(action==TripleLanguageCopyPolicy.Action.SPLIT) {
+            // Preserve the old row/quantity/photo/finish. The printing for the NEW language
+            // is a hypothesis until independently resolved; never inherit a manual edition.
+            val next=entry.target.copy(source="OCR",provisional=true,finish=entry.selectedFinish)
+            arbiter.separateLanguageCopy(sampleAt,now);encounters.nextEncounter();pendingPhotos.clear()
+            acceptedCaptureAt=sampleAt;accept(next)
+            requireNotNull(galleryEntries[currentEncounter.toString()]).also { it.photo=photo }
+        } else entry
+        destination.language=code;destination.languageOrigin=origin;destination.physicalLanguage=code
+        observedLanguage=code;evidenceKey=destination.target.id
+        identifiedLanguages[destination.target.id]=code;preview.setImageLanguage(destination.target.printing,code)
+        languageConsensus.confirmExactTitle(currentEncounter.toString(),code)
+        bindGallery(destination);saveEntry(destination);renderControls();renderResult()
     }
     private val rarityRequested=mutableSetOf<String>()
     private fun offer(incoming:Target,sampleAt:Long,source:String=incoming.source,pairedVisual:Boolean=false):Boolean {
@@ -860,7 +891,7 @@ class TripleScanActivity:AppCompatActivity() {
         }
         val arbitrationStarted=System.nanoTime()
         val decision=arbiter.observe(TripleReadingPolicy.identity(incoming.name),source,
-            source=="EdScan" && !incoming.provisional,sampleAt,now,pairedVisual)
+            source=="EdScan" && !incoming.provisional,sampleAt,now,pairedVisual,artEnabled || ocrEnabled)
         EdScanPerf.record("triple.arbitration",System.nanoTime()-arbitrationStarted)
         confirmationPending=TripleScanPolicy.confirmationNeeded(confirmationPending,arbiter.needsConfirmation,decision.reason)
         val logKey="${decision.reason}:$source:${incoming.id}:${arbiter.scene}"
@@ -876,6 +907,8 @@ class TripleScanActivity:AppCompatActivity() {
             else if(previous==null) result.setText(R.string.triple_resolving)
             return false
         }
+        if(source=="AR" && !decision.newEncounter && previous!=null && (artEnabled || ocrEnabled) &&
+            previous.target.printing!=incoming.printing) return false
         if((source=="EdScan" || source=="AR") && !incoming.provisional) {
             // A valid AR acceptance is complete too: EdScan disagreement about a variant
             // must not keep full inference running continuously after the beep.
@@ -884,7 +917,7 @@ class TripleScanActivity:AppCompatActivity() {
         if(!decision.newEncounter && previous!=null) {
             if(source=="OCR") previous.recognitionConflict=false
             if(previous.manualEdition && !TripleScanPolicy.agrees(previous.target.name,incoming.name)) return false
-            if(source=="AR" && previous.target.source=="EdScan" && !previous.target.provisional)
+            if(source=="AR" && ((artEnabled || ocrEnabled) || previous.target.source=="EdScan" && !previous.target.provisional))
                 return previous.target.printing==incoming.printing // Confirm, but do not downgrade/rebind/save every AR callback.
             encounters.rebindIdentity(TripleReadingPolicy.identity(incoming.name))
         } else if(decision.newEncounter) encounters.nextEncounter()
@@ -994,6 +1027,7 @@ class TripleScanActivity:AppCompatActivity() {
         if(code.isBlank() || code=="und") return
         val entry=galleryEntries[currentEncounter.toString()]
         if(entry?.manualLanguage==true) return
+        if(!entry?.language.isNullOrBlank() && entry?.language!=code) return // physical changes go through the copy policy
         identifiedLanguages[target.id]=code
         if(target.printing.isNotBlank()) preview.setImageLanguage(target.printing,code)
         galleryEntries[currentEncounter.toString()]?.takeIf { it.target.id==target.id }?.let { it.language=code;it.languageOrigin=origin;bindGallery(it);saveEntry(it);renderControls() }
@@ -1079,10 +1113,10 @@ class TripleScanActivity:AppCompatActivity() {
         val event=entry.root.tag.toString().toLongOrNull() ?: return
         val reviewSource=TriplePersistencePolicy.reviewSource(entry.target.source,entry.target.provisional,entry.recognitionConflict)
         val signature=listOf(entry.target.id,entry.target.provisional,entry.recognitionConflict,reviewSource,entry.language,
-            entry.manualLanguage,entry.languageOrigin,entry.manualEdition,entry.selectedFinish,entry.count,entry.photo!=null).joinToString("|")
+            entry.manualLanguage,entry.languageOrigin,entry.manualEdition,entry.selectedFinish,entry.count,entry.photo!=null,entry.physicalLanguage,entry.languageMismatch).joinToString("|")
         if(entry.saveSignature==signature || (entry.count>0 && entry.target.printing.isBlank())) return
         entry.saveSignature=signature;entry.saveError=false
-        val state=TripleCollectionSession.State(event,entry.target.copy(provisional=entry.target.provisional || entry.recognitionConflict),entry.language,entry.selectedFinish,entry.count,entry.photo,entry.manualLanguage,entry.photoKey,entry.editionOption,entry.languageOrigin,entry.manualEdition)
+        val state=TripleCollectionSession.State(event,entry.target.copy(provisional=entry.target.provisional || entry.recognitionConflict),entry.language,entry.selectedFinish,entry.count,entry.photo,entry.manualLanguage,entry.photoKey,entry.editionOption,entry.languageOrigin,entry.manualEdition,entry.physicalLanguage,entry.languageMismatch)
         collectionSession.submit(state) { card,option,error ->
             if(closed || entry.saveSignature!=signature) return@submit
             entry.saveError=error!=null
@@ -1198,10 +1232,10 @@ class TripleScanActivity:AppCompatActivity() {
                 val codes=listOf("","es","pt","en","fr","de","it","ja","ko","ru","zhs","zht")
                 androidx.appcompat.app.AlertDialog.Builder(this@TripleScanActivity).setTitle(R.string.review_choose_language)
                     .setItems(codes.map { if(it.isBlank()) getString(R.string.review_language_unknown) else TripleLanguageBadge.label(it) }.toTypedArray()) { _,index ->
-                        entry.language=codes[index].ifBlank { null };entry.manualLanguage=true;entry.languageOrigin="manual"
+                        entry.language=codes[index].ifBlank { null };entry.manualLanguage=true;entry.languageOrigin="manual";entry.languageMismatch=false
                         if(entry.language==null) identifiedLanguages.remove(entry.target.id) else identifiedLanguages[entry.target.id]=entry.language!!
                         if(entry.root.tag.toString()==currentEncounter.toString()) {
-                            observedLanguage=entry.language;languageConsensus.reset();languageConflict=false;evidenceKey=entry.target.id
+                            observedLanguage=entry.language;languageConsensus.reset();languageCopies.reset();languageConflict=false;evidenceKey=entry.target.id
                             preview.setImageLanguage(entry.target.printing,entry.language ?: "und")
                         }
                         saveEntry(entry);bindGallery(entry);dismiss();renderControls()
@@ -1229,11 +1263,11 @@ class TripleScanActivity:AppCompatActivity() {
         val candidateTarget=candidate ?: return
         val t=candidateTarget.copy(finish=galleryEntries[currentEncounter.toString()]?.selectedFinish ?: candidateTarget.finish)
         renderControls()
-        val conflict=galleryEntries[currentEncounter.toString()]?.recognitionConflict==true || languageConflict || galleryEntries[currentEncounter.toString()]?.scopeConflict==true || (allowedSets.isNotEmpty() && t.set.uppercase() !in allowedSets) || (observedName!=null && !TripleScanPolicy.agrees(t.name,observedName!!))
+        val conflict=galleryEntries[currentEncounter.toString()]?.recognitionConflict==true || galleryEntries[currentEncounter.toString()]?.languageMismatch==true || languageConflict || galleryEntries[currentEncounter.toString()]?.scopeConflict==true || (allowedSets.isNotEmpty() && t.set.uppercase() !in allowedSets) || (observedName!=null && !TripleScanPolicy.agrees(t.name,observedName!!))
         val pending=if(t.provisional) getString(R.string.triple_provisional)+"\n" else ""
         result.text=pending+"${t.source} · ${t.label}\n${price(t)}\n"+getString(if(conflict) R.string.triple_conflict else R.string.triple_language,observedLanguage ?: "?")
     }
-    @JvmOverloads private fun ocr(bitmap:Bitmap?,target:Target?,token:Int,key:String=target?.id ?: "ocr",sampleAt:Long=SystemClock.elapsedRealtime()) {
+    @JvmOverloads private fun ocr(bitmap:Bitmap?,target:Target?,token:Int,key:String=target?.id ?: "ocr",sampleAt:Long=SystemClock.elapsedRealtime(),languagePhoto:ByteArray?=null) {
         val now=SystemClock.elapsedRealtime()
         val reviewPhoto=if(key=="ocr") pendingPhotos.remove(key) else pendingPhotos[key]
         // Fixed language + already cross-checked printing needs no recurring title OCR.
@@ -1249,9 +1283,24 @@ class TripleScanActivity:AppCompatActivity() {
         trace.event("triple.ocrStart captureAtMs=$sampleAt captureAgeMs=${now-sampleAt}")
         // Hold this lane through name resolution as well as language: otherwise a new frame
         // can change frameKey/sequence and silently invalidate a correct title callback.
-        val stages=TripleOcrStageGate(::finishOcr)
-        logHandler.postDelayed({ stages.expire() },(sampleAt+2500-now).coerceAtLeast(0))
+        val laneStarted=SystemClock.elapsedRealtime();val laneEvent=currentEncounter
+        var modelsMs=-1L;var namesMs=-1L;var languageMs=-1L;var expired=false
+        val stages=TripleOcrStageGate {
+            trace.event("triple.ocrLane captureAtMs=$sampleAt generation=$token event=$laneEvent totalMs=${SystemClock.elapsedRealtime()-laneStarted} captureAgeMs=${SystemClock.elapsedRealtime()-sampleAt} modelsMs=$modelsMs namesMs=$namesMs languageMs=$languageMs expired=$expired")
+            finishOcr()
+        }
+        var matchedEvent:Long?=null
+        val snapshotLanguage=TripleSnapshotLanguageGate<TripleLanguageFusion.Decision> { name,event,decision ->
+            if(!closed && resumed && token==generation && event==currentEncounter && sampleAt>=arbiter.sceneAt &&
+                SystemClock.elapsedRealtime()-sampleAt<=2500) {
+                languageConflict=languageConflict || decision.conflict || TriplePrintingLanguagePolicy.conflicts(printingLanguage,decision.code)
+                decision.code?.let { code -> applyPhysicalLanguage(name,code,
+                    if(decision.source=="exactTitle") "title" else "rules",event,token,sampleAt,languagePhoto) }
+            }
+        }
+        logHandler.postDelayed({ expired=true;stages.expire() },(sampleAt+2500-now).coerceAtLeast(0))
         text.process(InputImage.fromBitmap(bitmap,0),scopeLanguage).addOnSuccessListener { recognized ->
+            modelsMs=SystemClock.elapsedRealtime()-laneStarted
             bitmap.recycle();ocrCompleted++;EdScanPerf.record("triple.ocr",System.nanoTime()-started)
             if(!valid(token,key) || sampleAt<arbiter.sceneAt) { stages.endModels();return@addOnSuccessListener }
             val lines=recognized.textBlocks.flatMap { it.lines }
@@ -1260,16 +1309,25 @@ class TripleScanActivity:AppCompatActivity() {
             evidenceKey=key
             observedName=null
             val direct=target?.name?.takeIf { expected->titles.any { TripleScanPolicy.agrees(expected,it) } }
-            if(direct!=null) { observedName=direct;proposeOcrName(direct,sampleAt) }
+            if(direct!=null) {
+                observedName=direct
+                if(proposeOcrName(direct,sampleAt)) {
+                    matchedEvent=currentEncounter;snapshotLanguage.identify(direct,currentEncounter)
+                }
+            }
             else if(!nameLookupPending && titles.isNotEmpty()) {
                 stages.beginName();nameLookupPending=true;val titleStarted=System.nanoTime()
                 CardRepository.get(this).matchLocalOcrText(titles) { name ->
+                    namesMs=(System.nanoTime()-titleStarted)/1000000
                     nameLookupPending=false;EdScanPerf.record("triple.titleMatch",System.nanoTime()-titleStarted)
                     trace.event("triple.titleResolved ms=${(System.nanoTime()-titleStarted)/1000000} captureAgeMs=${SystemClock.elapsedRealtime()-sampleAt} matched=${name!=null}")
                     if(valid(token,key) && sampleAt>=arbiter.sceneAt && sequence==ocrSequence && SystemClock.elapsedRealtime()-sampleAt<=2500) {
                         observedName=name?.canonicalName
-                        name?.let { proposeOcrName(it.canonicalName,sampleAt)
-                            applyTitleLanguage(it.canonicalName,titles,token,currentEncounter,it.displayName,it.language)
+                        name?.let {
+                            if(!proposeOcrName(it.canonicalName,sampleAt)) return@let
+                            matchedEvent=currentEncounter
+                            snapshotLanguage.identify(it.canonicalName,currentEncounter)
+                            applyTitleLanguage(it.canonicalName,titles,token,currentEncounter,it.displayName,it.language,sampleAt,languagePhoto)
                             if(reviewPhoto!=null) galleryEntries[currentEncounter.toString()]?.takeIf { row -> TripleScanPolicy.agrees(row.target.name,it.canonicalName) && row.photo==null }?.let { row->row.photo=reviewPhoto;saveEntry(row) }
                         }
                         if(candidate?.id==key) renderResult()
@@ -1292,19 +1350,12 @@ class TripleScanActivity:AppCompatActivity() {
                     val decision=TripleLanguageFusion.decide(rules,
                         TripleScanPolicy.language(language.languageCode,language.confidence),title)
                     runOnUiThread {
+                        languageMs=(System.nanoTime()-langStart)/1000000
                         EdScanPerf.record("triple.language",System.nanoTime()-langStart)
-                        if(valid(token,key) && sampleAt>=arbiter.sceneAt && sequence==ocrSequence) {
-                            val entry=galleryEntries[currentEncounter.toString()]
-                            languageConflict=languageConflict || decision.conflict || TriplePrintingLanguagePolicy.conflicts(printingLanguage,decision.code)
-                            if(entry?.manualLanguage!=true && entry?.languageOrigin!="title") {
-                                val confirmed=if(decision.source=="exactTitle" && decision.code!=null) {
-                                    languageConsensus.confirmExactTitle(currentEncounter.toString(),decision.code);decision.code
-                                } else languageConsensus.observe(currentEncounter.toString(),decision.code)
-                                if(confirmed!=null) {
-                                    observedLanguage=confirmed
-                                    candidate?.takeIf { it.id==key }?.let { rememberLanguage(it,confirmed,if(decision.source=="exactTitle") "title" else "rules") }
-                                }
-                            }
+                        // Keep the result if the slower name lookup has not returned yet.
+                        // It may only be delivered with this capture's accepted identity.
+                        snapshotLanguage.language(decision)
+                        if((valid(token,key) && sequence==ocrSequence || matchedEvent==currentEncounter) && sampleAt>=arbiter.sceneAt) {
                             trace.event("triple.languageEvidence source=${decision.source} proposed=${decision.code ?: "und"} confirmed=${observedLanguage ?: "und"} conflict=${decision.conflict} titleCandidates=${title.candidates.sorted().joinToString(",")} confidence=${language.confidence} letters=${rules.count(Char::isLetter)} snapshot=true")
                             if(candidate?.id==key) renderResult()
                             else if(key=="ocr" && observedName!=null) result.text=getString(R.string.triple_ocr_only,observedName!!,observedLanguage ?: "?")
@@ -1313,7 +1364,7 @@ class TripleScanActivity:AppCompatActivity() {
                     }
                 }
             }
-        }.addOnFailureListener { bitmap.recycle();android.util.Log.w("EdScanPerf","Triple OCR failed",it);stages.endModels() }
+        }.addOnFailureListener { modelsMs=SystemClock.elapsedRealtime()-laneStarted;bitmap.recycle();android.util.Log.w("EdScanPerf","Triple OCR failed",it);stages.endModels() }
         busy.set(false)
     }
     private var guideLookupPending=false
@@ -1350,13 +1401,13 @@ class TripleScanActivity:AppCompatActivity() {
                     if(!valid()) { finish();return@matchLocalOcrText }
                     if(name==null) noMatch() else {
                         preview.showGuidedName(name.displayName)
-                        proposeOcrName(name.canonicalName,sampleAt)
+                        if(!proposeOcrName(name.canonicalName,sampleAt)) { finish();return@matchLocalOcrText }
                         if(photo!=null) galleryEntries[currentEncounter.toString()]?.takeIf { TripleScanPolicy.agrees(it.target.name,name.canonicalName) && it.photo==null }?.let { it.photo=photo;saveEntry(it) }
                         candidate?.takeIf { it.printing.isBlank() }?.let { current ->
                             val localized=current.copy(label=name.displayName)
                             candidate=localized;upsertGallery(localized);renderResult()
                         }
-                        applyTitleLanguage(name.canonicalName,lines,token,currentEncounter,name.displayName,name.language)
+                        applyTitleLanguage(name.canonicalName,lines,token,currentEncounter,name.displayName,name.language,sampleAt,photo)
                         trace.event("triple.ocrIdentityReady ms=${SystemClock.elapsedRealtime()-started} event=$currentEncounter latinOnly=$latinOnly")
                         finish()
                     }

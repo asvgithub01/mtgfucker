@@ -1,5 +1,8 @@
 # Laboratorio Triple AR
 
+**Estado actual: v14, ver la sección final.** Las primeras secciones son historial
+de fases anteriores; sus notas «no guarda» ya no describen la aplicación actual.
+
 Entrada independiente `Triple AR · Opciones`. No modifica el escáner AR anterior ni
 sus preferencias. **Esta fase reconoce y muestra candidatos: no añade cartas a la colección.**
 La tira horizontal muestra hasta20 resultados de esta pantalla, no copias guardadas.
@@ -464,3 +467,46 @@ OCR/AR pueden confirmar independientemente. La corroboración no es obligatoria.
   variantes, foil/reflejos, alternancia, retirada/reintroducción y giros.
 - Evidencias locales: `build/triple-v13-audit/`, incluida copia de los archivos
   afectados antes del cambio para separar modificaciones previas sin commit.
+
+## v14 — Seguridad AR e idiomas tras auditoría Sony del 14/10/2026
+
+- Solo cambia Triple; no modifica los escáneres OCR original, Rules, Hash ni
+  `EdScannerAr*`, ni migra/repara automáticamente colecciones anteriores.
+- En modo combinado, seguimiento AR repetido no autoriza por sí solo un encuentro
+  nuevo o una nueva escena. Requiere evidencia independiente fresca. AR sin
+  corroborar tampoco veta un título OCR estable. Las referencias provisionales
+  aprendidas no se convierten en una segunda prueba independiente por reaparecer.
+- La observación AR de una impresión distinta no reemplaza la impresión de la
+  fila actual en modo combinado. EdScan/OCR siguen resolviendo según sus políticas.
+- AR solo sigue funcionando con su estabilidad anterior: sin otro motor no hay
+  corroboración independiente; esta revisión no garantiza eliminar sus falsos
+  positivos. No se alteran los umbrales de EdScan ni la política adaptativa sombra.
+- Idioma desconocido se completa en la misma fila. Uno físico conocido diferente
+  requiere dos capturas de título único (o tres de reglas ligadas al título de esa
+  captura), separadas al menos600ms, frescas y con hueco máximo6s. La foto nueva es
+  obligatoria para separar; una lectura aislada/no alineada/caducada no sobrescribe.
+- La nueva copia tiene ID/foto propios y cantidad1, conserva el acabado elegido,
+  no hereda edición manual y deja impresión provisional. La anterior conserva
+  cantidad, idioma, edición y foto. La barrera de captura invalida callbacks viejos.
+- Idioma manual o inferencia de impresión contradictoria se conserva y marca
+  conflicto. `physicalLanguage`/`languageConflict` en metadata separan evidencia
+  nueva del idioma guardado. El OCR con idioma fijo mantiene el comportamiento
+  anterior de clasificación omitida; su evidencia posterior de revisión sigue
+  disponible, no se promete detección live de todo conflicto manual.
+- Los callbacks de título verifican generación, encuentro, escena y edad. Las
+  reglas no pueden atribuir idioma al target AR previo sin reconocer el mismo
+  nombre en esa captura. No se usa la foto antigua para la copia del idioma nuevo.
+  `TripleSnapshotLanguageGate` conserva idioma temprano hasta el nombre de esa
+  captura y entrega una sola vez; no bloquea otro motor esperando un nombre caducado.
+- Regresiones sintéticas de Witch Hunter/Abu Ja'far/Paladino, Cloak/Cuombajj,
+  Roaming Throne/Ornithopter y Will-o'-the-Wisp EN→IT; siete modos, callbacks
+  repetidos, caducidad, ausencia y conservación de fotos/cantidades/manuales.
+- Prueba Activity `TripleSonySafetyIntegrationTest`: requiere emulador, usa
+  `triple_diagnostic_only`, verifica hashes de bibliotecas sin cambios. No usar
+  los tests históricos con inventario real como smoke test del Sony.
+- Logs debug nuevos: `triple.ocrLane`, `triple.languageCopy`, `ocrBusy` y
+  `traceDropped` en heartbeat; fotografía extra medida en `triple.languagePhoto`.
+  Sin nombres/textos OCR en logs. Sin cambios de cadencia, TTL, score o margen.
+- Análisis en profundidad y comandos reproducibles: `TRIPLE_SCANNER_PERFORMANCE.md`.
+  Pendiente validación física del cambio de cartas e idiomas con la APK nueva;
+  las pruebas de regresión no miden precisión de cámara ni mejoras de velocidad.

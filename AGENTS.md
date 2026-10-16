@@ -416,6 +416,23 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   contraste global por identidad/cobertura y validación física. Ver sección v13 de
   `TRIPLE_SCANNER.md` y pruebas `TripleFreshFrameRegressionTest`/`TripleAdaptiveVisualPolicyTest`.
 
+- Triple v14: con OCR o arte habilitados, AR requiere corroboración independiente
+  fresca para abrir un encuentro/escena y no veta por sí solo un OCR estable.
+  AR-only conserva su política anterior (no promete eliminar sus falsos positivos).
+  `TripleLanguageCopyPolicy` completa desconocidos, conserva manual/inferencia
+  contradictoria y separa idiomas físicos conocidos tras capturas independientes
+  del mismo título, con foto nueva; nunca sobrescribir la copia anterior. La nueva
+  impresión queda provisional, sin heredar edición manual ni cantidades.
+  `TripleSnapshotLanguageGate` une nombre/reglas de la misma captura aunque el
+  diccionario responda después; no perder reglas ES/PT tempranas. Pruebas
+  `TripleSonySafetyRegressionTest`, `TripleLanguageCopyPolicyTest` y
+  `TripleSonySafetyIntegrationTest` (solo emulador, sin inventario).
+  `TRIPLE_SCANNER_PERFORMANCE.md` documenta el baseline y propuestas, no optimizaciones
+  aplicadas. `scripts/analyze_triple_pipeline.py` analiza trazas privadas sin importar
+  fotos/colecciones al repositorio; `triple.ocrLane` incluye caducados y `traceDropped`
+  avisa de pérdida de logs. No sumar percentiles ni tratar intervalos entre cartas
+  como latencia de reconocimiento.
+
 ## Prioridad de proveedores e histórico
 
 - `PriceSourcePreferences.priorityIds` devuelve todas las fuentes en orden; `selectedId` es solo la primera, no una restricción exclusiva. Tocar una fuente la sube al primer puesto y arrastrar reordena. Usar la primera cotización válida para el mismo UUID/acabado, no la más barata ni otro acabado. `SelectedPrices` cachea por orden completo y conserva el proveedor real; `PriceCurrency` no reetiqueta importes legacy. `PriceSourcePresentation` muestra origen y destaca fallback.

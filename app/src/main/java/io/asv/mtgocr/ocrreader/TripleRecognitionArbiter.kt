@@ -28,6 +28,12 @@ internal class TripleRecognitionArbiter {
         resetPending();identity=id;authority=source;newScene=false;afterAbsence=false;committedAt=null
     }
 
+    /** Explicit user action arms a NEW row, even for the same identity; old captures cannot vote. */
+    fun beginManualScan(now:Long) {
+        identity="";committedAt=null;committedSampleAt=0
+        resetPending();startScene(now)
+    }
+
     fun resetPending() { evidence.clear();authority="";newScene=identity.isBlank();afterAbsence=false;missingSince=null;missingFrames=0;reference=null;changed=null;changedFrames=0 }
     fun present() { missingSince=null;missingFrames=0 }
     fun missing(now: Long) {

@@ -70,11 +70,31 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             return NativeCollectorVisionEngine(directory,true)
         }
     }
+    private var fastIndex:FastRegionIndex?=null
+    private var identitySearch:IdentitySearch?=null
+    private var fastRegion=FastRegion.FULL
+    private var regionVectors:ShortArray?=null
+    private val cachedRegions=mutableMapOf<FastRegion,ShortArray>()
+    /** Explicit opt-in. Existing scanners never call this and retain their original search. */
+    @Synchronized fun configureFast(index:FastRegionIndex,region:FastRegion=FastRegion.FULL) {
+        check(!closed)
+        if(fastIndex!==index) {
+            require(index.rows.map { it.id }==ids) { "Fast index row alignment" }
+            fastIndex=index;identitySearch=IdentitySearch(ids,index.identities)
+            cachedRegions.clear();regionVectors=null;fastRegion=FastRegion.FULL
+        }
+        if(region!=fastRegion) {
+            if(region!=FastRegion.FULL) {
+                regionVectors=cachedRegions.getOrPut(region) { index.vectors(region) }
+            }
+            fastRegion=region
+        }
+    }
     private var scope: Set<String>? = null
     private var searchRows: IntArray? = null
     private var searchNanos=0L
     @Synchronized
-    fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null): ScanResult {
+    fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null, fastCropOnly:Boolean=false): ScanResult {
         check(!closed)
         if(scope !== allowedIds) {
             scope=allowedIds
@@ -89,6 +109,9 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         searchNanos=0L
         val crop=EdScanPerf.measure("engine.warp") { warp(bitmap,corners) }
         var photoRotated = false
+        if(fastRegion!=FastRegion.FULL) {
+            try { return scanRegions(crop,detection,recStart,fastCropOnly) } finally { crop.recycle() }
+        }
         val hits=try {
             val normal=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.normal") { run(embedder,crop,448,listOf("embedding")) }[0]))
             // Shortest-edge canonicalization can reverse the card. Test both orientations.
@@ -97,7 +120,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             try {
                 val upsideDown=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.rotated") { run(embedder,rotated,448,listOf("embedding")) }[0]))
                 photoRotated = CollectorVisionMath.prefersRotated(normal, upsideDown)
-                (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
+                identitySearch?.merge(normal+upsideDown) ?: (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
                     .sortedByDescending { it.score }.take(8)
             } finally { if (rotated !== crop) rotated.recycle() }
         } finally { crop.recycle() }
@@ -158,6 +181,17 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     }
     private fun searchUntimed(query: FloatArray): List<Hit> {
         require(query.size==128)
+        identitySearch?.let { ranking ->
+            val scores=FloatArray(ids.size) { Float.NEGATIVE_INFINITY }
+            val selected=searchRows
+            for(index in 0 until (selected?.size ?: ids.size)) {
+                val row=selected?.get(index) ?: index
+                var sum=0f;val offset=row*128
+                for(col in 0 until 128) sum+=halfLookup[catalog[offset+col].toInt() and 65535]*query[col]
+                scores[row]=sum
+            }
+            return ranking.select(scores)
+        }
         val bestScores=FloatArray(8) { Float.NEGATIVE_INFINITY }; val bestIds=IntArray(8) { -1 }
         val selected=searchRows
         for (index in 0 until (selected?.size ?: ids.size)) {
@@ -171,8 +205,63 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         }
         return bestIds.indices.filter { bestIds[it]>=0 }.map { Hit(ids[bestIds[it]],bestScores[it]) }
     }
+    private data class Lane(val hits:List<Hit>,val rotated:Boolean)
+    private fun scanRegions(crop:Bitmap,detection:ScanResult,start:Long,cropOnly:Boolean):ScanResult {
+        val ranking=requireNotNull(identitySearch)
+        val index=requireNotNull(fastIndex)
+        fun searchLane(query:FloatArray,full:Boolean):List<Hit> {
+            val t=System.nanoTime()
+            try {
+                val vectors=if(full) catalog else requireNotNull(regionVectors)
+                val scores=FloatArray(ids.size) { Float.NEGATIVE_INFINITY }
+                val selected=searchRows
+                for(i in 0 until (selected?.size ?: ids.size)) {
+                    val row=selected?.get(i) ?: i
+                    if(index.rows[row].full!=full) continue
+                    var sum=0f;val offset=row*128
+                    for(c in 0 until 128) sum+=halfLookup[vectors[offset+c].toInt() and 65535]*query[c]
+                    scores[row]=sum
+                }
+                return ranking.select(scores)
+            } finally { searchNanos+=System.nanoTime()-t }
+        }
+        fun lane(full:Boolean):Lane {
+            fun orientation(rotated:Boolean):List<Hit> {
+                val oriented=if(rotated) Bitmap.createBitmap(crop,0,0,crop.width,crop.height,
+                    android.graphics.Matrix().apply { postRotate(180f) },true) else crop
+                val roi=if(full) FastRegion.FULL.roi else fastRegion.roi
+                val left=Math.round(roi[0]*oriented.width).toInt();val top=Math.round(roi[1]*oriented.height).toInt()
+                val right=Math.round(roi[2]*oriented.width).toInt();val bottom=Math.round(roi[3]*oriented.height).toInt()
+                val region=Bitmap.createBitmap(oriented,left,top,right-left,bottom-top)
+                try { return searchLane(CollectorVisionMath.normalize(run(embedder,region,448,listOf("embedding"))[0]),full) }
+                finally { if(region!==oriented) region.recycle();if(oriented!==crop) oriented.recycle() }
+            }
+            val normal=orientation(false);val rotated=orientation(true)
+            return Lane(ranking.merge(normal+rotated),CollectorVisionMath.prefersRotated(normal,rotated))
+        }
+        val fullStart=SystemClock.elapsedRealtime()
+        val full=if(cropOnly) Lane(emptyList(),false) else lane(true)
+        val cropStart=SystemClock.elapsedRealtime()
+        val region=lane(false)
+        val cropMs=SystemClock.elapsedRealtime()-cropStart
+        val fullStrong=ranking.strong(full.hits);val regionStrong=ranking.strong(region.hits)
+        // Scores from different crops are NOT calibrated to each other. Conflicts fail closed.
+        val fullSeparated=full.hits.firstOrNull()?.let { top ->
+            ranking.rival(full.hits)?.let { top.score-it.score>=.08f }
+        } == true
+        // Display a separated whole-card hypothesis instead of unrelated weak crop names.
+        // This is NOT acceptance: original score/margin and consecutive-read checks still apply.
+        val choice=FastLaneChoice.choose(fullStrong,regionStrong,ranking.sameIdentity(full.hits,region.hits),fullSeparated)
+        val conflict=choice.conflict
+        val chosen=if(choice.full) full else region
+        val diagnostic="fullTop=${full.hits.firstOrNull()} fullRival=${ranking.rival(full.hits)} fullMs=${cropStart-fullStart} cropTop=${region.hits.firstOrNull()} cropRival=${ranking.rival(region.hits)} cropMs=$cropMs strong=$fullStrong/$regionStrong conflict=$conflict"
+        return ScanResult(CollectorVisionMath.photoCorners(detection.corners,chosen.rotated),true,detection.sharpness,
+            if(conflict) emptyList() else chosen.hits,detection.detectionMs,SystemClock.elapsedRealtime()-start,
+            if(chosen.rotated) 180 else 0,searchNanos/1000000,searchRows?.size ?: ids.size,
+            regionConflict=conflict,regionDiagnostics=diagnostic,comparisonRegion=if(choice.full) "full" else fastRegion.key)
+    }
     @Synchronized override fun close() {
-        if (!closed) { closed=true; detector.close(); embedder.close() }
+        if (!closed) { closed=true; detector.close(); embedder.close();cachedRegions.clear();regionVectors=null }
         // OrtEnvironment is process-shared; do not close it here.
     }
 }

@@ -1,0 +1,8 @@
+<resources>
+    <string name="postprocess_title">Post-elaborazione · Premium</string>
+    <string name="postprocess_readonly">Dati salvati per questa copia. Sola lettura: nessuna nuova analisi o modifica della collezione. I risultati precedenti possono differire dalla selezione attuale.</string>
+    <string name="postprocess_loading">Caricamento dati…</string>
+    <string name="postprocess_empty">Nessun dato di post-elaborazione salvato per questa copia.</string>
+    <string name="postprocess_error">Impossibile leggere i dati di post-elaborazione.</string>
+    <string name="postprocess_document">Documento di post-elaborazione</string>
+</resources>

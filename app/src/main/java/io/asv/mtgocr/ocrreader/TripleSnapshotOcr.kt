@@ -29,7 +29,14 @@ internal class TripleSnapshotOcr {
         }
     }
     fun process(image:InputImage,language:String?=null):Task<Text> {
-        val readings=mutableListOf<Text>()
+        return processAll(image,language).continueWith { task ->
+            task.result.maxByOrNull { TripleLanguageEvidence.scriptScore(it.text.text) }?.text
+                ?: throw IllegalStateException("No OCR model completed")
+        }
+    }
+    data class Reading(val model:String,val text:Text)
+    fun processAll(image:InputImage,language:String?=null):Task<List<Reading>> {
+        val readings=mutableListOf<Reading>()
         var chain:Task<Void> = Tasks.forResult<Void>(null)
         val selected=TripleLanguageScope.model(language)
         for((name,model) in models.filter { selected==null || it.first==selected }) chain=chain.continueWithTask {
@@ -37,13 +44,13 @@ internal class TripleSnapshotOcr {
             model.process(image).continueWith { result ->
                 EdScanPerf.record("triple.snapshot.$name",System.nanoTime()-started)
                 diagnostics("triple.methodSample method=ocr model=$name ms=${(System.nanoTime()-started)/1000000} success=${result.isSuccessful}")
-                if(result.isSuccessful) readings.add(result.result)
+                if(result.isSuccessful) readings.add(Reading(name,result.result))
                 null
             }
         }
         return chain.continueWith {
-            readings.maxByOrNull { TripleLanguageEvidence.scriptScore(it.text) }
-                ?: throw IllegalStateException("No OCR model completed")
+            check(readings.isNotEmpty()) { "No OCR model completed" }
+            readings.toList()
         }
     }
     fun close() { models.forEach { it.second.close() } }

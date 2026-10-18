@@ -17,7 +17,9 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class EdScanFastPersistenceTest {
-    @Test fun newRowsStayProvisionalUnknownAndRetriesKeepSameOwnedId() {
+    @Test fun newRowsStayProvisionalUnknownAndRetriesKeepSameOwnedId() = checkProvisional("edfast","EdScan Fast")
+    @Test fun tripleIdentityConfirmedRowsKeepEditionAndLanguagePending() = checkProvisional("triple","Triple")
+    private fun checkProvisional(scanner:String,group:String) {
         check(Build.FINGERPRINT.contains("generic") || Build.MODEL.contains("sdk")) { "Emulator only" }
         val test=InstrumentationRegistry.getInstrumentation();val real=test.targetContext
         val before=LegacyCollectionStore.cards(real).map { it.collectionItemId to it.quantity }
@@ -35,7 +37,7 @@ class EdScanFastPersistenceTest {
             val ref=JSONObject(test.context.assets.open("triple-card.json").bufferedReader().use { it.readText() }).getJSONArray("references").getJSONObject(0)
             val target=TripleScanActivity.Target(ref.getString("scryfallId"),ref.getString("printing"),ref.getString("label").substringBefore(" · "),
                 ref.getString("setCode"),ref.getString("label"),ref.getString("image"),ref.getString("finish"),"EdScan",true)
-            val session=TripleCollectionSession(context,{},"edfast","EdScan Fast")
+            val session=TripleCollectionSession(context,{},scanner,group)
             val state=TripleCollectionSession.State(1,target,null,target.finish,1,
                 test.context.assets.open("triple-card.jpg").use { it.readBytes() },false,java.util.UUID.randomUUID().toString())
             fun submit(s:TripleCollectionSession.State):io.asv.mtgocr.ocrreader.model.CardInfo {
@@ -45,13 +47,13 @@ class EdScanFastPersistenceTest {
             }
             val first=submit(state)
             assertEquals("",first.languageCode);assertTrue(first.isProvisionalEdition)
-            assertTrue(first.groups.any { it.startsWith("EdScan Fast ") })
+            assertTrue(first.groups.any { it.startsWith("$group ") })
             assertEquals(first.collectionItemId,submit(state).collectionItemId)
             val next=submit(state.copy(event=2,photoKey=java.util.UUID.randomUUID().toString()))
             assertNotEquals(first.collectionItemId,next.collectionItemId)
             assertEquals(2,LegacyCollectionStore.cards(context).size)
             val meta=JSONObject(File(folder,"edscan/${state.photoKey}.json").readText())
-            assertEquals("edfast",meta.getString("scanner"));assertEquals("ocr",meta.getString("source"))
+            assertEquals(scanner,meta.getString("scanner"));assertEquals("ocr",meta.getString("source"))
             assertEquals("pending",meta.getString("languageStatus"));assertTrue(meta.getBoolean("provisional"))
             assertEquals(before,LegacyCollectionStore.cards(real).map { it.collectionItemId to it.quantity })
         } finally {

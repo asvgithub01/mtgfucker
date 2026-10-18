@@ -48,6 +48,27 @@ class EdScanFastIntegrationTest {
             test.uiAutomation.takeScreenshot()?.let { bitmap ->
                 File(context.cacheDir,"edfast-screen.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
             }
+            scene.onActivity { a ->
+                val root=a.findViewById<android.view.ViewGroup>(android.R.id.content)
+                val button=root.findViewWithTag<android.widget.Button>("edfast_region")
+                assertTrue("Complete index must enable experimental selector",button.isEnabled)
+                assertEquals(a.getString(R.string.edfast_region_auto),button.text.toString())
+            }
+            for(mode in listOf(io.asv.collectorvision.FastRegion.UPPER,io.asv.collectorvision.FastRegion.ART,io.asv.collectorvision.FastRegion.FULL)) {
+                var beforeFrames=0
+                scene.onActivity { a ->
+                    beforeFrames=EdScanFastActivity::class.java.getDeclaredField("analyzedFrames").apply { isAccessible=true }.getInt(a)
+                    EdScanFastActivity::class.java.getDeclaredMethod("selectRegion",io.asv.collectorvision.FastRegion::class.java)
+                        .apply { isAccessible=true }.invoke(a,mode)
+                }
+                val deadline=android.os.SystemClock.elapsedRealtime()+30000
+                var afterFrames=beforeFrames
+                while(afterFrames<=beforeFrames && android.os.SystemClock.elapsedRealtime()<deadline) {
+                    Thread.sleep(200)
+                    scene.onActivity { a -> afterFrames=EdScanFastActivity::class.java.getDeclaredField("analyzedFrames").apply { isAccessible=true }.getInt(a) }
+                }
+                assertTrue("Changing crop must not invalidate camera analyzer token",afterFrames>beforeFrames)
+            }
             scene.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
             scene.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
             Thread.sleep(1000)

@@ -9,7 +9,8 @@ data class Corner(val x: Float, val y: Float)
 data class Hit(val cardId: String, val score: Float)
 data class ScanResult(val corners: List<Corner>, val present: Boolean, val sharpness: Float,
     val hits: List<Hit>, val detectionMs: Long, val recognitionMs: Long, val photoRotation: Int = 0,
-    val searchMs: Long = 0, val searchedRows: Int = 0)
+    val searchMs: Long = 0, val searchedRows: Int = 0,
+    val regionConflict:Boolean=false,val regionDiagnostics:String="",val comparisonRegion:String="full")
 
 internal object CollectorVisionMath {
     fun photoCorners(corners: List<Corner>, rotated: Boolean): List<Corner> =

@@ -340,3 +340,342 @@ Sin envío remoto de fotos. Preferencias de otros scanners intactas.
    cambiar modelo exige revalidar embeddings/catálogo, no solo bajarlatencia.
 
 No se rebajaron umbrales ni se cambiaron modelos para aparentar una mejora.
+
+
+## Fast v2 — identidad y experimento de regiones (16 octubre 2026)
+
+Cambios exclusivos de EdScanFastActivity: EdScanFastIdentity agrupa por nombre canónico
+exacto (el esquema local no expone oracleId). Conserva .70/.08 y dos lecturas; otra
+impresión de la misma identidad no reinicia la racha. Score de grupo = máximo, nunca suma.
+Desconocidos compiten; ausencia de rival en top8 no se interpreta como margen infinito.
+Metadata local se consulta en lote y se cachea (512); misses se reintentan cada2frames.
+El lookup visual asíncrono puede calentar su caché de disco, sin bloquear cámara con red.
+El callback de aceptación vuelve a contrastar nombre, generación, captura y frescura.
+
+Referencia provisional: entre impresiones observadas de la identidad ganadora dentro
+ de .08 del máximo, ordenar no-PLST, fecha más reciente, precio del acabado más barato
+ convertido a moneda común, ID. Sin precio va al final dentro de la misma fecha, no es
+ gratis. Esta preferencia nunca sustituye a la identidad ganadora ni modifica su score.
+No se resuelve idioma físico ni se cambia una fila preexistente.
+
+Resolución: sustituida petición orientativa1280x960 por ResolutionSelector compartido
+entre Preview/Analysis, ratio4:3 y filtro lado mayor<=1280; si no existe, menor tamaño
+admitido. Dimensión efectiva en edfast.frame. Emulador entrega480x640; no afirmar aún
+que el Sony negocie1280x960. Solo el Sony puede validar rendimiento y negociación reales.
+
+Validación: replay real ONNX de las5fotos privadas a2160 y1280, sobre catálogo global:
+Brontodon confirma .708/.704 y referenciaXLN; vacía no detecta; FrozenShade, Mummy y
+HeartKiran siguen sin confirmar por score. Los scores difieren ligeramente del frame
+original por JPEG/reprocesamiento. Repetir una foto prueba la política, no estabilidad
+física de dos capturas nuevas. Regresión de Cuombajj usa los scores registrados.
+
+Experimento separado `scripts/evaluate_edfast_regions.py`: corpus44referencias y4fotos,
+MiloCPU fijo448. Cada perfil regenera embeddings tanto de referencia como de consulta.
+
+| Foto | Carta completa | Superior58% | Ilustración (.08,.15,.92,.55) |
+|---|---|---|---|
+| Frozen Shade KO | .544 | .775 | .819 |
+| Cyclopean Mummy KO | Clue .455 | Mummy .717 | Mummy .904 |
+| Heart of Kiran | .644 | .787 | .765 |
+| Belligerent Brontodon | .702 | .818 | .813 |
+
+Resultados exploratorios, NO precisión global:44referencias no equivalen a110278.
+Mantener separado de autoalta hasta construir/verificar índice global ROI y evaluar
+negativos, idiomas, marcos antiguos, full-art, split/adventure y cartas boca abajo.
+La parte superior aún contiene título/idioma; ilustración elimina más texto. Misma
+entrada448 significa igual coste teórico del modelo: el recorte por sí solo no acelera
+ONNX. Medidas de escritorio no extrapolables al Sony. No cambiado motor compartido,
+modelos, índice de producción ni umbrales globales. Fotos/resultados privados fuera Git.
+
+
+## Auditoría física Fast v2 — Sony 16 octubre, 12:50–13:04
+
+Extracción solo lectura;843frames,61altas/61guardados,56identidades frente a35altas/
+32identidades del primer rápido. Revisadas61fotosaceptadas y18diagnósticosnuevos;
+158archivosfoto/metadatos coincidenSHA256 conSony. No es benchmarkcontrolado ni
+porcentaje de acierto: no hay groundtruth completo de cada intento físico.
+
+Todos los frames son720x960(vertical), no1280x960 ni2160cuadrado. Medianas/p95 ms:
+visual789/839,decode27/31,detect188/222,feature503/520,search71/72,
+identity37/51. Visual+identity por muestra827/878 (NO suma depercentiles), frente
+avisual897/973v1;cadencia999/1063 vs1069/1146. Sinerrors/stale/thermal;gapmáximo1544ms.
+Accept→save430/510ms,max714. Racha de identidad de los aceptados1857/9685ms,max16950:
+no mide entrada física; ahora incluye éxitos difíciles antes nunca aceptados.
+
+Cuombajj ya confirma (8framesconfirmed,dosaltas con fotoscorrectas);tambiénAbuJa'far,
+HellkiteIgniter yUnyaroGriffin. LordofthePit no confirma:16no_runner,top8mismacarta.
+Es un límite del topK truncado: ampliar búsqueda hasta un rival distinto; NO inventar
+rival con score0 ni bajar margen.20no_candidate por identidad top no disponible,
+4margin y392score. Metadatacache aún consume37msmediana; revisar misses recurrentes.
+
+Brontodon no confirma ahora:74top1,71score y3readings aislados,max.70396. Su nueva
+foto contiene la carta a~284x421px frente a~942x1361previos. Cambiaron resolución y
+encuadre/luz, no atribuir caída exclusivamente a uno. FaerieMiscreant foto.4806 y
+HeartKiran.6033 tampoco. Mummy top1en25frames,max.52788;fotosKO ychino tradicional
+(獨眼木乃伊), no fotoJP verificada. No confundir fallosprovisionales de candidato con
+falsasaltas. No nuevasasociaciones falsas evidentes en fotosdeWitchHunter/Paladin/Ornithopter.
+
+### Piloto híbrido offline, no activo en Android
+
+`evaluate_edfast_regions.py --hybrid --index-dir ...` prepara arte normal y full-card
+para full_art=true. Split/transform/adventure/art-series/showcase/borderless ymetadata
+incompleta conservan full hasta validar una ROI específica. Evalúa ambas consultas en
+0/180 grados porque no conoce diseño antes de identificar. No usa groundtruth para
+elegir carril;no compara scores crudos entre carriles. Hipótesis fuertes contradictorias
+se marcanconflict;ninguna salida autoriza altas. Misma red448 ydobleconsulta pueden
+costar más,no prometeraceleración.
+
+Corpus110referencias(100art/10full),22fotosdiagnósticas(4previas+18nuevas),61fotosaceptadas,
+una foto realSwampJPfull-art anterior y uncontrolsyntheticfullart separado. No se ha
+generado índiceglobal110278 ni añadido flagAndroid. Datos eíndices fueraGit;binariosf16
+conSHA256/modelSHA/provenance. Comando preparado admite manifiesto mayor,pero requiere
+cobertura/descarga/validación completas antes de uso real. TestsPython5 cubrenROI,
+enrutadofallback,marginporidentidad yconflictosentreperfiles.
+
+
+Resultados piloto híbrido (110referencias, no catálogo global):en22diagnósticos reales,
+full logra17top1correctos/3hipótesisfuertes;upper22/22fuertes;art22top1/21fuertes;
+híbrido20hipótesisfuertescorrectas y2débiles. Las dos débiles sonHeartKiranactual
+(art.684) yBartoloméshowcase(full.569). No falsas hipótesisfuertes en este corpus,
+pero competidores limitados hacen optimista el margen.61altasreales:híbrido58fuertes
+correctas/3débiles. SwampJPfullartreal conservafull yacierta.856. Controlautoreferencia
+fullart separado, no sumarlo a precisión. MummyKOart.908/.912/.910 yCH.884/.879.
+El piloto no habilita guardado ni modifica umbrales o APK instalados. Falta generar
+índiceglobal y comprobar negativos/diseños/latenciamóvil antes de activar flag.
+
+
+## Fast v3: rival global e índice completo de regiones (16-10-2026)
+
+- `IdentitySearch` recorre las 110278 filas por identidad: ocho impresiones repetidas
+  ya no ocultan al rival real. Solo `EdScanFastActivity` activa esta ruta; los motores
+  de los otros escáneres mantienen su comportamiento. Umbrales .70/.08 y dos lecturas.
+- Selector experimental FULL (por defecto en cada apertura), UPPER (0,0,1,.58,
+  título/coste/ilustración sin reglas, como la imagen del usuario), ART (.08,.15,.92,.55).
+  Las 34796 referencias full-art/especiales/desconocidas conservan carta completa;
+  75482 referencias normales tienen ambos recortes reconstruidos simétricamente.
+- Se empaquetan ambos índices float16 completos (28231168 bytes cada uno), metadata,
+  SHA/modelo/ROI/versión. La alineación es base + FRA + collector; comprobar solo el
+  conjunto de IDs no basta. El primer test UI detectó y permitió corregir ese orden.
+- El carril full y el recortado compiten internamente por identidad; no comparar sus
+  scores crudos entre sí. Si ambos son fuertes y discrepan, no se confirma. Cambiar
+  de modo invalida callbacks antiguos y reinicia estabilidad, sin rearmar la copia física.
+- `edfast.frame` registra perfil, score/rival y tiempo por carril, resolución, feature,
+  búsqueda y metadatos. Cuatro inferencias con recorte frente a dos con FULL: la
+  mejora buscada es necesitar menos intentos, no prometer menos coste por frame.
+
+### Replay offline global, no aceptación en vivo
+
+84 fotos reales (22 diagnósticos +61 fotos de altas revisadas +1 full-art japonesa).
+Se excluye el control sintético. Cada foto se enfrenta a las 110278 referencias.
+Una hipótesis fuerte cumple .70/.08; esto no simula dos capturas temporales distintas.
+
+| Comparación | Fuertes correctas /84 | Débiles /84 | Fuertes incorrectas |
+|---|---:|---:|---:|
+| FULL anterior top8 | 56 | 28 | 0 |
+| FULL con rival global | 61 | 23 | 0 |
+| UPPER + full-art completas | 81 | 3 | 0 |
+| ART + full-art completas | 79 | 5 | 0 |
+
+- Sobre los 22 diagnósticos: 2, 3, 21 y20 fuertes correctas respectivamente.
+- Mummy coreana: FULL .528 (ganaba Urborg Skeleton), UPPER .869, ART .908.
+  Mummy china tradicional: .474 / .849 / .884. No etiquetar esas fotos como japonesas.
+- Lord of the Pit: FULL .764 y margen global .275; antes faltaba rival entre top8.
+- UPPER sigue débil en Bartolomé showcase, Charging Monstrosaur (.699, no se redondea
+  para aceptar) y Eidolon of Blossoms. ART además falla el umbral/margen en una foto
+  de Heart of Kiran y otra de Burning Sun's Avatar. No bajar los mínimos para esos casos.
+- Swamp full-art japonesa mantiene evidencia completa y fuerte. En replay Android,
+  la foto ya rectificada necesita un borde neutro añadido para probar Cornelius;
+  documentar esa variante como aumentada, no como captura original de cámara.
+
+Son casos seleccionados de estrés, útiles para elegir UPPER como primera prueba,
+no una estimación de precisión para todas las cartas ni de tiempos del Sony.
+Resultados privados: build/edfast-global/global-results.json. No se ha instalado
+esta versión ni se ha escrito ningún dato de colección en el Sony en esta tarea.
+
+
+Validación final: 730 tests JVM app +57 nativos, 5 Python y5 instrumentados en
+emulator-5554 pasan. Replay Android: 5 fotos ×3 perfiles, incluyendo ambas momias,
+Lord of the Pit, Brontodon y Swamp full-art con borde aumentado; Swamp conserva
+exactamente .79490286 y el mismo rival en FULL/UPPER/ART. También se verifican
+cambios del selector con cámara activa, persistencia provisional, idiomas y seguridad AR.
+La ruta anterior mantiene su replay de cinco fotos ×dos resoluciones. Captura UI revisada.
+APK final SHA256: 05f92702d0d94579d293b0b69fd382095e489ffd291ebed5bc71ab326eac76ff.
+Tiempos reales y resolución de esta versión en Sony pendientes de la prueba física.
+
+
+## Fast v4 automático, FULL primero (16-10-2026)
+
+- AUTO es la opción inicial. Tras dos lecturas débiles consecutivas, o cuatro lecturas
+  válidas sin confirmar, pasa de FULL a UPPER. Una primera lectura fuerte permite una
+  segunda antes del rescate. Stale/out_of_order no cuentan. Ausencia y lifecycle vuelven
+  a FULL; en la misma exposición UPPER se mantiene para evitar oscilaciones.
+- Confianza se reinicia al cambiar de carril; .70/.08/dos lecturas permanecen intactos.
+  AUTO hace dos inferencias por frame, no los cuatro de los manuales híbridos. El índice
+  UPPER se precarga fuera de la cámara y se conserva en memoria al usar FULL. Los
+  callbacks de modos manuales anteriores siguen protegidos por generación.
+- Índice completo conserva 110278 filas. Única ampliación de crop: Bartolomé showcase
+  LCI301 f82bb486-7009-4b53-973f-477fc13ad7e7. `extend_edfast_showcase_index.py` verifica
+  SHA del base/modelo y conserva las otras 110277 referencias. FullRows ahora34795.
+- Foto nueva JP Bartolomé: UPPER .800669, margen .196696 contra catálogo completo;
+  foto anterior .734518, margen .173645. Las cuatro fotos diagnósticas v3 pasan con
+  UPPER; 84 fotos reales anteriores dan82 fuertes correctas UPPER,0 incorrectas (antes81).
+  Esto mide hipótesis offline, no tiempos físicos ni precisión global en cartas nuevas.
+- Ranking Fast conserva resultados/empates, pero mantiene solo los ocho máximos por
+  inserción en vez de ordenar decenas de miles de identidades. Test aleatorio con
+  empates contrasta20catálogos de2000filas contra el ordenamiento completo.
+- Pruebas:734JVM app +58nativos;5Python;6Android incluyendo18replays manuales,
+ 10legacy ysecuenciasAUTO de6fotos (MummyKO/CH,Bart,Bronto,LordPit,fullartSwamp con
+  borde neutro añadido). Confirmación fácil en FULL,FULL; rescate en FULL,FULL,UPPER,UPPER.
+  Protecciones de colección, idiomas yAR mantienen sus pruebas. Medición Sony pendiente.
+- APK validada:84e5dfbed3bbd7051be95bfecd4f1ad015c6a83f0cd009a2d6758805b06f115b.
+
+
+## Fast v5 — automático reversible (2026-10-16)
+
+Corrección de la prueba v4: si el detector no observa un hueco entre cartas, AUTO
+podía permanecer en UPPER y dejar fuera las referencias full-art/diseños especiales.
+Ahora recorre FULL → ART → UPPER → FULL tras dos fallos consecutivos o cuatro
+intentos válidos sin confirmar en cada perfil. Confirmar conserva perfil y reinicia
+contadores. Ausencia/lifecycle reinician FULL; stale/out_of_order no suman votos.
+Cada transición borra la confirmación visual, sin alterar 0.70/0.08 ni dos lecturas.
+No se rearma el guardado por cambiar de perfil: otra copia idéntica requiere retirada.
+
+Solo AUTO ejecuta un carril por frame (dos orientaciones). Modos manuales híbridos,
+OCR/AR y modo lento conservan sus rutas. ART/UPPER se precargan antes de cámara y
+se conservan en caché (~56 MB combinados), invalidada al cambiar índice y al cerrar.
+Persistencia/colección sin modificaciones. Traza de sesión v=5 y regiones efectivas.
+
+Validación: 737 JVM app +58 nativo, 5 Python y 7 Android, sin fallos ni skips.
+La prueba real secuencial conserva scheduler y confianza entre fotos, sin simular
+no_detection: Mummy FULL,FULL,ART,ART; Mountain ART,ART,UPPER,UPPER,FULL,FULL;
+Charging Monstrosaur FULL,FULL,ART,ART,UPPER,UPPER. Los seis fixtures anteriores
+(incluido Bartolomé JP) y regresiones de persistencia/otros scanners pasan.
+Se corrigió un error inicial de ruta del fixture Mummy (apuntaba a Brontodon), no
+un umbral de reconocimiento. Las fotos privadas siguen solo en cache del emulador.
+
+Evidencias locales ignoradas: build/edfast-auto/build-v5-final.log,
+emulator-v5-verified.log, cycle-results-v5.json y screen-v5.png.
+APK SHA256: `5a30669edac77a40a85671c3982834e48ead5620007f4df699e31afa856c265c`.
+Pendiente medir tiempos y cobertura en la nueva repetición física Sony; el replay
+no equivale a latencia desde que entra una carta en cámara.
+
+
+## Fast v6 + Triple — híbrido permanente (2026-10-16)
+
+Tras auditoría v5 (36 altas/fotos correctas; 21 especiales SOA solo en referencia FULL),
+se elimina el ciclo que dejaba de consultar FULL. Fast AUTO y el carril EdScan del Triple
+usan ART+FULL; tras dos fallos/cuatro intentos sin confirmar alternan a UPPER+FULL.
+Los perfiles nunca comparten votos. FULL continúa en todas las lecturas; los conflictos
+entre identidades fuertes de ambos carriles producen hits vacíos. No se reducen umbrales.
+Un FULL débil con margen >=.08 se prefiere como candidato de pantalla si el recorte
+también es débil; esto no autoriza alta ni convierte un score <.70 en confirmación.
+
+Triple opta explícitamente por el índice completo y precarga ambas matrices fuera de
+cámara. Conserva scopes por sets, margen entre UUID/impresiones (no margen solo por nombre),
+arbitraje OCR/AR, idiomas, frescura/revalidación de frames lentos y persistencia existentes.
+Por tanto, identidad de arte ambigua NO certifica edición: OCR/AR siguen participando.
+Fast continúa separado como respaldo con modos manuales y persistencia provisional.
+Trazas nuevas triple.hybrid / triple.hybridSwitch permiten auditar perfiles y conflictos.
+
+Pruebas: 737 JVM app +59 JVM nativo,5Python. Replay híbrido de seis fotos (incluido
+Bartolomé JP) y secuencia Mummy→Mountain→Monstrosaur conservan FULL y rescatan UPPER.
+TripleHybridIntegrationTest prepara la Activity real con guardado diagnóstico deshabilitado,
+y usa su motor con fotos privadas, comprueba ambos carriles y que scopes restringidos/vacíos
+no filtren candidatos globales. El emulador no tiene servicio ARCore: no se ha validado
+la cámara Triple en vivo; requiere repetición física Sony. El intento inicial de exigir
+frames de cámara falló por esa carencia, no se oculta como una prueba de cámara superada.
+Evidencias: build/edfast-auto/build-v6.log y emulator-v6-final.log (8/8 Android).
+APK: b49a9fe7a14c0e01b2350e0a49c23e3b56dd3c47fb0a337efcb0c3e3412ec669.
+
+## Triple v7 — identidad independiente de edición (2026-10-16)
+
+La integración v6 anterior compartía el índice, pero no la confirmación de Fast.
+Sony v6 (sesiones 21:34 y 21:37, solo arte, sin sets) confirma el bloqueo:
+Manamorphose score .9201401 vs otra impresión .906795, aunque el rival de distinta
+identidad era .7021289. La siguiente lectura .90047437/.8741614 tenía rival .6610686.
+Triple rechazaba ambas por margen y alternaba recortes, sin poder confirmar la carta.
+Las tres últimas fotos guardadas corresponden visualmente a Vault Skirge.
+
+TripleIdentityConfirmation reutiliza EdScanFastIdentity: dos lecturas independientes
+con score >=.70 y margen >=.08 frente a OTRA identidad. Un segundo tracker exige dos
+votos FULL estrictos por UUID para certificar impresión. Los recortes confirman identidad
+pero dejan edición pendiente. No se deduce idioma de esa impresión provisional.
+La evidencia viaja explícita por captura a offerVisual; no queda pegada a Target.
+Se mantienen arbitraje OCR/AR independiente, filtros, frescura y persistencia existentes.
+ScanResult.comparisonRegion identifica FULL/ART/UPPER; triple.identity y triple.confirmation
+registran margen de identidad y margen de impresión por separado (sesión v15).
+
+Validación: 745 app +59 native =804 JVM,5Python,10Android. Incluye regresión con
+los dos scores reales de Manamorphose, momia, cambios de UUID, conflictos, respuestas
+obsoletas, AR no verificado, filtros y persistencia provisional sin alterar biblioteca.
+Emulador sin ARCore: replay y Activity real, no cámara Triple en vivo.
+No se modifica aún la cadencia de Triple ni su revalidación de frames lentos.
+Manamorphose bloqueada usaba ~1.6 s/frame y ~2.3 s entre capturas; la corrección elimina
+el bloqueo de identidad, no promete una nueva latencia antes de repetir físicamente.
+APK v7: 67d58b59a9df8fbdb8e759a17352fbf00c36bbad6106b70a04cc5418bcf10e09.
+Evidencias locales: build/edfast-auto/build-v7-final.log, emulator-v7-final.log,
+test-v7-sony-regression.log; backup externo sony-triple-v6-audit-20261016-215132.
+
+## Triple v8 — prioridad de confirmación y OCR de idioma por foto (2026-10-17)
+
+La auditoría v7 sitúa la espera antes de confirmar: soloArte mediana 3,934 s desde primera
+captura de la racha hasta pitido, postconfirmación 143,5 ms (18 altas enlazadas). Tres motores
+5,561 s y144,5 ms (solo4altas visuales). Fast3,223 s hasta confirmación (34altas, excluye lookup).
+Muestras no idénticas ni tiempo desde presentación física. Cadencia mismo candidato2230ms
+soloArte y3696ms tres motores; OCR intercalado impide completar el par rápidamente.
+
+V8 reserva un único turno de Arte tras el primer voto fuerte, reduce su descanso a150ms
+(sin cambiar el descanso normal), mantiene perfil entre esos votos y devuelve luego OCR.
+No se modifican umbrales .70/.08, dos votos, revalidación ni corroboración independiente AR.
+
+Con OCR activo, las nuevas filas visuales sin idioma ejecutan OCR en segundo plano sobre
+su foto, con modelos propios y cola serial máxima20, fuera de las puertas de cámara/OCRvivo.
+Se muestra globo+spinner; al terminar bandera o interrogación, sin inventar idioma.
+Título debe coincidir con identidad y decisión idioma no contradictoria; aliasES/PT ambiguo
+sin reglas queda desconocido. Nunca vuelve a añadir una carta, cambiar identidad, ni actualizar
+otra fila/copia o elección manual. No se usa idioma de impresión mientras el OCR físico está
+habilitado. La cola pertenece a Activity; cerrar descarta pendientes, no es un nuevo WorkManager.
+El OCR independiente de identidad continúa funcionando; no se confunde con enriquecimiento.
+
+Pendiente medir CPU/temperatura con OCR de foto en paralelo y tiempos físicos Sony. El cambio
+no promete latencias concretas ni arregla el fallo separado de guardado de ALCI ni la discrepancia
+foto/identidad en solo AR descubiertos en auditoría. No se modifica colección histórica.
+
+
+## Auditoría v20 y cambios v21 (18 octubre 2026)
+
+- Evidencias privadas: `sony-triple-v20-audit-20261018-145849` fuera del repositorio,
+  54 fotos y dos sesiones; no se ha reescrito la colección para realizar la auditoría.
+- Solo Arte v20: 75 frames identificados, mediana 1550 ms; 25 pitidos,
+  mediana 1714 ms desde captura del último frame. v8: 1538/1701 ms respectivamente.
+  Estas cifras NO son el tiempo desde que el usuario presenta la carta ni un A/B controlado:
+  v20 tiene activado singleReading y diferentes cartas/fases. Coste por frame similar.
+- Contorno OFF: solo 4 frames, sin reconocimiento aceptado. No hay muestra suficiente
+  para atribuir diferencias al overlay. ON reutiliza las esquinas de la inferencia existente.
+- Cinco rearmes explícitos en v20; las demás identidades se aceptan sin tap.
+  La regresión automatizada A→B→A / A→A mantiene copias separadas por ID.
+- Paladín del Norte (fotos 24 y 27): 30A era una preferencia provisional, no edición
+  confirmada (printingConfirmed=false, región upper). v21 relega 30A/CED/CEI/SUM/LEA/LEB
+  ante ediciones normales dentro del mismo empate visual; PLST sigue último. Luego fecha
+  descendente y precio conocido como desempate. No altera score, margen ni impresión confirmada.
+- Primeras 30 fotos: idioma EN procedía del scope seleccionado, no de resolución OCR.
+  v21 no sobrescribe una selección manual. En automático elimina el veto de título ausente;
+  conserva contradicciones y umbrales estadísticos originales.
+- CardLanguageResolver es la decisión común del Triple; el lector conserva los cuatro
+  resultados de OCR y procesa texto por bloques, no solo y=510..800. Excluye el pie legal
+  para no confundir su inglés con el idioma de la carta. Evidencia sidecar disponible en
+  el panel Premium por copia. No relee la cámara ni cambia el planificador.
+- Ruso sigue sin modelo OCR dedicado; no inventar ZHS/ZHT solo por hallar ideogramas.
+  Los replays no son pruebas de velocidad del móvil.
+
+
+Validación v21: 829 tests JVM (770 app + 59 native), 13 tests instrumentados en
+emulador, sin fallos. Corpus privado de 24 fotos: 8 idiomas resueltos por la ruta
+anterior frente a 22 correctos con el nuevo resolver. Se mantiene desconocido el
+ruso y la foto china borrosa (49); la foto china legible (51) resuelve ZHT mediante
+frases chinas y caracteres de variante corroborados, sin kana/hangul ni mezcla de
+variantes. No generalizar esta muestra a una tasa universal de precisión.
+Replay de las dos fotos reales del Paladín con borde neutro para detección:
+30A → 4ED en ambas, conservando scores 0.84246/0.87488 y runners 0.61634/0.61602.
+La APK validada es `build/edfast-auto/app-debug-v21-validated.apk`, SHA256
+`9d87f739d1a20bbf8f827bdf8e6b4f7318f78074fd9722297a692d933cdaac4e`.

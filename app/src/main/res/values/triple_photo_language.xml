@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="triple_language_analyzing">Identificando el idioma de la foto…</string>
+    <string name="triple_language_loading_icon" translatable="false">🌐</string>
+</resources>

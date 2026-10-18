@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="edfast_region_auto">Automatic: art + whole (upper fallback)</string>
+    <string name="edfast_region_title">Experimental comparison</string>
+    <string name="edfast_region_full">Whole card (crop off)</string>
+    <string name="edfast_region_upper">Upper region + whole full-art</string>
+    <string name="edfast_region_art">Art only + whole full-art</string>
+</resources>

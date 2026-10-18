@@ -57,6 +57,8 @@
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
 | Postprocesado y revisión de fotos | `ScanReviewActivity.kt`, `ScanReviewStore.kt`, `ReviewPresentationPolicy.kt`, `ReliableReviewWorker.kt`, `ReliableReviewPolicy.kt` y `ReliableReviewHistory.kt`; verificación en `collectorvision-native/EdScanVerificationWorker.kt` |
 | Navegación de postprocesado | Resumen con información/historial; pestañas Pendientes/Resueltos y filtro de origen independiente por pestaña (`ReviewPresentationPolicy.forTab`). `CollectionScreenBackground` compartido. Resolver reutiliza evidencias; reanálisis solo individual y explícito. |
+| Diagnóstico Premium del detalle | `PostprocessEvidenceStore.kt`/`PostprocessEvidencePanel.kt`: lectura por biblioteca + collectionItemId, sin lanzar workers ni aplicar resultados; `Main2Activity.kt` sincroniza arte de cabecera con la imagen actual al hacer scroll. |
+| Resolución común del idioma Triple | `CardLanguageResolver.kt`, `TriplePhotoLanguageReader.kt`: modelos sobre la foto, decisión compartida con `TripleLanguageFusion`; evidencia `.language-resolution.json`. Replay privado en emulador con `CardLanguagePhotoReplayTest`, nunca sobre el Sony. |
 | Detalle de carta y ediciones | `Main2Activity.kt` (incluye `EditionAdapter`), `ScanEvidencePanel.kt`/`ScanEvidenceFormatter.kt` para foto e historial debug; layouts `activity_main2.xml`, `edition_item.xml` |
 | Buscador compartido de ediciones | `EditionSearchAdapter.kt` (incluye política `EditionSearch`), `EditionPicker.kt`, `SetSymbolLoader.kt` |
 | Corrección de edición en sesión | `EditionPicker.showGrid`, `EditionGridContent.kt`, `EditionGridPolicy.kt` y `HashEditionGridPanel.kt`; sesiones OCR y rápida/hash. Siempre disponible, sin depender de `edition_picker`. Preservar ID/cantidad/idioma y actualizar Room + legacy; en rápida actualizar también las referencias de deshacer. |
@@ -292,6 +294,21 @@ debe reproducir `decodePhoto` antes de detectar bordes.
   bibliotecas sin escanear) y `resumeNext` (prepara reanudar exactamente ese grupo al abrir
   Triple). `TripleCameraLoadTest`, opt-in `liveTriple=true`, perfila 30 s de cámara con
   persistencia deshabilitada por `triple_diagnostic_only` en debug; no usar como escaneo real.
+- Contorno EdScan: `EdScanContourView`/`EdScanContourGeometry`, flag independiente apagado
+  por defecto en Fast y Triple. Reutiliza `scan.corners`: no añadir detectores ni frames.
+  Triple proyecta con la transformación ARCore de esa captura; Fast usa CameraX OutputTransform.
+  Expira a los 2,5 s desde captura, se limpia al desactivar/salir y jamás autoriza un alta.
+- Triple sigue analizando tras un alta: bloquea solo otra alta consecutiva de la MISMA
+  identidad. Cartas diferentes (incluido A→B→A) entran automáticamente. `triple_rescan`
+  autoriza repetir con una captura nueva, nunca copiar el candidato ni sumar cantidad.
+  `TripleRecognitionArbiter.beginManualScan` invalida capturas anteriores al toque y el
+  nuevo evento se persiste con `mergeExisting=false`. El enriquecimiento por fila continúa.
+  Solo Arte descansa 150 ms; revalidación prioritaria con frescura intacta.
+- Experimentos visuales Triple: `TripleIdentityConfirmation` separa votos de identidad y
+  edición; `TripleCropTrialPolicy` permite FULL primero y rescate FULL+recorte tras dos
+  fallos. Flags `single_art_reading` y `delayed_art_crop` en preferencias `triple_scanner`,
+  desactivados por defecto y con controles en opciones. Nunca aplicar el voto único a
+  OCR/AR ni certificar edición con ese único voto. Cambiar flags invalida evidencia.
 - Rendimiento/total Triple: `TripleSlowFramePolicy`, `TriplePersistencePolicy`,
   `TripleSessionTotals` y `NativeCollectorVisionEngine.prepareForCamera`. No ampliar la
   caducidad de lecturas sin validar contra un fotograma fresco; no sumar solo la galería.
@@ -391,7 +408,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - Descubrimiento AR: `npm run discover:ar` verifica ediciones/DBs; `--generate-missing` genera ausentes (coste alto, explícito). `build:ar -- --sets CODIGO` admite cualquier set, solo principal si falta cobertura en `packages/ar-packages/assets/ar-editions.json`. Asset compartido Android/Node; no adivinar anexos. `ArLocalPackageBuilder` genera en Ajustes cuando no hay paquete publicado; nunca sube a web ni toca colección.
 
-- Laboratorio triple aislado: `TripleScanActivity.kt`, `TripleEncounterGate.kt`, `TripleSnapshotOcr.kt`, `TripleLanguageEvidence.kt`, `TripleScanPolicy.kt`, `TripleArConsensus.kt`, `TripleCardLookup.kt`, `TripleOcrPrintingResolver.kt`, `TripleOcrPrintingPolicy.kt`, `TripleScanTrace.kt`, `TripleTitleGuide.kt`, `TripleArPreview.kt`, `TripleArSurface.kt`, `TripleConfetti.kt`, `TripleRarityColor.kt`, `TripleArOverlay.kt`, `TripleArImageCache.kt`, `TripleArRenderPolicy.kt`, `TripleEnergyBorder.kt`; botón `fabTripleScanner`. Guarda una fila por encuentro mediante `TripleCollectionSession` (Legacy + Room), con foto inmutable en EdScanJobs para postprocesado. Menú por lectura: idioma manual protegido, acabado, cantidad y borrado confirmado. No cambiar `EdScannerAr*` para experimentar. Prueba de integración aislada: `TripleCollectionSessionTest`; las pruebas antiguas TripleScanSmokeTest asumían no guardar y deben migrarse antes de ejecutarlas contra una colección real. Preferencias `triple_scanner`/`triple_ar`, separadas del comparador. AR ofrece preview inmediato; `TripleRecognitionArbiter` confirma encuentros, EdScan fuerte y fresco prevalece sobre AR; nunca conservar un veto histórico tras cambiar carta o desactivar motores. `TripleScanScopePolicy` aplica los sets a los tres motores. Un paquete AR compilado puede cubrir varias ediciones: `TripleArPackagePolicy` comprueba metadatos; conservar todas las entradas al cargar la DB y filtrar identidades recibidas por selección. EdScan filtra por IDs exactos de las ediciones seleccionadas; carga/error con scope vacío nunca usa catálogo global. OCR observa idioma, no lo deduce del idioma de referencia. Triple combina reglas y `TitleLanguageIndex` sin elegir arbitrariamente entre alias ES/PT; una lectura vacía no borra el consenso. Cuadrilátero OCR AR del mismo Frame convertido VIEW→IMAGE_PIXELS. Un frame worker y un OCR en vuelo; diccionario independiente, nunca bloquear cámara esperando alias. Ver `TRIPLE_SCANNER.md` para pruebas y logs.
+- Laboratorio triple aislado: `TripleScanActivity.kt`, `TripleEncounterGate.kt`, `TripleSnapshotOcr.kt`, `TripleLanguageEvidence.kt`, `TripleScanPolicy.kt`, `TripleArConsensus.kt`, `TripleCardLookup.kt`, `TripleOcrPrintingResolver.kt`, `TripleOcrPrintingPolicy.kt`, `TripleScanTrace.kt`, `TripleTitleGuide.kt`, `TripleArPreview.kt`, `TripleArSurface.kt`, `TripleConfetti.kt`, `TripleRarityColor.kt`, `TripleArOverlay.kt`, `TripleArImageCache.kt`, `TripleArRenderPolicy.kt`, `TripleEnergyBorder.kt`; botón `fabTripleScanner`. Guarda una fila por encuentro mediante `TripleCollectionSession` (Legacy + Room), con foto inmutable en EdScanJobs para postprocesado. Menú por lectura: idioma manual protegido, acabado, cantidad y borrado confirmado. No cambiar `EdScannerAr*` para experimentar. Prueba de integración aislada: `TripleCollectionSessionTest`; las pruebas antiguas TripleScanSmokeTest asumían no guardar y deben migrarse antes de ejecutarlas contra una colección real. Preferencias `triple_scanner`/`triple_ar`, separadas del comparador. AR ofrece preview inmediato; `TripleRecognitionArbiter` confirma encuentros, EdScan fuerte y fresco prevalece sobre AR; nunca conservar un veto histórico tras cambiar carta o desactivar motores. `TripleScanScopePolicy` aplica los sets a los tres motores. Un paquete AR compilado puede cubrir varias ediciones: `TripleArPackagePolicy` comprueba metadatos; conservar todas las entradas al cargar la DB y filtrar identidades recibidas por selección. EdScan filtra por IDs exactos de las ediciones seleccionadas; carga/error con scope vacío nunca usa catálogo global. OCR observa idioma, no lo deduce del idioma de referencia. Triple combina reglas y `TitleLanguageIndex` sin elegir arbitrariamente entre alias ES/PT; una lectura vacía no borra el consenso. Cuadrilátero OCR AR del mismo Frame convertido VIEW→IMAGE_PIXELS. Un frame worker y un OCR de identidad en vuelo; diccionario independiente, nunca bloquear cámara esperando alias. Ver `TRIPLE_SCANNER.md` para pruebas y logs.
 
 - Triple: `TripleReadingPolicy` usa nombre canónico como identidad de encuentro; cambiar impresión no añade copia ni pierde idioma/foto. La ausencia sostenida (tres muestras/1500ms) habilita otra copia; una identidad distinta estable inicia otro encuentro, pero otra impresión del mismo nombre no añade copias. `TripleFrameSignature` detecta cambio estable de apariencia, no identidad; dos copias idénticas sin retirada requieren cantidad explícita. Umbrales físicos experimentales: validar en cámara. `manualEdition`/revisión protegen el selector `EditionPicker.showGrid` frente a callbacks. Idioma: título/alias único validado por TLV1 prevalece sobre inferencia por impresión, marcando conflicto si discrepan; no tomar el primer idioma de un alias ambiguo. Resolver OCR trabaja por fila aunque cambie la carta actual, sin fallback global automático si no coincide el set seleccionado (solo búsqueda manual explícita). Filas sin impresión quedan pendientes, con selector/reintento; nunca inventar UUID Scryfall a partir de UUID MTGJSON.
 
@@ -472,7 +489,20 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - `EdScanFastActivity.kt`/`EdScanFastPolicy.kt`: entrada desde Triple, CameraX+motor
   nativo sin OCR/AR. Scope global explícito; no hereda preferencias de otros scanners.
-  Dos lecturas .70/.08; no bajar umbrales para obtener un benchmark favorable.
+  Dos lecturas .70/.08 por identidad canónica exacta (`EdScanFastIdentity`), con margen
+  contra otra identidad, no otra impresión. Metadata local/caché en `EdScanFastCatalog`,
+  sin red en cámara; desconocidos siguen siendo competidores y sin rival falla cerrado.
+  Referencia provisional entre impresiones a menos de .08 del mejor: no-PLST primero,
+  fecha descendente, precio conocido comparable del acabado ascendente, ID estable.
+  No sumar scores, convertir precios ausentes en cero ni modificar políticas Triple.
+  CameraX fast limita selección a lado mayor <=1280; fallback mínimo disponible,
+  registrar dimensiones reales e `identityMs`. Sony v2 negocia720x960 en vertical.
+  `scripts/evaluate_edfast_regions.py` es experimento offline: reconstruye referencias
+  y consultas con la misma ROI; no usa índice full-card con query recortada ni autoriza altas.
+  `--hybrid --index-dir <privado>` genera índices art/full separados: full-art y layouts
+  especiales/desconocidos conservan carta entera; normal sin tratamientos usa ilustración.
+  Nunca elegir ROI con el nombre esperado de la foto ni ordenar scores sin calibrar entre
+  carriles; discrepancias fuertes quedan en conflicto. Índice piloto no es catálogo global.
 - Altas únicamente nuevas mediante `TripleCollectionSession` (constructor original
   conservado), grupo EdScan Fast, edición provisional e idioma desconocido. Foto del
   mismo frame aceptado. No convertir metadatos de referencia en idioma físico.
@@ -483,3 +513,64 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Pruebas `EdScanFastPolicyTest`, `EdScanFastIntegrationTest` y
   `EdScanFastPersistenceTest`: estas dos últimas solo emulador, inventario aislado.
   La prueba UI exige un frame inferido real, no basta ver pantalla de carga.
+  `EdScanFastIdentityTest` cubre scores Sony y selección; `EdScanFastPhotoReplayTest`
+  requiere cinco fotos privadas + `names.json` en cache/edfast-replay del emulador.
+  No incluir fotos privadas en APK/Git ni ejecutar fixtures en Sony.
+- Fast y el carril visual de Triple usan híbrido ART + FULL por defecto. El scheduler
+  `EdScanFastAutoPolicy` alterna únicamente ART/UPPER tras dos fallos consecutivos o
+  cuatro intentos sin confirmar; FULL se ejecuta siempre. Ausencia/lifecycle reinician ART.
+  Cada cambio de perfil borra los votos de confirmación. Los modos manuales de Fast siguen
+  disponibles como respaldo; no se cambian preferencias de OCR/AR ni el EdScan lento.
+  Triple confirma identidad con `TripleIdentityConfirmation`/`EdScanFastIdentity`, como Fast.
+  Un tracker independiente exige dos lecturas FULL con margen entre UUID para confirmar
+  impresión. Recorte o empate de ediciones conservan `provisional=true`; no deducir idioma.
+  `offerVisual` recibe prueba de identidad explícita por captura, nunca almacenada en Target;
+  no confundirla con edición confirmada ni permitir que una lectura débil la herede.
+  Mantiene scopes, validación fresca de resultados lentos y arbitraje OCR/AR.
+  La traza `triple.hybrid` registra perfil, conflicto y ambos carriles para la siguiente auditoría.
+  UPPER usa (0,0,1,.58), ART (.08,.15,.92,.55); FULL consulta referencias full-art/especiales.
+  `FastRegionIndex` valida SHA, versión, ROI y orden de 110278 referencias. Solo Fast y
+  Triple optan explícitamente por `configureFast`; otros scanners mantienen la ruta anterior.
+  Un candidato FULL débil con margen separado puede mostrarse frente a recortes débiles,
+  pero no se acepta sin score/margen y lecturas exigidos; dos identidades fuertes en conflicto
+  devuelven hits vacíos. No comparar scores de recortes distintos para decidir un ganador.
+- `scripts/build_edfast_region_index.py --work <privado> --model <milo> --workers 16`
+  prepara ambos índices completos y reanudables; `evaluate_edfast_global.py` compara el
+  corpus privado contra todos los competidores. Empaquetar rows.json, manifest.json,
+  upper.f16.bin y art.f16.bin en collectorvision-native/src/main/assets/edfast-regions
+  solo tras completar y verificar. Nunca sustituirlo por el piloto de 110 referencias.
+- `EdScanFastRegionReplayTest` exige seis fotos privadas + expected.json en
+  cache/edfast-region-replay del emulador. El modo recortado hace cuatro inferencias
+  (dos orientaciones por carril) en ambos modos híbridos y en el AUTO actual.
+  No prometer tiempos de Sony a partir del emulador. `EdScanFastAutoReplayTest` exige
+  seis fotos (añade Bartolomé JP 1792157079658.jpg) y verifica dos lecturas híbridas ART. También exige cache/edfast-cycle-replay
+  con mountain.jpg y monstrosaur.jpg (diagnósticos Sony 1792165833188/1792166399352),
+  para probar cambios reales sin hueco manteniendo FULL y rescate ART→UPPER.
+  `TripleHybridIntegrationTest` usa esos fixtures y la Activity real con persistencia diagnóstica
+  deshabilitada, comprueba preparación real, ambos carriles y scopes con fotos. La cámara
+  ARCore real necesita prueba física (emulador sin servicio ARCore). Solo emulador, nunca en Sony.
+- `scripts/extend_edfast_showcase_index.py` añade la referencia LCI301 de Bartolomé
+  f82bb486-7009-4b53-973f-477fc13ad7e7 al índice completo recortado, con hashes del
+  índice base y foto pública de referencia. Excepción evaluada, NO relajar globalmente
+  todos los layouts showcase. El resto de referencias full-art sigue completo.
+  Precargar ART y UPPER antes de enlazar cámara evita leer sus matrices en los cambios
+  de perfil; la caché adicional de ambos recortes ocupa unos 56 MB.
+
+- AUTO precarga y conserva ambas matrices ART/UPPER antes de activar cámara; se invalidan
+  al cambiar de índice y se liberan al cerrar motor. No leerlas de disco en cada vuelta.
+
+- `TripleIdentityConfirmationTest` reproduce márgenes Sony de reimpresiones. Android:
+  `TripleIdentityAcceptanceTest` comprueba altas provisionales, frescura, scope y AR sin
+  prueba independiente; `EdScanFastPersistenceTest` valida también guardado Triple aislado.
+  Todos estos tests solo en emulador. No ejecutar contra datos del Sony.
+
+- Triple v8: `TripleFrameScheduler` reserva una sola segunda lectura de Arte tras un
+  primer voto fuerte (`readings`), con descanso de 150 ms y devolución del turno OCR.
+  No cambiar score/margen/dos votos ni frescura; no cambiar perfil de recorte entre esa pareja.
+  `TriplePhotoLanguageReader` es una cola separada y acotada de fotos ya aceptadas,
+  solo cuando OCR está habilitado y falta idioma. No controla `busy`/`ocrScheduled` ni crea
+  identidades/copias. Galería muestra globo+spinner; termina en bandera o `?` si no hay
+  evidencia suficiente. Exige título compatible con identidad y reglas sin conflicto.
+  Callback por fila/foto/revisión, nunca por la carta actual; no sobreescribir idioma manual
+  o conocido. Al cerrar Activity se descartan pendientes; la foto persistida permite revisión.
+  Pruebas: `TriplePriorityAndPhotoLanguageTest` y `TriplePhotoLanguageTest` (emulador).

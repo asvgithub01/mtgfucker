@@ -34,6 +34,10 @@ class TripleSonySafetyIntegrationTest {
         val language=TripleScanActivity::class.java.getDeclaredMethod("applyPhysicalLanguage",String::class.java,String::class.java,
             String::class.java,Long::class.javaPrimitiveType,Int::class.javaPrimitiveType,Long::class.javaPrimitiveType,ByteArray::class.java).apply { isAccessible=true }
         fun target(name:String,source:String)=TripleScanActivity.Target(name,"",name,"",name,"","nonfoil",source)
+        fun tap(a:TripleScanActivity) {
+            a.window.decorView.findViewWithTag<android.widget.Button>("triple_rescan").performClick()
+            Thread.sleep(2)
+        }
         fun read(a:TripleScanActivity,name:String,source:String)=offer.invoke(a,target(name,source),SystemClock.elapsedRealtime(),source,false) as Boolean
         fun lang(a:TripleScanActivity,code:String,event:Long=field("currentEncounter").getLong(a),photo:ByteArray=byteArrayOf(2)) {
             language.invoke(a,"will o the wisp",code,"title",event,field("generation").getInt(a),SystemClock.elapsedRealtime(),photo)
@@ -50,6 +54,7 @@ class TripleSonySafetyIntegrationTest {
                 scene.onActivity { a ->
                     assertFalse(read(a,"cloak of confusion","AR"))
                     assertEquals(1,entries(a).size)
+                    tap(a)
                     assertTrue(read(a,"cuombajj witches","EdScan"))
                     assertEquals(2,entries(a).size)
                 }
@@ -57,6 +62,7 @@ class TripleSonySafetyIntegrationTest {
                 val english=byteArrayOf(1);val italian=byteArrayOf(2)
                 var oldEvent=0L;var oldRow:Any?=null;var oldPhotoKey:Any?=null
                 scene.onActivity { a ->
+                    tap(a)
                     assertTrue(read(a,"will o the wisp","EdScan"))
                     oldEvent=field("currentEncounter").getLong(a);oldRow=entries(a)[oldEvent.toString()]
                     rowSet(oldRow!!,"photo",english);rowSet(oldRow!!,"count",3)
@@ -70,14 +76,20 @@ class TripleSonySafetyIntegrationTest {
                 Thread.sleep(700)
                 scene.onActivity { a ->
                     lang(a,"it",photo=italian)
+                    assertEquals(3,entries(a).size) // pending language cannot create an unsolicited copy
+                    tap(a)
+                    assertTrue(read(a,"will o the wisp","EdScan"))
+                    val freshRow=entries(a)[field("currentEncounter").getLong(a).toString()]!!
+                    rowSet(freshRow,"photo",italian)
+                    lang(a,"it",photo=italian)
                     assertEquals(4,entries(a).size)
                     assertEquals("en",rowValue(oldRow!!,"language"));assertEquals(3,rowValue(oldRow!!,"count"))
                     assertEquals(oldPhotoKey,rowValue(oldRow!!,"photoKey"));assertSame(english,rowValue(oldRow!!,"photo"))
                     val newRow=entries(a)[field("currentEncounter").getLong(a).toString()]!!
                     assertEquals("it",rowValue(newRow,"language"));assertEquals(1,rowValue(newRow,"count"))
-                    assertEquals("foil",rowValue(newRow,"selectedFinish"));assertSame(italian,rowValue(newRow,"photo"))
+                    assertEquals("nonfoil",rowValue(newRow,"selectedFinish"));assertSame(italian,rowValue(newRow,"photo"))
                     assertNotEquals(oldPhotoKey,rowValue(newRow,"photoKey"));assertEquals(false,rowValue(newRow,"manualEdition"))
-                    assertTrue((rowValue(newRow,"target") as TripleScanActivity.Target).provisional)
+                    assertFalse(rowValue(newRow,"manualEdition") as Boolean)
                     lang(a,"pt",event=oldEvent) // late callback cannot rewrite the previous row
                     assertEquals("en",rowValue(oldRow!!,"language"));assertEquals(4,entries(a).size)
                     rowSet(newRow,"manualLanguage",true);rowSet(newRow,"language","en")

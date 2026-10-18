@@ -1,0 +1,8 @@
+<resources>
+    <string name="postprocess_title">Nachbearbeitung · Premium</string>
+    <string name="postprocess_readonly">Gespeicherte Daten dieses Exemplars. Nur Lesen: kein erneutes Analysieren oder Ändern der Sammlung. Frühere Ergebnisse können von der aktuellen Auswahl abweichen.</string>
+    <string name="postprocess_loading">Daten werden geladen…</string>
+    <string name="postprocess_empty">Keine gespeicherten Nachbearbeitungsdaten für dieses Exemplar.</string>
+    <string name="postprocess_error">Nachbearbeitungsdaten konnten nicht gelesen werden.</string>
+    <string name="postprocess_document">Nachbearbeitungsdokument</string>
+</resources>

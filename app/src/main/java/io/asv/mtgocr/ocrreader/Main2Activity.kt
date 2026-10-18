@@ -66,6 +66,7 @@ class Main2Activity : AppCompatActivity() {
     private var languageVariants: List<CardImageVariant> = emptyList()
     private var languageRequest = 0
     private var languageEditionReselectAttempted = false
+    private var postprocessTask: Future<*>? = null
     private var cardLoadTask: Future<*>? = null
     private var languageLoadTask: Future<*>? = null
     private var ownedCondition: String = CardCondition.NEAR_MINT
@@ -100,6 +101,14 @@ class Main2Activity : AppCompatActivity() {
         title = findViewById(R.id.txtEditionTitle)
         status = findViewById(R.id.txtEditionStatus)
         image = findViewById(R.id.imgEditionDetail)
+        val scroll=findViewById<androidx.core.widget.NestedScrollView>(R.id.detailScroll)
+        val hero=findViewById<View>(R.id.detailHero)
+        val headerArt=findViewById<View>(R.id.detailHeaderArt)
+        fun updateHeader() { headerArt.visibility=if(hero.bottom>0 && scroll.scrollY>=hero.bottom) View.VISIBLE else View.GONE }
+        scroll.setOnScrollChangeListener(androidx.core.widget.NestedScrollView.OnScrollChangeListener { _,_,_,_,_ -> updateHeader() })
+        scroll.doOnLayout { updateHeader() }
+        postprocessTask=PostprocessEvidencePanel.bind(this,LibraryCatalog.activeFile(this),collectionItemId)
+
         foilBadge = findViewById(R.id.imgDetailFoilBadge)
         progress = findViewById(R.id.editionProgress)
         type = findViewById(R.id.txtCardType)
@@ -115,7 +124,7 @@ class Main2Activity : AppCompatActivity() {
         ownedCard?.let { owned ->
                 ownedCondition = owned.condition
                 legacyImageUrl = owned.imgPath.orEmpty()
-                CardImageCache.display(this, owned.imgPath, image)
+                showDetailImage(owned.imgPath)
                 val foil = CardFinish.isFoil(owned.finish)
                 foilBadge.visibility = if (foil) View.VISIBLE else View.GONE
                 image.setFoilEffect(foil)
@@ -273,7 +282,7 @@ class Main2Activity : AppCompatActivity() {
         val owned = ownedCard().takeIf {
             it?.printingUuid == option.printingUuid && it.finish == option.finish
         }
-        CardImageCache.display(this, owned?.imgPath?.takeIf { it.isNotBlank() } ?: option.imageUrl, image)
+        showDetailImage(owned?.imgPath?.takeIf { it.isNotBlank() } ?: option.imageUrl)
         foilBadge.visibility = if (option.isFoil) View.VISIBLE else View.GONE
         image.setFoilEffect(option.isFoil)
         title.text = option.displayName
@@ -444,7 +453,7 @@ class Main2Activity : AppCompatActivity() {
         ?.firstOrNull { it.collectionItemId == collectionItemId }
 
     private fun applyLanguageVariant(option: CardEditionOption, variant: CardImageVariant, persist:Boolean=true) {
-        CardImageCache.displayKeepingCurrent(this, variant.imageUrl, image)
+        showDetailImage(variant.imageUrl)
         val isOwnedPrinting = selected?.let {
             it.printingUuid == option.printingUuid && it.finish == option.finish
         } == true
@@ -459,7 +468,15 @@ class Main2Activity : AppCompatActivity() {
         setResult(RESULT_OK)
     }
 
+    private fun showDetailImage(url:String?) {
+        CardImageCache.display(this,url,image)
+        CardImageCache.display(this,url,findViewById(R.id.detailHeaderArt))
+    }
+
     override fun onDestroy() {
+        postprocessTask?.cancel(true)
+        findViewById<ImageView>(R.id.detailHeaderArt)?.let { Glide.clear(it);it.setImageDrawable(null) }
+
         cardLoadTask?.cancel(true)
         languageLoadTask?.cancel(true)
         findViewById<RecyclerView>(R.id.editionsRecycler)?.adapter = null

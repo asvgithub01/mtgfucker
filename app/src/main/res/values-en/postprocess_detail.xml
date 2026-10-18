@@ -1,0 +1,8 @@
+<resources>
+    <string name="postprocess_title">Post-processing · Premium</string>
+    <string name="postprocess_readonly">Saved data for this copy. Read only: opening this section does not reanalyse or change your collection. Historical results may differ from the current selection.</string>
+    <string name="postprocess_loading">Loading data…</string>
+    <string name="postprocess_empty">No saved post-processing data for this copy.</string>
+    <string name="postprocess_error">Unable to read post-processing data.</string>
+    <string name="postprocess_document">Post-processing document</string>
+</resources>

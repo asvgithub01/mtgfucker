@@ -1,3 +1,6 @@
 
 # Generated AR manifests are hashed byte-for-byte; keep line endings stable.
 web/public/ar/** -text
+
+# EdScan verifies these generated assets byte-for-byte, including JSON metadata.
+collectorvision-native/src/main/assets/edfast-regions/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

@@ -24,6 +24,10 @@ class TripleArSurface(context: Context,
     private val onGenericPoints: (FloatArray?)->Unit = {},
     private val onPreloadedCard: (ArPreloadCard)->Unit = {}
 ) : GLSurfaceView(context), GLSurfaceView.Renderer {
+    data class ContourProjection(val timestamp:Long,val quad:FloatArray,val width:Int,val height:Int)
+    @Volatile var edscanContourEnabled=false
+    @Volatile var contourProjection:ContourProjection?=null
+        private set
     @Volatile var multipleCardsEnabled=false
     @Volatile var primaryPrice=""
     var onVisibleCards:(List<TripleArOverlay.Card>)->Unit={}
@@ -198,6 +202,12 @@ class TripleArSurface(context: Context,
                         val degrees=(sensorRotation-rotation*90+360)%360
                         if(needOutline) submitOutline(image,frame,rotation,now)
                         if(needRecognition) {
+                            if(edscanContourEnabled) contourProjection=runCatching {
+                                val quad=FloatArray(8)
+                                frame.transformCoordinates2d(Coordinates2d.IMAGE_PIXELS,
+                                    floatArrayOf(0f,0f,image.width.toFloat(),0f,image.width.toFloat(),image.height.toFloat(),0f,image.height.toFloat()),Coordinates2d.VIEW,quad)
+                                ContourProjection(image.timestamp,quad,viewWidth,viewHeight)
+                            }.getOrNull()
                             cpuFrames++
                             val guide=if(titleGuideEnabled) FloatArray(8).also {
                                 frame.transformCoordinates2d(Coordinates2d.VIEW,TripleTitleGuide.points(viewWidth,viewHeight),Coordinates2d.IMAGE_PIXELS,it)

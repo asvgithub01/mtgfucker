@@ -23,6 +23,8 @@ class TripleArPreview(private val host: AppCompatActivity, private var intent: a
     private var priceObserverCleanup: (() -> Unit)?=null
     private lateinit var camera: TripleArSurface
     private lateinit var titleGuide:TripleTitleGuide
+    fun enableEdScanContour(enabled:Boolean) { camera.edscanContourEnabled=enabled }
+    fun edscanProjection(timestamp:Long)=camera.contourProjection?.takeIf { it.timestamp==timestamp }
     fun showGuidedName(name:String?) { titleGuide.showName(name) }
     private lateinit var imageCache:TripleArImageCache
     private var imageLanguages=emptyMap<String,String>()

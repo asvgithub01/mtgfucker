@@ -1,7 +1,8 @@
 package io.asv.mtgocr.ocrreader
 
 /** Only consecutive, individually strong independent frames count towards confirmation. */
-internal class TripleVisualConfirmation {
+internal class TripleVisualConfirmation(private val requiredReadings:Int=TripleScanPolicy.VISUAL_STRONG_READINGS) {
+    init { require(requiredReadings in 1..2) }
     data class Reading(val reliable: Boolean,val count: Int,val reason: String,val elapsedMs: Long)
     private var id=""
     private var at=-1L
@@ -22,11 +23,11 @@ internal class TripleVisualConfirmation {
         if(next!=id || at<0 || processingStartedAt-at>TripleScanPolicy.EVIDENCE_GAP_MS) { id=next.orEmpty();count=0;started=now }
         if(reason!="strong") {
             // A dip after an already confirmed card starts a new retry, not a minutes-long scan.
-            if(count>=TripleScanPolicy.VISUAL_STRONG_READINGS) started=now
+            if(count>=requiredReadings) started=now
             count=0
         } else if(now>at) count++
         at=now
-        val reliable=count>=TripleScanPolicy.VISUAL_STRONG_READINGS
+        val reliable=count>=requiredReadings
         return Reading(reliable,count,if(reason=="strong") if(reliable) "confirmed" else "readings" else reason,now-started)
     }
 }

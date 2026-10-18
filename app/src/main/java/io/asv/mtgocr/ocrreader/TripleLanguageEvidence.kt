@@ -40,14 +40,7 @@ internal class TripleLanguageConsensus {
 internal object TripleLanguageFusion {
     data class Decision(val code:String?,val conflict:Boolean,val source:String)
     fun decide(rules:String,statistical:String?,title:TitleLanguageIndex.Evidence):Decision {
-        val script=TripleLanguageEvidence.scriptLanguage(rules)
-        // Reuse the scanner's distinctive short mana-ability words; do not accept ambiguous Italian verbs alone.
-        val short=ScanLanguagePolicy.shortRulesLanguage(rules)?.takeIf { it in setOf("es","pt","en") }
-        val rule=script ?: short ?: statistical?.takeUnless { it in setOf("zh","zhs","zht") }
-        val choices=title.candidates
-        if(title.conflict || (rule!=null && choices.isNotEmpty() && rule !in choices))
-            return Decision(null,true,"conflict")
-        return Decision(rule ?: choices.singleOrNull(),false,
-            if(script!=null) "script" else if(short!=null) "shortRules" else if(rule!=null) "rules" else if(choices.size==1) "exactTitle" else "unknown")
+        val result=CardLanguageResolver.resolve(rules,statistical,title)
+        return Decision(result.code,result.conflict,result.source)
     }
 }

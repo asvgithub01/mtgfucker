@@ -1,0 +1,8 @@
+<resources>
+    <string name="postprocess_title">Post-traitement · Premium</string>
+    <string name="postprocess_readonly">Données enregistrées pour cet exemplaire. Lecture seule : aucune nouvelle analyse ni modification de la collection. Les résultats précédents peuvent différer de la sélection actuelle.</string>
+    <string name="postprocess_loading">Chargement des données…</string>
+    <string name="postprocess_empty">Aucune donnée de post-traitement pour cet exemplaire.</string>
+    <string name="postprocess_error">Impossible de lire les données de post-traitement.</string>
+    <string name="postprocess_document">Document de post-traitement</string>
+</resources>

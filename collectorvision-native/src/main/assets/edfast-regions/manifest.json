@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "complete": true,
+  "rows": 110278,
+  "modelSha256": "bd13d8d60383c69da04dce261f32e93fdaeaa8fd618fbc991e7385f71b3d45df",
+  "regions": {
+    "full": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "upper": [
+      0,
+      0,
+      1,
+      0.58
+    ],
+    "art": [
+      0.08,
+      0.15,
+      0.92,
+      0.55
+    ]
+  },
+  "files": {
+    "upper.f16.bin": {
+      "bytes": 28231168,
+      "sha256": "daa06faf89ce5b8a5da68ee79ec8b44098fc50fc94627b2b9ed6f934cf5d2236"
+    },
+    "art.f16.bin": {
+      "bytes": 28231168,
+      "sha256": "7b91ea49ca055f8edf0d56dcba9f322eaeb907a67a84d0da1147db3bb7c8809f"
+    },
+    "rows.json": {
+      "bytes": 9501010,
+      "sha256": "26621e82ff471a383802dc4a201e4d0b86460a4c5928e8cf3d7a2f1d4ecb8980"
+    }
+  },
+  "fullRows": 34795,
+  "baseManifestSha256": "3af6d78c23dd80cc95a8c5a1531a565fb39611033217a89a810c462ce8e1598b",
+  "cropOverrides": {
+    "f82bb486-7009-4b53-973f-477fc13ad7e7": {
+      "referenceSha256": "81300823655fbdffac0d6af9864caec8ac448f8ed93c2f17c17cbdaf96571130",
+      "reason": "LCI 301 showcase with normal text-box geometry"
+    }
+  }
+}

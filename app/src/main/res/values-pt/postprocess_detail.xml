@@ -1,0 +1,8 @@
+<resources>
+    <string name="postprocess_title">Pós-processamento · Premium</string>
+    <string name="postprocess_readonly">Dados guardados desta cópia. Apenas leitura: não reanalisa nem altera a coleção. Os resultados anteriores podem diferir da seleção atual.</string>
+    <string name="postprocess_loading">A carregar dados…</string>
+    <string name="postprocess_empty">Sem dados de pós-processamento guardados para esta cópia.</string>
+    <string name="postprocess_error">Não foi possível ler os dados de pós-processamento.</string>
+    <string name="postprocess_document">Documento de pós-processamento</string>
+</resources>

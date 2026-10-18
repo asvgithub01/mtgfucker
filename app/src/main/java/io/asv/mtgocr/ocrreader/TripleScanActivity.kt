@@ -55,6 +55,11 @@ class TripleScanActivity:AppCompatActivity() {
     private var lastDisplayedId=""
     private var lastLookupFailureAt=0L
     private var engine:NativeCollectorVisionEngine?=null
+    private var hybridIndex:io.asv.collectorvision.FastRegionIndex?=null
+    private var hybridPolicy=TripleCropTrialPolicy() // worker only, never authorizes a save
+    @Volatile private var singleArtReading=false
+    @Volatile private var delayedArtCrop=false
+    private var hybridProfile=io.asv.collectorvision.FastRegion.ART
     @Volatile private var visualFrames=0
     @Volatile private var ocrCompleted=0
     @Volatile private var nameIndexReady=false
@@ -62,6 +67,8 @@ class TripleScanActivity:AppCompatActivity() {
     private val languages=CardTextLanguageDetector(useShortRules=false)
     private val languageConsensus=TripleLanguageConsensus()
     private val languageCopies=TripleLanguageCopyPolicy()
+    private val photoLanguageLazy=lazy { TriplePhotoLanguageReader({ titleLanguageIndex },trace::event) }
+    private val photoLanguage by photoLanguageLazy
     private val languageWorker=Executors.newSingleThreadExecutor()
     private val titleLanguageIndex by lazy { runCatching { TitleLanguageIndex.read(assets.open(TitleLanguageIndex.ASSET)) }.getOrNull() }
     private var languageConflict=false
@@ -76,6 +83,12 @@ class TripleScanActivity:AppCompatActivity() {
     private val printingLanguagesLazy=lazy { TriplePrintingLanguageResolver(this) { trace.event(it) } }
     private val printingLanguages by printingLanguagesLazy
     private var absentSince=0L
+    private lateinit var edscanContour:EdScanContourView
+    @Volatile private var contourEnabled=false
+    @Volatile private var contourRevision=0
+    private var repeatIdentity=""
+    @Volatile private var repeatNeedsTap=false
+    private lateinit var rescanButton:Button
     @Volatile private var resumed=false
     @Volatile private var closed=false
     @Volatile private var generation=0
@@ -88,7 +101,7 @@ class TripleScanActivity:AppCompatActivity() {
     private data class VisualProposal(val target:Target,val at:Long,val scene:Long)
     private val proposedVisualTargets=linkedMapOf<String,VisualProposal>()
     private var workerGeneration=-1
-    private val visualConfirmation=TripleVisualConfirmation() // worker only
+    private var visualConfirmation=TripleIdentityConfirmation() // worker only
     private val frameScheduler=TripleFrameScheduler() // worker only
     private val adaptiveShadow=TripleAdaptiveVisualPolicy() // never authorizes writes
     private data class SlowFrame(val scan:io.asv.collectorvision.ScanResult,val signature:FloatArray?,val started:Long,
@@ -134,7 +147,8 @@ class TripleScanActivity:AppCompatActivity() {
         var recognitionConflict:Boolean=false,var manualFinish:Boolean=false,var selectedFinish:String=target.finish,var count:Int=1,
         var photo:ByteArray?=null,var photoKey:String=java.util.UUID.randomUUID().toString(),
         var savedId:String?=null,var saveSignature:String="",var saveError:Boolean=false,
-        var amount:Pair<Double,String>?=null,var priceRequested:String="",var pricePrinting:String="")
+        var amount:Pair<Double,String>?=null,var priceRequested:String="",var pricePrinting:String="",
+        var languagePending:Boolean=false,var languageAttempted:Boolean=false,var languageSpinner:ProgressBar?=null)
     private val galleryEntries=linkedMapOf<String,GalleryEntry>()
     private val identifiedLanguages=mutableMapOf<String,String>()
     private val logHandler=android.os.Handler(android.os.Looper.getMainLooper())
@@ -161,7 +175,7 @@ class TripleScanActivity:AppCompatActivity() {
             }
         }
         restoringSession=intent.hasExtra("triple_resume_group")
-        trace=TripleScanTrace(applicationContext);collectionSession=TripleCollectionSession(applicationContext,trace::event);lookup=TripleCardLookup(applicationContext,trace::event);trace.event("triple.session v=14 score=${TripleScanPolicy.VISUAL_MIN_SCORE} margin=${TripleScanPolicy.VISUAL_MIN_MARGIN} strongReadings=${TripleScanPolicy.VISUAL_STRONG_READINGS} copyIntervalMs=600 independentAr=true");runStartedAt=SystemClock.elapsedRealtime()
+        trace=TripleScanTrace(applicationContext);collectionSession=TripleCollectionSession(applicationContext,trace::event);lookup=TripleCardLookup(applicationContext,trace::event);trace.event("triple.session v=21 priorityFollowUp=true soloArtRestMs=150 tapForConsecutiveRepeat=true photoLanguage=true identityConfirmation=true score=${TripleScanPolicy.VISUAL_MIN_SCORE} margin=${TripleScanPolicy.VISUAL_MIN_MARGIN} strongReadings=${TripleScanPolicy.VISUAL_STRONG_READINGS} copyIntervalMs=600 independentAr=true");runStartedAt=SystemClock.elapsedRealtime()
         val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
         val toolbar=LinearLayout(this)
         val options=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
@@ -215,6 +229,13 @@ class TripleScanActivity:AppCompatActivity() {
             }
         }
         root.addView(preview,LinearLayout.LayoutParams(-1,0,1f))
+        edscanContour=EdScanContourView(this).apply { tag="triple_edscan_contour" }
+        preview.addView(edscanContour,FrameLayout.LayoutParams(-1,-1))
+        rescanButton=Button(this).apply {
+            tag="triple_rescan";setText(R.string.triple_tap_to_scan);visibility=View.GONE
+            setOnClickListener { rearmScan() }
+        }
+        preview.addView(rescanButton,FrameLayout.LayoutParams(-1,-2,android.view.Gravity.TOP))
         cardControls=LinearLayout(this).apply {
             orientation=LinearLayout.HORIZONTAL;setPadding(dp(6),dp(3),dp(6),dp(3))
             setBackgroundColor(0xE6202430.toInt());visibility=View.GONE;tag="triple_card_controls"
@@ -238,6 +259,15 @@ class TripleScanActivity:AppCompatActivity() {
         options.addView(Button(this).apply { setText(R.string.ar_use_package);setOnClickListener { picker.launch(Intent(this@TripleScanActivity,ArDownloadsActivity::class.java).putExtra("choose",true)) } })
         val switches=LinearLayout(this)
         val prefs=getSharedPreferences("triple_scanner",0)
+        contourEnabled=prefs.getBoolean("edscan_contour",false);preview.enableEdScanContour(contourEnabled)
+        options.addView(CheckBox(this).apply {
+            tag="triple_contour_flag";setText(R.string.edscan_contour_flag);isChecked=contourEnabled
+            setOnCheckedChangeListener { _,value ->
+                contourEnabled=value;contourRevision++;preview.enableEdScanContour(value);edscanContour.clearContour()
+                prefs.edit().putBoolean("edscan_contour",value).apply();trace.event("triple.contour enabled=$value")
+            }
+        })
+        trace.event("triple.contour enabled=$contourEnabled")
         fun method(key:String,label:Int,initial:(Boolean)->Unit,change:(Boolean)->Unit) {
             switches.addView(CheckBox(this).apply {
                 tag="triple_method_$key";setText(label);isChecked=prefs.getBoolean(key,true);initial(isChecked)
@@ -250,6 +280,18 @@ class TripleScanActivity:AppCompatActivity() {
         method("ar",R.string.triple_method_ar,{ arEnabled=it }) { preview.setRecognitionEnabled(it);configureEdition() }
         method("art",R.string.triple_method_art,{ artEnabled=it }) { invalidateEvidence();if(it) prepareArt() }
         method("ocr",R.string.triple_method_ocr,{ ocrEnabled=it }) { invalidateEvidence() }
+        fun trial(key:String,label:Int,update:(Boolean)->Unit) {
+            options.addView(CheckBox(this).apply {
+                tag="triple_trial_$key";setText(label);isChecked=prefs.getBoolean(key,false);update(isChecked)
+                setOnCheckedChangeListener { _,value ->
+                    update(value);prefs.edit().putBoolean(key,value).apply();invalidateEvidence()
+                    trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2")
+                }
+            })
+        }
+        trial("single_art_reading",R.string.triple_trial_single_reading) { singleArtReading=it }
+        trial("delayed_art_crop",R.string.triple_trial_delayed_crop) { delayedArtCrop=it }
+        trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2")
         root.addView(switches,1)
         preview.setRecognitionEnabled(arEnabled)
         trace.event("triple.methods ar=$arEnabled art=$artEnabled ocr=$ocrEnabled")
@@ -278,7 +320,21 @@ class TripleScanActivity:AppCompatActivity() {
     }
     private fun prepareArt() { worker.execute {
         if(engine!=null || closed) return@execute
-        try { engine=EdScanPerf.once("triple.engineInit") { NativeCollectorVisionEngine.prepareForCamera(applicationContext) };ui { showScannerReady() } }
+        try {
+            engine=EdScanPerf.once("triple.engineInit") {
+                val prepared=NativeCollectorVisionEngine.prepareForCamera(applicationContext)
+                try {
+                    val index=io.asv.collectorvision.FastRegionIndex(applicationContext)
+                    require(index.available) { "Hybrid visual index unavailable" }
+                    prepared.configureFast(index,io.asv.collectorvision.FastRegion.UPPER)
+                    prepared.configureFast(index,io.asv.collectorvision.FastRegion.ART)
+                    hybridIndex=index
+                    prepared
+                } catch(error:Exception) { prepared.close();throw error }
+            }
+            trace.event("triple.hybrid ready=true fullAlways=true delayedCrop=$delayedArtCrop")
+            ui { showScannerReady() }
+        }
         catch(error:Exception) { android.util.Log.w("EdScanPerf","Triple engine unavailable",error);ui { status.setText(R.string.triple_engine_error) } }
     } }
     /** Explicit resume only. Rehydrates exact owned rows without adding copies or rewriting them. */
@@ -342,7 +398,7 @@ class TripleScanActivity:AppCompatActivity() {
                     val identity=TripleReadingPolicy.identity(last.name)
                     encounters.restoreLastEvent(currentEncounter,identity);arbiter.restoreCurrent(identity,last.source)
                     setResult(RESULT_OK,Intent().putStringArrayListExtra(RapidEditionScanActivity.EXTRA_SESSION_CARD_IDS,ArrayList(addedCollectionIds)))
-                    restoringSession=false;status.text="";renderSessionTotal()
+                    restoringSession=false;status.text="";renderSessionTotal();lockConsecutiveRepeat()
                     getSharedPreferences("triple_resume_once",0).edit().clear().apply()
                     trace.event("triple.resume rows=${snapshot.second.size} group=${snapshot.first}")
                 }
@@ -376,7 +432,25 @@ class TripleScanActivity:AppCompatActivity() {
     }
     private fun dp(value:Int)=(value*resources.displayMetrics.density).toInt()
     private fun ui(action:()->Unit)=runOnUiThread { if(!closed && !isDestroyed) action() }
-    private fun invalidateEvidence() { languageCopies.reset();arConsensus.reset();liveArTarget=null;lastAcceptedVisualId="";clearCurrentLanguage();languageConsensus.reset();rarityRequested.clear();generation++;proposedVisualTargets.clear();arbiter.resetPending();confirmationPending=true;candidate=null;frameKey="";lastOcrKey="";lastOcrCanonical="";observedLanguage=null;observedName=null;preferGlobalUntil=0L;arReadyAt=0L;if(::result.isInitialized) result.setText(R.string.triple_waiting) }
+    private fun lockConsecutiveRepeat() {
+        repeatIdentity=galleryEntries[currentEncounter.toString()]?.target?.name?.let(TripleReadingPolicy::identity).orEmpty()
+        repeatNeedsTap=true
+        if(::rescanButton.isInitialized) rescanButton.visibility=View.VISIBLE
+        trace.event("triple.scanLatch state=repeat_locked event=$currentEncounter")
+    }
+    private fun rearmScan() {
+        if(!repeatNeedsTap || closed || !resumed || restoringSession) return
+        // No saved row is touched. Only future captures can create a new event/collectionItemId.
+        invalidateEvidence()
+        arbiter.beginManualScan(SystemClock.elapsedRealtime()+1)
+        encounters.nextEncounter()
+        resolvingKey="";lastLookupFailureAt=0;photoCapturedFor=""
+        nextFrameAt=0;lastFrameAt=0
+        rescanButton.visibility=View.GONE;repeatNeedsTap=false
+        trace.event("triple.scanLatch state=armed afterEvent=$currentEncounter generation=$generation")
+    }
+
+    private fun invalidateEvidence() { if(::edscanContour.isInitialized) edscanContour.clearContour(); languageCopies.reset();arConsensus.reset();liveArTarget=null;lastAcceptedVisualId="";clearCurrentLanguage();languageConsensus.reset();rarityRequested.clear();generation++;proposedVisualTargets.clear();arbiter.resetPending();confirmationPending=true;candidate=null;frameKey="";lastOcrKey="";lastOcrCanonical="";observedLanguage=null;observedName=null;preferGlobalUntil=0L;arReadyAt=0L;if(::result.isInitialized) result.setText(R.string.triple_waiting) }
     private fun updateScopeStatus() {
         val codes=sets.codes().sorted()
         val codeLabel=codes.joinToString(", ").ifBlank { getString(R.string.triple_all_editions) }
@@ -524,11 +598,13 @@ class TripleScanActivity:AppCompatActivity() {
     private fun frame(image:android.media.Image,rotation:Int,release:()->Unit,tracked:String?,corners:FloatArray?,guide:FloatArray?):Boolean {
         if(!resumed || closed || !busy.compareAndSet(false,true)) return false
         lastFrameAt=SystemClock.elapsedRealtime();val arAtStart=liveArTarget?.id;val sampleAt=lastFrameAt;val token=generation;val queued=System.nanoTime()
+        val contourToken=contourRevision
+        val contourMap=if(contourEnabled) preview.edscanProjection(image.timestamp) else null
         try { worker.execute {
             var bitmap:Bitmap?=null;var crop:Bitmap?=null;var handedOff=false
             try {
                 if(closed || !resumed || token!=generation) return@execute
-                if(workerGeneration!=token) { workerGeneration=token;frameScheduler.reset();adaptiveShadow.reset();visualConfirmation.reset();slowFrame=null;streakId="";readings=0 }
+                if(workerGeneration!=token) { workerGeneration=token;hybridPolicy=TripleCropTrialPolicy(delayedArtCrop);visualConfirmation=TripleIdentityConfirmation(singleArtReading);frameScheduler.reset();adaptiveShadow.reset();visualConfirmation.reset();slowFrame=null;streakId="";readings=0 }
                 EdScanPerf.record("triple.workerQueue",System.nanoTime()-queued)
                 val frameNow=SystemClock.elapsedRealtime()
                 val trackedTarget=if(!arEnabled || frameNow<preferGlobalUntil) null else tracked?.let { references[it] ?: candidate?.takeIf { c->c.printing==it } }
@@ -543,9 +619,10 @@ class TripleScanActivity:AppCompatActivity() {
                     TripleScanPolicy.useVisual(frameNow,arReadyAt,maxOf(lastTrackedAt,lastArSeen),false))
                 val auditSame=trackedTarget!=null && trackedTarget.id==lastAcceptedVisualId && !confirmationPending &&
                     TripleScanPolicy.agrees(lastOcrCanonical,trackedTarget.name)
+                val priorityFollowUp=frameScheduler.hasFollowUp(frameNow)
                 val lane=frameScheduler.next(frameNow,visualDue,
-                    ocrEnabled && nameIndexReady && (corners!=null && trackedTarget!=null || artEnabled && engine!=null || guide!=null),auditSame)
-                trace.event("triple.lane lane=$lane captureAtMs=$sampleAt queueAndDecodeMs=${SystemClock.elapsedRealtime()-sampleAt}")
+                    ocrEnabled && nameIndexReady && (corners!=null && trackedTarget!=null || artEnabled && engine!=null || guide!=null),auditSame,revalidationDue=slowFrame!=null)
+                trace.event("triple.lane lane=$lane priorityFollowUp=$priorityFollowUp captureAtMs=$sampleAt queueAndDecodeMs=${SystemClock.elapsedRealtime()-sampleAt}")
                 if(lane==TripleFrameScheduler.Lane.OCR) {
                     // A NEW capture, never the bitmap that has already waited for Milo/search.
                     val target=trackedTarget
@@ -621,7 +698,13 @@ class TripleScanActivity:AppCompatActivity() {
                         if(!validation) visualConfirmation.reset()
                     }
                     val scan=if(validation) requireNotNull(pending).scan
-                        else engine?.let { EdScanPerf.measure("triple.edscan") { it.scan(upright,scope) } } ?: return@execute
+                        else engine?.let {
+                            val profile=hybridPolicy.region
+                            if(profile!=hybridProfile) { visualConfirmation.reset();streakId="";readings=0 }
+                            hybridProfile=profile
+                            it.configureFast(requireNotNull(hybridIndex),profile)
+                            EdScanPerf.measure("triple.edscan") { it.scan(upright,scope) }
+                        } ?: return@execute
                     if(token!=generation || scope!==visualScope) { visualConfirmation.reset();return@execute }
                     // AR has moved to another card while ONNX was running: never spend another
                     // OCR cycle (or renew old authority) on that obsolete capture.
@@ -637,9 +720,11 @@ class TripleScanActivity:AppCompatActivity() {
                         trace.event("triple.slowPending frameMs=${SystemClock.elapsedRealtime()-sampleAt} detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs}")
                         return@execute
                     }
+                    trace.event("triple.hybrid profile=${hybridProfile.key} conflict=${scan.regionConflict} lanes=${scan.regionDiagnostics}")
                     trace.event("triple.methodSample method=art present=${scan.present} detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs} ar=$arEnabled ocr=$ocrEnabled")
                     if(!scan.present || scan.corners.size!=4) {
-                        visualConfirmation.reset();confirmationPending=true
+                        if(contourEnabled) ui { if(token==generation && contourToken==contourRevision) edscanContour.clearContour() }
+                        hybridPolicy.reset();visualConfirmation.reset();frameScheduler.visualResult("no_detection",0);confirmationPending=true
                         trace.event("triple.confirmation reason=no_detection atMs=$sampleAt detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs}")
                         ui { if(token==generation && SystemClock.elapsedRealtime()-lastArSeen>1000) arbiter.missing(sampleAt) }
                         absentFrames++;readings=0;if(absentSince==0L) absentSince=now
@@ -649,21 +734,42 @@ class TripleScanActivity:AppCompatActivity() {
                     }
                     ui { if(token==generation) arbiter.present() }
                     absentFrames=0;absentSince=0L;if(sceneStartedAt==0L) sceneStartedAt=now
-                    val top=scan.hits.firstOrNull()
-                    if(top?.cardId==streakId) readings++ else { streakId=top?.cardId.orEmpty();readings=1 }
-                    val confirmation=visualConfirmation.observe(top?.cardId,top?.score,scan.hits.getOrNull(1)?.score,sampleAt,
+                    val index=requireNotNull(hybridIndex)
+                    val visual=visualConfirmation.observe(scan.hits.map { h ->
+                        val row=index.byId[h.cardId]
+                        EdScanFastIdentity.Candidate(h.cardId,h.score,row?.identity,row?.set.orEmpty(),row?.released.orEmpty())
+                    },scan.comparisonRegion=="full" && !scan.regionConflict,sampleAt,
                         if(validation) requireNotNull(pending).started else sampleAt)
-                    // Top two are UUID impressions. Their margin is a conservative lower bound
-                    // on name separation, NOT proof of exact printing or of scope membership.
-                    val shadow=adaptiveShadow.observe(top?.cardId,top?.score,scan.hits.getOrNull(1)?.score,sampleAt,
-                        comparisonComplete=false) // no global identity/coverage proof in this index
-                    trace.event("triple.adaptiveShadow hypothetical=${shadow.hypothetical} authorized=false counts=${shadow.counts.joinToString(",")} reason=${shadow.reason} runnerKind=printing scopeCovered=${scope!=null && scope.size==scan.searchedRows}")
+                    val evidence=visual.evidence
+                    val top=visual.printing?.let { id -> evidence.score?.let { io.asv.collectorvision.Hit(id,it) } }
+                    if(evidence.identity==streakId) readings++ else { streakId=evidence.identity.orEmpty();readings=1 }
+                    val confirmation=visual.confirmation
                     val reliable=confirmation.reliable
+                    if(contourEnabled && contourMap!=null) {
+                        val points=EdScanContourGeometry.project(scan.corners.flatMap { listOf(it.x,it.y) }.toFloatArray(),rotation,contourMap.quad)
+                        ui {
+                            if(token==generation && contourToken==contourRevision && contourEnabled && resumed && !closed &&
+                                edscanContour.width==contourMap.width && edscanContour.height==contourMap.height) {
+                                val overlayStarted=System.nanoTime()
+                                edscanContour.showContour(points,reliable,sampleAt)
+                                EdScanPerf.record("triple.contourUpdate",System.nanoTime()-overlayStarted)
+                            }
+                        }
+                    }
+                    frameScheduler.visualResult(confirmation.reason,SystemClock.elapsedRealtime())
+                    val provisional=!visual.printingConfirmed
+                    trace.event("triple.identity identity=${evidence.identity?.hashCode()} printing=${top?.cardId} score=${evidence.score} runner=${evidence.runner} margin=${evidence.score?.minus(evidence.runner ?: Float.NaN)} confirmed=$reliable printingConfirmed=${visual.printingConfirmed} region=${scan.comparisonRegion}")
+                    // Keep this profile for the reserved second vote; never reset it between that pair.
+                    val keepProfileForFollowUp=confirmation.reason=="readings" && !priorityFollowUp
+                    if(!keepProfileForFollowUp && hybridPolicy.observe(scan.present,EdScanFastPolicy.Reading(reliable,confirmation.reason,confirmation.elapsedMs))) {
+                        visualConfirmation.reset();frameScheduler.visualResult("profile_changed",0)
+                        trace.event("triple.hybridSwitch from=${hybridProfile.key} to=${hybridPolicy.region.key} reason=${confirmation.reason}")
+                    }
                     confirmationPending=!reliable && !(top?.cardId==lastAcceptedVisualId && target?.id==lastAcceptedVisualId)
-                    trace.event("triple.confirmation target=${top?.cardId?.hashCode()} atMs=$sampleAt reason=${confirmation.reason} score=${top?.score} runner=${scan.hits.getOrNull(1)?.score} margin=${top?.score?.minus(scan.hits.getOrNull(1)?.score ?: Float.NaN)} strongReadings=${confirmation.count} confirmMs=${confirmation.elapsedMs} frameMs=${SystemClock.elapsedRealtime()-sampleAt} revalidated=$validation pipelineMs=${SystemClock.elapsedRealtime()-(if(validation) requireNotNull(pending).started else sampleAt)} preprocessAndQueueMs=${((System.nanoTime()-queued)/1000000-(if(validation) 0 else scan.detectionMs+scan.recognitionMs)).coerceAtLeast(0)} detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs} searchMs=${scan.searchMs} featureMs=${scan.recognitionMs-scan.searchMs} searchedRows=${scan.searchedRows} scopeSize=${scope?.size ?: -1} audit=$audit")
-                    val paired=target!=null && top?.cardId==target.id &&
+                    trace.event("triple.confirmation target=${top?.cardId?.hashCode()} atMs=$sampleAt reason=${confirmation.reason} score=${top?.score} runner=${evidence.runner} margin=${evidence.score?.minus(evidence.runner ?: Float.NaN)} runnerKind=identity printingMargin=${scan.hits.firstOrNull()?.score?.minus(scan.hits.getOrNull(1)?.score ?: Float.NaN)} strongReadings=${confirmation.count} confirmMs=${confirmation.elapsedMs} frameMs=${SystemClock.elapsedRealtime()-sampleAt} revalidated=$validation pipelineMs=${SystemClock.elapsedRealtime()-(if(validation) requireNotNull(pending).started else sampleAt)} preprocessAndQueueMs=${((System.nanoTime()-queued)/1000000-(if(validation) 0 else scan.detectionMs+scan.recognitionMs)).coerceAtLeast(0)} detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs} searchMs=${scan.searchMs} featureMs=${scan.recognitionMs-scan.searchMs} searchedRows=${scan.searchedRows} scopeSize=${scope?.size ?: -1} audit=$audit")
+                    val paired=visual.printingConfirmed && target!=null && top?.cardId==target.id &&
                         arConsensus.confirms(top.cardId,top.score,scan.hits.getOrNull(1)?.score,sampleAt,SystemClock.elapsedRealtime())
-                    val showCandidate=top!=null && TripleScanPolicy.visualCandidate(top.score,readings)
+                    val showCandidate=top!=null && (reliable || TripleScanPolicy.visualCandidate(top.score,readings))
                     if(now-lastObservationLog>=750) {
                         lastObservationLog=now
                         trace.event("triple.observation present=true ageMs=${now-sceneStartedAt} top=${top?.cardId?.hashCode()} score=${top?.score} margin=${top?.score?.minus(scan.hits.getOrNull(1)?.score ?: Float.NaN)} readings=$readings preview=$showCandidate strict=$reliable package=$activePackage audit=$audit detectMs=${scan.detectionMs} inferMs=${scan.recognitionMs}")
@@ -700,10 +806,10 @@ class TripleScanActivity:AppCompatActivity() {
                         }
                         if(showCandidate) {
                             val id=top!!.cardId
-                            if(candidate?.id==id) { offer(requireNotNull(candidate).copy(source="EdScan",provisional=!reliable),sampleAt) }
+                            if(candidate?.id==id) { offerVisual(requireNotNull(candidate).copy(source="EdScan",provisional=provisional),sampleAt,reliable) }
                             else {
                                 result.setText(R.string.triple_resolving)
-                                resolveVisual(id,token,!reliable,sampleAt)
+                                resolveVisual(id,token,provisional,sampleAt,reliable)
                                 // OCR gets the next eligible fresh capture, not this old visual frame.
                             }
                         }
@@ -712,7 +818,16 @@ class TripleScanActivity:AppCompatActivity() {
                     return@execute
                 } finally { if(upright!==raw) upright.recycle() }
             } catch(error:Exception) { android.util.Log.w("EdScanPerf","Triple frame failed",error) }
-            finally { bitmap?.recycle();crop?.recycle();release();nextFrameAt=if(liveArTarget?.id?.let { it!=arAtStart }==true) 0 else SystemClock.elapsedRealtime()+TripleScanPolicy.frameRestMs(SystemClock.elapsedRealtime()-sampleAt);if(!handedOff) busy.set(false) }
+            finally {
+                bitmap?.recycle();crop?.recycle();release()
+                val completed=SystemClock.elapsedRealtime()
+                val soloArt=artEnabled && !arEnabled && !ocrEnabled
+                val rest=TripleScanPolicy.frameRestMs(completed-sampleAt,frameScheduler.hasFollowUp(completed),soloArt,slowFrame!=null)
+                val changedAr=liveArTarget?.id?.let { it!=arAtStart }==true
+                nextFrameAt=if(changedAr) 0 else completed+rest
+                trace.event("triple.framePacing captureAtMs=$sampleAt workMs=${completed-sampleAt} restMs=${if(changedAr) 0 else rest} soloArt=$soloArt revalidationPending=${slowFrame!=null} repeatLocked=$repeatNeedsTap")
+                if(!handedOff) busy.set(false)
+            }
         } } catch(_:java.util.concurrent.RejectedExecutionException) { busy.set(false);return false }
         return true
     }
@@ -746,7 +861,7 @@ class TripleScanActivity:AppCompatActivity() {
         val matrix=Matrix();if(!matrix.setPolyToPoly(points,0,floatArrayOf(0f,0f,width.toFloat(),0f,width.toFloat(),height.toFloat(),0f,height.toFloat()),0,4)) return null
         return Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888).also { Canvas(it).drawBitmap(bitmap,matrix,Paint(Paint.FILTER_BITMAP_FLAG)) }
     }
-    private fun resolveVisual(id:String,token:Int,provisional:Boolean,sampleAt:Long) {
+    private fun resolveVisual(id:String,token:Int,provisional:Boolean,sampleAt:Long,identityConfirmed:Boolean) {
         val lookupKey="$token:$id";if(resolvingKey==lookupKey) return
         if(SystemClock.elapsedRealtime()-lastLookupFailureAt<1000) return
         val started=System.nanoTime();resolvingKey=lookupKey
@@ -757,7 +872,7 @@ class TripleScanActivity:AppCompatActivity() {
             if(option==null) { lastLookupFailureAt=SystemClock.elapsedRealtime();status.setText(R.string.triple_metadata_missing);trace.event("triple.lookupMissing elapsedMs=${(System.nanoTime()-started)/1000000}");return@lookup }
             option.price?.let { prices=prices+((id+"|"+option.finish) to it) }
             val target=Target(id,option.printing,option.name,option.set,"${option.name} · ${option.set} #${option.number}",option.image,option.finish,"EdScan",provisional,option.rarity)
-            if(offer(target,sampleAt)) registerSessionTarget(target)
+            if(offerVisual(target,sampleAt,identityConfirmed)) registerSessionTarget(target)
         }
         if(!queued) { resolvingKey="";trace.event("triple.lookupDeferred busy=true") }
     }
@@ -863,7 +978,7 @@ class TripleScanActivity:AppCompatActivity() {
             origin=="title",true,photo!=null,sampleAt,now)
         trace.event("triple.languageCopy event=$event action=$action origin=$origin captureAgeMs=${now-sampleAt}")
         if(action==TripleLanguageCopyPolicy.Action.KEEP || action==TripleLanguageCopyPolicy.Action.WAIT) return
-        if(action==TripleLanguageCopyPolicy.Action.CONFLICT) {
+        if(action==TripleLanguageCopyPolicy.Action.CONFLICT || repeatNeedsTap && action==TripleLanguageCopyPolicy.Action.SPLIT) {
             entry.physicalLanguage=code;entry.languageMismatch=true;languageConflict=true
             bindGallery(entry);saveEntry(entry);renderResult();return
         }
@@ -882,20 +997,27 @@ class TripleScanActivity:AppCompatActivity() {
         bindGallery(destination);saveEntry(destination);renderControls();renderResult()
     }
     private val rarityRequested=mutableSetOf<String>()
-    private fun offer(incoming:Target,sampleAt:Long,source:String=incoming.source,pairedVisual:Boolean=false):Boolean {
+    private fun offer(incoming:Target,sampleAt:Long,source:String=incoming.source,pairedVisual:Boolean=false):Boolean =
+        offerWithEvidence(incoming,sampleAt,source,pairedVisual,false)
+    // The explicit per-capture proof is never stored on Target or inherited by a later weak reading.
+    private fun offerVisual(incoming:Target,sampleAt:Long,identityConfirmed:Boolean):Boolean =
+        offerWithEvidence(incoming,sampleAt,"EdScan",false,identityConfirmed)
+    private fun offerWithEvidence(incoming:Target,sampleAt:Long,source:String,pairedVisual:Boolean,identityConfirmed:Boolean):Boolean {
+        val strongVisual=source=="EdScan" && (identityConfirmed || !incoming.provisional)
         if(choosingLanguage || restoringSession || !resumed || closed) return false
+        if(repeatNeedsTap && TripleReadingPolicy.identity(incoming.name)==repeatIdentity) return false
         if(!TripleScanScopePolicy.allows(allowedSets,incoming.set)) {
             trace.event("triple.scopeRejected source=$source set=${incoming.set}");return false
         }
         val now=SystemClock.elapsedRealtime()
         val previous=galleryEntries[currentEncounter.toString()]
-        if(source=="EdScan" && !incoming.provisional) {
+        if(strongVisual) {
             proposedVisualTargets[TripleReadingPolicy.identity(incoming.name)]=VisualProposal(incoming,sampleAt,arbiter.scene)
             if(proposedVisualTargets.size>5) proposedVisualTargets.remove(proposedVisualTargets.keys.first())
         }
         val arbitrationStarted=System.nanoTime()
         val decision=arbiter.observe(TripleReadingPolicy.identity(incoming.name),source,
-            source=="EdScan" && !incoming.provisional,sampleAt,now,pairedVisual,artEnabled || ocrEnabled)
+            strongVisual,sampleAt,now,pairedVisual,artEnabled || ocrEnabled)
         EdScanPerf.record("triple.arbitration",System.nanoTime()-arbitrationStarted)
         confirmationPending=TripleScanPolicy.confirmationNeeded(confirmationPending,arbiter.needsConfirmation,decision.reason)
         val logKey="${decision.reason}:$source:${incoming.id}:${arbiter.scene}"
@@ -913,7 +1035,7 @@ class TripleScanActivity:AppCompatActivity() {
         }
         if(source=="AR" && !decision.newEncounter && previous!=null && (artEnabled || ocrEnabled) &&
             previous.target.printing!=incoming.printing) return false
-        if((source=="EdScan" || source=="AR") && !incoming.provisional) {
+        if(strongVisual || source=="AR" && !incoming.provisional) {
             // A valid AR acceptance is complete too: EdScan disagreement about a variant
             // must not keep full inference running continuously after the beep.
             lastAcceptedVisualId=incoming.id;confirmationPending=false
@@ -996,8 +1118,11 @@ class TripleScanActivity:AppCompatActivity() {
         renderControls()
         renderResult()
         inferPrintingLanguage(target)
+        if(!sameEvent) lockConsecutiveRepeat()
     }
     private fun inferPrintingLanguage(target:Target) {
+        // Physical language comes from the saved photo, never the reference printing while OCR is enabled.
+        if(ocrEnabled && target.source in setOf("EdScan","AR")) return
         if(galleryEntries[currentEncounter.toString()]?.manualLanguage==true) return
         if(!TriplePrintingLanguagePolicy.eligible(target.source,target.provisional,target.printing,target.set,target.number)) return
         val token=generation;val event=currentEncounter
@@ -1010,7 +1135,7 @@ class TripleScanActivity:AppCompatActivity() {
             printingLanguage=code
             // Keep physical OCR evidence when it arrived first; the edition is then questionable.
             languageConflict=languageConflict || TriplePrintingLanguagePolicy.conflicts(code,observedLanguage)
-            if(!languageConflict && galleryEntries[event.toString()]?.languageOrigin !in setOf("title","rules")) {
+            if(!languageConflict && galleryEntries[event.toString()]?.languageOrigin !in setOf("title","rules","photo")) {
                 observedLanguage=code;evidenceKey=target.id
                 rememberLanguage(current,code,"printing")
             }
@@ -1056,6 +1181,11 @@ class TripleScanActivity:AppCompatActivity() {
             tag="triple_gallery_language"
         }
         picture.addView(flag,FrameLayout.LayoutParams(-2,-2,android.view.Gravity.TOP or android.view.Gravity.END))
+        val languageSpinner=ProgressBar(this).apply {
+            visibility=View.GONE;contentDescription=getString(R.string.triple_language_analyzing)
+            tag="triple_language_loading"
+        }
+        picture.addView(languageSpinner,FrameLayout.LayoutParams(dp(18),dp(18),android.view.Gravity.TOP or android.view.Gravity.START))
         column.addView(picture,LinearLayout.LayoutParams(-1,dp(64)))
         fun line(tagName:String)=TextView(this).apply {
             textSize=12f;gravity=android.view.Gravity.CENTER;maxLines=1
@@ -1066,6 +1196,7 @@ class TripleScanActivity:AppCompatActivity() {
         val amount=line("triple_gallery_price").apply { setTypeface(typeface,Typeface.BOLD) }
         val entry=GalleryEntry(target,column,image,flag,edition,amount,
             language=fixedLanguage,manualLanguage=fixedLanguage!=null,languageOrigin=if(fixedLanguage!=null) "scope" else "")
+        entry.languageSpinner=languageSpinner
         galleryEntries[entryKey]=entry
         if(target.image.isBlank()) image.setImageResource(android.R.drawable.ic_menu_gallery)
         else com.bumptech.glide.Glide.with(this).load(target.image).placeholder(CardLoadingDrawable()).into(image)
@@ -1094,8 +1225,9 @@ class TripleScanActivity:AppCompatActivity() {
     private fun bindGallery(entry:GalleryEntry) {
         renderSessionTotal(entry)
         val t=entry.target
-        entry.flag.text=TripleLanguageBadge.label(entry.language)
-        entry.flag.contentDescription=getString(R.string.triple_language,entry.flag.text)
+        entry.languageSpinner?.visibility=if(entry.languagePending) View.VISIBLE else View.GONE
+        entry.flag.text=if(entry.languagePending) getString(R.string.triple_language_loading_icon) else TripleLanguageBadge.label(entry.language)
+        entry.flag.contentDescription=if(entry.languagePending) getString(R.string.triple_language_analyzing) else getString(R.string.triple_language,entry.flag.text)
         entry.edition.text=(if(entry.saveError) "! " else if(entry.savedId==null) "… " else "✓ ")+"${entry.count}× · "+if(t.set.isBlank()) t.label else t.set.uppercase()+if(t.number.isNotBlank()) " #${t.number}" else ""
         entry.edition.contentDescription=t.label
         if(entry.scopeConflict || entry.recognitionConflict) entry.edition.text="⚠ "+entry.edition.text
@@ -1111,7 +1243,40 @@ class TripleScanActivity:AppCompatActivity() {
         entry.root.alpha=if(entry.saveError) .55f else 1f
         entry.root.contentDescription=t.label+" · "+getString(if(entry.saveError) R.string.triple_save_failed else if(entry.savedId==null) R.string.triple_save_pending else R.string.triple_saved)
     }
+    private fun schedulePhotoLanguage(entry:GalleryEntry) {
+        if(!ocrEnabled || closed || entry.languageAttempted || entry.manualLanguage ||
+            !entry.language.isNullOrBlank() || entry.count<=0 || entry.target.source !in setOf("EdScan","AR")) return
+        val photo=entry.photo ?: return
+        val identity=entry.target.name
+        val revision=entry.editionRevision
+        val photoKey=entry.photoKey
+        entry.languageAttempted=true;entry.languagePending=true
+        bindGallery(entry)
+        photoLanguage.submitReport(photo,identity) { report ->
+            val code=report.decision.code
+            entry.languagePending=false
+            if(closed) return@submitReport
+            val sameRow=galleryEntries[entry.root.tag.toString()]===entry
+            if(TriplePhotoLanguagePolicy.canApply(sameRow,entry.count,entry.manualLanguage,entry.language,
+                    entry.photoKey==photoKey && entry.editionRevision==revision && TripleScanPolicy.agrees(identity,entry.target.name))) {
+                if(!(BuildConfig.DEBUG && intent.getBooleanExtra("triple_diagnostic_only",false))) {
+                    val evidence=report.json()
+                    languageWorker.execute {
+                        runCatching { ScanReviewStore.write(java.io.File(filesDir,"edscan/$photoKey.language-resolution.json"),evidence) }
+                            .onFailure { trace.event("triple.photoLanguageWrite failed=true") }
+                    }
+                }
+                code?.let { entry.language=it;entry.physicalLanguage=it;entry.languageOrigin="photo";saveEntry(entry) }
+                if(entry.root.tag.toString()==currentEncounter.toString()) {
+                    observedLanguage=entry.language;evidenceKey=entry.target.id
+                    renderResult()
+                }
+            }
+            if(sameRow) bindGallery(entry)
+        }
+    }
     private fun saveEntry(entry:GalleryEntry) {
+        schedulePhotoLanguage(entry)
         renderSessionTotal(entry)
         if(BuildConfig.DEBUG && intent.getBooleanExtra("triple_diagnostic_only",false)) return
         val event=entry.root.tag.toString().toLongOrNull() ?: return
@@ -1340,7 +1505,7 @@ class TripleScanActivity:AppCompatActivity() {
                     stages.endName()
                 }
             }
-            if(scopeLanguage!=null) {
+            if(scopeLanguage!=null || entry?.languageAttempted==true && target?.id==entry.target.id) {
                 trace.event("triple.languageSkipped reason=fixedScope language=$scopeLanguage")
                 stages.endModels();return@addOnSuccessListener
             }
@@ -1440,7 +1605,7 @@ class TripleScanActivity:AppCompatActivity() {
         languagePickerRevision++;languagePicker?.dismiss()
         if(setLanguagesLazy.isInitialized()) setLanguages.close()
         if(printingLanguagesLazy.isInitialized()) printingLanguages.close()
-        closed=true;generation++;scanTone?.release();scanTone=null;preview.close();lookup.close();trace.close()
+        closed=true;generation++;if(photoLanguageLazy.isInitialized()) photoLanguage.close();scanTone?.release();scanTone=null;preview.close();lookup.close();trace.close()
         worker.execute { engine?.close();engine=null };worker.shutdown();languageWorker.shutdown()
         if(!ocrScheduled.get()) { text.close();languages.close() };super.onDestroy()
     }

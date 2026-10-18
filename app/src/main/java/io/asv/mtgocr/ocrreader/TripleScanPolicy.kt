@@ -16,7 +16,7 @@ object TripleScanPolicy {
     // Preview only: the strict confirmation margin above stays unchanged.
     fun visualCandidate(score:Float,readings:Int)=score.isFinite() && ((score>=.85f && readings>=1) || (score>=.70f && readings>=2))
     // Bound sustained CPU duty without slowing the fast path or breaking the 2.5 s evidence gap.
-    fun frameRestMs(workMs:Long)=(workMs/2).coerceIn(150L,650L)
+    fun frameRestMs(workMs:Long,confirming:Boolean=false,soloArt:Boolean=false,revalidating:Boolean=false)=if(confirming || soloArt || revalidating) 150L else (workMs/2).coerceIn(150L,650L)
     fun confirmationNeeded(pending:Boolean,needs:Boolean,reason:String)=
         pending || (needs && reason!="stale" && reason!="out_of_order")
     fun auditDue(now:Long,lastAudit:Long)=now-lastAudit>=1500L

@@ -359,7 +359,11 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     // Expansiones and Colecciones now share the complete collection catalog.
     if (currentSection == SECTION_SETS) currentSection = SECTION_CATALOG;
     setContentView(R.layout.ocr_capture);
-    shoppingSection = new ShoppingSection(this, findViewById(R.id.shoppingSection));
+    shoppingSection = new ShoppingSection(this, findViewById(R.id.shoppingSection), () -> {
+      currentSection = SECTION_PHOTOS;
+      currentFilterKey = "all";
+      showSelectedSection();
+    });
     cardRepository = CardRepository.get(this);
     //region asv
 
@@ -1205,6 +1209,22 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void setUpPhotos() {
     photoControls = findViewById(R.id.photoControls);
+    findViewById(R.id.btnPhotosBack).setOnClickListener(v -> {
+      currentSection = SECTION_SHOPPING;
+      showSelectedSection();
+    });
+    getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+      @Override public void handleOnBackPressed() {
+        if (currentSection == SECTION_PHOTOS) {
+          currentSection = SECTION_SHOPPING;
+          showSelectedSection();
+        } else {
+          setEnabled(false);
+          getOnBackPressedDispatcher().onBackPressed();
+          setEnabled(true);
+        }
+      }
+    });
     photoLibraryStatus = findViewById(R.id.txtPhotoLibraryStatus);
     photoScanAdapter = new PhotoScanLibraryAdapter(
         entry -> {
@@ -1214,32 +1234,40 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         },
         entry -> {
           new AlertDialog.Builder(this)
-              .setMessage(R.string.delete_photo_scan_confirm)
+              .setMessage(R.string.photo_delete_group_confirm)
               .setNegativeButton(R.string.cancel, null)
               .setPositiveButton(R.string.delete_photo_scan, (dialog, which) -> {
-                activePhotoAnalyses.remove(entry.getId());
-                PhotoScanStore.INSTANCE.delete(this, entry);
-                showPhotos();
+                StorageOperations.INSTANCE.perform(this, (report, progress) -> {
+                  for (PhotoScanEntry photo : PhotoGroups.INSTANCE.members(this, entry.getId())) {
+                    PhotoScanStore.INSTANCE.deleteMeasured(this, photo, report);
+                  }
+                  progress.invoke();
+                  return kotlin.Unit.INSTANCE;
+                }, () -> { showPhotos(); return kotlin.Unit.INSTANCE; });
               })
               .show();
           return kotlin.Unit.INSTANCE;
         }
     );
+    photoScanAdapter.setOnSelectionChanged(() -> findViewById(R.id.btnGroupSelectedPhotos)
+        .setEnabled(photoScanAdapter.selectedIds().size() >= 2));
+    findViewById(R.id.btnGroupSelectedPhotos).setOnClickListener(view -> {
+      PhotoGroups.INSTANCE.join(this, photoScanAdapter.selectedIds());
+      photoScanAdapter.clearSelection();
+      showPhotos();
+    });
     findViewById(R.id.btnChooseCardPhoto).setOnClickListener(view -> chooseCardPhoto());
   }
 
   private void chooseCardPhoto() {
-    Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-    picker.addCategory(Intent.CATEGORY_OPENABLE);
-    picker.setType("image/*");
-    startActivityForResult(picker, RC_PICK_CARD_PHOTO);
+    PhotoActions.choose(this, null);
   }
 
   private void showPhotos() {
     List<PhotoScanEntry> entries = PhotoScanStore.INSTANCE.entries(this);
     mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
     mRecyclerView.setAdapter(photoScanAdapter);
-    photoScanAdapter.submit(entries);
+    photoScanAdapter.submit(PhotoGroups.INSTANCE.rows(this, entries));
     for (PhotoScanEntry entry : entries) {
       if (PhotoScanEntry.STATE_ANALYZING.equals(entry.getState())) analyzePhoto(entry);
     }
@@ -1267,80 +1295,21 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
 
   private void analyzePhoto(PhotoScanEntry entry) {
     if (!activePhotoAnalyses.add(entry.getId())) return;
-    PhotoCardAnalyzer.INSTANCE.recognize(this, entry.getImagePath(), (lines, ocrError) -> {
-      if (ocrError != null) {
-        finishPhotoAnalysisWithError(entry, ocrError.getMessage());
-        return kotlin.Unit.INSTANCE;
-      }
-      cardRepository.matchLocalPhotoText(lines, matches -> {
-        if (matches.isEmpty()) {
-          finishPhotoAnalysisWithError(entry, getString(R.string.photo_no_cards_detected));
-          return kotlin.Unit.INSTANCE;
-        }
-        Map<String, List<PhotoCardNameMatch>> grouped = new LinkedHashMap<>();
-        for (PhotoCardNameMatch match : matches) {
-          String key = match.getCanonicalName().toLowerCase(Locale.ROOT);
-          List<PhotoCardNameMatch> copies = grouped.get(key);
-          if (copies == null) {
-            copies = new ArrayList<>();
-            grouped.put(key, copies);
-          }
-          copies.add(match);
-        }
+    PhotoCardAnalyzer.INSTANCE.recognize(this, entry.getImagePath(), (cards, error) -> {
+      activePhotoAnalyses.remove(entry.getId());
+      if (PhotoScanStore.INSTANCE.find(this, entry.getId()) == null
+          || !new java.io.File(entry.getImagePath()).isFile()) return kotlin.Unit.INSTANCE;
+      if (error != null || cards.isEmpty()) {
+        finishPhotoAnalysisWithError(entry, getString(error != null
+            ? R.string.photo_analysis_error : R.string.photo_no_cards_detected));
+      } else {
         entry.getCards().clear();
-        final int[] pending = { grouped.size() };
-        for (List<PhotoCardNameMatch> copies : grouped.values()) {
-          PhotoCardNameMatch match = copies.get(0);
-          cardRepository.loadCard(match.getCanonicalName(), false, false, (options, priceError) -> {
-            CardEditionOption option = options.isEmpty()
-                ? null
-                : ScanPrintingPolicy.preferred(options);
-            if (option == null && !options.isEmpty()) option = options.get(0);
-            if (option != null) {
-              entry.getCards().add(new PhotoScanCard(
-                  java.util.UUID.randomUUID().toString(),
-                  option.getCardName(),
-                  match.getDisplayName(),
-                  copies.size(),
-                  option.getPrintingUuid(),
-                  option.getSetCode(),
-                  option.getSetName(),
-                  option.getCollectorNumber(),
-                  option.getFinish(),
-                  option.getImageUrl() == null ? "" : option.getImageUrl(),
-                  option.getTypeLine(),
-                  option.getRulesText(),
-                  option.getPrice(),
-                  option.getCurrency() == null ? "EUR" : option.getCurrency(),
-                  match.getLanguage(),
-                  option.getMcmId(),
-                  option.getMcmMetaId(),
-                  option.getMcmSetId(),
-                  option.getMcmSetIdExtras(),
-                  option.getMcmSetName()
-              ));
-            }
-            pending[0]--;
-            if (pending[0] == 0) {
-              if (!new java.io.File(entry.getImagePath()).isFile()) {
-                activePhotoAnalyses.remove(entry.getId());
-                return kotlin.Unit.INSTANCE;
-              }
-              if (entry.getCards().isEmpty()) {
-                finishPhotoAnalysisWithError(entry, getString(R.string.photo_prices_error));
-              } else {
-                entry.setState(PhotoScanEntry.STATE_READY);
-                entry.setError("");
-                PhotoScanStore.INSTANCE.save(this, entry);
-                activePhotoAnalyses.remove(entry.getId());
-                if (currentSection == SECTION_PHOTOS) showPhotos();
-              }
-            }
-            return kotlin.Unit.INSTANCE;
-          });
-        }
-        return kotlin.Unit.INSTANCE;
-      });
+        entry.getCards().addAll(cards);
+        entry.setState(PhotoScanEntry.STATE_READY);
+        entry.setError("");
+        PhotoScanStore.INSTANCE.save(this, entry);
+        if (!isFinishing() && !isDestroyed() && currentSection == SECTION_PHOTOS) showPhotos();
+      }
       return kotlin.Unit.INSTANCE;
     });
   }
@@ -1352,7 +1321,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     entry.setError(message == null || message.trim().length() == 0
         ? getString(R.string.photo_analysis_error) : message);
     PhotoScanStore.INSTANCE.save(this, entry);
-    if (currentSection == SECTION_PHOTOS) showPhotos();
+    if (!isFinishing() && !isDestroyed() && currentSection == SECTION_PHOTOS) showPhotos();
   }
 
   private Map<String, Integer> ownedSetCounts() {
@@ -1383,6 +1352,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void setUpBottomNavigation() {
     bottomNavigation = (BottomNavigationView) findViewById(R.id.bottomNavigation);
     settingsPlaceholder = findViewById(R.id.settingsPlaceholder);
+    findViewById(R.id.btnStorageSettings).setOnClickListener(v -> startActivity(new Intent(this, StorageActivity.class)));
     setUpPaletteSettings();
     setUpPriceSourceSettings();
     setUpPremiumSettings();
@@ -1395,7 +1365,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     int selectedNavigation = currentSection == SECTION_GROUPS ? R.id.nav_groups
         : currentSection == SECTION_CATALOG ? R.id.nav_catalog
-        : currentSection == SECTION_PHOTOS ? R.id.nav_photos
+        : currentSection == SECTION_PHOTOS ? R.id.nav_shopping
         : currentSection == SECTION_SHOPPING ? R.id.nav_shopping
         : currentSection == SECTION_SETTINGS ? R.id.nav_settings
         : R.id.nav_library;
@@ -1409,7 +1379,6 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       else if (itemId == R.id.nav_library) currentSection = SECTION_LIBRARY;
       else if (itemId == R.id.nav_groups) currentSection = SECTION_GROUPS;
       else if (itemId == R.id.nav_catalog) currentSection = SECTION_CATALOG;
-      else if (itemId == R.id.nav_photos) currentSection = SECTION_PHOTOS;
       else if (itemId == R.id.nav_settings) currentSection = SECTION_SETTINGS;
       currentFilterKey = "all";
       showSelectedSection();
@@ -3053,9 +3022,10 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         } else if(action==2) {
           new AlertDialog.Builder(this).setMessage(getString(R.string.collection_delete_selected_confirm,selectedCollectionCards().size()))
             .setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(dialog,which)->{
+              List<CardInfo> deleting = selectedCollectionCards();
               collectionBatchDeleting=true;
-              try { for(CardInfo card:selectedCollectionCards()) { deleteCardFromCollection(card);cardRepository.clearSelectedEdition(card.getCollectionItemId(),()->kotlin.Unit.INSTANCE); } }
-              finally { collectionBatchDeleting=false;finishCollectionSelectionEdit(); }
+              try { for(CardInfo card:deleting) { deleteCardFromCollection(card);cardRepository.clearSelectedEdition(card.getCollectionItemId(),()->kotlin.Unit.INSTANCE); } }
+              finally { collectionBatchDeleting=false;finishCollectionSelectionEdit();StorageOperations.afterCollectionDelete(this, deleting); }
             }).show();
         } else {
           android.widget.PopupMenu menu=new android.widget.PopupMenu(this,button);
@@ -4627,6 +4597,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     }
     if (collectionBatchDeleting) return;
     DataUtils.saveSerializable(this, mBiblio, mBiblio.nameFile);
+    StorageOperations.afterCollectionDelete(this, java.util.Collections.singletonList(cardInfo));
     refreshUI();
     updateScanSessionUi();
     if (scanSessionDialog != null) {

@@ -48,7 +48,7 @@ object ReviewEvidenceCache {
             if(outcome.optInt("rulesVersion")!=ReliableReviewPolicy.VERSION) return false
             val plan=ScanReviewStore.json(File(journal,"${entry.photoKey}.plan.json")) ?: return false
             return unchangedOutcome(outcome.optString("status"),outcome.optString("reason"),
-                evidence.maxOf { it.lastModified() },outcome.optLong("at"),plan.optString("fingerprint"),fingerprint)
+                (evidence + File(dir,"${entry.photoKey}.jpg") + File(dir,"${entry.photoKey}.json")).maxOf { it.lastModified() },outcome.optLong("at"),plan.optString("fingerprint"),fingerprint)
         }
         return false
     }

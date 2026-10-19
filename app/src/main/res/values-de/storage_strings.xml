@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Daten und Speicher</string>
+    <string name="storage_images">Kartenbilder</string>
+    <string name="storage_postprocess">Nachbearbeitung und Nachweise</string>
+    <string name="storage_catalog">Katalog und Preise</string>
+    <string name="storage_scanner">Scanner und AR</string>
+    <string name="storage_photos">Fotos und temporäre Dateien</string>
+    <string name="storage_deleting">Dateien werden gelöscht…</string>
+    <string name="storage_progress">%1$d Dateien · %2$s</string>
+    <string name="storage_result">Bereinigungsergebnis</string>
+    <string name="storage_result_detail">Gelöscht: %1$d Dateien · %2$s\nFehler: %3$d</string>
+    <string name="storage_busy">Daten werden verwendet, Aufträge stehen aus oder Verweise sind nicht überprüfbar. Geschützte Dateien bleiben erhalten. Später erneut versuchen.</string>
+    <string name="storage_total">Verwalteter Speicher: %1$s</string>
+    <string name="storage_protected">Sammlung, Einstellungen, gemeinsam genutzte Dateien und Wiederherstellungsdaten sind geschützt.</string>
+    <string name="storage_summary">%1$s · %2$d Dateien\nSicher freigebbar: %3$s</string>
+    <string name="storage_view">Dateien anzeigen</string>
+    <string name="storage_kept">Geschützt</string>
+    <string name="storage_clean">Unbenutzte Dateien bereinigen</string>
+    <string name="storage_confirm">Nur nachweislich entbehrliche Dateien werden gelöscht. Keine Karten der Sammlung werden entfernt. Fortfahren?</string>
+    <string name="storage_postprocess_help">Geprüfte Nachweise, gelöschte Karten und Einträge ohne Foto werden bei der Bereinigung erneut geprüft. Ausstehende und gemeinsam genutzte Dateien bleiben erhalten.</string>
+    <string name="storage_catalog_help">Gemeinsame Datenbanken enthalten auch Kartenauswahlen und werden nicht als Cache gelöscht.</string>
+    <string name="storage_manage_photos">Importierte Fotos verwalten</string>
+    <string name="storage_remove_ar">Ausgewählte Downloads löschen</string>
+    <string name="storage_select_download">Mindestens eine heruntergeladene Datenbank auswählen.</string>
+    <string name="storage_settings_help">Größen ansehen und Bilder, Nachweise und Downloads verwalten.</string>
+    <string name="storage_open">Details öffnen</string>
+    <string name="review_discard_pending">Nachbearbeitungsdaten löschen</string>
+    <string name="review_discard_confirm">Ausstehende Nachbearbeitung der GESAMTEN aktiven Bibliothek unabhängig von Filtern verwerfen? Exklusive Fotos und Diagnosedaten, auch bereits geprüfte, werden gelöscht. Karten und Mengen bleiben erhalten. Gemeinsam genutzte Dateien, Wiederherstellungsverlauf und laufende Aufträge bleiben erhalten. Dies kann nicht rückgängig gemacht werden.</string>
+    <string name="storage_postprocess_contents">Enthält Original-Scanfotos, OCR- und visuelle Ergebnisse sowie Wiederherstellungsprotokolle. Die Gesamtgröße ist nicht der freigebbare Speicher: ausstehende und gemeinsam genutzte Dateien sind geschützt. Zum Verwerfen der Prüfung dient „Nachbearbeitungsdaten löschen“ im Nachbearbeitungsbildschirm.</string>
+</resources>

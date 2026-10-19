@@ -45,7 +45,8 @@ data class PhotoScanCard(
     var mcmMetaId: String? = null,
     var mcmSetId: Int? = null,
     var mcmSetIdExtras: Int? = null,
-    var mcmSetName: String? = null
+    var mcmSetName: String? = null,
+    var photoBounds: PhotoCardBounds? = null
 ) : Serializable {
     fun toEditionOption(): CardEditionOption = CardEditionOption(
         printingUuid = printingUuid,
@@ -96,22 +97,51 @@ object PhotoScanStore {
     }
 
     @Synchronized
+    internal fun addManual(context:Context,id:String,card:PhotoScanCard):Boolean {
+        val entry=find(context,id) ?: return false
+        if(entry.state==PhotoScanEntry.STATE_ANALYZING)return false
+        entry.cards.add(card);entry.state=PhotoScanEntry.STATE_READY;entry.error=""
+        save(context,entry)
+        return true
+    }
+
+    @Synchronized
     fun find(context: Context, id: String): PhotoScanEntry? = entries(context).firstOrNull { it.id == id }
 
     @Synchronized
     fun delete(context: Context, entry: PhotoScanEntry) {
         val entries = entries(context).filterNot { it.id == entry.id }
         DataUtils.saveSerializable(context, ArrayList(entries), FILE_NAME)
-        runCatching { File(entry.imagePath).delete() }
+        val file=File(entry.imagePath)
+        if(StorageData.safeChild(File(context.filesDir,"photo_scans"),file) &&
+            entries.none { File(it.imagePath).canonicalPath==file.canonicalPath }) runCatching { file.delete() }
+    }
+
+    fun deleteMeasured(context:Context,entry:PhotoScanEntry,report:StorageData.Report) {
+        if(StorageData.busy(context)) { report.blocked=true;return }
+        synchronized(this) { synchronized(DataUtils::class.java) {
+            val current=entries(context)
+            val found=current.firstOrNull { it.id==entry.id } ?: return
+            if(found.state==PhotoScanEntry.STATE_ANALYZING) { report.blocked=true;return }
+            if(StorageData.references(context)==null) { report.blocked=true;return }
+            val file=File(found.imagePath)
+            val remaining=current.filterNot { it.id==entry.id }
+            DataUtils.saveSerializable(context,ArrayList(remaining),FILE_NAME)
+            if(entries(context).any { it.id==entry.id }) { report.failed++;return }
+            val nextRefs=StorageData.references(context) ?: run { report.blocked=true;return }
+            if(StorageData.safeChild(File(context.filesDir,"photo_scans"),file) && file.canonicalPath !in nextRefs.paths)
+                StorageData.deleteFile(file,report)
+        } }
     }
 
     fun importPhoto(context: Context, uri: Uri): PhotoScanEntry {
         val directory = File(context.filesDir, "photo_scans").apply { mkdirs() }
         val destination = File(directory, "${System.currentTimeMillis()}-${UUID.randomUUID()}.image")
-        context.contentResolver.openInputStream(uri).use { input ->
+        try { context.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "No se pudo abrir la imagen" }
             destination.outputStream().buffered().use(input::copyTo)
         }
         return PhotoScanEntry(imagePath = destination.absolutePath).also { save(context, it) }
+        } catch(error:Exception) { destination.delete();throw error }
     }
 }

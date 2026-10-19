@@ -924,4 +924,7 @@
     <string name="edfast_retry">Speichern erneut versuchen</string>
     <string name="edfast_saved">Gespeichert: %1$d · Wartend: %2$d · Fehler: %3$d</string>
     <string name="edfast_group">EdScan Fast</string>
+    <string name="photo_edscan_hint">EdScanner: Edition und Finish prüfen (standardmäßig nicht foil). Unsichere Karten werden möglicherweise nicht erkannt. — bedeutet kein Preis verfügbar.</string>
+    <string name="photo_edscan_retry">Mit EdScanner analysieren</string>
+    <string name="photo_edscan_confirm">Die Erkennungen in diesem Foto werden ersetzt. Deine Sammlung bleibt unverändert. Fortfahren?</string>
 </resources>

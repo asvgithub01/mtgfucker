@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="photo_take">Take photo</string>
+    <string name="photo_import_multiple">Import multiple photos</string>
+    <string name="photo_group_existing">Group existing photos</string>
+    <string name="photo_add_to_group">Add photos</string>
+    <string name="photo_group_count">%1$d photos</string>
+    <string name="photo_delete_group_confirm">Delete this group and all its photos? Collection cards will not be deleted.</string>
+    <string name="photo_positions_missing">This photo has old or manual detections without positions. Reanalyze with EdScanner to place prices on cards.</string>
+    <string name="photo_gallery_hint">Tap the photo to open the zoomable gallery. — means no price is available.</string>
+    <string name="photo_add_source">Add photos</string>
+    <string name="photo_header">Photos</string>
+    <string name="photo_group_selected">Group selected</string>
+    <string name="photo_select_group">Select for grouping</string>
+    <string name="photo_draft_add">Add</string>
+    <string name="photo_draft_discard">Discard</string>
+    <string name="photo_draft_unavailable">The photo no longer exists or is being analyzed. Wait until it finishes and try again.</string>
+</resources>

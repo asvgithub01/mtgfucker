@@ -28,12 +28,18 @@
             android:text="@string/close" />
     </LinearLayout>
 
-    <ImageView
+    <io.asv.mtgocr.ocrreader.PhotoPriceImageView
         android:id="@+id/imgPhotoDetail"
         android:layout_width="match_parent"
         android:layout_height="210dp"
         android:contentDescription="@string/photo_scan_image"
-        android:scaleType="centerCrop" />
+        android:scaleType="fitCenter" />
+
+    <Button
+        android:id="@+id/btnPhotoEdScan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/photo_edscan_retry" />
 
     <LinearLayout
         android:layout_width="match_parent"

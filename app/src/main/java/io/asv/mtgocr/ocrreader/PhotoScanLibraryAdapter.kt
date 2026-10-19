@@ -15,10 +15,16 @@ class PhotoScanLibraryAdapter(
     private val onOpen: (PhotoScanEntry) -> Unit,
     private val onDelete: (PhotoScanEntry) -> Unit
 ) : RecyclerView.Adapter<PhotoScanLibraryAdapter.Holder>() {
+    private val selected=linkedSetOf<String>()
+    var onSelectionChanged:Runnable?=null
+    fun selectedIds():List<String> = selected.toList()
+    fun clearSelection() { selected.clear();notifyDataSetChanged();onSelectionChanged?.run() }
     private var items: List<PhotoScanEntry> = emptyList()
 
     fun submit(entries: List<PhotoScanEntry>) {
         items = entries.sortedByDescending { it.createdAt }
+        selected.retainAll(items.map { it.id }.toSet())
+        onSelectionChanged?.run()
         notifyDataSetChanged()
     }
 
@@ -31,6 +37,13 @@ class PhotoScanLibraryAdapter(
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
         holder.bind(item, onOpen, onDelete)
+        val check=holder.itemView.findViewById<android.widget.CheckBox>(R.id.checkPhotoGroup)
+        check.setOnCheckedChangeListener(null)
+        check.isChecked=item.id in selected
+        check.setOnCheckedChangeListener { _,checked ->
+            if(checked) selected.add(item.id) else selected.remove(item.id)
+            onSelectionChanged?.run()
+        }
     }
 
     class Holder(view: View) : RecyclerView.ViewHolder(view) {
@@ -57,7 +70,7 @@ class PhotoScanLibraryAdapter(
             summary.text = entry.cards.joinToString(" · ") {
                 "${it.detectedQuantity}× ${it.displayName}"
             }.ifBlank { itemView.context.getString(R.string.photo_no_cards_yet) }
-            state.text = when (entry.state) {
+            state.text = itemView.context.getString(R.string.photo_group_count,PhotoGroups.members(itemView.context,entry.id).size)+" · "+when (entry.state) {
                 PhotoScanEntry.STATE_ANALYZING -> itemView.context.getString(R.string.photo_analyzing)
                 PhotoScanEntry.STATE_ERROR -> entry.error.ifBlank {
                     itemView.context.getString(R.string.photo_analysis_error)

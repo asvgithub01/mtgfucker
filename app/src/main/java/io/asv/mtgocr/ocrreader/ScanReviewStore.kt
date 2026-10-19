@@ -12,7 +12,8 @@ object ScanReviewStore {
     data class Entry(val key: String, val card: CardInfo, val source: String, val state: String,
         val language: String?, val candidateId: String, val candidateLabel: String, val stamp: Long, val candidateImage: String = "", val photoKey: String = key, val visual: Boolean = source == "ocr", val candidateSet: String = "", val provisional: Boolean = false, val titleState: String = "", val observedTitle: String = "", val artScore: Double? = null, val artMargin: Double? = null, val analysedAt: Long = 0, val ocrCompleted: Boolean = false)
     fun json(file: File): JSONObject? = runCatching { JSONObject(file.readText()) }.getOrNull()
-    fun read(context: Context, library: String): List<Entry> {
+    @JvmOverloads
+    fun read(context: Context, library: String, includeMissingPhotos: Boolean = false): List<Entry> {
         if (LibraryCatalog.activeFile(context) != library) return emptyList()
         val cards = LegacyCollectionStore.cards(context).associateBy { it.collectionItemId }
         val dir = EdScanJobs.directory(context)
@@ -98,8 +99,22 @@ object ScanReviewStore {
                     review.optString("finish") == card.finish.orEmpty() && review.optString("language") == card.languageCode) state="reviewed"
                 Entry(key,card.snapshotForPersistence(),source,state,language,candidateId,label,stamp,candidateImage,photoKey,visual,candidateSet,false,titleState,title?.optString("observed").orEmpty().ifBlank { rawTitle },score,if(score!=null && runner!=null) score-runner else null,result?.optLong("checkedAt") ?: 0L,ocr?.optJSONArray("readings")!=null)
             }
-        }).sortedWith(compareBy<Entry> { when(it.state) { "conflict"->0; "suggestion"->1; "pending"->2; "inconclusive"->3; else->4 } }.thenByDescending { it.key })
+        }).filter { includeMissingPhotos || hasPhoto(context,it.photoKey) }.sortedWith(compareBy<Entry> { when(it.state) { "conflict"->0; "suggestion"->1; "pending"->2; "inconclusive"->3; else->4 } }.thenByDescending { it.key })
     }
+    private val photoChecks=java.util.concurrent.ConcurrentHashMap<String,Triple<Long,Long,Boolean>>()
+    fun hasPhoto(context: Context, key: String): Boolean {
+        if(!key.matches(Regex("[a-f0-9-]{36}")))return false
+        val file=File(EdScanJobs.directory(context),"$key.jpg")
+        if(!file.isFile || file.length()==0L)return false
+        val time=file.lastModified();val size=file.length()
+        photoChecks[file.absolutePath]?.takeIf { it.first==time && it.second==size }?.let { return it.third }
+        val options=android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds=true }
+        runCatching { android.graphics.BitmapFactory.decodeFile(file.absolutePath,options) }
+        val valid=options.outWidth>0 && options.outHeight>0
+        photoChecks[file.absolutePath]=Triple(time,size,valid)
+        return valid
+    }
+
     fun writeProvisional(context: Context, scanKey: String, photoKey: String?, library: String, item: String, candidates: List<String>) {
         require(scanKey.matches(Regex("[a-f0-9-]{36}")))
         write(File(EdScanJobs.directory(context),"$scanKey.provisional.json"), JSONObject()
@@ -115,5 +130,6 @@ object ScanReviewStore {
         write(File(EdScanJobs.directory(context),"${entry.key}.review.json"),JSONObject()
             .put("printingUuid",card.printingUuid.orEmpty()).put("finish",card.finish.orEmpty())
             .put("language",card.languageCode).put("stamp",entry.stamp).put("reviewedAt",System.currentTimeMillis()))
+        PostprocessCleanup.schedule(context,LibraryCatalog.activeFile(context))
     }
 }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Dados e armazenamento</string>
+    <string name="storage_images">Imagens de cartas</string>
+    <string name="storage_postprocess">Pós-processamento e evidências</string>
+    <string name="storage_catalog">Catálogo e preços</string>
+    <string name="storage_scanner">Scanner e AR</string>
+    <string name="storage_photos">Fotos e ficheiros temporários</string>
+    <string name="storage_deleting">A eliminar ficheiros…</string>
+    <string name="storage_progress">%1$d ficheiros · %2$s</string>
+    <string name="storage_result">Resultado da limpeza</string>
+    <string name="storage_result_detail">Eliminados: %1$d ficheiros · %2$s\nErros: %3$d</string>
+    <string name="storage_busy">Existem dados em uso, tarefas pendentes ou referências por verificar. Os ficheiros protegidos foram mantidos. Tenta novamente quando terminarem.</string>
+    <string name="storage_total">Armazenamento gerido: %1$s</string>
+    <string name="storage_protected">A coleção, as preferências, os ficheiros partilhados e os dados de recuperação estão protegidos.</string>
+    <string name="storage_summary">%1$s · %2$d ficheiros\nEspaço recuperável verificado: %3$s</string>
+    <string name="storage_view">Ver ficheiros</string>
+    <string name="storage_kept">Protegido</string>
+    <string name="storage_clean">Limpar ficheiros sem uso</string>
+    <string name="storage_confirm">Só serão eliminados ficheiros verificados como desnecessários. Não serão removidas cartas da coleção. Continuar?</string>
+    <string name="storage_postprocess_help">As evidências revistas, as cartas eliminadas e as entradas sem foto são verificadas novamente na limpeza. Os ficheiros pendentes e partilhados são mantidos.</string>
+    <string name="storage_catalog_help">As bases partilhadas também contêm seleções de cartas: não são eliminadas como cache.</string>
+    <string name="storage_manage_photos">Gerir fotos importadas</string>
+    <string name="storage_remove_ar">Eliminar transferências selecionadas</string>
+    <string name="storage_select_download">Seleciona pelo menos uma base transferida.</string>
+    <string name="storage_settings_help">Ver tamanhos e gerir imagens, evidências e transferências.</string>
+    <string name="storage_open">Abrir detalhes</string>
+    <string name="review_discard_pending">Eliminar dados de pós-processamento</string>
+    <string name="review_discard_confirm">Descartar o pós-processamento pendente de TODA a biblioteca ativa, independentemente dos filtros? As fotos e diagnósticos exclusivos, incluindo os já revistos, serão eliminados. As cartas e quantidades serão mantidas. Ficheiros partilhados, histórico de recuperação e tarefas em curso são conservados. Esta ação não pode ser anulada.</string>
+    <string name="storage_postprocess_contents">Inclui fotos originais, resultados OCR e visuais e registos de recuperação. O total não é o espaço recuperável: ficheiros pendentes e partilhados estão protegidos. Para abandonar a revisão, use «Eliminar dados de pós-processamento» no respetivo ecrã.</string>
+</resources>

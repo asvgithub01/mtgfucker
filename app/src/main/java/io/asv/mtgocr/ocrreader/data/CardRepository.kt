@@ -883,6 +883,8 @@ class CardRepository private constructor(context: Context) {
     }
 
     /** Warms the complete daily price index without blocking OCR name recognition. */
+    fun discardPriceDownload(report:io.asv.mtgocr.ocrreader.StorageData.Report) = priceProvider.discardDownload(report)
+
     fun preparePriceIndex(callback: (Boolean) -> Unit = {}) {
         priceIndexExecutor.execute {
             val ready = runCatching {

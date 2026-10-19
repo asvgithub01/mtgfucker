@@ -9,5 +9,6 @@ object EdScanInferencePriority {
     private val live=MutableStateFlow(false)
     @Synchronized fun acquire(owner: Any) { owners.add(owner); live.value=owners.isNotEmpty() }
     @Synchronized fun release(owner: Any) { owners.remove(owner); live.value=owners.isNotEmpty() }
+    @Synchronized fun isBusy(): Boolean = owners.isNotEmpty()
     suspend fun awaitIdle() { live.first { !it } }
 }

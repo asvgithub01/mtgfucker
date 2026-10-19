@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Data and storage</string>
+    <string name="storage_images">Card images</string>
+    <string name="storage_postprocess">Postprocessing and evidence</string>
+    <string name="storage_catalog">Catalog and prices</string>
+    <string name="storage_scanner">Scanner and AR</string>
+    <string name="storage_photos">Photos and temporary files</string>
+    <string name="storage_deleting">Deleting files…</string>
+    <string name="storage_progress">%1$d files · %2$s</string>
+    <string name="storage_result">Cleanup result</string>
+    <string name="storage_result_detail">Deleted: %1$d files · %2$s\nErrors: %3$d</string>
+    <string name="storage_busy">Data is in use, work is pending, or references cannot be verified. Protected files were kept. Try again when work finishes.</string>
+    <string name="storage_total">Managed storage: %1$s</string>
+    <string name="storage_protected">Your collection, preferences, shared files and recovery data are protected.</string>
+    <string name="storage_summary">%1$s · %2$d files\nVerified reclaimable: %3$s</string>
+    <string name="storage_view">View files</string>
+    <string name="storage_kept">Protected</string>
+    <string name="storage_clean">Clean unused files</string>
+    <string name="storage_confirm">Only files verified as unnecessary will be deleted. No collection cards will be removed. Continue?</string>
+    <string name="storage_postprocess_help">Reviewed evidence, evidence for deleted cards and entries without photos are rechecked during cleanup. Pending and shared files are kept.</string>
+    <string name="storage_catalog_help">Shared databases also contain card selections: they are not deleted as cache.</string>
+    <string name="storage_manage_photos">Manage imported photos</string>
+    <string name="storage_remove_ar">Delete selected downloads</string>
+    <string name="storage_select_download">Select at least one downloaded database.</string>
+    <string name="storage_settings_help">View sizes and manage images, evidence and downloads.</string>
+    <string name="storage_open">Open details</string>
+    <string name="review_discard_pending">Delete postprocessing data</string>
+    <string name="review_discard_confirm">Discard pending postprocessing for the ENTIRE active library, regardless of filters? Exclusive photos and diagnostics, including reviewed ones, will be deleted. Cards and quantities will not be removed. Shared files, recovery history and active jobs are retained. This cannot be undone.</string>
+    <string name="storage_postprocess_contents">Includes original scan photos, OCR and visual results, and recovery logs. Total size is not reclaimable space: pending and shared files are protected. To abandon review, use “Delete postprocessing data” on the postprocessing screen.</string>
+</resources>

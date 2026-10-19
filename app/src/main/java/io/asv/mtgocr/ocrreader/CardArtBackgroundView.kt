@@ -17,6 +17,20 @@ class CardArtBackgroundView @JvmOverloads constructor(
 ) : AppCompatImageView(context, attrs) {
     private val artMatrix = Matrix()
     private var artworkOnly = false
+    var fitArtworkAspectRatio: Boolean = false
+        set(value) { field = value; requestLayout() }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        if (!fitArtworkAspectRatio) { super.onMeasure(widthMeasureSpec, heightMeasureSpec); return }
+        val width = MeasureSpec.getSize(widthMeasureSpec)
+        val source = drawable
+        val sourceWidth = source?.intrinsicWidth ?: 0
+        val sourceHeight = source?.intrinsicHeight ?: 0
+        val ratio = if (sourceWidth > 0 && sourceHeight > 0) {
+            sourceHeight.toFloat() / sourceWidth * if (artworkOnly) 1f else (ART_BOTTOM - ART_TOP) / (ART_RIGHT - ART_LEFT)
+        } else .6f
+        setMeasuredDimension(width, resolveSize((width * ratio).toInt(), heightMeasureSpec))
+    }
 
     init {
         scaleType = ScaleType.MATRIX
@@ -24,6 +38,7 @@ class CardArtBackgroundView @JvmOverloads constructor(
 
     override fun setImageDrawable(drawable: Drawable?) {
         super.setImageDrawable(drawable)
+        if (fitArtworkAspectRatio) requestLayout()
         post(::updateArtMatrix)
     }
 
@@ -36,6 +51,7 @@ class CardArtBackgroundView @JvmOverloads constructor(
     fun setArtworkOnly(enabled: Boolean) {
         if (artworkOnly == enabled) return
         artworkOnly = enabled
+        if (fitArtworkAspectRatio) requestLayout()
         post(::updateArtMatrix)
     }
 

@@ -19,9 +19,11 @@
         android:orientation="horizontal"
         android:padding="8dp">
 
+        <CheckBox android:id="@+id/checkPhotoGroup" android:layout_width="48dp"
+            android:layout_height="48dp" android:contentDescription="@string/photo_select_group" />
         <ImageView
             android:id="@+id/imgPhotoScan"
-            android:layout_width="112dp"
+            android:layout_width="88dp"
             android:layout_height="112dp"
             android:contentDescription="@string/photo_scan_image"
             android:scaleType="centerCrop" />

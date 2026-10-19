@@ -924,4 +924,7 @@
     <string name="edfast_retry">Réessayer les sauvegardes</string>
     <string name="edfast_saved">Enregistrées : %1$d · En attente : %2$d · Erreurs : %3$d</string>
     <string name="edfast_group">EdScan Fast</string>
+    <string name="photo_edscan_hint">EdScanner : vérifiez l’édition et la finition (non foil par défaut). Les cartes incertaines peuvent être ignorées. — indique un prix indisponible.</string>
+    <string name="photo_edscan_retry">Analyser avec EdScanner</string>
+    <string name="photo_edscan_confirm">Les détections de cette photo seront remplacées. Votre collection ne sera pas modifiée. Continuer ?</string>
 </resources>

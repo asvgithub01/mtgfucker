@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit
  * Keeps every image that has been requested in app-private storage.
  *
  * Glide's own cache is still used while the permanent copy is downloaded, but files in this
- * directory are not subject to Glide's LRU eviction. They survive restarts and offline use until
- * the user clears the application's data or uninstalls it.
+ * directory are not subject to Glide's LRU eviction. Settings > Data can remove unreferenced
+ * copies; deleting a collection row cleans only its exclusive images after reference checks.
  */
 object CardImageCache {
     private const val METADATA_LOADING = "metadata-loading"

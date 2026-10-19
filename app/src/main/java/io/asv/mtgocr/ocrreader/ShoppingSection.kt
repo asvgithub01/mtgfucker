@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import java.util.Locale
 
 /** Embedded home destination; only an individual list is opened over it. */
-class ShoppingSection(private val activity: AppCompatActivity, private val root: LinearLayout) {
+class ShoppingSection(private val activity: AppCompatActivity, private val root: LinearLayout, private val openPhotos: Runnable) {
     private var generation=0
     init { CloudBuylistObserver(activity) { error ->
         if(root.visibility==View.VISIBLE) {
@@ -37,6 +37,7 @@ class ShoppingSection(private val activity: AppCompatActivity, private val root:
         val header=CollectionPopupChrome.panel(activity)
         header.addView(CollectionPopupChrome.label(activity,activity.getString(R.string.buy_title),24f))
         root.addView(header)
+        header.addView(CollectionPopupChrome.button(activity,R.string.nav_photos) { openPhotos.run() }.apply { id=R.id.btnShoppingPhotos })
         if(!PremiumAccess.isEnabled(activity)) {
             header.addView(CollectionPopupChrome.label(activity,activity.getString(R.string.buy_premium_note)))
             return

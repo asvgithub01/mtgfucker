@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Dati e archiviazione</string>
+    <string name="storage_images">Immagini delle carte</string>
+    <string name="storage_postprocess">Post-elaborazione e prove</string>
+    <string name="storage_catalog">Catalogo e prezzi</string>
+    <string name="storage_scanner">Scanner e AR</string>
+    <string name="storage_photos">Foto e file temporanei</string>
+    <string name="storage_deleting">Eliminazione dei file…</string>
+    <string name="storage_progress">%1$d file · %2$s</string>
+    <string name="storage_result">Risultato della pulizia</string>
+    <string name="storage_result_detail">Eliminati: %1$d file · %2$s\nErrori: %3$d</string>
+    <string name="storage_busy">Dati in uso, attività in attesa o riferimenti non verificabili. I file protetti sono stati conservati. Riprova al termine delle attività.</string>
+    <string name="storage_total">Spazio gestito: %1$s</string>
+    <string name="storage_protected">Collezione, preferenze, file condivisi e dati di recupero sono protetti.</string>
+    <string name="storage_summary">%1$s · %2$d file\nSpazio liberabile verificato: %3$s</string>
+    <string name="storage_view">Mostra file</string>
+    <string name="storage_kept">Protetto</string>
+    <string name="storage_clean">Pulisci file inutilizzati</string>
+    <string name="storage_confirm">Saranno eliminati solo file verificati come non necessari. Nessuna carta della collezione sarà rimossa. Continuare?</string>
+    <string name="storage_postprocess_help">Prove revisionate, carte eliminate e voci senza foto vengono ricontrollate durante la pulizia. I file in attesa e condivisi sono conservati.</string>
+    <string name="storage_catalog_help">I database condivisi contengono anche le selezioni delle carte: non vengono eliminati come cache.</string>
+    <string name="storage_manage_photos">Gestisci foto importate</string>
+    <string name="storage_remove_ar">Elimina download selezionati</string>
+    <string name="storage_select_download">Seleziona almeno un database scaricato.</string>
+    <string name="storage_settings_help">Visualizza dimensioni e gestisci immagini, prove e download.</string>
+    <string name="storage_open">Apri dettagli</string>
+    <string name="review_discard_pending">Elimina dati di post-elaborazione</string>
+    <string name="review_discard_confirm">Scartare la post-elaborazione in attesa di TUTTA la biblioteca attiva, indipendentemente dai filtri? Foto e diagnostica esclusive, anche già esaminate, saranno eliminate. Carte e quantità rimarranno invariate. File condivisi, cronologia di ripristino e attività in corso saranno conservati. Questa azione è irreversibile.</string>
+    <string name="storage_postprocess_contents">Include foto originali, risultati OCR e visivi e registri di ripristino. Il totale non equivale allo spazio liberabile: i file in attesa e condivisi sono protetti. Per rinunciare alla revisione, usa «Elimina dati di post-elaborazione» nella relativa schermata.</string>
+</resources>

@@ -73,6 +73,7 @@ public class DataUtils {
             }
             if (objectToSave instanceof Biblio) {
                 CloudLibrarySync.onLocalCollectionSaved(context, (Biblio) objectToSave);
+                PostprocessCleanup.schedule(context, fileName);
             }
             // Deliberately retain the previous known-good generation. A schema or serialization
             // regression must not be able to replace the user's only copy of the collection.

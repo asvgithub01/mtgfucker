@@ -66,7 +66,7 @@ class Main2Activity : AppCompatActivity() {
     private var languageVariants: List<CardImageVariant> = emptyList()
     private var languageRequest = 0
     private var languageEditionReselectAttempted = false
-    private var postprocessTask: Future<*>? = null
+    private var postprocessPanel: ScanReviewPanel? = null
     private var cardLoadTask: Future<*>? = null
     private var languageLoadTask: Future<*>? = null
     private var ownedCondition: String = CardCondition.NEAR_MINT
@@ -107,7 +107,21 @@ class Main2Activity : AppCompatActivity() {
         fun updateHeader() { headerArt.visibility=if(hero.bottom>0 && scroll.scrollY>=hero.bottom) View.VISIBLE else View.GONE }
         scroll.setOnScrollChangeListener(androidx.core.widget.NestedScrollView.OnScrollChangeListener { _,_,_,_,_ -> updateHeader() })
         scroll.doOnLayout { updateHeader() }
-        postprocessTask=PostprocessEvidencePanel.bind(this,LibraryCatalog.activeFile(this),collectionItemId)
+        postprocessPanel=PostprocessEvidencePanel.bind(this,if (browseOnly) "" else collectionItemId) {
+            repository.selectedEdition(collectionItemId) {
+                if (!isDestroyed && !isFinishing) {
+                    selected=it
+                    val card=ownedCard()
+                    if (card == null) { finish(); return@selectedEdition }
+                    cardName=card.name
+                    legacyImageUrl=card.imgPath.orEmpty()
+                    ownedCondition=card.condition
+                    adapter.setSelected(it)
+                    showDetailImage(legacyImageUrl)
+                    loadCard(false)
+                }
+            }
+        }
 
         foilBadge = findViewById(R.id.imgDetailFoilBadge)
         progress = findViewById(R.id.editionProgress)
@@ -225,7 +239,7 @@ class Main2Activity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@Main2Activity)
             adapter = this@Main2Activity.adapter
         }
-        findViewById<View>(R.id.btnBack).setOnClickListener { finish() }
+        findViewById<View>(R.id.btnBack).setOnClickListener { onBackPressedDispatcher.onBackPressed() }
         findViewById<Button>(R.id.btnRefreshPrices).setOnClickListener { loadCard(forcePriceRefresh = true) }
 
         if(browseOnly)loadCard(false) else repository.selectedEdition(collectionItemId) {
@@ -470,11 +484,13 @@ class Main2Activity : AppCompatActivity() {
 
     private fun showDetailImage(url:String?) {
         CardImageCache.display(this,url,image)
-        CardImageCache.display(this,url,findViewById(R.id.detailHeaderArt))
+        val art=findViewById<CardArtBackgroundView>(R.id.detailHeaderArt)
+        art.fitArtworkAspectRatio=true
+        art.setArtworkOnly(LaunchArtworkUrl.isAvailable(url))
+        CardImageCache.display(this,LaunchArtworkUrl.resolve(url),art)
     }
 
     override fun onDestroy() {
-        postprocessTask?.cancel(true)
         findViewById<ImageView>(R.id.detailHeaderArt)?.let { Glide.clear(it);it.setImageDrawable(null) }
 
         cardLoadTask?.cancel(true)

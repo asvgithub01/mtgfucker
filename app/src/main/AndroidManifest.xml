@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
+        android:name=".StorageApplication"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:icon="@drawable/icon"
@@ -16,6 +17,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Mtg">
         <meta-data android:name="com.google.ar.core" android:value="optional" />
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.photo-files" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/photo_file_paths" />
+        </provider>
+        <activity android:name=".PhotoImportActivity" android:exported="false" />
+        <activity android:name=".PhotoGalleryActivity" android:exported="false" />
+        <activity android:name=".StorageActivity" android:exported="false" android:theme="@style/Theme.Mtg" />
         <activity android:name=".BuylistActivity" android:exported="false" android:theme="@style/Theme.Mtg" />
         <activity android:name=".CardSearchActivity" android:exported="false" android:theme="@style/Theme.Mtg.CollectionPopup" />
         <activity android:name=".EdScanFastActivity" android:exported="false" android:screenOrientation="portrait" android:theme="@style/Theme.Mtg" />

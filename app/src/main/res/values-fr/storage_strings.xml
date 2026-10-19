@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Données et stockage</string>
+    <string name="storage_images">Images des cartes</string>
+    <string name="storage_postprocess">Post-traitement et preuves</string>
+    <string name="storage_catalog">Catalogue et prix</string>
+    <string name="storage_scanner">Scanner et AR</string>
+    <string name="storage_photos">Photos et fichiers temporaires</string>
+    <string name="storage_deleting">Suppression des fichiers…</string>
+    <string name="storage_progress">%1$d fichiers · %2$s</string>
+    <string name="storage_result">Résultat du nettoyage</string>
+    <string name="storage_result_detail">Supprimés : %1$d fichiers · %2$s\nErreurs : %3$d</string>
+    <string name="storage_busy">Des données sont utilisées, des tâches sont en attente ou les références ne peuvent pas être vérifiées. Les fichiers protégés sont conservés. Réessayez après la fin des tâches.</string>
+    <string name="storage_total">Stockage géré : %1$s</string>
+    <string name="storage_protected">La collection, les préférences, les fichiers partagés et les données de récupération sont protégés.</string>
+    <string name="storage_summary">%1$s · %2$d fichiers\nEspace libérable vérifié : %3$s</string>
+    <string name="storage_view">Voir les fichiers</string>
+    <string name="storage_kept">Protégé</string>
+    <string name="storage_clean">Nettoyer les fichiers inutilisés</string>
+    <string name="storage_confirm">Seuls les fichiers vérifiés comme inutiles seront supprimés. Aucune carte de la collection ne sera retirée. Continuer ?</string>
+    <string name="storage_postprocess_help">Les preuves révisées, les cartes supprimées et les entrées sans photo sont revérifiées au nettoyage. Les fichiers en attente ou partagés sont conservés.</string>
+    <string name="storage_catalog_help">Les bases partagées contiennent aussi les sélections de cartes : elles ne sont pas supprimées comme cache.</string>
+    <string name="storage_manage_photos">Gérer les photos importées</string>
+    <string name="storage_remove_ar">Supprimer les téléchargements sélectionnés</string>
+    <string name="storage_select_download">Sélectionnez au moins une base téléchargée.</string>
+    <string name="storage_settings_help">Voir les tailles et gérer images, preuves et téléchargements.</string>
+    <string name="storage_open">Ouvrir le détail</string>
+    <string name="review_discard_pending">Supprimer les données de post-traitement</string>
+    <string name="review_discard_confirm">Abandonner le post-traitement en attente de TOUTE la bibliothèque active, quels que soient les filtres ? Les photos et diagnostics exclusifs, même déjà vérifiés, seront supprimés. Les cartes et quantités seront conservées, ainsi que les fichiers partagés, les historiques de récupération et les tâches en cours. Cette action est irréversible.</string>
+    <string name="storage_postprocess_contents">Comprend les photos originales, les résultats OCR et visuels et les journaux de récupération. Le total ne correspond pas à la place libérable : les fichiers en attente ou partagés sont protégés. Pour abandonner la vérification, utilisez « Supprimer les données de post-traitement » sur son écran.</string>
+</resources>

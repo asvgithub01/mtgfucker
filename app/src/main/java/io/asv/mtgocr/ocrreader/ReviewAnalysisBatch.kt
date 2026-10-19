@@ -15,6 +15,18 @@ import kotlin.coroutines.resume
 /** One durable chain per photo: OCR + title cross-check; visual verification only for OCR-origin scans. Inventory writes require the explicit reliable-save stage. */
 object ReviewAnalysisBatch {
     data class Started(val tag: String?, val unchanged: Int, val reused: Int, val fresh: Int)
+    /** Same skip policy as the worker, computed off the UI thread. No re-offer of unchanged manual cases. */
+    fun actionable(context: Context, library: String, entries: List<ScanReviewStore.Entry>): Set<String> {
+        val dir=EdScanJobs.directory(context)
+        val journals=File(context.filesDir,"review_batches").listFiles().orEmpty()
+            .filter { ScanReviewStore.json(File(it,"batch.json"))?.optString("library")==library }
+            .sortedByDescending { ScanReviewStore.json(File(it,"batch.json"))?.optLong("createdAt") ?: 0L }
+        return entries.filter { it.state!="reviewed" && ScanReviewStore.hasPhoto(context,it.photoKey) }
+            .distinctBy { it.photoKey }.filter { entry ->
+                val attempt=ScanReviewStore.json(File(dir,"${entry.photoKey}.visual-request.json"))?.optString("attempt").orEmpty()
+                !attempt.matches(Regex("[a-f0-9-]{36}")) || !ReviewEvidenceCache.unchanged(dir,entry,attempt,journals)
+            }.map { it.photoKey }.toSet()
+    }
     fun start(context: Context, library: String, entries: List<ScanReviewStore.Entry>, reliableSave: Boolean = false): Started {
         val dir = EdScanJobs.directory(context)
         val tag = "review-batch-${UUID.randomUUID()}"

@@ -1097,4 +1097,7 @@
     <string name="edfast_retry">Reintentar guardados</string>
     <string name="edfast_saved">Guardadas: %1$d · En cola: %2$d · Error: %3$d</string>
     <string name="edfast_group">EdScan Fast</string>
+    <string name="photo_edscan_hint">EdScanner: revisa la edición y el acabado (normal por defecto). Las cartas dudosas pueden no detectarse. — indica precio no disponible.</string>
+    <string name="photo_edscan_retry">Analizar con EdScanner</string>
+    <string name="photo_edscan_confirm">Se sustituirán las detecciones de esta foto. No se modificará tu colección. ¿Continuar?</string>
 </resources>

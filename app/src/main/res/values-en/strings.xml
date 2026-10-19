@@ -924,4 +924,7 @@
     <string name="edfast_retry">Retry saves</string>
     <string name="edfast_saved">Saved: %1$d · Queued: %2$d · Failed: %3$d</string>
     <string name="edfast_group">EdScan Fast</string>
+    <string name="photo_edscan_hint">EdScanner: check the edition and finish (nonfoil by default). Uncertain cards may be missed. — means price unavailable.</string>
+    <string name="photo_edscan_retry">Analyze with EdScanner</string>
+    <string name="photo_edscan_confirm">This will replace the detections in this photo. Your collection will not be changed. Continue?</string>
 </resources>

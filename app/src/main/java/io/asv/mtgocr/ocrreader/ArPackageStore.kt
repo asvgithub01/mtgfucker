@@ -62,9 +62,10 @@ object ArPackageStore {
     private fun json(e:Entry)=JSONObject().put("id",e.id).put("name",e.name).put("version",e.version).put("coverage",e.coverage).put("referenceCount",e.count)
         .put("database",JSONObject().put("file",e.database.file).put("bytes",e.database.bytes).put("sha256",e.database.sha256))
         .put("metadata",JSONObject().put("file",e.metadata.file).put("bytes",e.metadata.bytes).put("sha256",e.metadata.sha256))
+    fun referencesValid(c:Context)=prefs(c).all.values.all { runCatching { parseEntry(JSONObject(it as String)) }.isSuccess }
     fun installedEntries(c:Context)=prefs(c).all.values.mapNotNull { runCatching { parseEntry(JSONObject(it as String)) }.getOrNull() }
     fun installedVersion(c:Context,id:String)=prefs(c).getString(id,null)?.let { runCatching { parseEntry(JSONObject(it)).version }.getOrNull() }
-    fun install(c:Context,e:Entry,source: ((Artifact,(Long)->Unit)->ByteArray)?=null,progress:(Long,Long)->Unit) {
+    @Synchronized fun install(c:Context,e:Entry,source: ((Artifact,(Long)->Unit)->ByteArray)?=null,progress:(Long,Long)->Unit) {
         check(PremiumAccess.isEnabled(c))
         val directory=root(c);val total=e.database.bytes+e.metadata.bytes
         check(directory.usableSpace>total+2*1024*1024)
@@ -95,6 +96,18 @@ object ArPackageStore {
             Reference(r.getString("printing"),r.getString("scryfallId"),r.getString("label"),image,r.getString("finish"),r.optString("rarity"))
         };require(refs.map { it.printing }.distinct().size==refs.size)
         return Installed(e,db,refs)
+    }
+    @Synchronized fun removeDownloaded(c:Context,id:String,report:StorageData.Report) {
+        if(StorageData.busy(c)) { report.blocked=true;return }
+        if(!referencesValid(c)) { report.blocked=true;return }
+        val entries=installedEntries(c)
+        val entry=entries.firstOrNull { it.id==id } ?: return
+        val shared=entries.filterNot { it.id==id }.flatMap { listOf(it.database,it.metadata) }.map { localFile(root(c),it).canonicalPath }.toSet()
+        check(prefs(c).edit().remove(id).commit())
+        listOf(entry.database,entry.metadata).forEach {
+            val file=localFile(root(c),it)
+            if(file.canonicalPath !in shared && StorageData.safeChild(root(c),file)) StorageData.deleteFile(file,report)
+        }
     }
     fun installed(c:Context,id:String):Installed? = prefs(c).getString(id,null)?.let { readInstalled(c,parseEntry(JSONObject(it))) }
 }

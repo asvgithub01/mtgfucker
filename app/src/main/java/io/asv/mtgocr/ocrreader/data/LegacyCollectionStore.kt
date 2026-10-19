@@ -314,6 +314,7 @@ object LegacyCollectionStore {
         val card = collection.cards.firstOrNull {
             it.collectionItemId == preferredCollectionItemId && samePrinting(it, option)
         } ?: collection.cards.firstOrNull { samePrinting(it, option) } ?: return null
+        val beforeRemoval = card.snapshotForPersistence()
         val remaining = card.quantityCount - 1
         val removedEvidencePaths = when {
             remaining <= 0 -> card.scanPhotoPaths.toList()
@@ -322,9 +323,7 @@ object LegacyCollectionStore {
         }
         if (remaining > 0) card.quantityCount = remaining else collection.cards.remove(card)
         DataUtils.saveSerializable(context, collection, collection.nameFile)
-        removedEvidencePaths.filter(String::isNotBlank).forEach { relative ->
-            File(context.filesDir, relative).delete()
-        }
+        if(remaining<=0 || removedEvidencePaths.isNotEmpty()) io.asv.mtgocr.ocrreader.StorageOperations.afterCollectionDelete(context,listOf(beforeRemoval))
         OcrCaptureActivity.mBiblio = collection
         return CopyRemovalResult(remaining.coerceAtLeast(0), card.collectionItemId)
     }
@@ -333,8 +332,10 @@ object LegacyCollectionStore {
     fun editRecentQuantity(context: Context, library: String, itemId: String, delta: Int, delete: Boolean, expected: CardInfo? = null): Boolean {
         if (fileName(context) != library) return false
         val collection = DataUtils.readSerializable<Biblio>(context, library) ?: return false
+        val previous=collection.cards.firstOrNull { it.collectionItemId==itemId }?.snapshotForPersistence()
         if (!editRecentQuantityInCollection(collection, itemId, delta, delete, expected)) return false
         DataUtils.saveSerializable(context, collection, library)
+        if(previous!=null && collection.cards.none { it.collectionItemId==itemId }) io.asv.mtgocr.ocrreader.StorageOperations.afterCollectionDelete(context,listOf(previous))
         OcrCaptureActivity.mBiblio = collection
         return true
     }

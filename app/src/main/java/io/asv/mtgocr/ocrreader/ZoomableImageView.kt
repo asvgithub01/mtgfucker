@@ -14,7 +14,7 @@ import kotlin.math.max
  * Fit-center image with bounded pinch/pan and a horizontal page swipe at the base zoom.
  * A pinch owns the complete pointer sequence so lifting one finger cannot become a huge pan.
  */
-class ZoomableImageView @JvmOverloads constructor(
+open class ZoomableImageView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
 ) : RoundedCardImageView(context, attrs) {
@@ -222,6 +222,8 @@ class ZoomableImageView @JvmOverloads constructor(
                     val intentional = abs(dx) / elapsed > MIN_SWIPE_VELOCITY
                     if (horizontal && intentional) {
                         onSwipe?.invoke(if (dx < 0f) 1 else -1)
+                    } else if(abs(dx)<touchSlop && abs(dy)<touchSlop) {
+                        performClick()
                     }
                 }
                 activePointerId = MotionEvent.INVALID_POINTER_ID

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="photo_take">Hacer foto</string>
+    <string name="photo_import_multiple">Importar varias fotos</string>
+    <string name="photo_group_existing">Agrupar fotos existentes</string>
+    <string name="photo_add_to_group">Añadir fotos</string>
+    <string name="photo_group_count">%1$d fotos</string>
+    <string name="photo_delete_group_confirm">¿Eliminar este grupo y todas sus fotos? No se eliminarán cartas de la colección.</string>
+    <string name="photo_positions_missing">Esta foto tiene detecciones antiguas o manuales sin posición. Reanaliza con EdScanner para situar los precios sobre las cartas.</string>
+    <string name="photo_gallery_hint">Toca la foto para abrir la galería con zoom. — indica que no hay precio disponible.</string>
+    <string name="photo_add_source">Añadir fotos</string>
+    <string name="photo_header">Fotos</string>
+    <string name="photo_group_selected">Agrupar seleccionadas</string>
+    <string name="photo_select_group">Seleccionar para agrupar</string>
+    <string name="photo_draft_add">Añadir</string>
+    <string name="photo_draft_discard">Descartar</string>
+    <string name="photo_draft_unavailable">La foto ya no existe o se está analizando. Espera a que termine e inténtalo de nuevo.</string>
+</resources>

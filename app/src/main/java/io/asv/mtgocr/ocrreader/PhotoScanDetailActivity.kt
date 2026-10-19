@@ -33,6 +33,7 @@ class PhotoScanDetailActivity : AppCompatActivity() {
     private lateinit var total: TextView
     private lateinit var summary: TextView
     private lateinit var recycler: RecyclerView
+    private lateinit var photoSelector:android.widget.Spinner
     private var pendingScrollState: Parcelable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,8 +53,16 @@ class PhotoScanDetailActivity : AppCompatActivity() {
             })
         }
         summary = findViewById(R.id.txtPhotoDetailSummary)
-        Glide.with(this).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).error(R.drawable.backmtg).dontAnimate().centerCrop()
+        Glide.with(this).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).error(R.drawable.backmtg).dontAnimate().dontTransform()
             .into(findViewById(R.id.imgPhotoDetail))
+        findViewById<PhotoPriceImageView>(R.id.imgPhotoDetail).setOnClickListener {
+            startActivity(Intent(this,PhotoGalleryActivity::class.java).putExtra(EXTRA_PHOTO_SCAN_ID,entry.id))
+        }
+        val controls=android.widget.LinearLayout(this)
+        photoSelector=android.widget.Spinner(this)
+        controls.addView(photoSelector,android.widget.LinearLayout.LayoutParams(0,-2,1f))
+        controls.addView(Button(this).apply { setText(R.string.photo_add_to_group);setOnClickListener { PhotoActions.choose(this@PhotoScanDetailActivity,entry.id) } })
+        (findViewById<View>(R.id.imgPhotoDetail).parent as android.widget.LinearLayout).addView(controls,1)
         adapter = DetectedCardAdapter(
             onOpen = ::openDetails,
             onGallery = ::openGallery,
@@ -68,13 +77,45 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btnClosePhotoDetail).setOnClickListener { finish() }
         findViewById<Button>(R.id.btnAddDetectedCard).setOnClickListener { addCardManually() }
+        findViewById<Button>(R.id.btnPhotoEdScan).setOnClickListener {
+            AlertDialog.Builder(this).setMessage(R.string.photo_edscan_confirm)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.photo_edscan_retry) { _, _ ->
+                    if (PhotoScanStore.find(this, entry.id) != null) {
+                        entry.state = PhotoScanEntry.STATE_ANALYZING
+                        entry.error = ""
+                        PhotoScanStore.save(this, entry)
+                    }
+                    finish()
+                }.show()
+        }
         render()
+        repository.preparePriceIndex { ready ->
+            if (ready && !isFinishing && !isDestroyed) {
+                io.asv.mtgocr.ocrreader.data.SelectedPrices.invalidate()
+                render()
+            }
+        }
     }
 
     override fun onResume() {
         super.onResume()
         if (::entry.isInitialized) {
             PhotoScanStore.find(this, entry.id)?.let { entry = it }
+            val photos=PhotoGroups.members(this,entry.id)
+            photoSelector.adapter=android.widget.ArrayAdapter(this,android.R.layout.simple_spinner_dropdown_item,photos.indices.map { "${it+1} / ${photos.size}" })
+            photoSelector.setSelection(photos.indexOfFirst { it.id==entry.id }.coerceAtLeast(0))
+            photoSelector.onItemSelectedListener=object:android.widget.AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent:android.widget.AdapterView<*>?) {}
+                override fun onItemSelected(parent:android.widget.AdapterView<*>?,view:View?,position:Int,id:Long) {
+                    val selected=photos.getOrNull(position) ?: return
+                    if(entry.id!=selected.id) {
+                        entry=PhotoScanStore.find(this@PhotoScanDetailActivity,selected.id) ?: return
+                        Glide.with(this@PhotoScanDetailActivity).load(File(entry.imagePath)).placeholder(CardLoadingDrawable()).dontAnimate().dontTransform().into(findViewById<PhotoPriceImageView>(R.id.imgPhotoDetail))
+                        render()
+                    }
+                }
+            }
             render()
             restoreScrollPosition()
         }
@@ -97,7 +138,8 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         val formatted = PriceCurrency.format(this, convertedTotal, PriceCurrency.preferred(this))
         total.text = getString(R.string.photo_total_price, formatted)
         val count = entry.cards.sumOf { it.detectedQuantity }
-        summary.text = getString(R.string.photo_detail_summary, count)
+        summary.text = getString(R.string.photo_detail_summary, count) + "\n" + getString(R.string.photo_edscan_hint) + "\n" + getString(if(entry.cards.any { it.photoBounds==null }) R.string.photo_positions_missing else R.string.photo_gallery_hint)
+        findViewById<PhotoPriceImageView>(R.id.imgPhotoDetail).showPrices(entry.cards)
     }
 
     private fun increaseOwned(card: PhotoScanCard) {
@@ -139,30 +181,8 @@ class PhotoScanDetailActivity : AppCompatActivity() {
     }
 
     private fun addCardManually() {
-        val input = EditText(this).apply {
-            hint = getString(R.string.detected_card_name_hint)
-            setSingleLine(true)
-        }
-        AlertDialog.Builder(this)
-            .setTitle(R.string.add_detected_card)
-            .setView(input)
-            .setNegativeButton(R.string.cancel, null)
-            .setPositiveButton(R.string.add_detected_card) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isBlank()) return@setPositiveButton
-                Toast.makeText(this, R.string.loading_card_for_photo, Toast.LENGTH_SHORT).show()
-                repository.loadCard(name, false, false) { options, error ->
-                    val option = ScanPrintingPolicy.preferred(options) ?: options.firstOrNull()
-                    if (error != null || option == null) {
-                        Toast.makeText(this, R.string.card_not_found_for_photo, Toast.LENGTH_SHORT).show()
-                        return@loadCard
-                    }
-                    entry.cards.add(option.toPhotoCard())
-                    saveAndRender()
-                    Toast.makeText(this, R.string.card_added_to_photo, Toast.LENGTH_SHORT).show()
-                }
-            }
-            .show()
+        startActivity(Intent(this,CardSearchActivity::class.java)
+            .putExtra(CardSearchActivity.EXTRA_PHOTO_ID,entry.id))
     }
 
     private fun removeDetected(card: PhotoScanCard) {
@@ -242,26 +262,6 @@ class PhotoScanDetailActivity : AppCompatActivity() {
         card.currency = option.currency ?: "EUR"
     }
 
-    private fun CardEditionOption.toPhotoCard() = PhotoScanCard(
-        cardName = cardName,
-        displayName = displayName,
-        detectedQuantity = 1,
-        printingUuid = printingUuid,
-        setCode = setCode,
-        setName = setName,
-        collectorNumber = collectorNumber,
-        finish = finish,
-        imageUrl = imageUrl.orEmpty(),
-        typeLine = typeLine,
-        rulesText = rulesText,
-        price = price,
-        currency = currency ?: "EUR",
-        mcmId = mcmId,
-        mcmMetaId = mcmMetaId,
-        mcmSetId = mcmSetId,
-        mcmSetIdExtras = mcmSetIdExtras,
-        mcmSetName = mcmSetName
-    )
 
     companion object {
         const val EXTRA_PHOTO_SCAN_ID = "photoScanId"

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="photo_take">Foto aufnehmen</string>
+    <string name="photo_import_multiple">Mehrere Fotos importieren</string>
+    <string name="photo_group_existing">Vorhandene Fotos gruppieren</string>
+    <string name="photo_add_to_group">Fotos hinzufügen</string>
+    <string name="photo_group_count">%1$d Fotos</string>
+    <string name="photo_delete_group_confirm">Diese Gruppe und alle ihre Fotos löschen? Karten der Sammlung bleiben erhalten.</string>
+    <string name="photo_positions_missing">Dieses Foto enthält alte oder manuelle Erkennungen ohne Positionen. Mit EdScanner erneut analysieren, um Preise auf den Karten anzuzeigen.</string>
+    <string name="photo_gallery_hint">Foto antippen für die Galerie mit Zoom. — bedeutet, dass kein Preis verfügbar ist.</string>
+    <string name="photo_add_source">Fotos hinzufügen</string>
+    <string name="photo_header">Fotos</string>
+    <string name="photo_group_selected">Auswahl gruppieren</string>
+    <string name="photo_select_group">Zum Gruppieren auswählen</string>
+    <string name="photo_draft_add">Hinzufügen</string>
+    <string name="photo_draft_discard">Verwerfen</string>
+    <string name="photo_draft_unavailable">Das Foto existiert nicht mehr oder wird analysiert. Warte bis zum Abschluss und versuche es erneut.</string>
+</resources>

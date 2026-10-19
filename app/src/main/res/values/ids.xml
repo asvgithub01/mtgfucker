@@ -9,4 +9,11 @@
     <item name="reviewList" type="id" />
     <item name="card_image_cache_url" type="id" />
     <item name="hashScanCorrectBorders" type="id" />
+    <item type="id" name="btnShoppingPhotos" />
+    <item name="photoDraft" type="id" />
+    <item name="photoDraftImage" type="id" />
+    <item name="photoDraftPrice" type="id" />
+    <item name="photoDraftEdition" type="id" />
+    <item name="photoDraftAdd" type="id" />
+    <item name="photoDraftDiscard" type="id" />
 </resources>

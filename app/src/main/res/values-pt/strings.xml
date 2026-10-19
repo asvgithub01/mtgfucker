@@ -924,4 +924,7 @@
     <string name="edfast_retry">Repetir gravações</string>
     <string name="edfast_saved">Guardadas: %1$d · Em fila: %2$d · Erros: %3$d</string>
     <string name="edfast_group">EdScan Fast</string>
+    <string name="photo_edscan_hint">EdScanner: verifica a edição e o acabamento (normal por defeito). Cartas incertas podem não ser detetadas. — indica preço indisponível.</string>
+    <string name="photo_edscan_retry">Analisar com EdScanner</string>
+    <string name="photo_edscan_confirm">As deteções desta foto serão substituídas. A tua coleção não será alterada. Continuar?</string>
 </resources>

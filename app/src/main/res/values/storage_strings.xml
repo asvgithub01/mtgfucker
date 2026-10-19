@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="storage_title">Datos y almacenamiento</string>
+    <string name="storage_images">Imágenes de cartas</string>
+    <string name="storage_postprocess">Postprocesado y evidencias</string>
+    <string name="storage_catalog">Catálogo y precios</string>
+    <string name="storage_scanner">Scanner y AR</string>
+    <string name="storage_photos">Fotos y temporales</string>
+    <string name="storage_deleting">Eliminando archivos…</string>
+    <string name="storage_progress">%1$d archivos · %2$s</string>
+    <string name="storage_result">Resultado de la limpieza</string>
+    <string name="storage_result_detail">Eliminados: %1$d archivos · %2$s\nErrores: %3$d</string>
+    <string name="storage_busy">Hay datos en uso, trabajos pendientes o referencias sin verificar. Se han conservado los archivos protegidos. Reintenta cuando terminen.</string>
+    <string name="storage_total">Espacio gestionado: %1$s</string>
+    <string name="storage_protected">La colección, las preferencias, los archivos compartidos y los datos de recuperación están protegidos.</string>
+    <string name="storage_summary">%1$s · %2$d archivos\nLiberable verificado: %3$s</string>
+    <string name="storage_view">Ver archivos</string>
+    <string name="storage_kept">Protegido</string>
+    <string name="storage_clean">Limpiar archivos sin uso</string>
+    <string name="storage_confirm">Se eliminarán únicamente archivos comprobados como prescindibles. No se borrarán cartas de la colección. ¿Continuar?</string>
+    <string name="storage_postprocess_help">Las evidencias revisadas, de cartas eliminadas o sin foto se comprueban de nuevo al limpiar. Los pendientes y los archivos compartidos se conservan.</string>
+    <string name="storage_catalog_help">Las bases compartidas contienen también selecciones de cartas: no se eliminan como caché.</string>
+    <string name="storage_manage_photos">Gestionar fotos importadas</string>
+    <string name="storage_remove_ar">Eliminar descargas seleccionadas</string>
+    <string name="storage_select_download">Selecciona al menos una base descargada.</string>
+    <string name="storage_settings_help">Ver tamaños y gestionar imágenes, evidencias y descargas.</string>
+    <string name="storage_open">Abrir detalle</string>
+    <string name="review_discard_pending">Eliminar datos de postprocesado</string>
+    <string name="review_discard_confirm">Se descartará el postprocesado pendiente de TODA la biblioteca activa, aunque haya filtros. Se borrarán sus fotos y diagnósticos exclusivos, también los ya revisados. No se eliminarán cartas ni cantidades. Los archivos compartidos, los históricos de recuperación y los trabajos en curso se conservan. Esta acción no se puede deshacer. ¿Continuar?</string>
+    <string name="storage_postprocess_contents">Incluye fotos originales del escaneo, resultados OCR y visuales, y registros de recuperación. El total no equivale al espacio liberable: los pendientes y compartidos se protegen. Para renunciar a la revisión, usa «Eliminar datos de postprocesado» en la pantalla de postprocesado.</string>
+</resources>

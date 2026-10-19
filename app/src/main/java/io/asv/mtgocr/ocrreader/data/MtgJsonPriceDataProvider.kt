@@ -28,6 +28,11 @@ class MtgJsonPriceDataProvider(
     @Volatile private var indexReady = indexPreferences.getBoolean(KEY_INDEX_READY, false)
 
     /** Downloads once and builds the complete UUID/provider/finish index before scans need it. */
+    /** Remove only the downloaded archive; the indexed quotes and inventory in Room remain intact. */
+    @Synchronized fun discardDownload(report:io.asv.mtgocr.ocrreader.StorageData.Report) {
+        io.asv.mtgocr.ocrreader.StorageData.deleteFile(priceFile,report)
+    }
+
     @Synchronized
     fun prepare(forceRefresh: Boolean = false) {
         if (!forceRefresh && indexReady) return

@@ -41,6 +41,26 @@ class ArDownloadsActivity:AppCompatActivity() {
         list=ListView(this);root.addView(list,LinearLayout.LayoutParams(-1,0,1f))
         download=Button(this).apply { setText(if(chooser) R.string.ar_use_package else R.string.ar_download_selected);setOnClickListener { startDownloads() } };root.addView(download)
         refresh=Button(this).apply { setText(R.string.ar_refresh_catalog);setOnClickListener { load() } };root.addView(refresh)
+        root.addView(Button(this).apply {
+            setText(R.string.storage_remove_ar)
+            setOnClickListener {
+                if(busy)return@setOnClickListener
+                val installed=ArPackageStore.installedEntries(this@ArDownloadsActivity)
+                val ids=installed.filter { it.id in selected }.map { it.id }
+                if(ids.isEmpty()) { Toast.makeText(this@ArDownloadsActivity,R.string.storage_select_download,Toast.LENGTH_LONG).show();return@setOnClickListener }
+                androidx.appcompat.app.AlertDialog.Builder(this@ArDownloadsActivity).setMessage(R.string.storage_confirm)
+                    .setNegativeButton(android.R.string.cancel,null).setPositiveButton(R.string.storage_remove_ar) { _,_->
+                        StorageOperations.perform(this@ArDownloadsActivity,{report,progress->
+                            val completed=java.util.concurrent.CountDownLatch(1)
+                            ArPackageStore.worker.execute {
+                                try { ids.forEach { ArPackageStore.removeDownloaded(applicationContext,it,report);progress() } }
+                                catch(_:Exception) { report.failed++ } finally { completed.countDown() }
+                            }
+                            completed.await()
+                        },{ selected.removeAll(ids.toSet());render() })
+                    }.show()
+            }
+        })
         root.addView(Button(this).apply { setText(android.R.string.cancel);setOnClickListener { if(busy) cancel.set(true) else finish() } })
         setContentView(root);search.doAfterTextChanged { render() };load()
     }

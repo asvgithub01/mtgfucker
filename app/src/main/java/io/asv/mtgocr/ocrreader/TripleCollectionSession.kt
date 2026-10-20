@@ -38,12 +38,13 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
             main.post { callback(error) }
         }
     }
+    class FinishUnavailable:IllegalStateException("Exact printing/finish unavailable")
     fun submit(state:State, callback:(CardInfo?,CardEditionOption?,Throwable?)->Unit) {
         val version=versions.merge(state.event,1) { a,b->a+b }!!
         fun apply(choices:List<CardEditionOption>,error:Throwable?) {
             if(versions[state.event]!=version) return
             val option=choices.firstOrNull { it.finish==state.finish }
-            if(state.count>0 && option==null) { callback(null,null,error ?: IllegalStateException("Exact printing/finish unavailable"));return }
+            if(state.count>0 && option==null) { callback(null,null,error ?: FinishUnavailable());return }
             writer.execute {
                 val start=System.nanoTime()
                 val result=runCatching {
@@ -81,7 +82,8 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
                                 try { out.write(state.photo);atomic.finishWrite(out) } catch(e:Exception) { atomic.failWrite(out);throw e }
                             }
                             ScanReviewStore.write(File(dir,"${state.photoKey}.json"),JSONObject()
-                                .put("id",state.target.id).put("source",source).put("scanner",scanner)
+                                .put("id",TripleVisualReference.parse(state.target.id)?.catalogId ?: state.target.id)
+                                .put("visualReference",state.target.id).put("source",source).put("scanner",scanner)
                                 .put("finish",state.finish).put("createdAt",card.addedAt).put("languageStatus","pending")
                                 .put("languageOrigin",state.languageOrigin).put("manualEdition",state.manualEdition)
                                 .put("manualLanguage",state.manualLanguage).put("observedLanguage",state.language.orEmpty())
@@ -113,9 +115,10 @@ internal class TripleCollectionSession(context:Context, private val log:(String)
             return
         }
         options[state.target.id]?.let { apply(it,null);return }
-        if(!state.target.id.matches(Regex("[a-fA-F0-9-]{36}"))) return // name-only is pending, never invent a UUID
-        CardRepository.get(app).loadCollectorVisionPrinting(state.target.id) { choices,error ->
-            if(choices.isNotEmpty()) options[state.target.id]=choices
+        val reference=TripleVisualReference.parse(state.target.id) ?: return // name-only is pending, never invent a UUID
+        options[reference.catalogId]?.let { apply(it,null);return }
+        CardRepository.get(app).loadCollectorVisionPrinting(reference.catalogId) { choices,error ->
+            if(choices.isNotEmpty()) options[reference.catalogId]=choices
             apply(choices,error)
         }
     }

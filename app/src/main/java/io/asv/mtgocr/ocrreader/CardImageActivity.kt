@@ -26,6 +26,7 @@ import java.util.IdentityHashMap
 import java.util.concurrent.Future
 
 class CardImageActivity : AppCompatActivity() {
+    private var faceToggle:CardFaceToggle?=null
     private lateinit var image: ZoomableImageView
     private lateinit var pager: ViewPager2
     private lateinit var thumbnails: RecyclerView
@@ -211,6 +212,8 @@ class CardImageActivity : AppCompatActivity() {
             override fun onPageSelected(position: Int) {
                 val old = currentPage
                 currentPage = position
+                faceToggle?.close();faceToggle=null
+                findViewById<View>(R.id.btnGalleryFlip).visibility=View.GONE
                 languageLoadTask?.cancel(true); languageRequest++
                 thumbnailsAdapter.notifyItemChanged(old)
                 thumbnailsAdapter.notifyItemChanged(position)
@@ -243,7 +246,7 @@ class CardImageActivity : AppCompatActivity() {
         }
         override fun onBindViewHolder(holder: ThumbnailHolder, position: Int) {
             val page = pages[position]
-            CardImageCache.display(this@CardImageActivity, page.imageUrl, holder.picture)
+            CardImageCache.display(this@CardImageActivity, if(position==currentPage) faceToggle?.displayedUrl ?: page.imageUrl else page.imageUrl, holder.picture)
             holder.label.text = page.priceLabel
             holder.itemView.isSelected = position == currentPage
             holder.itemView.setBackgroundColor(if (position == currentPage) 0xFF566A85.toInt() else Color.TRANSPARENT)
@@ -281,6 +284,7 @@ class CardImageActivity : AppCompatActivity() {
         foilEffectControls.visibility = if (foil) View.VISIBLE else View.GONE
         foilBadge.alpha = 1f
         applyFoilEffect(image, page)
+        bindGalleryFace(page.imageUrl)
         loadLanguages(page)
     }
 
@@ -390,6 +394,19 @@ class CardImageActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindGalleryFace(url:String) {
+        if(faceToggle==null) faceToggle=CardFaceToggle(findViewById(R.id.btnGalleryFlip)) { shown ->
+            if(boundPages[image]==currentPage) {
+                image.resetZoom()
+                CardImageCache.display(this,shown,image)
+            }
+            if(::thumbnailsAdapter.isInitialized) thumbnailsAdapter.notifyItemChanged(currentPage)
+        }
+        faceToggle?.bind(url,"")
+        // The first header bind precedes attachment of the actual pager image.
+        if(boundPages[image]==currentPage) CardImageCache.display(this,faceToggle?.displayedUrl ?: url,image)
+    }
+
     private fun loadLanguages(page: EditionImagePage) {
         languageLoadTask?.cancel(true)
         val request = ++languageRequest
@@ -417,13 +434,14 @@ class CardImageActivity : AppCompatActivity() {
             languageSpinner.setSelection(preferred)
             languageSpinner.onItemSelectedListener = SimpleItemSelectedListener { position ->
                 variants.getOrNull(position)?.let {
-                    CardImageCache.displayKeepingCurrent(this, it.imageUrl, image)
+                    bindGalleryFace(it.imageUrl)
                 }
             }
         }
     }
 
     override fun onDestroy() {
+        faceToggle?.close()
         editionRevision++;edits.shutdown()
         languageLoadTask?.cancel(true)
         boundPages.keys.toList().forEach { Glide.clear(it); it.setImageDrawable(null) }

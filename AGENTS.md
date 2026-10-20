@@ -100,6 +100,14 @@ Actualizar índices visuales no actualiza este diccionario; comprobar también l
 
 ## Invariantes que no se deben romper
 
+- Triple conserva `Target.id` como referencia visual (incluido `_back`). Usar
+  `TripleVisualReference.catalogId` para catálogo/persistencia; no convertir una cara en
+  otra impresión ni perder `visualReference` en las evidencias. El foil sigue siendo manual.
+- `CardFaceToggle` alterna solo la imagen en detalle, galería Triple y galería fullscreen
+  (`CardImageActivity`); no guardar la cara
+  mostrada en la colección ni modificar el target visual. No deducir doble cara por `//`: se
+  necesitan dos imágenes físicas. Respetar generación al cambiar edición/idioma o cerrar.
+
 - Una fila se identifica por `collectionItemId`, no por la posición de una lista que puede
   ordenarse o cambiar mientras llega una respuesta asíncrona.
 - El catálogo de una edición agrupa partes MTGJSON por `scryfallId` con `PhysicalPrintings`:
@@ -308,6 +316,7 @@ debe reproducir `decodePhoto` antes de detectar bordes.
   `TripleRecognitionArbiter.beginManualScan` invalida capturas anteriores al toque y el
   nuevo evento se persiste con `mergeExisting=false`. El enriquecimiento por fila continúa.
   Solo Arte descansa 150 ms; revalidación prioritaria con frescura intacta.
+- Modo «Arte rápido» en Opciones reutiliza `single_art_reading` (OFF por defecto): una lectura fuerte para identidad, sin cambiar umbrales ni certificación de impresión/idioma. La galería muestra `ic_foil_badge` según `selectedFinish` mediante `CardFinish.isFoil`.
 - Experimentos visuales Triple: `TripleIdentityConfirmation` separa votos de identidad y
   edición; `TripleCropTrialPolicy` permite FULL primero y rescate FULL+recorte tras dos
   fallos. Flags `single_art_reading` y `delayed_art_crop` en preferencias `triple_scanner`,
@@ -580,3 +589,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   Pruebas: `TriplePriorityAndPhotoLanguageTest` y `TriplePhotoLanguageTest` (emulador).
 
 - `PostprocessCleanup` limpia fotos/diagnósticos EdScan de revisiones completas o cartas eliminadas, en WorkManager diferido y sin otros trabajos activos. No borra catálogo, inventario ni journals de recuperación; cualquier evidencia pendiente o referencia a otra biblioteca conserva la foto. Se programa tras guardado legacy, revisión y apertura del panel.
+
+- Triple: nuevas filas empiezan normal; ni Target.finish ni cambiar edición eligen foil. El check manual controla selectedFinish; restaurar conserva el acabado histórico. Si la impresión no admite el acabado, FinishUnavailable impide guardar y solicita revisión. Contorno temprano usa callback onDetected opcional del motor, con la misma captura/proyección y guardas; no duplicar detección ni aceptar identidad desde ese callback.
+
+- Triple `upright_only` (OFF por defecto): asume nombre arriba en frame vertical ya rotado, reordena el par de esquinas al borde superior antes del warp y omite orientación180 en FULL/ART/UPPER. Mantiene ambos carriles/umbrales y limpia evidencia al alternar. No activar por defecto ni usar para cartas invertidas; comparar ON/OFF en Sony, sin extrapolar tiempos del emulador.

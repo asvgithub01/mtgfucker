@@ -1,4 +1,8 @@
 <resources>
-    <string name="triple_trial_single_reading">Test : une lecture visuelle forte (risque accru d’erreur)</string>
-    <string name="triple_trial_delayed_crop">Test : recadrage après 2 lectures faibles</string>
+    <string name="triple_trial_single_reading">Illustration rapide : une seule lecture forte</string>
+    <string name="triple_trial_delayed_crop">Carte entière d’abord ; recadrage après 2 lectures faibles</string>
+    <string name="triple_fast_art_help">Désactivé : mode actuel avec deux lectures fortes. Activé : accepte l’identité avec une seule lecture forte de l’illustration, avec un risque d’erreur accru. Nécessite Illustration activé ; ne confirme pas à lui seul l’édition ni la langue.</string>
+    <string name="triple_finish_review">L’édition proposée ne permet pas la finition choisie. Changez d’édition ou cochez Foil uniquement si votre carte l’est. Cette modification n’a pas été enregistrée.</string>
+    <string name="triple_finish_review_short">Vérifier édition/finition</string>
+    <string name="triple_trial_upright">Essai : carte toujours droite (nom en haut ; désactiver pour les cartes inversées)</string>
 </resources>

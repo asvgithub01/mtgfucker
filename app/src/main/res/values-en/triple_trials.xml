@@ -1,4 +1,8 @@
 <resources>
-    <string name="triple_trial_single_reading">Trial: one strong Art reading (higher error risk)</string>
-    <string name="triple_trial_delayed_crop">Trial: crop after 2 weak readings</string>
+    <string name="triple_trial_single_reading">Fast Art: one strong reading</string>
+    <string name="triple_trial_delayed_crop">Full card first; crop fallback after 2 weak readings</string>
+    <string name="triple_fast_art_help">Off: current mode with two strong readings. On: accepts identity from one strong Art reading, with a higher error risk. Requires Art enabled; does not confirm the edition or language on its own.</string>
+    <string name="triple_finish_review">The candidate edition does not support the selected finish. Change the edition or select Foil only if your card is foil. This change has not been saved.</string>
+    <string name="triple_finish_review_short">Review edition/finish</string>
+    <string name="triple_trial_upright">Trial: always upright (title at top; turn off for upside-down cards)</string>
 </resources>

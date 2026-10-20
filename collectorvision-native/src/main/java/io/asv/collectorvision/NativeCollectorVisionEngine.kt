@@ -94,13 +94,16 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
     private var searchRows: IntArray? = null
     private var searchNanos=0L
     @Synchronized
-    fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null, fastCropOnly:Boolean=false): ScanResult {
+    fun scan(bitmap: Bitmap, allowedIds: Set<String>? = null, fastCropOnly:Boolean=false, onDetected:((ScanResult)->Unit)?=null, assumeUpright:Boolean=false): ScanResult {
         check(!closed)
         if(scope !== allowedIds) {
             scope=allowedIds
             searchRows=VisualSearchScope.rows(ids,allowedIds)
         }
-        val detection=detect(bitmap)
+        val detected=detect(bitmap)
+        val detection=if(assumeUpright) detected.copy(corners=CollectorVisionMath.uprightCorners(detected.corners)) else detected
+        // Optional geometry-only preview; does not authorize recognition or alter the pipeline.
+        onDetected?.invoke(detection)
         if(!detection.present) return detection
         val corners=detection.corners
         val sharpness=detection.sharpness
@@ -110,10 +113,11 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         val crop=EdScanPerf.measure("engine.warp") { warp(bitmap,corners) }
         var photoRotated = false
         if(fastRegion!=FastRegion.FULL) {
-            try { return scanRegions(crop,detection,recStart,fastCropOnly) } finally { crop.recycle() }
+            try { return scanRegions(crop,detection,recStart,fastCropOnly,assumeUpright) } finally { crop.recycle() }
         }
         val hits=try {
             val normal=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.normal") { run(embedder,crop,448,listOf("embedding")) }[0]))
+            if(assumeUpright) normal else {
             // Shortest-edge canonicalization can reverse the card. Test both orientations.
             val matrix=android.graphics.Matrix().apply { postRotate(180f) }
             val rotated=Bitmap.createBitmap(crop,0,0,crop.width,crop.height,matrix,true)
@@ -123,6 +127,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
                 identitySearch?.merge(normal+upsideDown) ?: (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
                     .sortedByDescending { it.score }.take(8)
             } finally { if (rotated !== crop) rotated.recycle() }
+            }
         } finally { crop.recycle() }
         return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0,
             searchNanos/1000000,searchRows?.size ?: ids.size)
@@ -206,7 +211,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         return bestIds.indices.filter { bestIds[it]>=0 }.map { Hit(ids[bestIds[it]],bestScores[it]) }
     }
     private data class Lane(val hits:List<Hit>,val rotated:Boolean)
-    private fun scanRegions(crop:Bitmap,detection:ScanResult,start:Long,cropOnly:Boolean):ScanResult {
+    private fun scanRegions(crop:Bitmap,detection:ScanResult,start:Long,cropOnly:Boolean,assumeUpright:Boolean):ScanResult {
         val ranking=requireNotNull(identitySearch)
         val index=requireNotNull(fastIndex)
         fun searchLane(query:FloatArray,full:Boolean):List<Hit> {
@@ -236,7 +241,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
                 try { return searchLane(CollectorVisionMath.normalize(run(embedder,region,448,listOf("embedding"))[0]),full) }
                 finally { if(region!==oriented) region.recycle();if(oriented!==crop) oriented.recycle() }
             }
-            val normal=orientation(false);val rotated=orientation(true)
+            val normal=orientation(false);val rotated=if(assumeUpright) emptyList() else orientation(true)
             return Lane(ranking.merge(normal+rotated),CollectorVisionMath.prefersRotated(normal,rotated))
         }
         val fullStart=SystemClock.elapsedRealtime()
@@ -254,7 +259,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         val choice=FastLaneChoice.choose(fullStrong,regionStrong,ranking.sameIdentity(full.hits,region.hits),fullSeparated)
         val conflict=choice.conflict
         val chosen=if(choice.full) full else region
-        val diagnostic="fullTop=${full.hits.firstOrNull()} fullRival=${ranking.rival(full.hits)} fullMs=${cropStart-fullStart} cropTop=${region.hits.firstOrNull()} cropRival=${ranking.rival(region.hits)} cropMs=$cropMs strong=$fullStrong/$regionStrong conflict=$conflict"
+        val diagnostic="uprightOnly=$assumeUpright orientations=${if(assumeUpright) 1 else 2} fullTop=${full.hits.firstOrNull()} fullRival=${ranking.rival(full.hits)} fullMs=${cropStart-fullStart} cropTop=${region.hits.firstOrNull()} cropRival=${ranking.rival(region.hits)} cropMs=$cropMs strong=$fullStrong/$regionStrong conflict=$conflict"
         return ScanResult(CollectorVisionMath.photoCorners(detection.corners,chosen.rotated),true,detection.sharpness,
             if(conflict) emptyList() else chosen.hits,detection.detectionMs,SystemClock.elapsedRealtime()-start,
             if(chosen.rotated) 180 else 0,searchNanos/1000000,searchRows?.size ?: ids.size,

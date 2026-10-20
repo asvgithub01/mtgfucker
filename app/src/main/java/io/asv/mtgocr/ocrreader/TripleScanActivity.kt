@@ -59,6 +59,7 @@ class TripleScanActivity:AppCompatActivity() {
     private var hybridPolicy=TripleCropTrialPolicy() // worker only, never authorizes a save
     @Volatile private var singleArtReading=false
     @Volatile private var delayedArtCrop=false
+    @Volatile private var uprightOnly=false
     private var hybridProfile=io.asv.collectorvision.FastRegion.ART
     @Volatile private var visualFrames=0
     @Volatile private var ocrCompleted=0
@@ -144,11 +145,12 @@ class TripleScanActivity:AppCompatActivity() {
         var manualLanguage:Boolean=false,var languageOrigin:String="",var manualEdition:Boolean=false,
         var physicalLanguage:String?=null,var languageMismatch:Boolean=false,
         var editionOption:io.asv.mtgocr.ocrreader.data.CardEditionOption?=null,var editionRevision:Int=0,var resolvingEdition:Boolean=false,var scopeConflict:Boolean=false,
-        var recognitionConflict:Boolean=false,var manualFinish:Boolean=false,var selectedFinish:String=target.finish,var count:Int=1,
+        var recognitionConflict:Boolean=false,var manualFinish:Boolean=false,var selectedFinish:String="nonfoil",var count:Int=1,
         var photo:ByteArray?=null,var photoKey:String=java.util.UUID.randomUUID().toString(),
-        var savedId:String?=null,var saveSignature:String="",var saveError:Boolean=false,
+        var savedId:String?=null,var saveSignature:String="",var saveError:Boolean=false,var finishUnavailable:Boolean=false,
         var amount:Pair<Double,String>?=null,var priceRequested:String="",var pricePrinting:String="",
-        var languagePending:Boolean=false,var languageAttempted:Boolean=false,var languageSpinner:ProgressBar?=null)
+        var languagePending:Boolean=false,var languageAttempted:Boolean=false,var languageSpinner:ProgressBar?=null,
+        var foilBadge:ImageView?=null,var faceToggle:CardFaceToggle?=null)
     private val galleryEntries=linkedMapOf<String,GalleryEntry>()
     private val identifiedLanguages=mutableMapOf<String,String>()
     private val logHandler=android.os.Handler(android.os.Looper.getMainLooper())
@@ -285,13 +287,18 @@ class TripleScanActivity:AppCompatActivity() {
                 tag="triple_trial_$key";setText(label);isChecked=prefs.getBoolean(key,false);update(isChecked)
                 setOnCheckedChangeListener { _,value ->
                     update(value);prefs.edit().putBoolean(key,value).apply();invalidateEvidence()
-                    trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2")
+                    trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2 uprightOnly=$uprightOnly")
                 }
             })
         }
         trial("single_art_reading",R.string.triple_trial_single_reading) { singleArtReading=it }
+        options.addView(TextView(this).apply {
+            tag="triple_fast_art_help";setText(R.string.triple_fast_art_help)
+            setPadding(dp(8),0,dp(8),dp(8))
+        })
+        trial("upright_only",R.string.triple_trial_upright) { uprightOnly=it }
         trial("delayed_art_crop",R.string.triple_trial_delayed_crop) { delayedArtCrop=it }
-        trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2")
+        trace.event("triple.trial singleReading=$singleArtReading delayedCrop=$delayedArtCrop cropAfterFailures=2 uprightOnly=$uprightOnly")
         root.addView(switches,1)
         preview.setRecognitionEnabled(arEnabled)
         trace.event("triple.methods ar=$arEnabled art=$artEnabled ocr=$ocrEnabled")
@@ -598,8 +605,22 @@ class TripleScanActivity:AppCompatActivity() {
     private fun frame(image:android.media.Image,rotation:Int,release:()->Unit,tracked:String?,corners:FloatArray?,guide:FloatArray?):Boolean {
         if(!resumed || closed || !busy.compareAndSet(false,true)) return false
         lastFrameAt=SystemClock.elapsedRealtime();val arAtStart=liveArTarget?.id;val sampleAt=lastFrameAt;val token=generation;val queued=System.nanoTime()
+        val frameUprightOnly=uprightOnly
         val contourToken=contourRevision
         val contourMap=if(contourEnabled) preview.edscanProjection(image.timestamp) else null
+        fun publishContour(scan:io.asv.collectorvision.ScanResult,confirmed:Boolean) {
+            val projection=contourMap ?: return
+            if(!contourEnabled) return
+            val points=if(scan.present && scan.corners.size==4) EdScanContourGeometry.project(
+                scan.corners.flatMap { listOf(it.x,it.y) }.toFloatArray(),rotation,projection.quad) else null
+            ui {
+                if(token==generation && contourToken==contourRevision && contourEnabled && resumed && !closed &&
+                    edscanContour.width==projection.width && edscanContour.height==projection.height) {
+                    if(points==null) edscanContour.clearContour() else edscanContour.showContour(points,confirmed,sampleAt)
+                    trace.event("triple.contour phase=${if(confirmed) "confirmed" else "detected"} ageMs=${SystemClock.elapsedRealtime()-sampleAt}")
+                }
+            }
+        }
         try { worker.execute {
             var bitmap:Bitmap?=null;var crop:Bitmap?=null;var handedOff=false
             try {
@@ -703,7 +724,9 @@ class TripleScanActivity:AppCompatActivity() {
                             if(profile!=hybridProfile) { visualConfirmation.reset();streakId="";readings=0 }
                             hybridProfile=profile
                             it.configureFast(requireNotNull(hybridIndex),profile)
-                            EdScanPerf.measure("triple.edscan") { it.scan(upright,scope) }
+                            EdScanPerf.measure("triple.edscan") {
+                                it.scan(upright,scope,onDetected=if(contourMap!=null) ({ detection -> publishContour(detection,false) }) else null,assumeUpright=frameUprightOnly)
+                            }
                         } ?: return@execute
                     if(token!=generation || scope!==visualScope) { visualConfirmation.reset();return@execute }
                     // AR has moved to another card while ONNX was running: never spend another
@@ -745,17 +768,7 @@ class TripleScanActivity:AppCompatActivity() {
                     if(evidence.identity==streakId) readings++ else { streakId=evidence.identity.orEmpty();readings=1 }
                     val confirmation=visual.confirmation
                     val reliable=confirmation.reliable
-                    if(contourEnabled && contourMap!=null) {
-                        val points=EdScanContourGeometry.project(scan.corners.flatMap { listOf(it.x,it.y) }.toFloatArray(),rotation,contourMap.quad)
-                        ui {
-                            if(token==generation && contourToken==contourRevision && contourEnabled && resumed && !closed &&
-                                edscanContour.width==contourMap.width && edscanContour.height==contourMap.height) {
-                                val overlayStarted=System.nanoTime()
-                                edscanContour.showContour(points,reliable,sampleAt)
-                                EdScanPerf.record("triple.contourUpdate",System.nanoTime()-overlayStarted)
-                            }
-                        }
-                    }
+                    publishContour(scan,reliable)
                     frameScheduler.visualResult(confirmation.reason,SystemClock.elapsedRealtime())
                     val provisional=!visual.printingConfirmed
                     trace.event("triple.identity identity=${evidence.identity?.hashCode()} printing=${top?.cardId} score=${evidence.score} runner=${evidence.runner} margin=${evidence.score?.minus(evidence.runner ?: Float.NaN)} confirmed=$reliable printingConfirmed=${visual.printingConfirmed} region=${scan.comparisonRegion}")
@@ -825,7 +838,7 @@ class TripleScanActivity:AppCompatActivity() {
                 val rest=TripleScanPolicy.frameRestMs(completed-sampleAt,frameScheduler.hasFollowUp(completed),soloArt,slowFrame!=null)
                 val changedAr=liveArTarget?.id?.let { it!=arAtStart }==true
                 nextFrameAt=if(changedAr) 0 else completed+rest
-                trace.event("triple.framePacing captureAtMs=$sampleAt workMs=${completed-sampleAt} restMs=${if(changedAr) 0 else rest} soloArt=$soloArt revalidationPending=${slowFrame!=null} repeatLocked=$repeatNeedsTap")
+                trace.event("triple.framePacing uprightOnly=$frameUprightOnly captureAtMs=$sampleAt workMs=${completed-sampleAt} restMs=${if(changedAr) 0 else rest} soloArt=$soloArt revalidationPending=${slowFrame!=null} repeatLocked=$repeatNeedsTap")
                 if(!handedOff) busy.set(false)
             }
         } } catch(_:java.util.concurrent.RejectedExecutionException) { busy.set(false);return false }
@@ -874,7 +887,7 @@ class TripleScanActivity:AppCompatActivity() {
             val target=Target(id,option.printing,option.name,option.set,"${option.name} · ${option.set} #${option.number}",option.image,option.finish,"EdScan",provisional,option.rarity)
             if(offerVisual(target,sampleAt,identityConfirmed)) registerSessionTarget(target)
         }
-        if(!queued) { resolvingKey="";trace.event("triple.lookupDeferred busy=true") }
+        if(!queued) { resolvingKey="";trace.event("triple.lookupDeferred reason=busy_or_closed") }
     }
     private fun replaySession() {
         sessionTargets.values.filter { it.id !in packageVisualIds }.forEach { t -> preview.addFallbackReference(ArPreloadCard(t.printing,t.image,t.label,price(t),t.rarity,t.set,t.number)) }
@@ -935,8 +948,7 @@ class TripleScanActivity:AppCompatActivity() {
                     entry.target.source,!manual,option.rarity,option.collectorNumber)
                 updateEntryTarget(entry,target)
                 entry.editionOption=option;entry.scopeConflict=outsideScope;entry.resolvingEdition=false
-                if(manual || !entry.manualFinish) entry.selectedFinish=option.finish
-                if(manual) entry.manualFinish=true
+                // Edition recognition/selection never chooses the physical finish.
                 if(entry.languageOrigin=="printing") { entry.language=null;entry.languageOrigin="" }
                 if(entry.root.tag.toString()==currentEncounter.toString()) {
                     printingLanguage=null;printingLanguageAttempt="";languageConflict=false
@@ -1186,6 +1198,11 @@ class TripleScanActivity:AppCompatActivity() {
             tag="triple_language_loading"
         }
         picture.addView(languageSpinner,FrameLayout.LayoutParams(dp(18),dp(18),android.view.Gravity.TOP or android.view.Gravity.START))
+        val foilBadge=ImageView(this).apply {
+            tag="triple_gallery_foil";setImageResource(R.drawable.ic_foil_badge)
+            contentDescription=getString(R.string.foil);visibility=View.GONE
+        }
+        picture.addView(foilBadge,FrameLayout.LayoutParams(dp(24),dp(24),android.view.Gravity.BOTTOM or android.view.Gravity.END))
         column.addView(picture,LinearLayout.LayoutParams(-1,dp(64)))
         fun line(tagName:String)=TextView(this).apply {
             textSize=12f;gravity=android.view.Gravity.CENTER;maxLines=1
@@ -1197,41 +1214,43 @@ class TripleScanActivity:AppCompatActivity() {
         val entry=GalleryEntry(target,column,image,flag,edition,amount,
             language=fixedLanguage,manualLanguage=fixedLanguage!=null,languageOrigin=if(fixedLanguage!=null) "scope" else "")
         entry.languageSpinner=languageSpinner
+        entry.foilBadge=foilBadge
+        val flip=ImageButton(this).apply {
+            tag="triple_gallery_flip";setBackgroundColor(0xCC202430.toInt());setPadding(dp(12),dp(12),dp(12),dp(12))
+        }
+        picture.addView(flip,FrameLayout.LayoutParams(dp(48),dp(48),android.view.Gravity.BOTTOM or android.view.Gravity.START))
+        entry.faceToggle=CardFaceToggle(flip) { url ->
+            CardImageCache.display(this,url,entry.image)
+        }
+        entry.faceToggle?.bind(target.image,target.id)
         galleryEntries[entryKey]=entry
-        if(target.image.isBlank()) image.setImageResource(android.R.drawable.ic_menu_gallery)
-        else com.bumptech.glide.Glide.with(this).load(target.image).placeholder(CardLoadingDrawable()).into(image)
         column.setOnClickListener { showEntryMenu(entry,column,true) }
         recent.addView(column,0,LinearLayout.LayoutParams(dp(104),-1))
         if(recent.childCount>20) {
             val old=recent.getChildAt(20)
-            galleryEntries.remove(old.tag as String)?.let { com.bumptech.glide.Glide.clear(it.image) }
+            galleryEntries.remove(old.tag as String)?.let { it.faceToggle?.close();com.bumptech.glide.Glide.clear(it.image) }
             recent.removeViewAt(20)
         }
         bindGallery(entry)
     }
     private fun updateEntryTarget(entry:GalleryEntry,target:Target) {
-        val changed=entry.target.image!=target.image
         if(entry.target.printing!=target.printing) {
             entry.amount=null;entry.priceRequested="";entry.pricePrinting=""
-            if(!entry.manualFinish) entry.selectedFinish=target.finish
         }
         entry.target=target
-        if(changed) {
-            com.bumptech.glide.Glide.clear(entry.image)
-            if(target.image.isBlank()) entry.image.setImageResource(android.R.drawable.ic_menu_gallery)
-            else com.bumptech.glide.Glide.with(this).load(target.image).placeholder(CardLoadingDrawable()).into(entry.image)
-        }
+        entry.faceToggle?.bind(target.image,target.id)
     }
     private fun bindGallery(entry:GalleryEntry) {
         renderSessionTotal(entry)
         val t=entry.target
+        entry.foilBadge?.visibility=if(CardFinish.isFoil(entry.selectedFinish)) View.VISIBLE else View.GONE
         entry.languageSpinner?.visibility=if(entry.languagePending) View.VISIBLE else View.GONE
         entry.flag.text=if(entry.languagePending) getString(R.string.triple_language_loading_icon) else TripleLanguageBadge.label(entry.language)
         entry.flag.contentDescription=if(entry.languagePending) getString(R.string.triple_language_analyzing) else getString(R.string.triple_language,entry.flag.text)
         entry.edition.text=(if(entry.saveError) "! " else if(entry.savedId==null) "… " else "✓ ")+"${entry.count}× · "+if(t.set.isBlank()) t.label else t.set.uppercase()+if(t.number.isNotBlank()) " #${t.number}" else ""
         entry.edition.contentDescription=t.label
         if(entry.scopeConflict || entry.recognitionConflict) entry.edition.text="⚠ "+entry.edition.text
-        entry.price.text=if(t.printing.isBlank()) getString(R.string.triple_edition_pending) else io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(this,entry.pricePrinting.ifBlank { t.printing },entry.selectedFinish)?.let {
+        entry.price.text=if(entry.finishUnavailable) getString(R.string.triple_finish_review_short) else if(t.printing.isBlank()) getString(R.string.triple_edition_pending) else io.asv.mtgocr.ocrreader.data.SelectedPrices.quote(this,entry.pricePrinting.ifBlank { t.printing },entry.selectedFinish)?.let {
             PriceSourcePresentation.append(this,io.asv.mtgocr.ocrreader.data.PriceCurrency.format(this,it.amount,it.currency),it.provider)
         } ?: getString(R.string.triple_price_pending)
         val priceUuid=entry.pricePrinting.ifBlank { t.printing }
@@ -1284,14 +1303,15 @@ class TripleScanActivity:AppCompatActivity() {
         val signature=listOf(entry.target.id,entry.target.provisional,entry.recognitionConflict,reviewSource,entry.language,
             entry.manualLanguage,entry.languageOrigin,entry.manualEdition,entry.selectedFinish,entry.count,entry.photo!=null,entry.physicalLanguage,entry.languageMismatch).joinToString("|")
         if(entry.saveSignature==signature || (entry.count>0 && entry.target.printing.isBlank())) return
-        entry.saveSignature=signature;entry.saveError=false
+        entry.saveSignature=signature;entry.saveError=false;entry.finishUnavailable=false
         val state=TripleCollectionSession.State(event,entry.target.copy(provisional=entry.target.provisional || entry.recognitionConflict),entry.language,entry.selectedFinish,entry.count,entry.photo,entry.manualLanguage,entry.photoKey,entry.editionOption,entry.languageOrigin,entry.manualEdition,entry.physicalLanguage,entry.languageMismatch)
         collectionSession.submit(state) { card,option,error ->
             if(closed || entry.saveSignature!=signature) return@submit
             entry.saveError=error!=null
+            entry.finishUnavailable=error is TripleCollectionSession.FinishUnavailable
             if(error!=null) {
                 trace.event("triple.saveError event=$event type=${error.javaClass.simpleName}")
-                Toast.makeText(this,R.string.triple_save_failed,Toast.LENGTH_LONG).show()
+                Toast.makeText(this,if(entry.finishUnavailable) R.string.triple_finish_review else R.string.triple_save_failed,Toast.LENGTH_LONG).show()
             }
             card?.let {
                 entry.savedId=it.collectionItemId;addedCollectionIds.add(it.collectionItemId)
@@ -1364,14 +1384,20 @@ class TripleScanActivity:AppCompatActivity() {
             }
             val row=LinearLayout(this).apply {
                 orientation=LinearLayout.HORIZONTAL;setBackgroundColor(0xFF202430.toInt())
-                addView(picture,LinearLayout.LayoutParams(size.cardWidth,size.height))
+                addView(FrameLayout(this@TripleScanActivity).apply {
+                    addView(picture,FrameLayout.LayoutParams(-1,-1))
+                },LinearLayout.LayoutParams(size.cardWidth,size.height))
                 addView(android.widget.ScrollView(this@TripleScanActivity).apply { addView(body) },
                     LinearLayout.LayoutParams(size.menuWidth,size.height).apply { leftMargin=dp(8) })
             }
             popup.contentView=row;popup.width=width;popup.height=size.height
-            clearImage={ com.bumptech.glide.Glide.clear(picture) }
-            com.bumptech.glide.Glide.with(this).load(entry.target.image)
-                .placeholder(CardLoadingDrawable()).error(android.R.drawable.ic_menu_gallery).into(picture)
+            val flip=ImageButton(this).apply {
+                tag="triple_detail_flip";setBackgroundColor(0xCC202430.toInt());setPadding(dp(12),dp(12),dp(12),dp(12))
+            }
+            (picture.parent as FrameLayout).addView(flip,FrameLayout.LayoutParams(dp(48),dp(48),android.view.Gravity.BOTTOM or android.view.Gravity.START))
+            val toggle=CardFaceToggle(flip) { url -> CardImageCache.display(this,url,picture) }
+            toggle.bind(entry.faceToggle?.displayedUrl ?: entry.target.image,entry.target.id)
+            clearImage={ toggle.close();com.bumptech.glide.Glide.clear(picture) }
         }
         popup.showAsDropDown(anchor)
     }
@@ -1385,6 +1411,9 @@ class TripleScanActivity:AppCompatActivity() {
                     if(entry.count>0) applyEditionToEntry(entry,option,true)
                 }
             }
+        })
+        if(entry.finishUnavailable) body.addView(TextView(this).apply {
+            setText(R.string.triple_finish_review);setTextColor(Color.YELLOW)
         })
         if(history && entry.scopeConflict) body.addView(TextView(this).apply { setText(R.string.triple_outside_scope);setTextColor(Color.YELLOW) })
         body.addView(CheckBox(this).apply {
@@ -1602,6 +1631,7 @@ class TripleScanActivity:AppCompatActivity() {
     override fun onPause() {
         trace.event("triple.lifecycle state=pause");entryPopup?.dismiss(); io.asv.collectorvision.EdScanInferencePriority.release(this);resumed=false;logHandler.removeCallbacks(heartbeat);invalidateEvidence();super.onPause() }
     override fun onDestroy() {
+        galleryEntries.values.forEach { it.faceToggle?.close() }
         languagePickerRevision++;languagePicker?.dismiss()
         if(setLanguagesLazy.isInitialized()) setLanguages.close()
         if(printingLanguagesLazy.isInitialized()) printingLanguages.close()

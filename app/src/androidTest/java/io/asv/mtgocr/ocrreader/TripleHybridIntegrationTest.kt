@@ -50,7 +50,18 @@ class TripleHybridIntegrationTest {
                     try {
                         val e=requireNotNull(engine);val idx=requireNotNull(index)
                         e.configureFast(idx,FastRegion.ART)
-                        val scan=e.scan(bitmap)
+                        var geometryCalls=0
+                        var returned=false
+                        val scan=e.scan(bitmap,onDetected={ geometry ->
+                            geometryCalls++
+                            assertFalse(returned)
+                            assertTrue(geometry.present)
+                            assertEquals(4,geometry.corners.size)
+                            assertTrue(geometry.hits.isEmpty())
+                            assertEquals(0L,geometry.recognitionMs)
+                        })
+                        returned=true
+                        assertEquals(1,geometryCalls)
                         assertTrue(scan.present);assertFalse(scan.regionConflict)
                         assertFalse(scan.regionDiagnostics.contains("fullTop=null"))
                         assertEquals(name,idx.byId.getValue(scan.hits.first().cardId).identity)
@@ -58,6 +69,7 @@ class TripleHybridIntegrationTest {
                         var result:TripleIdentityConfirmation.Result?=null
                         repeat(2) {
                             val actual=e.scan(bitmap)
+                            assertEquals(scan.hits,actual.hits) // callback must not change recognition
                             result=confirmation.observe(actual.hits.map { h ->
                                 val row=idx.byId.getValue(h.cardId)
                                 EdScanFastIdentity.Candidate(h.cardId,h.score,row.identity,row.set,row.released)
@@ -65,11 +77,32 @@ class TripleHybridIntegrationTest {
                         }
                         assertTrue("Triple must confirm identity like Fast: $name",result!!.confirmation.reliable)
                         if(name=="cyclopean mummy") assertFalse("Reprint ties remain pending",result!!.printingConfirmed)
+                        // Compare both modes on the same upright photo, alternating execution order.
+                        for(pass in 0..1) {
+                            val readings=linkedMapOf<Boolean,ScanResult>()
+                            for(fixed in if(pass==0) listOf(false,true) else listOf(true,false)) {
+                                val measured=e.scan(bitmap,assumeUpright=fixed)
+                                readings[fixed]=measured
+                                assertTrue(measured.present);assertFalse(measured.regionConflict)
+                                assertEquals(name,idx.byId.getValue(measured.hits.first().cardId).identity)
+                                val gate=TripleIdentityConfirmation(true).observe(measured.hits.map { h ->
+                                    val row=idx.byId.getValue(h.cardId)
+                                    EdScanFastIdentity.Candidate(h.cardId,h.score,row.identity,row.set,row.released)
+                                },measured.comparisonRegion=="full",SystemClock.elapsedRealtime())
+                                assertTrue("Mode $fixed: $name",gate.confirmation.reliable)
+                            }
+                            val normal=readings.getValue(false);val fixed=readings.getValue(true)
+                            android.util.Log.i("TripleUprightReplay","name=$name pass=$pass normalMs=${normal.detectionMs+normal.recognitionMs} uprightMs=${fixed.detectionMs+fixed.recognitionMs} normalFeaturesMs=${normal.recognitionMs-normal.searchMs} uprightFeaturesMs=${fixed.recognitionMs-fixed.searchMs}")
+                            assertTrue(fixed.regionDiagnostics.contains("orientations=1"))
+                            assertTrue(normal.regionDiagnostics.contains("orientations=2"))
+                        }
                         // Scoped searches cannot leak global hits, even with both lanes active.
                         val scope=scan.hits.map { it.cardId }.take(2).toSet()
                         val scoped=e.scan(bitmap,scope)
                         assertTrue(scoped.hits.all { it.cardId in scope })
                         assertTrue(e.scan(bitmap,emptySet()).hits.isEmpty())
+                        assertTrue(e.scan(bitmap,scope,assumeUpright=true).hits.all { it.cardId in scope })
+                        assertTrue(e.scan(bitmap,emptySet(),assumeUpright=true).hits.isEmpty())
                     } finally { bitmap.recycle() }
                 }
             }

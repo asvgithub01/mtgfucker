@@ -1,0 +1,4 @@
+<resources>
+    <string name="card_show_front">Voir le recto</string>
+    <string name="card_show_back">Voir le verso</string>
+</resources>

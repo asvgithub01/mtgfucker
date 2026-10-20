@@ -28,7 +28,7 @@ class TriplePricePopupTest {
         try {
             ActivityScenario.launch<TripleScanActivity>(Intent(context,TripleScanActivity::class.java).putExtra("triple_diagnostic_only",true)).use { scene ->
                 scene.onActivity { a ->
-                    val target=TripleScanActivity.Target("popup-test",uuid,"Test","FRA","Test #1","","nonfoil","AR")
+                    val target=TripleScanActivity.Target("popup-test",uuid,"Test","FRA","Test #1","","foil","AR")
                     TripleScanActivity::class.java.getDeclaredMethod("upsertGallery",TripleScanActivity.Target::class.java).apply { isAccessible=true }.invoke(a,target)
                 }
                 Thread.sleep(1200)
@@ -37,6 +37,7 @@ class TriplePricePopupTest {
                     val row=recent.getChildAt(0)
                     val price=row.findViewWithTag<TextView>("triple_gallery_price").text.toString()
                     assertTrue(price,price.contains("45") && price.contains("MKM"))
+                    assertEquals(View.GONE,row.findViewWithTag<ImageView>("triple_gallery_foil").visibility)
                     row.performClick()
                     val p=requireNotNull(popup(a));assertTrue(p.isShowing)
                     views(p.contentView).filterIsInstance<Button>().first { it.text=="+" }.performClick()
@@ -51,7 +52,22 @@ class TriplePricePopupTest {
                 Thread.sleep(650)
                 scene.onActivity { a ->
                     val p=requireNotNull(popup(a));assertTrue(p.isShowing)
-                    views(p.contentView).filterIsInstance<CheckBox>().first { it.tag=="triple_edit_foil" }.performClick()
+                    val foil=views(p.contentView).filterIsInstance<CheckBox>().first { it.tag=="triple_edit_foil" }
+                    val badge=(field("recent").get(a) as LinearLayout).getChildAt(0).findViewWithTag<ImageView>("triple_gallery_foil")
+                    foil.performClick()
+                    assertEquals(View.VISIBLE,badge.visibility)
+                    assertEquals(a.getString(R.string.foil),badge.contentDescription)
+                    foil.performClick()
+                    assertEquals(View.GONE,badge.visibility)
+                    foil.performClick()
+                    assertEquals(View.VISIBLE,badge.visibility)
+                    // An automatic printing update must not change either manual choice.
+                    val upsert=TripleScanActivity::class.java.getDeclaredMethod("upsertGallery",TripleScanActivity.Target::class.java).apply { isAccessible=true }
+                    upsert.invoke(a,TripleScanActivity.Target("popup-test",uuid+"2","Test","FRA","Test #2","","nonfoil","AR"))
+                    assertEquals(View.VISIBLE,badge.visibility)
+                    foil.performClick()
+                    upsert.invoke(a,TripleScanActivity.Target("popup-test",uuid+"3","Test","FRA","Test #3","","foil","AR"))
+                    assertEquals(View.GONE,badge.visibility)
                     assertTrue(p.isShowing)
                 }
                 Thread.sleep(650)

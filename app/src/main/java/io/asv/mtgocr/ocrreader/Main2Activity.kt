@@ -48,6 +48,7 @@ class Main2Activity : AppCompatActivity() {
     private lateinit var collectionItemId: String
     private lateinit var title: TextView
     private lateinit var status: TextView
+    private var faceToggle:CardFaceToggle?=null
     private lateinit var image: RoundedCardImageView
     private lateinit var foilBadge: ImageView
     private lateinit var progress: ProgressBar
@@ -231,6 +232,11 @@ class Main2Activity : AppCompatActivity() {
         editionSearch.threshold = 1
         editionSearch.doAfterTextChanged { filterEditions() }
         image.setOnClickListener {
+            val shown=faceToggle?.displayedUrl.orEmpty()
+            if(shown.contains("/back/")) {
+                startActivity(Intent(this,CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL,shown))
+                return@setOnClickListener
+            }
             displayedOption?.let(::openCardImage) ?: if (legacyImageUrl.isNotBlank()) {
                 startActivity(Intent(this, CardImageActivity::class.java).putExtra(CardImageActivity.EXTRA_IMAGE_URL, legacyImageUrl))
             } else Unit
@@ -483,6 +489,11 @@ class Main2Activity : AppCompatActivity() {
     }
 
     private fun showDetailImage(url:String?) {
+        if(faceToggle==null) faceToggle=CardFaceToggle(findViewById(R.id.btnDetailFlip),::renderDetailFace)
+        faceToggle?.bind(url.orEmpty(),displayedOption?.printingUuid.orEmpty())
+    }
+
+    private fun renderDetailFace(url:String) {
         CardImageCache.display(this,url,image)
         val art=findViewById<CardArtBackgroundView>(R.id.detailHeaderArt)
         art.fitArtworkAspectRatio=true
@@ -491,6 +502,7 @@ class Main2Activity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        faceToggle?.close()
         findViewById<ImageView>(R.id.detailHeaderArt)?.let { Glide.clear(it);it.setImageDrawable(null) }
 
         cardLoadTask?.cancel(true)

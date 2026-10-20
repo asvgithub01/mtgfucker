@@ -13,6 +13,20 @@ class CollectorVisionMathTest {
         assertFalse(CollectorVisionMath.prefersRotated(listOf(Hit("a",.8f)), listOf(Hit("b",.8f))))
     }
 
+    @Test fun uprightModeUsesUpperShortEdgeWithoutMirroring() {
+        val expected=listOf(Corner(.1f,.1f),Corner(.9f,.15f),Corner(.8f,.9f),Corner(.2f,.85f))
+        assertEquals(expected,CollectorVisionMath.uprightCorners(expected))
+        assertEquals(expected,CollectorVisionMath.uprightCorners(expected.drop(2)+expected.take(2)))
+        val detected=CollectorVisionMath.ordered(expected.flatMap { listOf(it.x,it.y) }.toFloatArray(),800,1200)
+        assertEquals(expected,CollectorVisionMath.uprightCorners(detected))
+        assertEquals(emptyList<Corner>(),CollectorVisionMath.uprightCorners(emptyList()))
+    }
+    @Test fun uprightModeDoesNotMutateOriginalGeometry() {
+        val input=listOf(Corner(.8f,.9f),Corner(.2f,.9f),Corner(.1f,.1f),Corner(.9f,.1f))
+        val saved=input.toList()
+        assertEquals(listOf(input[2],input[3],input[0],input[1]),CollectorVisionMath.uprightCorners(input))
+        assertEquals(saved,input)
+    }
     @Test fun halfValuesIncludeSubnormalAndInfinity() {
         assertEquals(1f,CollectorVisionMath.half(0x3c00),0f)
         assertEquals(-2f,CollectorVisionMath.half(0xc000),0f)

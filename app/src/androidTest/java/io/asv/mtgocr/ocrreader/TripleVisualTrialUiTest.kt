@@ -18,12 +18,19 @@ class TripleVisualTrialUiTest {
         val prefs=ctx.getSharedPreferences("triple_scanner",0);val saved=prefs.all
         fun field(name:String)=TripleScanActivity::class.java.getDeclaredField(name).apply { isAccessible=true }
         prefs.edit().putBoolean("ar",false).putBoolean("art",false).putBoolean("ocr",false)
-            .remove("edscan_contour").putBoolean("single_art_reading",false).putBoolean("delayed_art_crop",false).commit()
+            .remove("upright_only").remove("edscan_contour").putBoolean("single_art_reading",false).putBoolean("delayed_art_crop",false).commit()
         try {
             ActivityScenario.launch<TripleScanActivity>(Intent(ctx,TripleScanActivity::class.java).putExtra("triple_diagnostic_only",true)).use { scenario ->
                 scenario.onActivity { a ->
                     val one=a.window.decorView.findViewWithTag<CheckBox>("triple_trial_single_art_reading")
                     val crop=a.window.decorView.findViewWithTag<CheckBox>("triple_trial_delayed_art_crop")
+                    val upright=a.window.decorView.findViewWithTag<CheckBox>("triple_trial_upright_only")
+                    assertFalse(upright.isChecked)
+                    val initial=field("generation").get(a)
+                    upright.isChecked=true
+                    assertTrue(field("uprightOnly").getBoolean(a))
+                    assertTrue(prefs.getBoolean("upright_only",false))
+                    assertNotEquals(initial,field("generation").get(a))
                     assertFalse(one.isChecked);assertFalse(crop.isChecked)
                     val before=field("generation").get(a)
                     val outline=a.window.decorView.findViewWithTag<CheckBox>("triple_contour_flag")
@@ -42,6 +49,7 @@ class TripleVisualTrialUiTest {
                 }
                 scenario.recreate()
                 scenario.onActivity { a ->
+                    assertTrue(field("uprightOnly").getBoolean(a))
                     assertTrue(field("contourEnabled").getBoolean(a))
                     a.window.decorView.findViewWithTag<CheckBox>("triple_contour_flag").isChecked=false
                     assertFalse(field("contourEnabled").getBoolean(a))

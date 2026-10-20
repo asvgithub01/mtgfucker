@@ -49,6 +49,12 @@ internal object CollectorVisionMath {
         }
         return (0..3).map { ordered[(it+shortest)%4] }
     }
+    /** Portrait input with the printed title at the top. Preserve winding; never mirror. */
+    fun uprightCorners(corners:List<Corner>):List<Corner> {
+        if(corners.size!=4 || corners.any { !it.x.isFinite() || !it.y.isFinite() }) return corners
+        return if(corners[0].y+corners[1].y <= corners[2].y+corners[3].y) corners
+            else corners.drop(2)+corners.take(2)
+    }
     fun usable(points: List<Corner>): Boolean {
         if (points.size != 4 || points.any { !it.x.isFinite() || !it.y.isFinite() }) return false
         var twiceArea=0f

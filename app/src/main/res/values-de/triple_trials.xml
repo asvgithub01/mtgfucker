@@ -1,4 +1,8 @@
 <resources>
-    <string name="triple_trial_single_reading">Test: eine starke Bilderkennung (höheres Fehlerrisiko)</string>
-    <string name="triple_trial_delayed_crop">Test: Zuschnitt nach 2 schwachen Erkennungen</string>
+    <string name="triple_trial_single_reading">Schnelle Bilderkennung: eine starke Erkennung</string>
+    <string name="triple_trial_delayed_crop">Zuerst ganze Karte; Ausschnitt nach 2 schwachen Erkennungen</string>
+    <string name="triple_fast_art_help">Aus: bisheriger Modus mit zwei starken Erkennungen. Ein: akzeptiert die Identität nach einer starken Bilderkennung, mit höherem Fehlerrisiko. Erfordert aktive Bilderkennung; bestätigt allein weder Edition noch Sprache.</string>
+    <string name="triple_finish_review">Die vorgeschlagene Edition unterstützt die gewählte Ausführung nicht. Ändere die Edition oder wähle Foil nur, wenn deine Karte Foil ist. Diese Änderung wurde nicht gespeichert.</string>
+    <string name="triple_finish_review_short">Edition/Ausführung prüfen</string>
+    <string name="triple_trial_upright">Test: Karte immer aufrecht (Name oben; bei umgedrehten Karten ausschalten)</string>
 </resources>

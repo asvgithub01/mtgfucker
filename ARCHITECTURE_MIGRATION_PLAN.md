@@ -226,6 +226,9 @@ No cambiar el destino de Biblio al nuevo shell hasta P3.
 
 ### P3 — Shell, biblioteca y grupos
 Depende de P2 y del contrato scanner P0.
+- [x] Primer incremento: shell opt-in debug, solo lectura, cartas/grupos/mazos,
+  búsqueda y orden reciente/nombre. Validado sin activar reemplazo de Biblio.
+  P3 permanece abierta: los criterios siguientes requieren paridad de operaciones.
 - [ ] Host Compose no escáner con navegación por IDs.
 - [ ] Biblioteca y grupos/mazos reutilizando reglas, no copiando el monolito.
 - [ ] Conservar orden reciente, rejillas, filtros, totales, selección y confirmaciones

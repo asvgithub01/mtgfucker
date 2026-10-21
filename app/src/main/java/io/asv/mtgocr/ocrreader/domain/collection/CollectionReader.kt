@@ -12,7 +12,10 @@ data class CollectionRow(
     val imageUrl: String?,
     val groups: List<String>,
     val decks: List<String>,
-    val sideboardDecks: List<String>
+    val sideboardDecks: List<String>,
+    val addedAt: Long = 0,
+    val setName: String = "",
+    val setCode: String = ""
 )
 
 data class CollectionSnapshot(val libraryId: String, val rows: List<CollectionRow>)

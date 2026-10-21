@@ -10,7 +10,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.awaitCancellation
 
 @Composable
-fun LauncherRoute(viewModel: LauncherViewModel, onOpen: () -> Unit) {
+fun LauncherRoute(viewModel: LauncherViewModel, onPreview: ((String, String) -> Unit)? = null, onOpen: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner, viewModel) {
@@ -19,5 +19,12 @@ fun LauncherRoute(viewModel: LauncherViewModel, onOpen: () -> Unit) {
             awaitCancellation()
         }
     }
-    LauncherScreen(state, viewModel::select, onOpen, viewModel::refresh)
+    LauncherScreen(state, viewModel::select, onOpen, viewModel::refresh,
+        onPreview = onPreview?.let { callback -> {
+            if (state.canOpen) {
+                state.data?.let { data ->
+                    data.libraries.firstOrNull { it.id == data.selectedId }?.let { callback(it.id, it.name) }
+                }
+            }
+        } })
 }

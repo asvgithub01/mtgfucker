@@ -111,3 +111,36 @@ los idiomas/teclados queda pendiente. La recreación y SavedStateHandle sí se p
 Los 29 errores lint heredados permanecen como deuda explícita. No marcar la calidad
 global como verde ni tocar scanners para eliminarlos sin ampliar el alcance.
 No se ha instalado en Sony, modificado datos del usuario, fusionado a master ni hecho push.
+
+## P3 — Primer incremento, vista previa solo lectura (21-10-2026)
+
+El launcher debug ofrece una entrada secundaria a BiblioShellActivity; release no
+registra esa Activity. La entrada principal conserva la Biblio completa y sus funciones.
+El shell NO sustituye aún ninguna operación de escritura, valoración o escaneo.
+
+- Puerto LibraryShellRepository y proyección por libraryId explícito; lector IO sin
+  DeckCatalogStore.load (ese método migra grupos y guarda Biblio). Catálogo primario
+  y backup leídos sin reparación; ilegible se distingue de inexistente.
+- ViewModel con cancelación/generación, SavedStateHandle y cálculo en Default;
+  no publica otra biblioteca ni respuestas obsoletas. Recarga al volver a RESUMED.
+- Cartas por collectionItemId, grupos separados de mazos, mazos vacíos conservados,
+  cantidades Long y sideboard. Orden estable reciente, filtro por nombre/set sin
+  acentos, detalle de solo lectura. No serializar estas proyecciones.
+- Cabecera y contenido desplazables, componentes/tema comunes y seis traducciones.
+
+Validación: 880 tests unitarios, 12 instrumentados de arquitectura en emulator-5554,
+8 tests Python y guard de fuentes protegidas sin cambios. APK app/test generadas.
+Pruebas nuevas cubren no migración/reescritura de inventario y catálogo, backup
+corrupto, eventos UI, pantalla 320x480 con fuente 200 %, entrada/salida real del
+preview y comparación byte a byte de archivos Json/backup. Captura revisada:
+build/architecture/p3-shell.png. El escenario real usa biblioteca vacía del emulador;
+las pruebas de contenido usan fixtures sintéticos, no datos del usuario.
+Lint: mismos 29 errores en archivos cuyo hash coincide con master; cero archivos
+nuevos/modificados con errores. No equivale a lint verde.
+Logs: p3-final-build.log, p3-instrumentation-final.log, p3-lint.log en build/architecture.
+
+Pendiente para cerrar P3: comandos y doble persistencia, crear/renombrar/borrar
+grupos/mazos, edición/selección/borrado de cartas y confirmaciones, totales de precio,
+paridad de gestos/filtros, bridges OCR/Triple con reconciliación real, concurrencia,
+reinicio/rollback y rendimiento con colecciones grandes. No activar el shell por
+defecto hasta superar esos gates. No se ha tocado scanner ni instalado en Sony.

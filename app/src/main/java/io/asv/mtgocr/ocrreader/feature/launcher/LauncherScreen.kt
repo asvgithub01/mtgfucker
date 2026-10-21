@@ -27,6 +27,7 @@ fun LauncherScreen(
     onSelect: (String) -> Unit,
     onOpen: () -> Unit,
     onRetry: () -> Unit,
+    onPreview: (() -> Unit)? = null,
     artwork: @Composable (String?, Modifier) -> Unit = { url, modifier ->
         CardArtwork(url, stringResource(R.string.launch_background), modifier)
     }
@@ -84,6 +85,12 @@ fun LauncherScreen(
                         Button(onClick = onOpen, enabled = state.canOpen,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("open-library")) {
                             Text(stringResource(R.string.mode_biblio))
+                        }
+                        if (onPreview != null) {
+                            TextButton(onClick = onPreview, enabled = state.canOpen,
+                                modifier = Modifier.fillMaxWidth().testTag("preview-library")) {
+                                Text(stringResource(R.string.shell_preview))
+                            }
                         }
                     }
                 }

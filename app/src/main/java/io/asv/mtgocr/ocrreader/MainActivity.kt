@@ -1,6 +1,7 @@
 package io.asv.mtgocr.ocrreader
 
 import android.os.Bundle
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.ViewModelProvider
@@ -23,7 +24,11 @@ class MainActivity : ComponentActivity() {
                 MagicPalette.secondaryColor(this),
                 MagicPalette.backgroundColor(this)
             ) {
-                LauncherRoute(viewModel) {
+                LauncherRoute(viewModel, onPreview = if (BuildConfig.DEBUG) { id, name ->
+                    startActivity(Intent(this, BiblioShellActivity::class.java)
+                        .putExtra(BiblioShellActivity.EXTRA_LIBRARY_ID, id)
+                        .putExtra(BiblioShellActivity.EXTRA_LIBRARY_NAME, name))
+                } else null) {
                     val ask = viewModel.prepareOpen()
                     if (ask != null) {
                         try {

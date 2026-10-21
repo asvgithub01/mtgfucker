@@ -53,7 +53,8 @@ internal class LegacyCollectionReader(
             rows += CollectionRow(
                 id, card.name.orEmpty(), card.printingUuid, card.finish,
                 card.languageCode, card.condition, card.quantityCount, card.imgPath,
-                immutableCopy(card.groups), immutableCopy(card.decks), immutableCopy(card.sideboardDecks)
+                immutableCopy(card.groups), immutableCopy(card.decks), immutableCopy(card.sideboardDecks),
+                card.addedAt, card.setName.orEmpty(), card.setCode.orEmpty()
             )
         }
         return CollectionReadResult.Ready(CollectionSnapshot(libraryId, immutableCopy(rows)))

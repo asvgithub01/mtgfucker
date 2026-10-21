@@ -26,6 +26,12 @@
   `data/legacy/LegacyLauncherRepository.kt`, composición en `app/di/` y puente
   `legacybridge/LegacyLibraryNavigation.kt`. UI común: `core/designsystem/`.
   Contratos y validación: `ARCHITECTURE_CONTRACTS.md`. El host Biblio/OCR no cambia.
+  Shell P3 parcial: `BiblioShellActivity.kt`, `feature/library/`, `domain/library/`,
+  `data/legacy/LegacyLibraryShellRepository.kt`. Vista previa opt-in solo debug desde
+  launcher; la Biblio habitual conserva todas las operaciones. No activar como predeterminada.
+  No usar `DeckCatalogStore.load` como lectura: migra grupos y guarda catálogo/Biblio.
+  El shell lee por ID explícito sin escribir; no añadir comandos hasta validar doble
+  persistencia y concurrencia. La Activity solo se registra en `src/debug/AndroidManifest.xml`.
   No usar proyecciones de `domain/collection/CollectionReader.kt` para guardar/reemplazar Biblio.
   Ejecutar `python scripts/check_architecture_boundary.py` y
   `python scripts/test_architecture_boundary.py`: fuentes runtime existentes protegidas,

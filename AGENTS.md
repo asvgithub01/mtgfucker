@@ -21,6 +21,14 @@
 
 ## Stack y estructura
 
+- Plan de migración Kotlin/Compose no escáner: `ARCHITECTURE_MIGRATION_PLAN.md`.
+  P0/P1 iniciadas: `domain/collection/CollectionReader.kt`, adaptadores en
+  `data/legacy/` y composición en `app/di/CollectionDependencies.kt`, aún sin activar
+  en pantallas. No usar proyecciones de lectura para guardar/reemplazar Biblio.
+  Ejecutar `python scripts/check_architecture_boundary.py` y
+  `python scripts/test_architecture_boundary.py`: fuentes runtime existentes protegidas,
+  incluidos escáneres y modelos serializados. Excepciones futuras solo explícitas y revisadas.
+
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.
 - CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,

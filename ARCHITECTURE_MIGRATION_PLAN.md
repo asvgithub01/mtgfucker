@@ -229,6 +229,11 @@ Depende de P2 y del contrato scanner P0.
 - [x] Primer incremento: shell opt-in debug, solo lectura, cartas/grupos/mazos,
   búsqueda y orden reciente/nombre. Validado sin activar reemplazo de Biblio.
   P3 permanece abierta: los criterios siguientes requieren paridad de operaciones.
+- [x] Segundo incremento: reglas de edición/borrado y grupos sobre grafo separado
+  con pruebas de preservación; todavía SIN publicación. Puentes a Biblio/OCR y Triple,
+  recarga al volver y observación de guardados tardíos, con Intents interceptados en tests.
+- [ ] Resolver la coordinación compartida de guardados completos legacy antes de
+  activar comandos: shutdown del executor OCR no garantiza que se haya vaciado.
 - [ ] Host Compose no escáner con navegación por IDs.
 - [ ] Biblioteca y grupos/mazos reutilizando reglas, no copiando el monolito.
 - [ ] Conservar orden reciente, rejillas, filtros, totales, selección y confirmaciones

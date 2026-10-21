@@ -8,15 +8,23 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.awaitCancellation
 
 @Composable
-fun LibraryShellRoute(libraryName: String, viewModel: LibraryShellViewModel, onBack: () -> Unit) {
+fun LibraryShellRoute(
+    libraryName: String,
+    viewModel: LibraryShellViewModel,
+    onOpenLegacy: (() -> Unit)? = null,
+    onOpenTriple: (() -> Unit)? = null,
+    onBack: () -> Unit
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner, viewModel) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.refresh()
+            viewModel.observeChanges()
             awaitCancellation()
         }
     }
     LibraryShellScreen(libraryName, state, viewModel::section, viewModel::membership,
-        viewModel::query, viewModel::sort, viewModel::refresh, onBack)
+        viewModel::query, viewModel::sort, viewModel::refresh, onBack,
+        onOpenLegacy = onOpenLegacy, onOpenTriple = onOpenTriple)
 }

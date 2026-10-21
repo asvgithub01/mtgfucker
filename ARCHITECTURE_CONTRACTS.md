@@ -144,3 +144,42 @@ grupos/mazos, edición/selección/borrado de cartas y confirmaciones, totales de
 paridad de gestos/filtros, bridges OCR/Triple con reconciliación real, concurrencia,
 reinicio/rollback y rendimiento con colecciones grandes. No activar el shell por
 defecto hasta superar esos gates. No se ha tocado scanner ni instalado en Sony.
+
+## P3 — Preparación de mutaciones y retorno (22-10-2026)
+
+- LibraryMutation / LegacyLibraryMutation preparan cambios por ID: cantidad positiva,
+  condición válida, borrado confirmado, asignación, renombrado, retirada y borrado
+  confirmado de grupos. Borrar un grupo no borra cartas ni mazos homónimos.
+  Grupos legacy vacíos no existen como entidades: crearlos exige asignar cartas.
+- Se trabaja sobre el grafo Serializable completo separado, nunca una proyección
+  de UI. El round-trip conserva incluso listas null históricas; getters mutables
+  se consultan sobre copias. No se borran evidencias ni fotos. Las pruebas comparan
+  bytes de filas ajenas y usan el fixture binario de master.
+- El preparador NO está conectado a un escritor, a Room ni a botones de edición:
+  no afirmar que escritura/edición/borrado desde Compose estén ya disponibles.
+- El shell ofrece Biblio completa/OCR y Triple con los Intents existentes y sin
+  cambiar biblioteca activa. Biblio/OCR abre su host habitual (no se inventa un extra
+  para entrar directamente en cámara). Conserva todas las funciones legacy.
+- ActivityResult invalida el snapshot; RESUMED registra FileObserver sobre el
+  directorio (DataUtils publica por rename), con debounce/conflación y baja al salir.
+  Esto recoge publicaciones posteriores al retorno; no presupone un resultado de
+  escaneo ni usa posiciones como identidades. Una biblioteca distinta se rechaza.
+
+**Bloqueo de activación de escrituras:** OcrCaptureActivity.onPause encola snapshots;
+onDestroy ejecuta shutdown, no awaitTermination. Un guardado completo viejo puede
+publicarse después de una edición nueva. El synchronized de DataUtils solo serializa
+la publicación; una comprobación optimista antes del guardado no impide ese overwrite
+posterior. No resolverlo con sleeps ni activar escrituras por asumir que la Activity
+destruida dejó de escribir. Se ha planteado reforzar persistencia compartida sin
+editar fuentes scanner; no se ha aplicado todavía ese refuerzo ni ampliado el guard.
+
+Validación del incremento: tests de preparación/preservación, eventos tardíos del
+ViewModel, FileObserver con publicación atómica real en directorio sintético, y
+botones/retorno con Intents de ambos scanners interceptados. Esto NO sustituye la
+prueba física de escaneo, concurrencia real, reinicio y doble persistencia.
+Logs locales: build/architecture/p3-return-final-build.log,
+p3-return-instrumentation.log, p3-return-lint.log.
+Resultado final: 890 unitarias, 14 instrumentadas en emulator-5554 y 8 tests del
+guard, sin fallos. APK debug y de pruebas compiladas; captura p3-return-shell.png
+revisada. Lint mantiene 29 errores heredados, ninguno en fuentes nuevas/modificadas.
+Sin instalación en Sony, acceso a sus datos, push ni cambios en fuentes scanner.

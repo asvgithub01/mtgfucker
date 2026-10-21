@@ -6,6 +6,7 @@ import io.asv.mtgocr.ocrreader.domain.collection.*
 import io.asv.mtgocr.ocrreader.domain.library.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.After
@@ -74,5 +75,31 @@ class LibraryShellViewModelTest {
         restored.refresh(); advanceUntilIdle()
         assertNull(restored.state.value.options.membership)
         assertTrue(restored.state.value.showMemberships)
+    }
+
+    @Test fun latePublicationAfterReturnReloadsByIdentityWithoutDuplicates() = runTest(dispatcher) {
+        val events = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        var result = ready(rowId = "before")
+        var observedId = ""
+        val repository = object : LibraryShellRepository {
+            override suspend fun read(libraryId: String) = result
+            override fun changes(libraryId: String) = events.also { observedId = libraryId }
+        }
+        val model = vm(repository)
+        val observation = backgroundScope.launch(dispatcher) { model.observeChanges() }
+        model.refresh(); runCurrent()
+        assertEquals("lib", observedId)
+        assertEquals("before", model.state.value.rows.single().id)
+        result = ready(rowId = "after")
+        events.emit(Unit); runCurrent()
+        assertEquals(listOf("after"), model.state.value.rows.map { it.id })
+        events.emit(Unit); runCurrent()
+        assertEquals(1, model.state.value.rows.size)
+        observation.cancel(); runCurrent()
+        result = ready(rowId = "hidden")
+        events.emit(Unit); runCurrent()
+        assertEquals("after", model.state.value.rows.single().id)
+        model.refresh(); runCurrent()
+        assertEquals("hidden", model.state.value.rows.single().id)
     }
 }

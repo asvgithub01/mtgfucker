@@ -18,4 +18,6 @@
     <string name="shell_empty_cards">Aucune carte pour ces filtres.</string>
     <string name="shell_row_count">%1$d exemplaires</string>
     <string name="shell_close">Fermer</string>
+    <string name="shell_open_legacy">Ouvrir Biblio complète / OCR</string>
+    <string name="shell_open_triple">Ouvrir le scanner Triple</string>
 </resources>

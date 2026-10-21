@@ -16,6 +16,15 @@ class LegacyLibraryShellRepository(context: Context, private val io: CoroutineDi
     private val context = context.applicationContext
     private val collectionReader = LegacyCollectionReader(AndroidLegacyCollectionSource(this.context), io)
 
+    override fun changes(libraryId: String): kotlinx.coroutines.flow.Flow<Unit> {
+        val library = LibraryCatalog.availableLibraries(context).firstOrNull { it.id == libraryId }
+            ?: return kotlinx.coroutines.flow.emptyFlow()
+        val deck = if (libraryId == LibraryCatalog.DEFAULT_ID) "myDeckCatalog.Json"
+            else "biblio_${libraryId}_DeckCatalog.Json"
+        return legacyLibraryChanges(context.filesDir,
+            setOf(library.fileName, library.fileName + ".bak", deck, deck + ".bak"))
+    }
+
     override suspend fun read(libraryId: String): ShellReadResult = withContext(io) {
         if (LibraryCatalog.active(context).id != libraryId) {
             return@withContext ShellReadResult.Failed(ShellReadFailure.LIBRARY_CHANGED)

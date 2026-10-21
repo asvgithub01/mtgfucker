@@ -25,6 +25,8 @@ fun LibraryShellScreen(
     onSort: (LibrarySort) -> Unit,
     onRefresh: () -> Unit,
     onBack: () -> Unit,
+    onOpenLegacy: (() -> Unit)? = null,
+    onOpenTriple: (() -> Unit)? = null,
     artwork: @Composable (String?, Modifier) -> Unit = { url, modifier -> CardArtwork(url, null, modifier) }
 ) {
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -43,6 +45,18 @@ fun LibraryShellScreen(
                 }
                 Text(libraryName, style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.shell_read_only), style = MaterialTheme.typography.bodySmall)
+                onOpenLegacy?.let {
+                    TextButton(onClick = it, enabled = !state.loading && state.failure == null,
+                        modifier = Modifier.testTag("shell-open-legacy")) {
+                        Text(stringResource(R.string.shell_open_legacy))
+                    }
+                }
+                onOpenTriple?.let {
+                    TextButton(onClick = it, enabled = !state.loading && state.failure == null,
+                        modifier = Modifier.testTag("shell-open-triple")) {
+                        Text(stringResource(R.string.shell_open_triple))
+                    }
+                }
                 TabRow(selectedTabIndex = state.options.section.ordinal) {
                     LibrarySection.values().forEach { section ->
                         val label = when (section) {

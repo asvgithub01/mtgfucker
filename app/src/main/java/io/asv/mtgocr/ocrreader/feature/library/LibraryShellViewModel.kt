@@ -84,6 +84,11 @@ class LibraryShellViewModel(
         }
     }
 
+    /** Collected only while visible; late scanner publications invalidate the read model. */
+    suspend fun observeChanges() {
+        repository.changes(libraryId).collect { refresh() }
+    }
+
     fun section(value: LibrarySection) = update(options.value.copy(section = value, membership = null, query = ""))
     fun membership(value: String?) = update(options.value.copy(membership = value, query = ""))
     fun query(value: String) = update(options.value.copy(query = value))

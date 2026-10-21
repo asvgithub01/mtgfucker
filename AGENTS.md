@@ -32,6 +32,12 @@
   No usar `DeckCatalogStore.load` como lectura: migra grupos y guarda catálogo/Biblio.
   El shell lee por ID explícito sin escribir; no añadir comandos hasta validar doble
   persistencia y concurrencia. La Activity solo se registra en `src/debug/AndroidManifest.xml`.
+  Retorno P3: `legacybridge/LegacyShellNavigation.kt` conserva Intents existentes y
+  `data/legacy/LegacyLibraryChanges.kt` observa publicaciones por rename mientras el shell
+  está visible. RESUMED por sí solo no basta: OCR puede seguir guardando tras onDestroy.
+  `LegacyLibraryMutation.kt` solo prepara un grafo completo separado, NO lo guarda.
+  No conectar ese preparador a DataUtils hasta impedir sobrescrituras legacy tardías;
+  tampoco reconstruir Biblio desde CollectionRow ni borrar fotos durante la preparación.
   No usar proyecciones de `domain/collection/CollectionReader.kt` para guardar/reemplazar Biblio.
   Ejecutar `python scripts/check_architecture_boundary.py` y
   `python scripts/test_architecture_boundary.py`: fuentes runtime existentes protegidas,

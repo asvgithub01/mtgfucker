@@ -16,7 +16,7 @@ class StorageScreenTest {
     @Test fun fiveBlocksAndMeasuredDeletionResultAreVisible() {
         check(Build.FINGERPRINT.contains("generic") || Build.MODEL.contains("sdk"))
         val test=InstrumentationRegistry.getInstrumentation();val ctx=test.targetContext
-        val resultPrefs=ctx.getSharedPreferences("storage_results",0);resultPrefs.edit().remove("pending").commit()
+        val resultPrefs=ctx.getSharedPreferences("storage_manual_results",0);resultPrefs.edit().remove("pending").commit()
         for(command in listOf("input keyevent KEYCODE_WAKEUP","wm dismiss-keyguard")) {
             android.os.ParcelFileDescriptor.AutoCloseInputStream(test.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
         }

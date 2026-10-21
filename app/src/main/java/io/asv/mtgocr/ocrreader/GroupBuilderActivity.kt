@@ -120,7 +120,7 @@ class GroupBuilderActivity : AppCompatActivity() {
                         .thenBy { collectorSortKey(it.collectorNumber) }
                         .thenBy { it.name.lowercase(Locale.ROOT) }
                 )
-                else -> cards.sortedBy { it.addedAt }
+                else -> cards.sortedWith(CollectionEntryOrder.NEWEST_FIRST)
             }
         }
         adapter.submit(visible)

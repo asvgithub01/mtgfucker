@@ -589,7 +589,15 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   Pruebas: `TriplePriorityAndPhotoLanguageTest` y `TriplePhotoLanguageTest` (emulador).
 
 - `PostprocessCleanup` limpia fotos/diagnósticos EdScan de revisiones completas o cartas eliminadas, en WorkManager diferido y sin otros trabajos activos. No borra catálogo, inventario ni journals de recuperación; cualquier evidencia pendiente o referencia a otra biblioteca conserva la foto. Se programa tras guardado legacy, revisión y apertura del panel.
+- Limpieza automática (también tras borrar cartas): silenciosa, último resultado consultable en
+  `StorageActivity`. No reutilizar `storage_manual_results` ni activar progreso global desde el worker.
+- Triple prioriza sets no promo únicamente en desempates provisionales de la misma identidad.
+  `PromoSetCodes` contiene tipos promo reales de Scryfall (actualizar al ampliar índices), no prefijos.
+  Conservar promociones confirmadas por FULL y umbrales; esta preferencia no se activa en Fast.
 
 - Triple: nuevas filas empiezan normal; ni Target.finish ni cambiar edición eligen foil. El check manual controla selectedFinish; restaurar conserva el acabado histórico. Si la impresión no admite el acabado, FinishUnavailable impide guardar y solicita revisión. Contorno temprano usa callback onDetected opcional del motor, con la misma captura/proyección y guardas; no duplicar detección ni aceptar identidad desde ese callback.
 
 - Triple `upright_only` (OFF por defecto): asume nombre arriba en frame vertical ya rotado, reordena el par de esquinas al borde superior antes del warp y omite orientación180 en FULL/ART/UPPER. Mantiene ambos carriles/umbrales y limpia evidencia al alternar. No activar por defecto ni usar para cartas invertidas; comparar ON/OFF en Sony, sin extrapolar tiempos del emulador.
+
+- Triple: `TripleLaserView` es decorativo; flag `triple_scanner/laser_animation` OFF por defecto. No vincularlo al reconocimiento ni a sus votos. Detener animador al pausar/ocultar/desadjuntar; no dibujar el efecto en imágenes de análisis.
+- Accesos de escaneo en Biblio: solo OCR original (fabOcrMlKit) y Triple (icono). Los FAB experimentales y el acceso Fast dentro de Triple quedan GONE, con sus handlers/Activities conservados; no reactivarlos desde showSelectedSection.

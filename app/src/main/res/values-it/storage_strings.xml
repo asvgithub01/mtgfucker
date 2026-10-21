@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Elimina dati di post-elaborazione</string>
     <string name="review_discard_confirm">Scartare la post-elaborazione in attesa di TUTTA la biblioteca attiva, indipendentemente dai filtri? Foto e diagnostica esclusive, anche già esaminate, saranno eliminate. Carte e quantità rimarranno invariate. File condivisi, cronologia di ripristino e attività in corso saranno conservati. Questa azione è irreversibile.</string>
     <string name="storage_postprocess_contents">Include foto originali, risultati OCR e visivi e registri di ripristino. Il totale non equivale allo spazio liberabile: i file in attesa e condivisi sono protetti. Per rinunciare alla revisione, usa «Elimina dati di post-elaborazione» nella relativa schermata.</string>
+    <string name="storage_auto_result">Ultimo risultato della pulizia automatica</string>
 </resources>

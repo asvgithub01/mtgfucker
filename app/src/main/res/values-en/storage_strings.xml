@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Delete postprocessing data</string>
     <string name="review_discard_confirm">Discard pending postprocessing for the ENTIRE active library, regardless of filters? Exclusive photos and diagnostics, including reviewed ones, will be deleted. Cards and quantities will not be removed. Shared files, recovery history and active jobs are retained. This cannot be undone.</string>
     <string name="storage_postprocess_contents">Includes original scan photos, OCR and visual results, and recovery logs. Total size is not reclaimable space: pending and shared files are protected. To abandon review, use “Delete postprocessing data” on the postprocessing screen.</string>
+    <string name="storage_auto_result">Last automatic cleanup result</string>
 </resources>

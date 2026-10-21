@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Eliminar datos de postprocesado</string>
     <string name="review_discard_confirm">Se descartará el postprocesado pendiente de TODA la biblioteca activa, aunque haya filtros. Se borrarán sus fotos y diagnósticos exclusivos, también los ya revisados. No se eliminarán cartas ni cantidades. Los archivos compartidos, los históricos de recuperación y los trabajos en curso se conservan. Esta acción no se puede deshacer. ¿Continuar?</string>
     <string name="storage_postprocess_contents">Incluye fotos originales del escaneo, resultados OCR y visuales, y registros de recuperación. El total no equivale al espacio liberable: los pendientes y compartidos se protegen. Para renunciar a la revisión, usa «Eliminar datos de postprocesado» en la pantalla de postprocesado.</string>
+    <string name="storage_auto_result">Último resultado de limpieza automática</string>
 </resources>

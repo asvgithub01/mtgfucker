@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Nachbearbeitungsdaten löschen</string>
     <string name="review_discard_confirm">Ausstehende Nachbearbeitung der GESAMTEN aktiven Bibliothek unabhängig von Filtern verwerfen? Exklusive Fotos und Diagnosedaten, auch bereits geprüfte, werden gelöscht. Karten und Mengen bleiben erhalten. Gemeinsam genutzte Dateien, Wiederherstellungsverlauf und laufende Aufträge bleiben erhalten. Dies kann nicht rückgängig gemacht werden.</string>
     <string name="storage_postprocess_contents">Enthält Original-Scanfotos, OCR- und visuelle Ergebnisse sowie Wiederherstellungsprotokolle. Die Gesamtgröße ist nicht der freigebbare Speicher: ausstehende und gemeinsam genutzte Dateien sind geschützt. Zum Verwerfen der Prüfung dient „Nachbearbeitungsdaten löschen“ im Nachbearbeitungsbildschirm.</string>
+    <string name="storage_auto_result">Letztes Ergebnis der automatischen Bereinigung</string>
 </resources>

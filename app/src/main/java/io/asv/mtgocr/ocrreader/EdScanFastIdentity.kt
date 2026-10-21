@@ -6,7 +6,7 @@ internal object EdScanFastIdentity {
                          val set:String="", val released:String="", val price:Double?=null)
     data class Evidence(val identity:String?, val score:Float?, val runner:Float?,
                         val printing:String?, val alternatives:List<String>)
-    fun resolve(input:List<Candidate>):Evidence {
+    fun resolve(input:List<Candidate>, preferNonPromo:Boolean=false):Evidence {
         if(input.any { !it.score.isFinite() }) return Evidence(null,null,null,null,emptyList())
         val hits=input.sortedByDescending { it.score }
         val top=hits.firstOrNull() ?: return Evidence(null,null,null,null,emptyList())
@@ -16,6 +16,7 @@ internal object EdScanFastIdentity {
         if(key==null) return Evidence(null,top.score,runner,top.id,emptyList())
         val tied=hits.filter { it.identity==key && top.score-it.score<TripleScanPolicy.VISUAL_MIN_MARGIN }
         val ordered=tied.sortedWith(compareBy<Candidate> { printingPreference(it.set) }
+            .thenBy { if(preferNonPromo && PromoSetCodes.contains(it.set)) 1 else 0 }
             .thenByDescending { it.released }.thenBy { it.price?.takeIf { p -> p.isFinite() && p>=0 } ?: Double.POSITIVE_INFINITY }
             .thenBy { it.id })
         // No distinct runner in the truncated top-eight is NOT evidence of a safe margin.

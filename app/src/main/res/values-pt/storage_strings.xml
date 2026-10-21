@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Eliminar dados de pós-processamento</string>
     <string name="review_discard_confirm">Descartar o pós-processamento pendente de TODA a biblioteca ativa, independentemente dos filtros? As fotos e diagnósticos exclusivos, incluindo os já revistos, serão eliminados. As cartas e quantidades serão mantidas. Ficheiros partilhados, histórico de recuperação e tarefas em curso são conservados. Esta ação não pode ser anulada.</string>
     <string name="storage_postprocess_contents">Inclui fotos originais, resultados OCR e visuais e registos de recuperação. O total não é o espaço recuperável: ficheiros pendentes e partilhados estão protegidos. Para abandonar a revisão, use «Eliminar dados de pós-processamento» no respetivo ecrã.</string>
+    <string name="storage_auto_result">Último resultado da limpeza automática</string>
 </resources>

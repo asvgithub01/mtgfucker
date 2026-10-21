@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class TripleScanActivity:AppCompatActivity() {
     data class Target(val id:String,val printing:String,val name:String,val set:String,val label:String,val image:String,val finish:String,val source:String,val provisional:Boolean=false,val rarity:String="",val number:String=label.substringAfterLast(" #",""))
     private lateinit var preview:TripleArPreview
+    private lateinit var laserOverlay:TripleLaserView
     private lateinit var status:TextView
     private lateinit var scopeStatus:TextView
     private lateinit var scopeSymbols:LinearLayout
@@ -186,7 +187,7 @@ class TripleScanActivity:AppCompatActivity() {
         toolbar.addView(Button(this).apply { setText(android.R.string.cancel);setOnClickListener { finish() } })
         root.addView(toolbar)
         root.addView(Button(this).apply {
-            tag="triple_fast_mode";setText(R.string.edfast_open)
+            tag="triple_fast_mode";setText(R.string.edfast_open);visibility=View.GONE
             setOnClickListener { startActivity(Intent(this@TripleScanActivity,EdScanFastActivity::class.java)) }
         })
         val scopeRow=LinearLayout(this).apply { gravity=android.view.Gravity.CENTER_VERTICAL;setPadding(dp(8),dp(4),dp(8),dp(4)) }
@@ -231,6 +232,8 @@ class TripleScanActivity:AppCompatActivity() {
             }
         }
         root.addView(preview,LinearLayout.LayoutParams(-1,0,1f))
+        laserOverlay=TripleLaserView(this)
+        preview.addView(laserOverlay,FrameLayout.LayoutParams(-1,-1))
         edscanContour=EdScanContourView(this).apply { tag="triple_edscan_contour" }
         preview.addView(edscanContour,FrameLayout.LayoutParams(-1,-1))
         rescanButton=Button(this).apply {
@@ -261,6 +264,15 @@ class TripleScanActivity:AppCompatActivity() {
         options.addView(Button(this).apply { setText(R.string.ar_use_package);setOnClickListener { picker.launch(Intent(this@TripleScanActivity,ArDownloadsActivity::class.java).putExtra("choose",true)) } })
         val switches=LinearLayout(this)
         val prefs=getSharedPreferences("triple_scanner",0)
+        laserOverlay.setLaserEnabled(prefs.getBoolean("laser_animation",false))
+        options.addView(CheckBox(this).apply {
+            tag="triple_laser_flag";setText(R.string.triple_laser_flag)
+            isChecked=prefs.getBoolean("laser_animation",false)
+            setOnCheckedChangeListener { _,value ->
+                prefs.edit().putBoolean("laser_animation",value).apply()
+                laserOverlay.setLaserEnabled(value)
+            }
+        })
         contourEnabled=prefs.getBoolean("edscan_contour",false);preview.enableEdScanContour(contourEnabled)
         options.addView(CheckBox(this).apply {
             tag="triple_contour_flag";setText(R.string.edscan_contour_flag);isChecked=contourEnabled
@@ -1627,9 +1639,9 @@ class TripleScanActivity:AppCompatActivity() {
         recent.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
     }
     private fun finishOcr() { ocrScheduled.set(false);if(closed) { text.close();languages.close() } }
-    override fun onResume() { super.onResume();trace.event("triple.lifecycle state=resume");io.asv.collectorvision.EdScanInferencePriority.acquire(this);resumed=true;logHandler.removeCallbacks(heartbeat);logHandler.post(heartbeat); }
+    override fun onResume() { super.onResume();trace.event("triple.lifecycle state=resume");io.asv.collectorvision.EdScanInferencePriority.acquire(this);resumed=true;laserOverlay.setHostActive(true);logHandler.removeCallbacks(heartbeat);logHandler.post(heartbeat); }
     override fun onPause() {
-        trace.event("triple.lifecycle state=pause");entryPopup?.dismiss(); io.asv.collectorvision.EdScanInferencePriority.release(this);resumed=false;logHandler.removeCallbacks(heartbeat);invalidateEvidence();super.onPause() }
+        trace.event("triple.lifecycle state=pause");entryPopup?.dismiss(); io.asv.collectorvision.EdScanInferencePriority.release(this);resumed=false;laserOverlay.setHostActive(false);logHandler.removeCallbacks(heartbeat);invalidateEvidence();super.onPause() }
     override fun onDestroy() {
         galleryEntries.values.forEach { it.faceToggle?.close() }
         languagePickerRevision++;languagePicker?.dismiss()

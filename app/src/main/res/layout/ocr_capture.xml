@@ -849,19 +849,22 @@
         app:srcCompat="@drawable/ic_translate"
         app:tint="?attr/colorPrimaryVariant" />
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabTripleScanner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@id/fabEdScannerAr"
+        android:layout_above="@id/fabOcrMlKit"
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="7dp"
         android:layout_marginBottom="10dp"
-        android:text="@string/triple_title"
-        app:icon="@drawable/ic_experimental_scanner" />
+        android:contentDescription="@string/triple_title"
+        app:backgroundTint="?attr/colorSecondary"
+        app:srcCompat="@drawable/ic_experimental_scanner"
+        app:tint="?attr/colorPrimaryVariant" />
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabEdScannerAr"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/fabCollectorVision"
@@ -874,6 +877,7 @@
 
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabCollectorVision"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/fabOcrMlKit"
@@ -886,6 +890,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabRulesScanner"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/bottomNavigation"
@@ -899,6 +904,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabHashOnlyScanner"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/bottomNavigation"
@@ -912,6 +918,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabRapidEditionScanner"
+        android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_above="@id/bottomNavigation"

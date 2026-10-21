@@ -48,7 +48,9 @@ object StorageOperations {
             progressText?.text=a.getString(R.string.storage_progress,report.files,mb(report.bytes))
         } else {
             dialog?.dismiss();dialog=null;progressText=null
-            val prefs=a.getSharedPreferences("storage_results",0)
+            // Legacy results did not distinguish manual and automatic work. Keep them
+            // available in Settings, but never replay them as unsolicited dialogs.
+            val prefs=a.getSharedPreferences("storage_manual_results",0)
             val message=prefs.getString("pending",null) ?: return
             prefs.edit().clear().apply()
             AlertDialog.Builder(a).setTitle(R.string.storage_result).setMessage(message).setPositiveButton(android.R.string.ok,null).show()
@@ -61,7 +63,7 @@ object StorageOperations {
     private fun finish(context:Context,report:StorageData.Report,always:Boolean) {
         running=null
         if(always || report.files>0 || report.failed>0) {
-            val prefs=context.getSharedPreferences("storage_results",0)
+            val prefs=context.getSharedPreferences("storage_manual_results",0)
             val accumulated=prefs.contains("pending")
             val bytes=report.bytes+if(accumulated) prefs.getLong("bytes",0) else 0L
             val files=report.files+if(accumulated) prefs.getInt("files",0) else 0
@@ -82,27 +84,39 @@ object StorageOperations {
             finally { finish(app,report,true);main.post(done) }
         } }
     }
-    /** Background cleanup only announces real deletions, not every inventory save. */
+    /** Automatic work never owns a dialog, including progress, failures and retries. */
     fun automatic(context:Context,action:((Long)->Unit)->Unit) = synchronized(lock) {
         val report=StorageData.Report()
-        try { action { bytes -> if(bytes<0) report.failed++ else { report.bytes+=bytes;report.files++ };running=report;update() } }
+        try { action { bytes -> if(bytes<0) report.failed++ else { report.bytes+=bytes;report.files++ } } }
         catch(e:Exception) { report.failed++;throw e }
-        finally { finish(context,report,false) }
+        finally { saveAutomaticResult(context,report) }
+    }
+    private fun saveAutomaticResult(context:Context,report:StorageData.Report) {
+        if(report.files==0 && report.failed==0 && !report.blocked)return
+        val message=context.getString(R.string.storage_result_detail,report.files,mb(report.bytes),report.failed)+
+            if(report.blocked) "\n"+context.getString(R.string.storage_busy) else ""
+        context.getSharedPreferences("storage_results",0).edit().putString("pending",message)
+            .putLong("bytes",report.bytes).putInt("files",report.files).putInt("failed",report.failed)
+            .putBoolean("blocked",report.blocked).commit()
     }
     @JvmStatic fun afterCollectionDelete(context:Context,cards:List<io.asv.mtgocr.ocrreader.model.CardInfo>) {
         val snapshots=cards.map { it.snapshotForPersistence() }
-        perform(context,{ report,progress ->
+        worker.execute { synchronized(lock) {
+            val report=StorageData.Report()
+            try {
             val targets=snapshots.flatMap { card -> StorageData.imageNames(card.imgPath.orEmpty())+
                 card.scanPhotoPaths.filter { it.isNotBlank() }.map { java.io.File(context.filesDir,it).canonicalPath } }.toSet()
-            StorageData.clean(context,0,report,progress,targets)
-            if(!report.blocked) StorageData.clean(context,1,report,progress,targets)
+            StorageData.clean(context,0,report,{},targets)
+            if(!report.blocked) StorageData.clean(context,1,report,{},targets)
             if(report.blocked) {
                 val pending=context.getSharedPreferences("storage_pending",0)
                 val all=pending.getStringSet("targets",emptySet()).orEmpty()+targets
                 pending.edit().putBoolean("images",true).putStringSet("targets",all).commit()
                 PostprocessCleanup.schedule(context,LibraryCatalog.activeFile(context))
             }
-        })
+            } catch(_:Exception) { report.failed++ }
+            finally { saveAutomaticResult(context,report) }
+        } }
     }
 }
 

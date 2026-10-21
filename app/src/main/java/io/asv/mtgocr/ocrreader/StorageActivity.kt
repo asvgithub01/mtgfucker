@@ -37,6 +37,12 @@ class StorageActivity:AppCompatActivity() {
                         text=getString(R.string.storage_total,StorageOperations.mb(snapshot.items.sumOf { it.bytes }))+"\n"+getString(R.string.storage_protected)
                     })
                     if(snapshot.busy) root.addView(label().apply { setText(R.string.storage_busy) })
+                    getSharedPreferences("storage_results",0).getString("pending",null)?.let { result ->
+                        root.addView(button(getString(R.string.storage_auto_result)) {
+                            AlertDialog.Builder(this).setTitle(R.string.storage_auto_result).setMessage(result)
+                                .setPositiveButton(android.R.string.ok,null).show()
+                        })
+                    }
                     titles.forEachIndexed { group,title ->
                         val items=snapshot.items.filter { it.group==group }
                         root.addView(label().apply { text=getString(title);textSize=20f;setPadding(0,24,0,8) })

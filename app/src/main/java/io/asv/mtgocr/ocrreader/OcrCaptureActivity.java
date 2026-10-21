@@ -1556,15 +1556,12 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
     totalText.setVisibility(!settings && !shopping && !catalog && !photos ? View.VISIBLE : View.GONE);
     fabOcr.setVisibility(View.GONE);
     fabOcrMlKit.setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
-    fabRapidEditionScanner.setVisibility(
-        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
-    fabHashOnlyScanner.setVisibility(
-        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
-    fabRulesScanner.setVisibility(
-        settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
-    fabCollectorVision.setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
+    fabRapidEditionScanner.setVisibility(View.GONE);
+    fabHashOnlyScanner.setVisibility(View.GONE);
+    fabRulesScanner.setVisibility(View.GONE);
+    fabCollectorVision.setVisibility(View.GONE);
     findViewById(R.id.fabTripleScanner).setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
-    findViewById(R.id.fabEdScannerAr).setVisibility(settings || shopping || catalog || photos ? View.GONE : View.VISIBLE);
+    findViewById(R.id.fabEdScannerAr).setVisibility(View.GONE);
     if (createGroupButton != null) {
       createGroupButton.setVisibility(!settings && !shopping && currentSection == SECTION_GROUPS ? View.VISIBLE : View.GONE);
     }
@@ -2690,11 +2687,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
         });
         break;
       default:
-        Collections.sort(cards, new Comparator<CardInfo>() {
-          @Override public int compare(CardInfo left, CardInfo right) {
-            return Long.compare(left.getAddedAt(), right.getAddedAt());
-          }
-        });
+        Collections.sort(cards, CollectionEntryOrder.NEWEST_FIRST);
     }
   }
 

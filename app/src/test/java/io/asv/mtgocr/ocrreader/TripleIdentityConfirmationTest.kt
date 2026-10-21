@@ -4,6 +4,39 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TripleIdentityConfirmationTest {
+    @Test fun provisionalTriplePrefersRegularIxalanAndAetherRevoltWithoutChangingScores() {
+        for((promo,regular) in listOf("PXLN" to "XLN","PAER" to "AER")) {
+            val hits=listOf(
+                EdScanFastIdentity.Candidate("promo",.93f,"same",promo,"2026"),
+                EdScanFastIdentity.Candidate("regular",.91f,"same",regular,"2017"),
+                EdScanFastIdentity.Candidate("other",.6f,"other"))
+            val p=TripleIdentityConfirmation()
+            p.observe(hits,false,1000)
+            val r=p.observe(hits,false,2000)
+            assertTrue(r.confirmation.reliable)
+            assertFalse(r.printingConfirmed)
+            assertEquals("regular",r.printing)
+            assertEquals(.93f,r.evidence.score!!,0f)
+            assertEquals(.6f,r.evidence.runner!!,0f)
+            // Fast is deliberately unchanged.
+            assertEquals("promo",EdScanFastIdentity.resolve(hits).printing)
+        }
+    }
+    @Test fun preferenceNeverOverridesConfirmedPromoOrPromotesWeakRegularPrinting() {
+        val hits=listOf(
+            EdScanFastIdentity.Candidate("promo",.95f,"same","pxln","2017"),
+            EdScanFastIdentity.Candidate("regular",.72f,"same","xln","2017"),
+            EdScanFastIdentity.Candidate("other",.5f,"other"))
+        val p=TripleIdentityConfirmation()
+        p.observe(hits,true,1000)
+        val r=p.observe(hits,true,2000)
+        assertTrue(r.printingConfirmed)
+        assertEquals("promo",r.printing)
+        assertEquals("promo",TripleIdentityConfirmation(true).observe(hits,false,1000).printing)
+        assertFalse(PromoSetCodes.contains("PLC")) // Planar Chaos is not a promo.
+        assertFalse(PromoSetCodes.contains("PCY")) // Prophecy is not a promo.
+        assertTrue(PromoSetCodes.contains("PXLN"))
+    }
     private fun candidates(name:String="cyclopean mummy",flip:Boolean=false)=listOf(
         EdScanFastIdentity.Candidate(if(flip) "b" else "a",.86715776f,name,"4ed","1995"),
         EdScanFastIdentity.Candidate(if(flip) "a" else "b",.8627179f,name,"plst","2020"),

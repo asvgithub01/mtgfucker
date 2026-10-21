@@ -28,4 +28,5 @@
     <string name="review_discard_pending">Supprimer les données de post-traitement</string>
     <string name="review_discard_confirm">Abandonner le post-traitement en attente de TOUTE la bibliothèque active, quels que soient les filtres ? Les photos et diagnostics exclusifs, même déjà vérifiés, seront supprimés. Les cartes et quantités seront conservées, ainsi que les fichiers partagés, les historiques de récupération et les tâches en cours. Cette action est irréversible.</string>
     <string name="storage_postprocess_contents">Comprend les photos originales, les résultats OCR et visuels et les journaux de récupération. Le total ne correspond pas à la place libérable : les fichiers en attente ou partagés sont protégés. Pour abandonner la vérification, utilisez « Supprimer les données de post-traitement » sur son écran.</string>
+    <string name="storage_auto_result">Dernier résultat du nettoyage automatique</string>
 </resources>

@@ -2,7 +2,9 @@
 
 Fecha: 21-10-2026. Base auditada: master `2d8a4adb17fba50a17f26e260775e165414f4d72`.
 Rama: `codex/compose-solid-architecture`.
-Estado: **implementación iniciada: P0/P1 parciales; ninguna pantalla migrada aún**.
+Estado: **base P0/P1 implementada y validada para launcher; P2 Compose implementada**.
+Contratos, resultados y límites: `ARCHITECTURE_CONTRACTS.md`. No implica cerrar
+los gates físicos/globales de la migración ni corregir el lint heredado.
 
 ## 1. Objetivo y límites
 
@@ -194,29 +196,31 @@ formato de datos en un mismo PR. Casillas pendientes salvo revisión documental.
 ### P0 — Línea base y contratos (antes de funcionalidad)
 - [x] Crear rama aislada desde master e inventariar acoplamientos.
 - [x] Compilar baseline, ejecutar suites y guardar resultados actuales (846 tests).
-- [ ] Enumerar pantallas/rutas, extras, modos y dependencias compartidas de scanners.
-- [ ] Capturar flujos actuales: selección de Biblio, colección, grupos, detalle,
+- [x] Enumerar pantallas/rutas, extras, modos y dependencias compartidas de scanners.
+- [x] Capturar contratos estáticos de flujos actuales: selección de Biblio, colección, grupos, detalle,
   exportación, fotos, cuenta y retorno de OCR/Triple.
-- [ ] Fixtures sintéticos de bibliotecas serializadas y Room; nunca datos privados en Git.
-  Primer fixture binario master añadido; fixtures/migration tests Room pendientes.
-- [ ] Guard de diff para archivos congelados y baseline de imports legacy permitidos.
+  Inventario en ARCHITECTURE_CONTRACTS.md; la prueba física end-to-end queda pendiente.
+- [x] Fixtures sintéticos de bibliotecas serializadas y Room; nunca datos privados en Git.
+  Binario master fijo y migraciones Room 1–7→8 comprobadas con datos sintéticos.
+- [x] Guard de diff para archivos congelados y baseline de imports legacy permitidos.
 Salida: reproducibilidad, contratos de navegación/datos probados y lista de protección revisada.
 
 ### P1 — Fundaciones y adaptadores
 Depende de P0.
-- [ ] AppContainer, puertos mínimos, snapshots, dispatchers inyectables y fakes.
-- [ ] Adaptadores de lectura/selección de biblioteca y catálogo sobre APIs actuales.
-- [ ] Tema Compose y estados comunes; añadir dependencias lifecycle/testing compatibles
+- [x] Composición por feature, puertos mínimos, snapshots, dispatchers inyectables y fakes.
+- [x] Adaptadores de lectura/selección de biblioteca y catálogo sobre APIs actuales.
+- [x] Tema Compose y estados comunes; añadir dependencias lifecycle/testing compatibles
   con Kotlin 1.9.22, Compose compiler 1.5.8 y BOM actual tras verificar resolución.
-- [ ] Pruebas de contratos, multientrega, cancelación y biblioteca cambiada.
+- [x] Pruebas de contratos, callbacks duplicados/tardíos, cancelación y biblioteca cambiada.
+  loadCard multientrega se mantiene sin adaptar; el nuevo puerto usa loadSetCatalog terminal.
 Salida: Screen de prueba renderiza sin Activity legacy ni IO; scanner sin cambios.
 
 ### P2 — Primer corte: launcher
 Depende de P1.
-- [ ] Reemplazar MainActivity.java por host Kotlin conservando nombre completo e Intents.
-- [ ] LauncherRoute/Screen/ViewModel: bibliotecas, fondo, Premium y entrada.
-- [ ] Mantener LaunchBackgroundPolicy, fondo fijado y prompt de precios una sola vez.
-- [ ] Splash mantiene BuildConfig.GIT_BRANCH; ya muestra ramas no master/main.
+- [x] Reemplazar MainActivity.java por host Kotlin conservando nombre completo e Intents.
+- [x] LauncherRoute/Screen/ViewModel: bibliotecas, fondo, Premium y entrada.
+- [x] Mantener LaunchBackgroundPolicy, fondo fijado y prompt de precios una sola vez.
+- [x] Splash mantiene BuildConfig.GIT_BRANCH; ya muestra ramas no master/main.
 Salida: paridad de selección, restauración y navegación; tests Compose y rotación.
 No cambiar el destino de Biblio al nuevo shell hasta P3.
 
@@ -326,7 +330,7 @@ Las fronteras congeladas, fases y excepciones son decisiones específicas de est
 no requisitos de Android. No se propone instalar las versiones «latest» sin verificar
 compatibilidad con el toolchain existente.
 
-## 10. Primera implementación (21-10-2026)
+## 10. Primera implementación (21-10-2026, estado histórico del commit 2d061e0)
 
 Completado, sin modificar ninguna fuente runtime que ya existiera en master:
 - Puerto CollectionReader y proyección Kotlin de solo lectura por libraryId explícito.

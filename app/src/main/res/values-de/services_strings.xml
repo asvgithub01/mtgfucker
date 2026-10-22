@@ -1,0 +1,19 @@
+<resources>
+    <string name="services_title">Einstellungen und Dienste</string>
+    <string name="services_notice">Lokale Ansicht: ändert keine Einstellungen, Daten oder Aufträge.</string>
+    <string name="services_premium">Lokales Premium: %1$s</string>
+    <string name="services_currency">Gespeicherte Währung: %1$s</string>
+    <string name="services_auto">Einstellung für automatische Sicherung: %1$s</string>
+    <string name="services_cloud_notice">Diese Einstellung bestätigt weder Anmeldung noch Cloud-Sicherung. Firebase wird nicht abgefragt.</string>
+    <string name="services_files_notice">Registrierte, ungeprüfte Dateien. Vorhandensein und Größe garantieren keine Integrität. Keine Bereinigung oder Wiederherstellung.</string>
+    <string name="services_access">Mit aktuellem Premium zugänglich: %1$s</string>
+    <string name="services_primary">Hauptdatei: %1$s</string>
+    <string name="services_backup">Sicherungsdatei: %1$s</string>
+    <string name="services_yes">Ja</string>
+    <string name="services_no">Nein</string>
+    <plurals name="services_bytes">
+        <item quantity="one">%1$d Byte</item>
+        <item quantity="other">%1$d Bytes</item>
+    </plurals>
+    <string name="services_missing">Nicht vorhanden</string>
+</resources>

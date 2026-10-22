@@ -640,3 +640,11 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Fotos locales bajo `scan_evidence`/`photo_scans`, rutas canónicas verificadas, decodificación muestreada fuera del hilo principal sin caché persistida. Actualización manual o al volver; no es monitor de jobs.
 - No modifica escáneres, guardados, procesamiento, workers ni formatos. No abre paneles legacy con efectos secundarios. No sustituye importación/revisión/resolución existentes ni expone diagnósticos de jobs EdScan: esa parte de P5 sigue pendiente.
 - Validación específica: PhotoReadPolicyTest, PhotoViewModelTest, PhotoReadIntegrationTest y PhotoComposeTest; fixtures aislados, nunca datos del Sony.
+
+
+## Consulta P6 aislada (debug)
+- `ServicesPreviewActivity`, `feature/services`, `domain/services`, `data/legacy/LegacyServicesReader`:
+  solo preferencias locales y presencia/tamaño de archivos registrados; no inferir salud de backups.
+- No llamar servicios de sincronización, StorageData.snapshot, limpieza ni workers desde esta consulta.
+  Autosync es una preferencia local, no estado Firebase. Bibliotecas sin Premium se muestran sin abrirlas.
+- Validar con ServicesViewModelTest, ServicesReadIntegrationTest, ServicesComposeTest y ServicesActivityTest.

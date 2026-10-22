@@ -1,0 +1,20 @@
+<resources>
+    <string name="services_title">Definições e serviços</string>
+    <string name="services_notice">Consulta local: não altera definições, dados ou tarefas.</string>
+    <string name="services_premium">Premium local: %1$s</string>
+    <string name="services_currency">Moeda guardada: %1$s</string>
+    <string name="services_auto">Preferência de cópia automática: %1$s</string>
+    <string name="services_cloud_notice">Esta preferência não confirma sessão iniciada nem cópia na nuvem. O Firebase não é consultado.</string>
+    <string name="services_files_notice">Ficheiros registados, não verificados. Presença e tamanho não garantem integridade. Sem limpeza nem restauro.</string>
+    <string name="services_access">Acessível com o Premium atual: %1$s</string>
+    <string name="services_primary">Ficheiro principal: %1$s</string>
+    <string name="services_backup">Ficheiro de cópia: %1$s</string>
+    <string name="services_yes">Sim</string>
+    <string name="services_no">Não</string>
+    <plurals name="services_bytes">
+        <item quantity="one">%1$d byte</item>
+        <item quantity="other">%1$d bytes</item>
+        <item quantity="many">%1$d bytes</item>
+    </plurals>
+    <string name="services_missing">Ausente</string>
+</resources>

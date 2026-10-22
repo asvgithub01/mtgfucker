@@ -1,0 +1,20 @@
+<resources>
+    <string name="services_title">Paramètres et services</string>
+    <string name="services_notice">Consultation locale : ne modifie ni paramètres, ni données, ni tâches.</string>
+    <string name="services_premium">Premium local : %1$s</string>
+    <string name="services_currency">Devise enregistrée : %1$s</string>
+    <string name="services_auto">Préférence de sauvegarde automatique : %1$s</string>
+    <string name="services_cloud_notice">Cette préférence ne confirme ni connexion ni sauvegarde cloud. Firebase non consulté.</string>
+    <string name="services_files_notice">Fichiers enregistrés, non vérifiés. Présence et taille ne garantissent pas leur intégrité. Aucun nettoyage ni restauration.</string>
+    <string name="services_access">Accessible avec le Premium actuel : %1$s</string>
+    <string name="services_primary">Fichier principal : %1$s</string>
+    <string name="services_backup">Fichier de sauvegarde : %1$s</string>
+    <string name="services_yes">Oui</string>
+    <string name="services_no">Non</string>
+    <plurals name="services_bytes">
+        <item quantity="one">%1$d octet</item>
+        <item quantity="other">%1$d octets</item>
+        <item quantity="many">%1$d octets</item>
+    </plurals>
+    <string name="services_missing">Absent</string>
+</resources>

@@ -257,6 +257,7 @@ Salida: mismas cantidades/grupos; ningún precio ni arte de impresión anterior 
 Los selectores Views consumidos por scanners permanecen intactos.
 
 ### P5 — Fotos y postprocesado
+- [x] Consulta opt-in debug de fotos globales y evidencias por biblioteca, sin guardados ni jobs.
 Depende de P4.
 - [ ] PhotoImportActivity, PhotoGalleryActivity, PhotoScanDetailActivity y
   ScanReviewActivity: UI Compose, progreso/restauración y presentación de evidencias.
@@ -265,6 +266,7 @@ Depende de P4.
 Salida: importación/revisión cancelable, errores recuperables, ninguna foto o cola perdida.
 
 ### P6 — Ajustes, servicios y cierre funcional
+- [x] Consulta opt-in debug local de Premium/moneda/preferencia autosync y archivos de todas las bibliotecas, sin cambiar ajustes ni inicializar Firebase.
 Depende de P3; integrar después de P5 para validar el recorrido completo.
 - [ ] BuylistActivity, CloudAccountActivity, StorageActivity, ArDownloadsActivity.
 - [ ] Ajustes generales del shell, bibliotecas y exportación Cardmarket.
@@ -394,3 +396,30 @@ porque no representa todos sus campos persistentes.
 - Fotos locales bajo `scan_evidence`/`photo_scans`, rutas canónicas verificadas, decodificación muestreada fuera del hilo principal sin caché persistida. Actualización manual o al volver; no es monitor de jobs.
 - No modifica escáneres, guardados, procesamiento, workers ni formatos. No abre paneles legacy con efectos secundarios. No sustituye importación/revisión/resolución existentes ni expone diagnósticos de jobs EdScan: esa parte de P5 sigue pendiente.
 - Validación específica: PhotoReadPolicyTest, PhotoViewModelTest, PhotoReadIntegrationTest y PhotoComposeTest; fixtures aislados, nunca datos del Sony.
+
+
+## Estado tras el incremento seguro P6
+
+P0/P1 base y launcher P2 implementados; P3–P6 tienen incrementos de consulta,
+no equivalen a fases completas. Quedan cinco bloques de cierre:
+1. P3: escrituras/edición/borrado y activación del shell; requiere resolver la carrera
+   de guardados legacy. No permitido bajo la restricción actual.
+2. P4: resto de catálogo, búsqueda y detalle editable/selector de ediciones.
+3. P5: importación, revisión/resolución y UI completa de postprocesado.
+4. P6: Buylist, cuenta cloud, gestión de almacenamiento/AR, ajustes editables y exportación.
+5. P7: retirada segura de UI antigua, modularización y regresión final/dispositivo.
+
+No estimar finalización por número de fase: gran parte de las operaciones de escritura
+sigue en legacy. No es posible cerrar toda la migración manteniendo indefinidamente
+congelada su coordinación de persistencia. Los escáneres siguen fuera del refactor.
+
+### Contrato de consulta P6
+`ServicesPreviewActivity` solo debug desde shell; `ServicesReader` →
+`LegacyServicesReader` → `ServicesViewModel`/`ServicesScreen`. Consultas en IO,
+refresh explícito/RESUMED, cancelación y generación, error sin estado anterior.
+No llama StorageData.snapshot (incluye planificación de limpieza), CloudLibrarySync,
+Firebase, workers, descargas ni Activities de servicios. Lee la preferencia local
+`cloud_library_sync/auto_sync_enabled` (default true) sin inferir sesión/backup remoto.
+Muestra bibliotecas registradas incluso si Premium no permite abrirlas; no selecciona
+ni crea ninguna. Tamaño/presencia de primario y .bak no certifican integridad ni
+permiten restauración. Moneda usa getter legacy, sin actualización de cotizaciones.

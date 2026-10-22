@@ -245,3 +245,11 @@ consulta de fotos/evidencias sin modificar trabajos ni archivos.
 - Fotos locales bajo `scan_evidence`/`photo_scans`, rutas canónicas verificadas, decodificación muestreada fuera del hilo principal sin caché persistida. Actualización manual o al volver; no es monitor de jobs.
 - No modifica escáneres, guardados, procesamiento, workers ni formatos. No abre paneles legacy con efectos secundarios. No sustituye importación/revisión/resolución existentes ni expone diagnósticos de jobs EdScan: esa parte de P5 sigue pendiente.
 - Validación específica: PhotoReadPolicyTest, PhotoViewModelTest, PhotoReadIntegrationTest y PhotoComposeTest; fixtures aislados, nunca datos del Sony.
+
+
+## P6: observación local sin efectos de servicios
+- Ninguna consulta/recomposición cambia preferencias, archivos, selección activa o Premium.
+- No se inicializa Firebase ni se consulta sesión remota; no hay red, limpieza o descargas.
+- Los tamaños de archivos son informativos y no validación de backups. No deserializar ni reparar.
+- Tests aislados preservan archivos corruptos, backup sin primario, bibliotecas no accesibles sin Premium,
+  selección/pin y preferencias desconocidas. La Activity real se recrea/refresca sin modificar datos.

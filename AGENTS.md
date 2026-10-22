@@ -729,3 +729,20 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - CameraVision: generar embeddings de nuevas cartas NO es entrenar Milo/Cornelius. La futura
   autonomía de modelos/índices se especifica en ARCHITECTURE_MIGRATION_PLAN.md; no cambiar
   URLs, índices, pesos o procesamiento como parte de la extracción de UI.
+
+
+## Coordinación de lecturas extraída (data/readers)
+- `data/readers/.../data/library/ReadOnlyLibraryShellRepository.kt` coordina consultas
+  por ID explícito y verifica biblioteca activa antes/después. Su puerto
+  LibraryShellReadSource devuelve proyecciones, nunca Biblio/DeckCatalog serializados.
+- `LegacyLibraryShellRepository` conserva constructor/API y delega; su fuente privada
+  Android mantiene DataUtils.readSerializable, filenames/backup y FileObserver existentes.
+  No usar DeckCatalogStore.load ni reparar el primario desde una consulta.
+- `data/readers/.../data/services/ReadOnlyServicesReader.kt` coordina estado local;
+  ServicesReadSource solo aporta preferencias, referencias y tamaños. Convenciones de archivos
+  y validación canónica permanecen en AndroidServicesReadSource dentro de app.
+- Preservar orden de llamadas, fallos y dispatcher: biblioteca activa → colección → mazos →
+  activa; servicios Premium → bibliotecas/archivos → moneda → preferencia autosync.
+  Esto NO es un snapshot transaccional ni resuelve la carrera de guardados OCR.
+- Tests JVM de ambos coordinadores en data/readers; integración de archivos/backup/prefs
+  en LibraryShellIntegrationTest y ServicesReadIntegrationTest de app. Sin cambios de formatos.

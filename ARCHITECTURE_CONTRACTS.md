@@ -345,3 +345,26 @@ unsigned construidas; release no instalada/probada. Lint features sin errores, c
 app mantiene 29 errores heredados y 534 avisos (el reparto cambia al mover fuentes).
 Sin supresiones nuevas. Guard runtime y manifiestos fusionados verde. Cámara física pendiente.
 Logs: build/architecture/shell-modules-{first,full,device,lint-release,release-confirmed}.log.
+
+
+## Puertos de coordinación de consultas (cuarto corte)
+- data/readers implementa la composición de las lecturas Biblio y servicios mediante puertos
+  JVM; app conserva los accesos concretos y las fachadas con firmas originales.
+- Biblio: mismo ID explícito para colección/mazos, misma comprobación antes/después, ausencia
+  distinta de corrupción, fallos cortocircuitados en el mismo orden. Cambios delegan al mismo
+  Flow/FileObserver, sin activar lecturas ni escrituras durante la construcción.
+- Servicios: misma secuencia Premium, listado registrado, tamaño de primario/backup, moneda
+  y preferencia autosync. Bibliotecas inaccesibles siguen visibles. null/0/tamaños Long se
+  conservan; no verificar/reparar contenido ni inferir salud del backup.
+- Ambas lecturas en dispatcher IO; sin nuevos clientes de red, jobs, bases o cachés. Los DTO
+  serializados, bytes de archivos, claves de preferencias y bibliotecas activas no cambian.
+- Estas garantías no hacen atómicas las consultas ni resuelven las escrituras OCR pendientes.
+
+Validación cuarto corte: **916 unitarias** (18 readers, incluidas 13 nuevas; resto sin
+cambios), **32 instrumentadas architecture** en emulator-5554 y **36 tests Python** del guard,
+todos correctos. Caso nuevo de biblioteca no predeterminada conserva preferencias y todos
+los archivos, incluido primario corrupto con backup legible y biblioteca ajena intacta.
+APK debug/test/release unsigned construidas; release no instalada ni validada físicamente.
+Guard sobre fuentes y manifiestos fusionados correcto; lint app mantiene 29 errores y
+534 avisos heredados en fuentes protegidas, sin supresiones. No instalación en5556/Sony.
+Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release,release-confirmed}.log.

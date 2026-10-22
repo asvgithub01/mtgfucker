@@ -106,7 +106,7 @@ def import_violations(root):
                 allowed = (("domain", "core.designsystem", "feature." + layer.split(":")[1])
                            if layer.startswith("feature:") else
                            {"domain": ("domain",), "designsystem": ("core.designsystem",),
-                            "readers": ("domain", "data.catalog", "data.legacy"),
+                            "readers": ("domain", "data.catalog", "data.legacy", "data.library", "data.services"),
                             "feature": ("domain", "feature", "core.designsystem", "R")}[layer])
                 forbidden = any(
                     not any(ref == prefix + "." + area or ref.startswith(prefix + "." + area + ".")

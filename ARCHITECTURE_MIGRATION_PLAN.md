@@ -554,3 +554,45 @@ históricos. Las Activities y eventos de navegación/retorno permanecen en app.
    modelo, no entrenar uno nuevo; evaluar calidad cada expansión. Entrenar/reemplazar redes
    propias es un proyecto distinto, exige datos, evaluación y regenerar índices compatibles.
    Nada de esto se ha activado en este refactor porque modificaría preparación/procesamiento.
+
+
+## Cuarto corte seguro: coordinación de consultas en data/readers
+
+Se extraen ReadOnlyLibraryShellRepository y ReadOnlyServicesReader a Kotlin/JVM. Sus puertos
+LibraryShellReadSource / ServicesReadSource no conocen Context, Biblio, CardInfo, DeckCatalog,
+DataUtils, Room o WorkManager. Las fuentes Android concretas y las fachadas compatibles
+LegacyLibraryShellRepository / LegacyServicesReader siguen en app, sin cambiar los consumidores.
+No se cambia ninguna escritura ni se autoriza el shell como ruta predeterminada.
+
+```text
+feature → contrato domain
+app/DI → fachada compatible → coordinador data/readers
+                              ↓ puerto de lectura
+                       fuente Android/legacy en app
+```
+
+La dependencia de compilación sigue app→data/readers→domain, no una dependencia inversa
+por pasar una implementación del puerto. La comprobación doble de biblioteca activa se mantiene,
+pero no equivale a transacción ni impide que OCR publique un snapshot pendiente.
+Sigue pendiente separar fuentes/proyección de fotos y colección con sus propias pruebas;
+la mayor parte de persistencia, servicios operativos y trabajos continúa intacta en app.
+Los bloques funcionales P3/P4/P5/P6 y la autonomía operativa CameraVision no se cierran con esto.
+
+### Aclaración de modelos e índices
+Los vectores de cartas nuevas se añaden a un catálogo externo, no a los pesos ONNX. Cornelius
+localiza esquinas; Milo genera embeddings para compararlos con ese catálogo. No tenemos aquí
+un pipeline validado para entrenar sustitutos propios de ambos modelos. Independencia operativa
+(alojamiento propio + generación de catálogos) no exige reemplazar sus pesos; independencia
+respecto de esos pesos sí requiere alternativas y regenerar índices al cambiar de embedder.
+
+Para investigar entrenamiento propio: corpus de fotos/esquinas para detección; imágenes de
+cartas con etiquetas y variantes para aprendizaje métrico; particiones separadas de evaluación,
+aumentos de iluminación/perspectiva/reflejos, exportación ONNX y benchmark móvil. Puede partirse
+de una red visual general ajena a CollectorVision. No iniciar entrenamiento ni sustituir modelos
+bajo la restricción actual de no tocar escáneres/procesamiento.
+Tiempo: sin GPU/dataset y piloto no hay estimación medible. Horas/días por ejecución de modelo
+pequeño y semanas/meses de preparación/iteración son solo orientación, no un presupuesto.
+Medir primero una época y la calidad de un piloto; no extrapolar de tiempos de inferencia.
+Fuentes técnicas consultadas: https://huggingface.co/HanClinto/cornelius,
+https://huggingface.co/HanClinto/milo y
+https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.

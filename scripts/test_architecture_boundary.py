@@ -344,6 +344,19 @@ class ArchitectureBoundaryTest(unittest.TestCase):
                                 "import androidx.compose.runtime.Composable\n", encoding="utf-8")
                 self.assertEqual([], import_violations(self.root))
 
+    def test_read_orchestration_ports_cannot_smuggle_android_or_serialized_models(self):
+        path = self.root / "data/readers/src/main/kotlin/Ports.kt"
+        path.parent.mkdir(parents=True)
+        path.write_text("package io.asv.mtgocr.ocrreader.data.library\n"
+                        "import io.asv.mtgocr.ocrreader.data.services.ServicesReadSource\n"
+                        "import io.asv.mtgocr.ocrreader.domain.library.DeckSummaryDefinition\n", encoding="utf-8")
+        self.assertEqual([], import_violations(self.root))
+        with path.open("a", encoding="utf-8") as out:
+            out.write("import android.content.Context\n"
+                      "import io.asv.mtgocr.ocrreader.model.DeckCatalog\n"
+                      "import io.asv.mtgocr.ocrreader.DataUtils\n")
+        self.assertEqual(3, len(import_violations(self.root)))
+
 
 if __name__ == "__main__":
     unittest.main()

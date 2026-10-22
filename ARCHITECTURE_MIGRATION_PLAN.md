@@ -438,3 +438,36 @@ permiten restauración. Moneda usa getter legacy, sin actualización de cotizaci
 - Generar y verificar un manifiesto release no equivale a construir, firmar ni probar una APK release.
 - Con la restricción vigente no se resolverá la carrera de persistencia; no activar el shell como
   sustituto predeterminado ni presentar las fases de consulta como migración completa.
+
+
+## Modularización física P7 — primer corte seguro
+
+Grafo real de Gradle (los paquetes Kotlin mantienen su nombre):
+
+```text
+:app
+  ├── :core:domain         Kotlin/JVM: contratos, proyecciones y reglas nuevas
+  ├── :core:designsystem   Android/Compose: tema y estado de carga/error
+  ├── :liquid-glass       existente, sin cambios
+  └── :collectorvision-native  existente, sin cambios
+```
+
+`core:domain` solo necesita Kotlin/coroutines-core (Flow es API pública); no Android,
+Room, Firebase, app ni escáneres. `core:designsystem` solo Android/Compose, sin app ni dominio.
+Se han movido fuentes/tests sin cambiar contenido o paquetes. No hay migraciones de datos.
+La aplicación conserva `app/di`, `feature/*`, `data/legacy`, `legacybridge` y el adaptador
+`core/designsystem/CardArtwork` que depende de caché/recursos históricos. No convertir esa
+excepción en una dependencia core→app.
+
+### Para inspeccionar en Android Studio
+Abrir la raíz del worktree, sincronizar Gradle y usar vista **Project** para ver
+`core/domain`, `core/designsystem` y `app`. En `app/src/main/java/io/asv/mtgocr/ocrreader`:
+`feature` presenta, `app/di` conecta dependencias y `data/legacy` implementa los puertos.
+No confundir las carpetas de features con módulos Gradle independientes: aún no lo son.
+
+### Sigue pendiente
+Extraer features/data requiere separar antes recursos y adaptadores ligados a legacy.
+No se ha modularizado ni refactorizado código de cámaras, persistencia o workers.
+Siguen pendientes los comandos P3, detalle editable P4, operaciones P5/P6 y retirada de UI
+antigua tras paridad, pruebas físicas y validación completa release. Los módulos nuevos
+no resuelven la carrera de guardados legacy ni habilitan nuevas escrituras.

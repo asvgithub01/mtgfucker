@@ -217,5 +217,35 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         self.assertEqual(2, len(violations(self.root, "HEAD")))
 
 
+    def test_extracted_domain_is_checked_outside_app(self):
+        path = self.root / "core/domain/src/main/kotlin/example/Contract.kt"
+        path.parent.mkdir(parents=True)
+        path.write_text("import android.content.Context\nimport io.asv.mtgocr.ocrreader.data.CardRepository\n", encoding="utf-8")
+        self.assertEqual(2, len(import_violations(self.root)))
+        path.write_text("import java.util.Locale\nimport kotlinx.coroutines.flow.Flow\n", encoding="utf-8")
+        self.assertEqual([], import_violations(self.root))
+
+    def test_extracted_designsystem_cannot_depend_on_app_domain_or_features(self):
+        path = self.root / "core/designsystem/src/main/kotlin/example/Component.kt"
+        path.parent.mkdir(parents=True)
+        path.write_text("import io.asv.mtgocr.ocrreader.CardImageCache\n"
+                        "import io.asv.mtgocr.ocrreader.R\n"
+                        "import io.asv.mtgocr.ocrreader.domain.photos.PhotoRecord\n"
+                        "import io.asv.mtgocr.ocrreader.feature.photos.PhotoScreen\n", encoding="utf-8")
+        self.assertEqual(4, len(import_violations(self.root)))
+        path.write_text("import androidx.compose.runtime.Composable\n"
+                        "import io.asv.mtgocr.ocrreader.core.designsystem.MtgTheme\n", encoding="utf-8")
+        self.assertEqual([], import_violations(self.root))
+
+
+    def test_library_manifest_cannot_register_a_preview(self):
+        self.manifest()
+        target = self.root / "core/designsystem/src/main/AndroidManifest.xml"
+        target.parent.mkdir(parents=True)
+        target.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+                          '<application><activity android:name=".PhotoPreviewActivity"/></application></manifest>', encoding="utf-8")
+        self.assertEqual(1, len(preview_source_violations(self.root)))
+
+
 if __name__ == "__main__":
     unittest.main()

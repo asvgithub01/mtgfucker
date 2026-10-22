@@ -1,0 +1,10 @@
+apply plugin: 'java-library'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+
+kotlin { jvmToolchain(17) }
+
+// Flow is part of the public repository contracts. No Android or app dependency.
+dependencies {
+    api 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    testImplementation 'junit:junit:4.13.2'
+}

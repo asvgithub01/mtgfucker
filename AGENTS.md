@@ -52,7 +52,7 @@
   es una comprobación heurística, no un analizador semántico ni sustituto de revisión.
 
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
-  también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.
+  también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `liquid-glass` y `collectorvision-native`.
 - CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,
   Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral con OCR; `ScanPartyOptions.kt` acumula niveles inclusivos x1/2/4/8/16 y selecciona un solo MP3; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; los MP3 `party_*` son aportados por el usuario; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
@@ -659,3 +659,17 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   y `python scripts/check_architecture_boundary.py --merged-debug app/build/intermediates/merged_manifest/debug/AndroidManifest.xml --merged-release app/build/intermediates/merged_manifest/release/AndroidManifest.xml`.
   Un archivo generado ausente/ilegible falla; esto no sustituye compilar/probar una APK release.
 - No retirar componentes legacy ni sus recursos mientras los incrementos Compose sigan siendo consultas.
+
+
+## Módulos de arquitectura nuevos
+- `core/domain`: biblioteca Kotlin/JVM (Java17), puertos/proyecciones/reglas nuevas y pruebas puras.
+  Conserva paquetes `io.asv.mtgocr.ocrreader.domain.*`. No contiene Biblio/CardInfo ni DTO serializados.
+  Los antiguos paths `app/src/.../domain` del mapa histórico ahora están bajo
+  `core/domain/src/main/kotlin/io/asv/mtgocr/ocrreader/domain`.
+- `core/designsystem`: biblioteca Android/Compose con `MtgTheme` y `LoadStatus`, sin dependencia de app/domain.
+  `CardArtwork` sigue en app como adaptador a CardImageCache y recursos legacy; no mover esa caché.
+- `app` depende de ambos módulos; composition root, features, adaptadores legacy, scanners y jobs siguen en app.
+  No añadir dependencias inversas hacia app ni entre los dos core sin revisar el grafo.
+- Validación añade `:core:domain:test` y `:core:designsystem:lintDebug` a las suites existentes.
+  Tests puros movidos: `core/domain/build/test-results/test`; no contarlos dos veces como tests de app.
+  Guard inspecciona ambas ubicaciones de dominio durante la transición y el manifiesto del design system.

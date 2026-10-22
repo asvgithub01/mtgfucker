@@ -264,3 +264,19 @@ Es léxico; no detecta todos los accesos indirectos, reflexión, interpolación 
 Las previews deben existir una vez en debug, sin exportación ni intent-filters/aliases; ningún otro
 source set o manifiesto release fusionado debe registrarlas. Los archivos de manifiesto ausentes
 producen error. El guard no verifica todo el comportamiento del manifest merger.
+
+
+## Frontera física core (P7)
+- `:core:domain` compila en JVM sin Android ni app. Conserva los contratos y paquetes;
+  sus proyecciones NO son modelos serializados ni reemplazos de Biblio/CardInfo.
+- `:core:designsystem` no conoce dominio ni app: solo tema/status parametrizados.
+  CardArtwork permanece en app para conservar intacto el acceso a caché legacy.
+- app depende de core, nunca al revés. No cambian applicationId, namespace app, nombres
+  de Activities, manifiesto principal, recursos históricos, firmas ni rutas de datos.
+- Tests puros LibraryPresentationTest viven en core/domain; los de integración siguen
+  en app y prueban los módulos empaquetados juntos. Guard léxico ampliado a fuentes core.
+
+- Toolchain y versiones Compose se mantienen. Lint del design system termina sin errores,
+  con avisos de BOM antiguo y `ObsoleteLintCustomCheck`: parte de los checks Compose del
+  runtime no se ejecuta con esta combinación existente de herramientas. No se han suprimido
+  avisos ni actualizado dependencias de la app para ocultarlos. App conserva errores lint heredados.

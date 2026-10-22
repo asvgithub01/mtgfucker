@@ -1,0 +1,25 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'io.asv.mtgocr.ocrreader.core.designsystem'
+    compileSdkVersion 34
+    defaultConfig { minSdkVersion 23 }
+    kotlin { jvmToolchain(17) }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    buildFeatures { compose true }
+    composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
+}
+
+// UI primitives only. No app, domain, images, persistence or scanner dependency.
+dependencies {
+    api platform('androidx.compose:compose-bom:2024.02.00')
+    api 'androidx.compose.runtime:runtime'
+    api 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+}

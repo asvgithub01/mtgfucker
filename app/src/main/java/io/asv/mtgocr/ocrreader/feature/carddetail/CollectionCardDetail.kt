@@ -1,5 +1,7 @@
 package io.asv.mtgocr.ocrreader.feature.carddetail
 
+import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -44,7 +46,7 @@ fun CollectionCardDetail(card: CollectionRow, onDismiss: () -> Unit,
                 }
             },
             confirmButton = { TextButton(onClick = onDismiss, modifier = Modifier.testTag("detail-close")) {
-                Text(stringResource(R.string.shell_close))
+                Text(stringResource(CommonR.string.shell_close))
             } })
     }
 }

@@ -1,14 +1,11 @@
 <resources>
     <string name="shell_preview">Biblio-Vorschau</string>
-    <string name="shell_home">Start</string>
-    <string name="shell_refresh">Aktualisieren</string>
     <string name="shell_read_only">Schreibgeschützte Vorschau. Zum Bearbeiten, Bewerten oder Scannen die bisherige Biblio verwenden.</string>
     <string name="shell_cards">Karten</string>
     <string name="shell_groups">Gruppen</string>
     <string name="shell_decks">Decks</string>
     <string name="shell_all_memberships">Alle Gruppen und Decks</string>
     <string name="shell_library_changed">Die aktive Bibliothek hat sich geändert. Zur Startseite zurückkehren.</string>
-    <string name="shell_read_error">Bibliothek oder Decks konnten nicht gelesen werden. Keine Daten wurden geändert.</string>
     <string name="shell_empty_groups">Keine Gruppen oder Decks.</string>
     <string name="shell_search">Name oder Edition suchen</string>
     <string name="shell_count">%1$d Zeilen · %2$d Exemplare</string>
@@ -17,7 +14,6 @@
     <string name="shell_name">Name</string>
     <string name="shell_empty_cards">Keine Karten für diese Filter.</string>
     <string name="shell_row_count">%1$d Exemplare</string>
-    <string name="shell_close">Schließen</string>
     <string name="shell_open_legacy">Vollständige Biblio / OCR öffnen</string>
     <string name="shell_open_triple">Triple-Scanner öffnen</string>
 </resources>

@@ -1,5 +1,7 @@
 package io.asv.mtgocr.ocrreader.architecture
 
+import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
+
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -55,7 +57,7 @@ class CatalogComposeTest {
         compose.onNodeWithTag("set-AAA").assertDoesNotExist()
         compose.onNode(isDialog()).assertDoesNotExist()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        compose.onNodeWithText(context.getString(io.asv.mtgocr.ocrreader.R.string.launcher_retry)).performClick()
+        compose.onNodeWithText(context.getString(CommonR.string.launcher_retry)).performClick()
         compose.runOnIdle { assertEquals(1, retries) }
     }
 

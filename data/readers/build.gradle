@@ -1,0 +1,10 @@
+apply plugin: 'java-library'
+apply plugin: 'org.jetbrains.kotlin.jvm'
+kotlin { jvmToolchain(17) }
+
+// Read adapters/policies only. Legacy deserialization and composition stay in app.
+dependencies {
+    api project(':core:domain')
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
+}

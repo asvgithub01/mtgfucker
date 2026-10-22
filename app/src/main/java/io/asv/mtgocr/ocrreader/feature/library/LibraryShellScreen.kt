@@ -1,5 +1,10 @@
 package io.asv.mtgocr.ocrreader.feature.library
 
+import io.asv.mtgocr.ocrreader.feature.catalog.R as CatalogR
+import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
+import io.asv.mtgocr.ocrreader.feature.photos.R as PhotosR
+import io.asv.mtgocr.ocrreader.feature.services.R as ServicesR
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
@@ -44,20 +49,20 @@ fun LibraryShellScreen(
         item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
             Column {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = onBack, modifier = Modifier.testTag("shell-home")) { Text(stringResource(R.string.shell_home)) }
-                    TextButton(onClick = onRefresh, enabled = !state.loading) { Text(stringResource(R.string.shell_refresh)) }
+                    TextButton(onClick = onBack, modifier = Modifier.testTag("shell-home")) { Text(stringResource(CommonR.string.shell_home)) }
+                    TextButton(onClick = onRefresh, enabled = !state.loading) { Text(stringResource(CommonR.string.shell_refresh)) }
                 }
                 Text(libraryName, style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.shell_read_only), style = MaterialTheme.typography.bodySmall)
                 onOpenServices?.let { action ->
-                    TextButton(onClick = action) { Text(stringResource(R.string.services_title)) }
+                    TextButton(onClick = action) { Text(stringResource(ServicesR.string.services_title)) }
                 }
                 onOpenPhotos?.let { action ->
-                    TextButton(onClick = action) { Text(stringResource(R.string.photo_preview_title)) }
+                    TextButton(onClick = action) { Text(stringResource(PhotosR.string.photo_preview_title)) }
                 }
                 onOpenCatalog?.let {
                     TextButton(onClick = it, modifier = Modifier.testTag("shell-open-catalog")) {
-                        Text(stringResource(R.string.catalog_title))
+                        Text(stringResource(CatalogR.string.catalog_title))
                     }
                 }
                 onOpenLegacy?.let {
@@ -92,8 +97,8 @@ fun LibraryShellScreen(
                 }
                 LoadStatus(state.loading,
                     state.failure?.let { stringResource(if (it == ShellReadFailure.LIBRARY_CHANGED)
-                        R.string.shell_library_changed else R.string.shell_read_error) },
-                    stringResource(R.string.launcher_retry), onRefresh)
+                        R.string.shell_library_changed else CommonR.string.shell_read_error) },
+                    stringResource(CommonR.string.launcher_retry), onRefresh)
             }
         }
         if (!state.loading && state.failure == null) {

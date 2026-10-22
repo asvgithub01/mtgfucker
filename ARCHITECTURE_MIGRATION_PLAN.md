@@ -440,7 +440,7 @@ permiten restauración. Moneda usa getter legacy, sin actualización de cotizaci
   sustituto predeterminado ni presentar las fases de consulta como migración completa.
 
 
-## Modularización física P7 — primer corte seguro
+## Modularización física P7 — primer corte seguro (histórico)
 
 Grafo real de Gradle (los paquetes Kotlin mantienen su nombre):
 
@@ -463,7 +463,7 @@ excepción en una dependencia core→app.
 Abrir la raíz del worktree, sincronizar Gradle y usar vista **Project** para ver
 `core/domain`, `core/designsystem` y `app`. En `app/src/main/java/io/asv/mtgocr/ocrreader`:
 `feature` presenta, `app/di` conecta dependencias y `data/legacy` implementa los puertos.
-No confundir las carpetas de features con módulos Gradle independientes: aún no lo son.
+Este era el primer corte; el segundo corte de abajo extrae tres de esas features.
 
 ### Sigue pendiente
 Extraer features/data requiere separar antes recursos y adaptadores ligados a legacy.
@@ -471,3 +471,36 @@ No se ha modularizado ni refactorizado código de cámaras, persistencia o worke
 Siguen pendientes los comandos P3, detalle editable P4, operaciones P5/P6 y retirada de UI
 antigua tras paridad, pruebas físicas y validación completa release. Los módulos nuevos
 no resuelven la carrera de guardados legacy ni habilitan nuevas escrituras.
+
+
+## Modularización física P7 — segundo corte de consulta
+
+```text
+:app (hosts, navegación y composition root)
+  ├── :feature:catalog  ──┬── :core:domain
+  ├── :feature:photos   ──┤
+  ├── :feature:services ──┴── :core:designsystem (UI y cinco textos comunes)
+  ├── :data:readers ───────── :core:domain
+  ├── :core:domain / :core:designsystem
+  └── :cameraVision / :liquid-glass (sin cambios en este corte)
+```
+
+Cada feature depende de ambos core; no hay aristas entre features ni hacia data/app.
+Las tres contienen sus recursos traducidos, pantallas y ViewModels. Se conserva el paquete
+Kotlin; el cambio de R apunta al propietario real del recurso, sin modificar texto o eventos.
+El módulo JVM de lectores contiene la adaptación terminal callback→suspend del catálogo,
+la validación canónica de rutas de fotos y la proyección de historial por índice original.
+No contiene DataUtils, Room, Biblio/CardInfo ni funciones de guardado. Los adaptadores Android
+con esos tipos permanecen en app; las nuevas utilidades se consumen desde la misma DI/ruta.
+
+### Alcance restante real
+- Launcher, shell Biblio y detalle guardado siguen en app: dependen de CardArtwork/caché legacy
+  y recursos compartidos. Próximo corte seguro: inyectar el renderizado de arte y aislar recursos,
+  sin mover ni cambiar CardImageCache o sus consumidores escáneres.
+- Persistencia/servicios no están modularizados: separar fuentes de lectura por puertos sin
+  mover DTO serializados ni alterar los guardados requiere otro corte revisado.
+- Siguen abiertos comandos P3 (carrera de snapshots OCR), detalle editable P4, operaciones
+  de fotos/revisión P5, servicios P6, retirada legacy y regresión física completa P7.
+- Estas tres features siguen siendo consultas opt-in; no se cambia la navegación habitual,
+  no se activa escritura ni se migran datos. El renombrado CameraVision ya estaba validado;
+  ahora no se modifica ningún archivo suyo.

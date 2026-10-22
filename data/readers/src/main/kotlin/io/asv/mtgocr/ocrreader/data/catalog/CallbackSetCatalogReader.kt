@@ -7,12 +7,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import java.util.Collections
 
-internal fun interface SetCatalogSource {
+fun interface SetCatalogSource {
     fun load(callback: (List<SetSummary>, Throwable?) -> Unit)
 }
 
 /** Terminal callback API only; do not apply this adapter to loadCard's multiple deliveries. */
-internal class CallbackSetCatalogReader(private val source: SetCatalogSource) : SetCatalogReader {
+class CallbackSetCatalogReader(private val source: SetCatalogSource) : SetCatalogReader {
     override suspend fun read(): List<SetSummary> = callbackFlow {
         source.load { values, error ->
             if (error != null) close(error)

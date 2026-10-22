@@ -1,12 +1,13 @@
 package io.asv.mtgocr.ocrreader.architecture
 
+import io.asv.mtgocr.ocrreader.feature.photos.R as PhotosR
+
 import android.graphics.Bitmap
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import io.asv.mtgocr.ocrreader.R
 import io.asv.mtgocr.ocrreader.domain.photos.*
 import io.asv.mtgocr.ocrreader.feature.photos.*
 import org.junit.Rule
@@ -32,7 +33,7 @@ class PhotoComposeTest {
         File(context.cacheDir, "p5-evidence.png").outputStream().use { shot.compress(Bitmap.CompressFormat.PNG, 100, it) }
         shot.recycle()
         compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
-        compose.onNodeWithText(context.getString(R.string.photo_preview_global)).performClick()
+        compose.onNodeWithText(context.getString(PhotosR.string.photo_preview_global)).performClick()
         compose.onNodeWithText("Library card").assertDoesNotExist()
         compose.onNodeWithText("Global photo").performClick()
         compose.onNodeWithText("Stored status").assertIsDisplayed()

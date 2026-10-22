@@ -1,0 +1,7 @@
+<resources>
+    <string name="shell_home">Accueil</string>
+    <string name="shell_refresh">Actualiser</string>
+    <string name="shell_read_error">Impossible de lire la bibliothèque ou ses decks. Aucune donnée modifiée.</string>
+    <string name="shell_close">Fermer</string>
+    <string name="launcher_retry">Réessayer</string>
+</resources>

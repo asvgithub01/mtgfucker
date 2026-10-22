@@ -18,6 +18,30 @@ PROTECTED = ("app/src/main/", "collectorvision-native/", "liquid-glass/src/main/
 # P2: only the non-scanner launcher is replaced by Kotlin. Its XML remains frozen.
 EXCEPTIONS = {"app/src/main/java/io/asv/mtgocr/ocrreader/MainActivity.java"}
 
+# Direct project edges are deliberately small. app remains the composition root.
+MODULE_EDGES = {
+    "core/domain": set(),
+    "core/designsystem": set(),
+    "data/readers": {":core:domain"},
+    **{"feature/" + name: {":core:domain", ":core:designsystem"}
+       for name in ("catalog", "photos", "services")},
+}
+
+
+def module_graph_violations(root):
+    errors = []
+    for folder, expected in MODULE_EDGES.items():
+        build = root / folder / "build.gradle"
+        if not build.is_file():
+            errors.append(str(build) + ": missing module build file")
+            continue
+        code = re.sub(r"//[^\n]*|/\*[\s\S]*?\*/", "", build.read_text(encoding="utf-8"))
+        actual = set(re.findall(r"\bproject\s*\(\s*['\"](:[^'\"]+)['\"]\s*\)", code))
+        if actual != expected:
+            errors.append(folder + ": expected project edges " + str(sorted(expected)) +
+                          ", got " + str(sorted(actual)))
+    return errors
+
 
 def git(root, *args):
     return subprocess.check_output(["git", "-C", str(root), *args])
@@ -68,7 +92,10 @@ def import_violations(root):
     # Inspect both extracted modules and legacy app locations during migration.
     roots = [("domain", package / "domain"), ("feature", package / "feature"),
              ("domain", root / "core/domain/src/main"),
-             ("designsystem", root / "core/designsystem/src/main")]
+             ("designsystem", root / "core/designsystem/src/main"),
+             ("readers", root / "data/readers/src/main")]
+    roots += [("feature:" + folder.name, folder / "src/main")
+              for folder in sorted((root / "feature").glob("*")) if folder.is_dir()]
     for layer, folder in roots:
         for source in sorted(folder.rglob("*")):
             if source.suffix not in (".kt", ".java"):
@@ -76,16 +103,26 @@ def import_violations(root):
             raw = source.read_text(encoding="utf-8")
             code = literals.sub(lambda match: "\n" * match.group().count("\n"), raw)
             for number, line in enumerate(code.splitlines(), 1):
-                allowed = {"domain": ("domain",), "designsystem": ("core.designsystem",),
-                           "feature": ("domain", "feature", "core.designsystem", "R")}[layer]
+                allowed = (("domain", "core.designsystem", "feature." + layer.split(":")[1])
+                           if layer.startswith("feature:") else
+                           {"domain": ("domain",), "designsystem": ("core.designsystem",),
+                            "readers": ("domain", "data.catalog", "data.legacy"),
+                            "feature": ("domain", "feature", "core.designsystem", "R")}[layer])
                 forbidden = any(
                     not any(ref == prefix + "." + area or ref.startswith(prefix + "." + area + ".")
                             for area in allowed)
                     for ref in references.findall(line)
                 )
-                if layer == "domain" and re.search(r"\bandroidx?\.", line):
+                if layer in ("domain", "readers") and re.search(r"\bandroidx?\.", line):
                     forbidden = True
-                if EFFECT_APIS.search(line):
+                effects = EFFECT_APIS.findall(line)
+                if any(effect != "java.io" or layer != "readers" for effect in effects):
+                    forbidden = True
+                if layer == "readers" and re.search(
+                    r"\b(?:FileOutputStream|FileWriter|ObjectOutputStream|RandomAccessFile|"
+                    r"writeText|writeBytes|outputStream|writer|delete|deleteRecursively|"
+                    r"renameTo|mkdirs?|createNewFile|setLastModified)\b", line
+                ):
                     forbidden = True
                 if forbidden:
                     invalid.append(str(source.relative_to(root)) + ":" + str(number) + ": " + line.strip())
@@ -133,7 +170,9 @@ def preview_source_violations(root):
     source = root / "app/src"
     debug = source / "debug/AndroidManifest.xml"
     errors = preview_manifest_violations(debug, True)
-    for manifest_root in (source, root / "core/designsystem/src"):
+    manifest_roots = [source, root / "core/designsystem/src"]
+    manifest_roots += [folder / "src" for folder in (root / "feature").glob("*") if folder.is_dir()]
+    for manifest_root in manifest_roots:
         for path in sorted(manifest_root.rglob("AndroidManifest.xml")):
             if path != debug:
                 errors += preview_manifest_violations(path, False)
@@ -146,7 +185,7 @@ if __name__ == "__main__":
     parser.add_argument("--merged-release", type=Path, help="Also validate generated release manifest")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    changed = violations(root) + import_violations(root) + preview_source_violations(root)
+    changed = violations(root) + import_violations(root) + preview_source_violations(root) + module_graph_violations(root)
     if args.merged_debug:
         changed += preview_manifest_violations(args.merged_debug, True)
     if args.merged_release:

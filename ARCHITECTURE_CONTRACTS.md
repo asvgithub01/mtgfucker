@@ -291,3 +291,35 @@ el guard calcula el contenido esperado desde master sin permitir cambios de comp
 La atribución y licencia del upstream permanecen en `cameraVision/NOTICE.md` y `LICENSE`.
 No hay dependencia Gradle externa llamada CollectorVision; sí adaptación de código y descarga
 inicial de modelos/catálogo de ese proyecto. Renombrar no elimina esas dependencias.
+
+
+## Frontera física de features y lectura (segundo corte P7)
+- Feature catalog/photos/services compilan de forma independiente de app con contratos domain
+  y UI de designsystem. No dependen de implementaciones de data ni entre sí. Hosts/Intents/DI
+  quedan en app; previews siguen privadas debug y ausentes de release.
+- Data readers compila como JVM sin Android: CallbackSetCatalogReader, PhotoPathPolicy,
+  evidenceRecords. Se amplía visibilidad de estos puntos para consumo entre módulos, sin
+  cambiar algoritmos. Los modelos serializados, deserialización, guardados, jobs y scanners
+  no se extraen ni modifican. No es una extracción completa de la capa de datos.
+- Los tres ViewModels se trasladan sin cambios de contenido; recursos en seis idiomas
+  conservan nombre/texto. Solo cinco strings compartidos pasan al design system; las
+  referencias R se ajustan al namespace dueño sin duplicar traducciones ni UI.
+- Tests de integración catálogo que usan EditionSearch/LegacySetSearchMatcher siguen app;
+  nuevas pruebas de módulo inyectan puertos. El guard revisa las nuevas ubicaciones,
+  manifiestos, referencias entre capas y aristas Gradle declaradas explícitamente.
+- Reconocimiento CameraVision es ONNX local; su preparación descarga modelos/catálogo de
+  hanclinto.github.io/CollectorVision si falta una copia válida. No es una API remota de
+  reconocimiento. La demo WebView histórica permanece sin acceso habitual; no afirmar
+  que toda la aplicación sea offline (hay servicios separados como Scryfall).
+
+Validación del segundo corte: **903 unitarias** (825 app, 61 CameraVision, 6 domain,
+5 readers y 2 por feature), **29 instrumentadas architecture** en emulator-5554 y
+**34 tests Python del guard**, sin fallos. Guard de fuentes y manifiestos fusionados
+correcto; 29 comprobaciones de paridad preservan recursos traducidos, ViewModels y
+pruebas trasladadas. APK debug/androidTest construidas; release unsigned también generada
+(no instalada ni validada en dispositivo). Lint de las tres features y designsystem sin
+errores, con avisos de versiones/plurales y compatibilidad de checks Compose heredados.
+Lint app sigue en 29 errores/540 avisos de fuentes protegidas, no es globalmente verde.
+Sin cambios ni instalación en emulator-5556/Sony. Pruebas físicas de cámara pendientes.
+Logs locales: build/architecture/modules-{data-build,features-build,full-build,device,
+lint-release,release-confirmed}.log. No se borraron datos ni se desinstaló la app.

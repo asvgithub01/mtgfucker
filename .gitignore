@@ -18,3 +18,7 @@ __pycache__/
 
 /core/domain/build/
 /core/designsystem/build/
+/data/readers/build/
+/feature/catalog/build/
+/feature/photos/build/
+/feature/services/build/

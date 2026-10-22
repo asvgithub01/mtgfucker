@@ -1,4 +1,3 @@
 <resources>
     <string name="launcher_read_error">Não foi possível ler a biblioteca. Nenhum dado foi alterado.</string>
-    <string name="launcher_retry">Tentar novamente</string>
 </resources>

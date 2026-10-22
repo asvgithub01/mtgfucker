@@ -1,0 +1,7 @@
+<resources>
+    <string name="shell_home">Home</string>
+    <string name="shell_refresh">Aggiorna</string>
+    <string name="shell_read_error">Impossibile leggere la raccolta o i mazzi. Nessun dato modificato.</string>
+    <string name="shell_close">Chiudi</string>
+    <string name="launcher_retry">Riprova</string>
+</resources>

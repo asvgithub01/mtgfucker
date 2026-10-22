@@ -1,5 +1,7 @@
 package io.asv.mtgocr.ocrreader.feature.launcher
 
+import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -79,7 +81,7 @@ fun LauncherScreen(
                             loading = state.loading,
                             errorMessage = if (state.failed || data?.readable == false)
                                 stringResource(R.string.launcher_read_error) else null,
-                            retryLabel = stringResource(R.string.launcher_retry),
+                            retryLabel = stringResource(CommonR.string.launcher_retry),
                             onRetry = onRetry
                         )
                         Button(onClick = onOpen, enabled = state.canOpen,

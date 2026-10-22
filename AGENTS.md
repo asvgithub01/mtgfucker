@@ -52,7 +52,8 @@
   es una comprobación heurística, no un analizador semántico ni sustituto de revisión.
 
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
-  también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `liquid-glass` y `cameraVision`.
+  también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `data:readers`,
+  `feature:catalog`, `feature:photos`, `feature:services`, `liquid-glass` y `cameraVision`.
 - CollectorVision nativo vive aislado en `cameraVision/`: CameraX, Cornelius,
   Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral con OCR; `ScanPartyOptions.kt` acumula niveles inclusivos x1/2/4/8/16 y selecciona un solo MP3; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; los MP3 `party_*` son aportados por el usuario; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
@@ -668,7 +669,8 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   `core/domain/src/main/kotlin/io/asv/mtgocr/ocrreader/domain`.
 - `core/designsystem`: biblioteca Android/Compose con `MtgTheme` y `LoadStatus`, sin dependencia de app/domain.
   `CardArtwork` sigue en app como adaptador a CardImageCache y recursos legacy; no mover esa caché.
-- `app` depende de ambos módulos; composition root, features, adaptadores legacy, scanners y jobs siguen en app.
+- `app` depende de core y de los módulos de consulta indicados abajo; composition root,
+  launcher/Biblio/detalle, adaptadores legacy, scanners y jobs siguen en app.
   No añadir dependencias inversas hacia app ni entre los dos core sin revisar el grafo.
 - Validación añade `:core:domain:test` y `:core:designsystem:lintDebug` a las suites existentes.
   Tests puros movidos: `core/domain/build/test-results/test`; no contarlos dos veces como tests de app.
@@ -684,3 +686,25 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   permanecen intactos. No afirmar que el cambio de nombre elimina esa dependencia de origen.
 - Guard permite únicamente los renombres léxicos enumerados en `scripts/vision_rename_contract.py`;
   el resto del código protegido debe coincidir con baseline. No es una exención funcional.
+
+
+## Módulos de consulta y lectura (sin migración de datos)
+- `feature/catalog`, `feature/photos`, `feature/services`: bibliotecas Android/Compose,
+  UI/ViewModels y recursos propios en seis idiomas. Dependen de core/domain y core/designsystem,
+  no de app, otros features, datos concretos, cámaras o workers. Activities/DI permanecen en app.
+- Los antiguos paths `app/src/.../feature/{catalog,photos,services}` ahora viven bajo
+  `feature/<nombre>/src/main/kotlin/io/asv/mtgocr/ocrreader/feature/<nombre>`.
+- Cinco textos compartidos viven en `core/designsystem/src/main/res/values*/common_strings.xml`.
+  Usar R de su módulo propietario; no depender de R transitiva de app.
+- `data/readers`: Kotlin/JVM, adaptador CallbackSetCatalogReader y utilidades PhotoPathPolicy /
+  evidenceRecords. No contiene almacenes, DTO serializados, modelos legacy ni escritores.
+  Fuentes Android y deserialización se quedan en app; no mover DataUtils/Biblio/CardInfo para
+  forzar esta extracción. Los callbacks y rutas privadas conservan el contrato existente.
+- Tests de políticas/callback en data/readers y ViewModels fotos/servicios en su feature.
+  El test de catálogo con LegacySetSearchMatcher sigue en app como integración; el módulo
+  añade pruebas con puertos falsos, sin dependencia inversa.
+- Añadir a validación: `:data:readers:test`, `:feature:catalog:testDebugUnitTest`,
+  `:feature:photos:testDebugUnitTest`, `:feature:services:testDebugUnitTest` y lintDebug de las
+  tres features. Las pruebas Android de integración continúan en app, paquete architecture.
+- El guard cubre fuentes/manifiestos extraídos y aristas de proyectos Gradle; es heurístico,
+  no un parser Gradle ni análisis semántico de escrituras. No usarlo como único control.

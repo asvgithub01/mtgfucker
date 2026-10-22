@@ -1,5 +1,7 @@
 package io.asv.mtgocr.ocrreader
 
+import io.asv.mtgocr.ocrreader.feature.photos.R as PhotosR
+
 import android.os.Bundle
 import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
@@ -65,8 +67,8 @@ class PhotoPreviewActivity : ComponentActivity() {
                 }.getOrNull()
             }
         }
-        if (bitmap == null) Text(stringResource(R.string.photo_preview_unavailable))
-        else Image(bitmap!!.asImageBitmap(), stringResource(R.string.photo_preview_title),
+        if (bitmap == null) Text(stringResource(PhotosR.string.photo_preview_unavailable))
+        else Image(bitmap!!.asImageBitmap(), stringResource(PhotosR.string.photo_preview_title),
             Modifier.fillMaxWidth().height(320.dp), contentScale = ContentScale.Fit)
     }
 }

@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
-    preview_manifest_violations, preview_source_violations, PREVIEWS)
+    preview_manifest_violations, preview_source_violations, PREVIEWS,
+    module_graph_violations, MODULE_EDGES)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -272,6 +273,63 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         self.assertEqual([], violations(self.root, 'HEAD'))
         new.write_text(new.read_text(encoding='utf-8').replace('collectorvision-native/v1', 'cameraVision/v1'), encoding='utf-8')
         self.assertEqual(1, len(violations(self.root, 'HEAD')))
+
+
+    def test_extracted_features_cannot_access_app_data_or_other_features(self):
+        path = self.root / "feature/photos/src/main/kotlin/Screen.kt"
+        path.parent.mkdir(parents=True)
+        path.write_text("import io.asv.mtgocr.ocrreader.R\n"
+                        "import io.asv.mtgocr.ocrreader.data.legacy.PhotoPathPolicy\n"
+                        "import io.asv.mtgocr.ocrreader.feature.services.ServicesScreen\n"
+                        "import androidx.work.WorkManager\n", encoding="utf-8")
+        self.assertEqual(4, len(import_violations(self.root)))
+        path.write_text("import io.asv.mtgocr.ocrreader.feature.photos.R\n"
+                        "import io.asv.mtgocr.ocrreader.domain.photos.PhotoRecord\n"
+                        "import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR\n", encoding="utf-8")
+        self.assertEqual([], import_violations(self.root))
+
+    def test_extracted_readers_reject_writers_android_and_legacy_models(self):
+        path = self.root / "data/readers/src/main/kotlin/Reader.kt"
+        path.parent.mkdir(parents=True)
+        path.write_text("import java.io.File\n"
+                        "import io.asv.mtgocr.ocrreader.domain.photos.PhotoRecord\n", encoding="utf-8")
+        self.assertEqual([], import_violations(self.root))
+        path.write_text("import android.content.Context\n"
+                        "import io.asv.mtgocr.ocrreader.model.Biblio\n"
+                        "import java.io.FileOutputStream\n"
+                        "fun write(file: File) = file.writeText(value)\n"
+                        "import java.net.URL\n", encoding="utf-8")
+        self.assertEqual(5, len(import_violations(self.root)))
+
+    def test_feature_manifests_cannot_register_preview_even_in_debug(self):
+        self.manifest()
+        path = self.root / "feature/photos/src/debug/AndroidManifest.xml"
+        path.parent.mkdir(parents=True)
+        path.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+                        '<application><activity android:name=".PhotoPreviewActivity" '
+                        'android:exported="false"/></application></manifest>', encoding="utf-8")
+        self.assertEqual(1, len(preview_source_violations(self.root)))
+
+    def write_module_graph(self):
+        for folder, edges in MODULE_EDGES.items():
+            path = self.root / folder / "build.gradle"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("\n".join("implementation project('" + edge + "')" for edge in edges), encoding="utf-8")
+
+    def test_module_graph_has_no_reverse_or_feature_data_edges(self):
+        self.write_module_graph()
+        self.assertEqual([], module_graph_violations(self.root))
+        for target in (":app", ":cameraVision", ":data:readers", ":feature:catalog"):
+            self.write_module_graph()
+            path = self.root / "feature/photos/build.gradle"
+            with path.open("a", encoding="utf-8") as out:
+                out.write("\nimplementation project('" + target + "')")
+            self.assertEqual(1, len(module_graph_violations(self.root)))
+
+    def test_missing_module_fails_closed(self):
+        self.write_module_graph()
+        (self.root / "data/readers/build.gradle").unlink()
+        self.assertEqual(1, len(module_graph_violations(self.root)))
 
 
 if __name__ == "__main__":

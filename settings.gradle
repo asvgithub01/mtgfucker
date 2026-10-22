@@ -2,3 +2,8 @@ include ':app', ':liquid-glass', ':cameraVision'
 
 include ':core:domain'
 include ':core:designsystem'
+
+include ':data:readers'
+include ':feature:catalog'
+include ':feature:photos'
+include ':feature:services'

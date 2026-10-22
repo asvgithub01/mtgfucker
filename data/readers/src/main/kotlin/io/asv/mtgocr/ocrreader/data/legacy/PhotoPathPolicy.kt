@@ -2,7 +2,7 @@ package io.asv.mtgocr.ocrreader.data.legacy
 
 import java.io.File
 
-internal object PhotoPathPolicy {
+object PhotoPathPolicy {
     fun resolve(filesDir: File, path: String, imported: Boolean): File? = runCatching {
         if (path.isBlank()) return null
         val input = File(path)

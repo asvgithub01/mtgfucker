@@ -1,0 +1,7 @@
+<resources>
+    <string name="shell_home">Home</string>
+    <string name="shell_refresh">Refresh</string>
+    <string name="shell_read_error">Could not read the library or decks. No data was changed.</string>
+    <string name="shell_close">Close</string>
+    <string name="launcher_retry">Retry</string>
+</resources>

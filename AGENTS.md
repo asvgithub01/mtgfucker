@@ -53,7 +53,8 @@
 
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `data:readers`,
-  `feature:catalog`, `feature:photos`, `feature:services`, `liquid-glass` y `cameraVision`.
+  `feature:catalog`, `feature:photos`, `feature:services`, `feature:launcher`,
+  `feature:library`, `feature:carddetail`, `liquid-glass` y `cameraVision`.
 - CollectorVision nativo vive aislado en `cameraVision/`: CameraX, Cornelius,
   Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral con OCR; `ScanPartyOptions.kt` acumula niveles inclusivos x1/2/4/8/16 y selecciona un solo MP3; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; los MP3 `party_*` son aportados por el usuario; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
@@ -670,7 +671,8 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - `core/designsystem`: biblioteca Android/Compose con `MtgTheme` y `LoadStatus`, sin dependencia de app/domain.
   `CardArtwork` sigue en app como adaptador a CardImageCache y recursos legacy; no mover esa caché.
 - `app` depende de core y de los módulos de consulta indicados abajo; composition root,
-  launcher/Biblio/detalle, adaptadores legacy, scanners y jobs siguen en app.
+  hosts/DI, adaptadores legacy, scanners y jobs siguen en app; las seis features Compose
+  ya son módulos independientes (no equivale a migración funcional completa).
   No añadir dependencias inversas hacia app ni entre los dos core sin revisar el grafo.
 - Validación añade `:core:domain:test` y `:core:designsystem:lintDebug` a las suites existentes.
   Tests puros movidos: `core/domain/build/test-results/test`; no contarlos dos veces como tests de app.
@@ -708,3 +710,22 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   tres features. Las pruebas Android de integración continúan en app, paquete architecture.
 - El guard cubre fuentes/manifiestos extraídos y aristas de proyectos Gradle; es heurístico,
   no un parser Gradle ni análisis semántico de escrituras. No usarlo como único control.
+
+
+## Launcher, Biblio y detalle como módulos
+- `feature/launcher`, `feature/library`, `feature/carddetail`: UI/estado y recursos propios;
+  las fuentes `app/src/.../feature` de esas áreas están ahora en `feature/<nombre>/src/main/kotlin`.
+  ViewModels/tests de launcher/library se trasladan sin cambiar contenido. Detalle sigue solo lectura.
+- Arte se inyecta mediante slots obligatorios; LibraryShell inyecta también el detalle y recibe
+  etiquetas de destinos. No importar otro feature ni su R para componer navegación.
+- `app/ui/LegacyFeatureContent.kt` conecta branding/etiquetas legacy, CardArtwork y detalle.
+  MainActivity/BiblioShellActivity suministran esos adaptadores. CardArtwork y CardImageCache
+  permanecen intactos en app; conservar recorte CENTER_CROP y FIT_CENTER del detalle.
+- No mover recursos baseline compartidos con escáneres: nombre, fuente y etiquetas históricas
+  llegan al launcher mediante LauncherBranding. Strings nuevos sí pertenecen a su módulo.
+- Validar también `:feature:launcher:testDebugUnitTest`, `:feature:library:testDebugUnitTest`,
+  lintDebug de los tres módulos y pruebas Android architecture de app. No contar tests movidos
+  dos veces. Detalle se valida en instrumentación (no tiene ViewModel/unitarias propios).
+- CameraVision: generar embeddings de nuevas cartas NO es entrenar Milo/Cornelius. La futura
+  autonomía de modelos/índices se especifica en ARCHITECTURE_MIGRATION_PLAN.md; no cambiar
+  URLs, índices, pesos o procesamiento como parte de la extracción de UI.

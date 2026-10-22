@@ -4,4 +4,7 @@
     <string name="shell_read_error">Could not read the library or decks. No data was changed.</string>
     <string name="shell_close">Close</string>
     <string name="launcher_retry">Retry</string>
+    <string name="shell_row_count">%1$d copies</string>
+    <string name="shell_groups">Groups</string>
+    <string name="shell_decks">Decks</string>
 </resources>

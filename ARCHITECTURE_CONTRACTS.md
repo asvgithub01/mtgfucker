@@ -323,3 +323,25 @@ Lint app sigue en 29 errores/540 avisos de fuentes protegidas, no es globalmente
 Sin cambios ni instalación en emulator-5556/Sony. Pruebas físicas de cámara pendientes.
 Logs locales: build/architecture/modules-{data-build,features-build,full-build,device,
 lint-release,release-confirmed}.log. No se borraron datos ni se desinstaló la app.
+
+
+## Tercer corte: launcher / shell Biblio / detalle
+- Extraídos :feature:launcher, :feature:library y :feature:carddetail; todos dependen solo de
+  domain/designsystem. Ninguna dependencia entre features o hacia app/data/cameraVision.
+- Composition root suministra arte y detalle con slots Composable obligatorios; no defaults
+  que invoquen caché global ni placeholders vacíos que oculten falta de configuración.
+  Branding histórico y etiquetas de destinos se resuelven en app/ui/LegacyFeatureContent.
+- Misma selección por collectionItemId, lifecycle RESUMED, SavedStateHandle y navegación.
+  ViewModels y pruebas JVM trasladados sin cambios de contenido; seis idiomas preservados.
+- CardArtwork, CardImageCache, escáneres, serialización, guardados y procesamiento sin cambios.
+  No reemplazar detalle editable legacy ni activar shell por defecto.
+
+Validación tercer corte: 903 unitarias (811 app, 61 CameraVision, 6 domain, 5 readers,
+8 launcher, 6 library y 2 en cada feature catalog/photos/services); 31 instrumentadas
+architecture en emulator-5554, incluidas composición real de arte/branding y detalle
+inyectado con ID estable; 35 tests Python del guard, todos correctos. Diez comprobaciones
+de paridad preservan ViewModels/tests y textos de seis idiomas. APK debug/test y release
+unsigned construidas; release no instalada/probada. Lint features sin errores, con avisos;
+app mantiene 29 errores heredados y 534 avisos (el reparto cambia al mover fuentes).
+Sin supresiones nuevas. Guard runtime y manifiestos fusionados verde. Cámara física pendiente.
+Logs: build/architecture/shell-modules-{first,full,device,lint-release,release-confirmed}.log.

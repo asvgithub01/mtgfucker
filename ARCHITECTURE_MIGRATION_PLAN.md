@@ -504,3 +504,53 @@ con esos tipos permanecen en app; las nuevas utilidades se consumen desde la mis
 - Estas tres features siguen siendo consultas opt-in; no se cambia la navegación habitual,
   no se activa escritura ni se migran datos. El renombrado CameraVision ya estaba validado;
   ahora no se modifica ningún archivo suyo.
+
+
+## Tercer corte P7: seis features aisladas
+
+```text
+:app ── :feature:{launcher,library,carddetail,catalog,photos,services}
+                 └── :core:domain + :core:designsystem
+:app ── :data:readers ── :core:domain
+```
+
+Sin dependencias entre features. El shell recibe el renderizador de detalle desde app;
+no conoce CollectionCardDetail. Launcher recibe branding y arte; detalle recibe arte
+con nombre, y app conserva FIT_CENTER. Los adaptadores de composición viven en
+app/ui/LegacyFeatureContent.kt. No se alteran CardArtwork/CardImageCache ni recursos
+históricos. Las Activities y eventos de navegación/retorno permanecen en app.
+
+### Pendiente tras este corte (sustituye el estado anterior de launcher/Biblio/detalle)
+- Las seis features Compose existentes ya son módulos; la Biblio/detalle extraídos son
+  las consultas opt-in, no reemplazos de OCR ni de Main2Activity editable.
+- Sigue en app la mayor parte de data legacy, Room, servicios e integración: avanzar
+  mediante puertos de lectura sin mover DTO serializados/guardados compartidos.
+- P3 comandos y carrera de snapshots OCR; P4 catálogo de cartas y detalle editable;
+  P5 importación/revisión/resolución; P6 operaciones cloud/exportación/almacenamiento;
+  P7 retirada legacy solo tras paridad, lint heredado y regresión física/release instalada.
+
+## Independencia operativa futura de CameraVision (plan, NO implementado)
+
+1. **Origen frente a ejecución.** Cornelius detector.onnx y Milo milo.onnx son modelos
+   preentrenados upstream. ONNX es el formato/runtime, no una BD de cartas. La inferencia
+   actual es local; prepare obtiene pesos y catálogo base del alojamiento CollectorVision
+   si falta una copia verificada. No hay API de reconocimiento por cada foto en esa ruta.
+2. **Lo que generamos.** Índices visuales (vectores + UUID/metadatos) y suplementos con
+   nuestros scripts, ejecutando Milo sobre imágenes de referencia. Por ejemplo FRA y
+   las regiones ART/UPPER. No confundir esa inferencia con entrenamiento de pesos.
+   El generador de regiones actual está fijado a 110278 IDs; no es aún actualizador general.
+3. **Objetivo solicitado.** No depender de disponibilidad/publicaciones de CollectorVision
+   para instalar ni ampliar colecciones. Conservar modelos verificados bajo nuestro control
+   y distribuirlos desde infraestructura propia o empaquetados, respetando sus avisos/licencias
+   y revisando las condiciones de distribución antes de publicar. Esto no cambia su origen.
+4. **Pipeline propio.** Ingerir metadatos/imágenes de referencia; generar catálogo FULL y
+   regiones ART/UPPER y suplementos compatibles. Mantener SHA del modelo, normalización,
+   dimensiones, orden ID/vector, ROI y versión en manifest. Generalizar límites rígidos y
+   validar nuevos tipos/layouts, sin atribuir certeza de impresión/idioma por arte.
+5. **Publicación segura.** Builds reproducibles/reanudables, catálogo completo consistente,
+   hashes, actualización atómica y rollback; prueba de primera instalación con upstream
+   inaccesible y regresión de colecciones antiguas/nuevas en dispositivo.
+6. **Alcance separado.** Agregar cartas normalmente requiere indexar imágenes con el mismo
+   modelo, no entrenar uno nuevo; evaluar calidad cada expansión. Entrenar/reemplazar redes
+   propias es un proyecto distinto, exige datos, evaluación y regenerar índices compatibles.
+   Nada de esto se ha activado en este refactor porque modificaría preparación/procesamiento.

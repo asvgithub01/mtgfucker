@@ -24,7 +24,7 @@ MODULE_EDGES = {
     "core/designsystem": set(),
     "data/readers": {":core:domain"},
     **{"feature/" + name: {":core:domain", ":core:designsystem"}
-       for name in ("catalog", "photos", "services")},
+       for name in ("catalog", "photos", "services", "launcher", "library", "carddetail")},
 }
 
 

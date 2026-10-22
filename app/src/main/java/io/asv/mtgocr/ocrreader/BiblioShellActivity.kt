@@ -1,5 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
+import io.asv.mtgocr.ocrreader.app.ui.*
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,7 +33,9 @@ class BiblioShellActivity : ComponentActivity() {
         setContent {
             MtgTheme(MagicPalette.primaryColor(this), MagicPalette.secondaryColor(this), MagicPalette.backgroundColor(this)) {
                 androidx.compose.material3.Surface {
-                    LibraryShellRoute(libraryName, viewModel,
+                    LibraryShellRoute(libraryName, viewModel, legacyLibraryDestinationLabels(),
+                        detail = { card, dismiss -> LegacyCollectionCardDetail(card, dismiss) },
+                        artwork = { url, modifier -> LegacyLibraryArtwork(url, modifier) },
                         onOpenServices = { startActivity(android.content.Intent(this, ServicesPreviewActivity::class.java)) },
                         onOpenPhotos = { startActivity(android.content.Intent(this, PhotoPreviewActivity::class.java)
                             .putExtra(EXTRA_LIBRARY_ID, libraryId)) },

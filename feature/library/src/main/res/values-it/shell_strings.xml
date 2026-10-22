@@ -1,0 +1,15 @@
+<resources>
+    <string name="shell_read_only">Anteprima in sola lettura. Per modificare, valutare o scansionare, usa la Biblio abituale.</string>
+    <string name="shell_cards">Carte</string>
+    <string name="shell_all_memberships">Tutti i gruppi e mazzi</string>
+    <string name="shell_library_changed">La raccolta attiva è cambiata. Torna alla home.</string>
+    <string name="shell_empty_groups">Nessun gruppo o mazzo.</string>
+    <string name="shell_search">Cerca nome o espansione</string>
+    <string name="shell_count">%1$d righe · %2$d copie</string>
+    <string name="shell_group_count">%1$d copie · %2$d nel sideboard</string>
+    <string name="shell_newest">Recenti</string>
+    <string name="shell_name">Nome</string>
+    <string name="shell_empty_cards">Nessuna carta per questi filtri.</string>
+    <string name="shell_open_legacy">Apri Biblio completa / OCR</string>
+    <string name="shell_open_triple">Apri scanner Triple</string>
+</resources>

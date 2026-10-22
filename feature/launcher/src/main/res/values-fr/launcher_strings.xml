@@ -1,0 +1,4 @@
+<resources>
+    <string name="launcher_read_error">Impossible de lire la bibliothèque. Aucune donnée n’a été modifiée.</string>
+    <string name="shell_preview">Aperçu Biblio</string>
+</resources>

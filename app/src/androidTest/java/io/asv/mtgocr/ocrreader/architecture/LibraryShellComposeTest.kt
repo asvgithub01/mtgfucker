@@ -1,5 +1,6 @@
 package io.asv.mtgocr.ocrreader.architecture
 
+import io.asv.mtgocr.ocrreader.app.ui.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
@@ -19,6 +20,31 @@ class LibraryShellComposeTest {
     private val row = CollectionRow("stable-id", "Test card", null, "foil", "es", "NM", 3,
         null, listOf("Group"), emptyList(), emptyList())
 
+    @Test fun injectedDetailTracksStableIdentityAndDismissesWithoutWrites() {
+        var state by mutableStateOf(LibraryShellUiState(loading = false, rows = listOf(row)))
+        var shown: CollectionRow? = null
+        var dismiss: (() -> Unit)? = null
+        compose.setContent {
+            LibraryShellScreen("Test", state, {}, {}, {}, {}, {}, {},
+                destinations = LibraryDestinationLabels("Catalog", "Photos", "Services"),
+                detail = { card, close -> SideEffect { shown = card; dismiss = close } },
+                artwork = { _, _ -> })
+        }
+        compose.onNodeWithTag("shell-grid").performScrollToKey("card:stable-id")
+        compose.onNodeWithTag("card-stable-id").performClick()
+        compose.runOnIdle {
+            assertEquals(row, shown)
+            state = state.copy(rows = listOf(row.copy(id = "other"), row.copy(quantity = 7)))
+        }
+        compose.runOnIdle {
+            assertEquals("stable-id", shown?.id)
+            assertEquals(7, shown?.quantity)
+            dismiss!!()
+        }
+        compose.runOnIdle { shown = null; state = state.copy(rows = listOf(row)) }
+        compose.runOnIdle { assertNull(shown) }
+    }
+
     @Test fun groupsAndTabsEmitEventsAndErrorsHideStaleCards() {
         var state by mutableStateOf(LibraryShellUiState(loading = false,
             options = LibraryOptions(section = LibrarySection.GROUPS),
@@ -27,7 +53,8 @@ class LibraryShellComposeTest {
         var section: LibrarySection? = null
         compose.setContent {
             LibraryShellScreen("Test", state, { section = it }, { membership = it }, {}, {}, {}, {},
-                artwork = { _, _ -> })
+                destinations = legacyLibraryDestinationLabels(),
+                detail = { card, dismiss -> LegacyCollectionCardDetail(card, dismiss) }, artwork = { _, _ -> })
         }
         compose.onNodeWithTag("membership-Group").performClick()
         compose.runOnIdle { assertEquals("Group", membership) }
@@ -48,7 +75,8 @@ class LibraryShellComposeTest {
             CompositionLocalProvider(LocalDensity provides Density(density, 2f)) {
                 Box(Modifier.size(320.dp, 480.dp)) {
                     LibraryShellScreen("Test", LibraryShellUiState(loading = false, rows = listOf(row)),
-                        {}, {}, {}, {}, {}, {}, artwork = { _, _ -> })
+                        {}, {}, {}, {}, {}, {}, destinations = legacyLibraryDestinationLabels(),
+                detail = { card, dismiss -> LegacyCollectionCardDetail(card, dismiss) }, artwork = { _, _ -> })
                 }
             }
         }

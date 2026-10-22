@@ -4,4 +4,7 @@
     <string name="shell_read_error">No se pudo leer la biblioteca o sus mazos. No se ha modificado ningún dato.</string>
     <string name="shell_close">Cerrar</string>
     <string name="launcher_retry">Reintentar</string>
+    <string name="shell_row_count">%1$d copias</string>
+    <string name="shell_groups">Grupos</string>
+    <string name="shell_decks">Mazos</string>
 </resources>

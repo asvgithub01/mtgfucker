@@ -7,3 +7,7 @@ include ':data:readers'
 include ':feature:catalog'
 include ':feature:photos'
 include ':feature:services'
+
+include ':feature:launcher'
+include ':feature:library'
+include ':feature:carddetail'

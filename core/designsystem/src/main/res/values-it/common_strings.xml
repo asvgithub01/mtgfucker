@@ -4,4 +4,7 @@
     <string name="shell_read_error">Impossibile leggere la raccolta o i mazzi. Nessun dato modificato.</string>
     <string name="shell_close">Chiudi</string>
     <string name="launcher_retry">Riprova</string>
+    <string name="shell_row_count">%1$d copie</string>
+    <string name="shell_groups">Gruppi</string>
+    <string name="shell_decks">Mazzi</string>
 </resources>

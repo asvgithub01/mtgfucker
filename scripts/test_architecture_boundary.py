@@ -331,6 +331,19 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         (self.root / "data/readers/build.gradle").unlink()
         self.assertEqual(1, len(module_graph_violations(self.root)))
 
+    def test_launcher_library_detail_have_no_sibling_or_legacy_imports(self):
+        for name in ("launcher", "library", "carddetail"):
+            with self.subTest(name=name):
+                path = self.root / ("feature/" + name + "/src/main/kotlin/Screen.kt")
+                path.parent.mkdir(parents=True)
+                path.write_text("import io.asv.mtgocr.ocrreader.CardImageCache\n"
+                                "import io.asv.mtgocr.ocrreader.R\n"
+                                "import io.asv.mtgocr.ocrreader.feature.catalog.R\n", encoding="utf-8")
+                self.assertEqual(3, len(import_violations(self.root)))
+                path.write_text("import io.asv.mtgocr.ocrreader.domain.collection.CollectionRow\n"
+                                "import androidx.compose.runtime.Composable\n", encoding="utf-8")
+                self.assertEqual([], import_violations(self.root))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -22,3 +22,6 @@ __pycache__/
 /feature/catalog/build/
 /feature/photos/build/
 /feature/services/build/
+/feature/launcher/build/
+/feature/library/build/
+/feature/carddetail/build/

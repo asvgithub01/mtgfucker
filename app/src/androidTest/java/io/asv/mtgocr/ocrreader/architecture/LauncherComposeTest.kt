@@ -1,5 +1,6 @@
 package io.asv.mtgocr.ocrreader.architecture
 
+import io.asv.mtgocr.ocrreader.app.ui.legacyLauncherBranding
 import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -26,7 +27,7 @@ class LauncherComposeTest {
         var opens = 0
         compose.setContent {
             MtgTheme(0xFF245B43.toInt(), 0xFFE0B64B.toInt(), 0xFFF6F1E7.toInt()) {
-                LauncherScreen(state, { selected = it }, { opens++ }, {}, artwork = { _, _ -> })
+                LauncherScreen(state, { selected = it }, { opens++ }, {}, branding = legacyLauncherBranding(), artwork = { _, _ -> })
             }
         }
         compose.onNodeWithTag("library-picker").performClick()
@@ -40,7 +41,7 @@ class LauncherComposeTest {
 
     @Test fun unreadableOrLoadingCannotOpenAndSingleLibraryHidesPicker() {
         var state by mutableStateOf(LauncherUiState(data.copy(libraries = listOf(data.libraries.first())), loading = true))
-        compose.setContent { LauncherScreen(state, {}, {}, {}, artwork = { _, _ -> }) }
+        compose.setContent { LauncherScreen(state, {}, {}, {}, branding = legacyLauncherBranding(), artwork = { _, _ -> }) }
         compose.onNodeWithTag("open-library").assertIsNotEnabled()
         compose.onNodeWithTag("library-picker").assertDoesNotExist()
         compose.runOnIdle { state = state.copy(loading = false, data = state.data!!.copy(readable = false)) }
@@ -52,7 +53,7 @@ class LauncherComposeTest {
             val density = LocalDensity.current.density
             CompositionLocalProvider(LocalDensity provides Density(density, 2f)) {
                 Box(Modifier.size(320.dp, 480.dp)) {
-                    LauncherScreen(LauncherUiState(data, loading = false), {}, {}, {}, artwork = { _, _ -> })
+                    LauncherScreen(LauncherUiState(data, loading = false), {}, {}, {}, branding = legacyLauncherBranding(), artwork = { _, _ -> })
                 }
             }
         }

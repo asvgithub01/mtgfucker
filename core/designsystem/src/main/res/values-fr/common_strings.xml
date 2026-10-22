@@ -4,4 +4,7 @@
     <string name="shell_read_error">Impossible de lire la bibliothèque ou ses decks. Aucune donnée modifiée.</string>
     <string name="shell_close">Fermer</string>
     <string name="launcher_retry">Réessayer</string>
+    <string name="shell_row_count">%1$d exemplaires</string>
+    <string name="shell_groups">Groupes</string>
+    <string name="shell_decks">Decks</string>
 </resources>

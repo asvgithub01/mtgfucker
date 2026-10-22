@@ -1,5 +1,6 @@
 package io.asv.mtgocr.ocrreader
 
+import io.asv.mtgocr.ocrreader.app.ui.*
 import android.os.Bundle
 import android.content.Intent
 import androidx.activity.ComponentActivity
@@ -24,7 +25,8 @@ class MainActivity : ComponentActivity() {
                 MagicPalette.secondaryColor(this),
                 MagicPalette.backgroundColor(this)
             ) {
-                LauncherRoute(viewModel, onPreview = if (BuildConfig.DEBUG) { id, name ->
+                LauncherRoute(viewModel, legacyLauncherBranding(),
+                    artwork = { url, modifier -> LegacyLauncherArtwork(url, modifier) }, onPreview = if (BuildConfig.DEBUG) { id, name ->
                     startActivity(Intent(this, BiblioShellActivity::class.java)
                         .putExtra(BiblioShellActivity.EXTRA_LIBRARY_ID, id)
                         .putExtra(BiblioShellActivity.EXTRA_LIBRARY_NAME, name))

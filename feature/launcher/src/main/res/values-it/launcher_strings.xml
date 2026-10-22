@@ -1,0 +1,4 @@
+<resources>
+    <string name="launcher_read_error">Impossibile leggere la raccolta. Nessun dato è stato modificato.</string>
+    <string name="shell_preview">Anteprima Biblio</string>
+</resources>

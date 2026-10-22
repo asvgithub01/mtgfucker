@@ -76,6 +76,9 @@ android {
 }
 
 dependencies {
+    implementation project(':feature:launcher')
+    implementation project(':feature:library')
+    implementation project(':feature:carddetail')
     implementation project(':feature:catalog')
     implementation project(':feature:photos')
     implementation project(':feature:services')

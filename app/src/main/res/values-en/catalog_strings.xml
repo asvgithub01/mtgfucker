@@ -1,0 +1,17 @@
+<resources>
+    <string name="catalog_back">Back</string>
+    <string name="catalog_title">Set catalog</string>
+    <string name="catalog_notice">Read only. Does not change cards or selections in your collection.</string>
+    <string name="catalog_search">UPPERCASE code or name</string>
+    <string name="catalog_error">Could not load the catalog. Check your connection and retry.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
+    <string name="catalog_empty">No results</string>
+    <string name="catalog_release">Date: %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d catalog card</item>
+        <item quantity="other">%1$d catalog cards</item>
+    </plurals>
+</resources>

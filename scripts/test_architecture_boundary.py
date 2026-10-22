@@ -72,6 +72,54 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         source.write_text("import io.asv.mtgocr.ocrreader.data.CardRepository\n")
         self.assertEqual(1, len(import_violations(self.root)))
 
+    def write_layer(self, layer, name, content):
+        path = self.root / "app/src/main/java/io/asv/mtgocr/ocrreader" / layer / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+    def test_alias_wildcard_and_fully_qualified_bypasses_are_rejected(self):
+        self.write_layer("feature", "Bad.kt",
+            "  import io.asv.mtgocr.ocrreader.data.CardRepository as Repo\n"
+            "import io.asv.mtgocr.ocrreader.*\n"
+            "fun bad() = io.asv.mtgocr.ocrreader.OcrCaptureActivity.mBiblio\n")
+        self.assertEqual(3, len(import_violations(self.root)))
+
+    def test_java_static_import_and_model_dependency_are_rejected(self):
+        self.write_layer("feature", "Bad.java",
+            "import static io.asv.mtgocr.ocrreader.OcrCaptureActivity.mBiblio;\n"
+            "import io.asv.mtgocr.ocrreader.model.CardInfo;\n")
+        self.assertEqual(2, len(import_violations(self.root)))
+
+    def test_domain_rejects_platform_and_designsystem_qualified_references(self):
+        self.write_layer("domain", "Bad.kt",
+            "fun bad(a: android.content.Context) = a\n"
+            "import androidx.lifecycle.ViewModel\n"
+            "import io.asv.mtgocr.ocrreader.core.designsystem.CardArtwork\n")
+        self.assertEqual(3, len(import_violations(self.root)))
+
+    def test_comments_strings_resources_and_designsystem_are_not_false_positives(self):
+        self.write_layer("feature", "Good.kt",
+            "package io.asv.mtgocr.ocrreader.feature.example\n"
+            "// io.asv.mtgocr.ocrreader.OcrCaptureActivity\n"
+            'val text = "io.asv.mtgocr.ocrreader.DataUtils"\n'
+            "/* import io.asv.mtgocr.ocrreader.model.CardInfo */\n"
+            "import io.asv.mtgocr.ocrreader.R\n"
+            "import io.asv.mtgocr.ocrreader.core.designsystem.CardArtwork\n")
+        self.assertEqual([], import_violations(self.root))
+
+    def test_shared_persistence_is_protected_like_scanners(self):
+        folder = self.root / "app/src/main/java/io/asv/mtgocr/ocrreader"
+        (folder / "model").mkdir(parents=True)
+        data = folder / "DataUtils.java"
+        model = folder / "model/Biblio.java"
+        data.write_text("data\n")
+        model.write_text("biblio\n")
+        self.git("add", ".")
+        self.git("commit", "-qm", "shared persistence")
+        data.write_text("changed\n")
+        model.write_text("changed\n")
+        self.assertEqual(2, len(violations(self.root, "HEAD")))
+
 
 if __name__ == "__main__":
     unittest.main()

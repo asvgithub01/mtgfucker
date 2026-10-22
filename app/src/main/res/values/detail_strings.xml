@@ -1,0 +1,13 @@
+<resources>
+    <string name="detail_read_only">Datos guardados de esta carta. Solo consulta; no actualiza precios ni modifica la colección.</string>
+    <string name="detail_printing">Impresión</string>
+    <string name="detail_set">Edición y número</string>
+    <string name="detail_variant">Idioma, acabado y condición</string>
+    <string name="detail_price">Precio guardado (sin actualizar)</string>
+    <string name="detail_sideboard">Mazos en sideboard</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d registro de escaneo</item>
+        <item quantity="other">%1$d registros de escaneo</item>
+    </plurals>
+    <string name="detail_description">Descripción guardada</string>
+</resources>

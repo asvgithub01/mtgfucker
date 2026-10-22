@@ -43,6 +43,13 @@
   `python scripts/test_architecture_boundary.py`: fuentes runtime existentes protegidas,
   incluidos escáneres y modelos serializados. Única excepción: sustitución de MainActivity.java.
   Imports domain/feature también vigilados. Excepciones futuras solo explícitas y revisadas.
+  Consulta P4 debug: `SetCatalogPreviewActivity.kt`, `feature/catalog/`,
+  `app/di/SetCatalogViewModelFactory.kt` y `data/catalog/LegacySetSearchMatcher.kt`.
+  Reutiliza loadSetCatalog y EditionSearch sin modificarlos: solo caché de catálogo,
+  nunca Biblio/owned printings. Detalle local: `feature/carddetail/CollectionCardDetail.kt`;
+  muestra precio guardado, no lo actualiza. No sustituye Main2Activity ni sus comandos.
+  Guard P7 cubre imports/referencias cualificadas Kotlin/Java en domain/feature;
+  es una comprobación heurística, no un analizador semántico ni sustituto de revisión.
 
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
   también habilitado. Módulos Gradle: `app`, `liquid-glass` y `collectorvision-native`.

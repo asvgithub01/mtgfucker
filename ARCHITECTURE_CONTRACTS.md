@@ -183,3 +183,56 @@ Resultado final: 890 unitarias, 14 instrumentadas en emulator-5554 y 8 tests del
 guard, sin fallos. APK debug y de pruebas compiladas; captura p3-return-shell.png
 revisada. Lint mantiene 29 errores heredados, ninguno en fuentes nuevas/modificadas.
 Sin instalación en Sony, acceso a sus datos, push ni cambios en fuentes scanner.
+
+## P4 lectura y P7 fronteras — 22-10-2026
+
+Con la restricción de no alterar scanners **ni sus guardados**, se completan estos
+subconjuntos independientes, no las fases enteras:
+
+- SetCatalogPreviewActivity, solo debug y accesible desde el shell, muestra sets
+  ordenados por fecha con búsqueda por código/nombre, detalle de metadatos, estados
+  vacío/error/reintento y restauración de filtro/selección. Selección por código,
+  no por posición; no modifica owned printing.
+- SetCatalogViewModel depende de puertos. LegacySetSearchMatcher delega la misma
+  EditionSearch de los scanners sin editarla. CatalogDependencies reutiliza el
+  loadSetCatalog existente: puede refrescar la caché Room de sets, no inventario.
+  No se modifican repositorio, proveedor, schema, writers ni pantallas antiguas.
+- CollectionCardDetail reutilizable: arte sin recorte, UUID, set/número, idioma,
+  acabado, condición, cantidades, grupos/mazos/sideboard, descripción, registros
+  de escaneo y precio **guardado**, sin actualizarlo. No ofrece edición; ampliar
+  CollectionRow no convierte la proyección en modelo persistente.
+- Guard P7 reforzado para aliases, wildcard, imports Java static, referencias
+  completas dentro de métodos y dependencias de modelos/composición en feature.
+  Nuevos tests confirman que DataUtils/Biblio siguen congelados igual que scanners.
+  Conserva la única excepción previa de MainActivity.java.
+
+Validación: 895 unitarias, 19 instrumentadas de arquitectura en emulator-5554 y
+13 tests Python, todas verdes; APK app/test compiladas y diff-check limpio.
+La Activity real del catálogo se abre/recrea, conserva consulta y se comparan
+archivos Json/backup byte a byte y owned printings antes/después. El test permite
+carga o error recuperable según disponibilidad de red/caché. UI con fuente200%,
+eventos por código y ausencia de arte/precio anterior al cambiar detalle probados.
+Captura de catálogo con datos sintéticos revisada en build/architecture/p4-catalog.png.
+Lint conserva los mismos 29 errores heredados (hashes master), ninguno en archivos
+nuevos/modificados; no es una validación lint global verde.
+Logs: p4-catalog-state.log, p4-catalog-ui.log, p4-detail.log, p4-p7-final-build.log,
+p4-p7-instrumentation.log y p4-p7-lint.log dentro de build/architecture.
+
+### Cuánto queda
+
+No queda solo limpieza final. Hay **cinco bloques mayores abiertos**:
+1. P3: publicación segura de comandos, UI de edición/borrado y doble persistencia.
+   Diferido por la restricción sobre guardados compartidos.
+2. P4: catálogo de cartas/buscador completo, selector de impresiones y reemplazo
+   compatible del detalle editable; consulta de sets/detalle guardado ya disponible.
+3. P5: fotos, galería y revisión. Puede adelantarse consulta de evidencias; los
+   comandos y workers requieren validar su interacción con almacenamiento.
+4. P6: ajustes, servicios, bibliotecas, exportación y contratos cloud/Premium.
+5. P7: retirada segura de pantallas duplicadas, modularización y validación final
+   de todos los recorridos. Guard reforzado completado; no se retira código legacy.
+
+P2 está implementada; P0/P1 aportan la base validada para el launcher, no una
+certificación global de cámara/dispositivo. No se da porcentaje temporal ni fecha
+fiable: los bloques tienen tamaños distintos y el cierre total depende del alcance
+que se retome más adelante sobre persistencia compartida. Próximo bloque aislable:
+consulta de fotos/evidencias sin modificar trabajos ni archivos.

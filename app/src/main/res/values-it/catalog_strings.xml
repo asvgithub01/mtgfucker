@@ -1,0 +1,19 @@
+<resources>
+    <string name="catalog_back">Indietro</string>
+    <string name="catalog_title">Catalogo delle espansioni</string>
+    <string name="catalog_notice">Sola lettura. Non modifica carte o selezioni della collezione.</string>
+    <string name="catalog_search">Codice MAIUSCOLO o nome</string>
+    <string name="catalog_error">Impossibile caricare il catalogo. Controlla la connessione e riprova.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d espansione</item>
+        <item quantity="many">%1$d espansioni</item>
+        <item quantity="other">%1$d espansioni</item>
+    </plurals>
+    <string name="catalog_empty">Nessun risultato</string>
+    <string name="catalog_release">Data: %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d carta del catalogo</item>
+        <item quantity="many">%1$d carte del catalogo</item>
+        <item quantity="other">%1$d carte del catalogo</item>
+    </plurals>
+</resources>

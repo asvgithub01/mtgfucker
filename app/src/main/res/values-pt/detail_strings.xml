@@ -1,0 +1,14 @@
+<resources>
+    <string name="detail_read_only">Dados guardados desta carta. Apenas consulta; não atualiza preços nem altera a coleção.</string>
+    <string name="detail_printing">Impressão</string>
+    <string name="detail_set">Edição e número</string>
+    <string name="detail_variant">Idioma, acabamento e condição</string>
+    <string name="detail_price">Preço guardado (sem atualizar)</string>
+    <string name="detail_sideboard">Decks em sideboard</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d registo de leitura</item>
+        <item quantity="many">%1$d registos de leitura</item>
+        <item quantity="other">%1$d registos de leitura</item>
+    </plurals>
+    <string name="detail_description">Descrição guardada</string>
+</resources>

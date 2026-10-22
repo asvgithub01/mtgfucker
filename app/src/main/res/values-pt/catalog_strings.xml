@@ -1,0 +1,19 @@
+<resources>
+    <string name="catalog_back">Voltar</string>
+    <string name="catalog_title">Catálogo de edições</string>
+    <string name="catalog_notice">Apenas consulta. Não altera cartas nem seleções da coleção.</string>
+    <string name="catalog_search">Código em MAIÚSCULAS ou nome</string>
+    <string name="catalog_error">Não foi possível carregar o catálogo. Verifica a ligação e tenta novamente.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d edição</item>
+        <item quantity="many">%1$d edições</item>
+        <item quantity="other">%1$d edições</item>
+    </plurals>
+    <string name="catalog_empty">Sem resultados</string>
+    <string name="catalog_release">Data: %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d carta no catálogo</item>
+        <item quantity="many">%1$d cartas no catálogo</item>
+        <item quantity="other">%1$d cartas no catálogo</item>
+    </plurals>
+</resources>

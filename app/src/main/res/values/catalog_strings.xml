@@ -1,0 +1,17 @@
+<resources>
+    <string name="catalog_back">Volver</string>
+    <string name="catalog_title">Catálogo de ediciones</string>
+    <string name="catalog_notice">Solo consulta. No modifica cartas ni selecciones de tu colección.</string>
+    <string name="catalog_search">Código en MAYÚSCULAS o nombre</string>
+    <string name="catalog_error">No se pudo cargar el catálogo. Comprueba la conexión y reintenta.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d edición</item>
+        <item quantity="other">%1$d ediciones</item>
+    </plurals>
+    <string name="catalog_empty">Sin resultados</string>
+    <string name="catalog_release">Fecha: %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d carta en el catálogo</item>
+        <item quantity="other">%1$d cartas en el catálogo</item>
+    </plurals>
+</resources>

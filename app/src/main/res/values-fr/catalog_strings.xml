@@ -1,0 +1,19 @@
+<resources>
+    <string name="catalog_back">Retour</string>
+    <string name="catalog_title">Catalogue des éditions</string>
+    <string name="catalog_notice">Consultation seule. Ne modifie aucune carte ni sélection de votre collection.</string>
+    <string name="catalog_search">Code en MAJUSCULES ou nom</string>
+    <string name="catalog_error">Impossible de charger le catalogue. Vérifiez la connexion et réessayez.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d édition</item>
+        <item quantity="many">%1$d éditions</item>
+        <item quantity="other">%1$d éditions</item>
+    </plurals>
+    <string name="catalog_empty">Aucun résultat</string>
+    <string name="catalog_release">Date : %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d carte du catalogue</item>
+        <item quantity="many">%1$d cartes du catalogue</item>
+        <item quantity="other">%1$d cartes du catalogue</item>
+    </plurals>
+</resources>

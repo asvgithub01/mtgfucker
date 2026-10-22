@@ -1,0 +1,14 @@
+<resources>
+    <string name="detail_read_only">Dati salvati della carta. Sola lettura; non aggiorna prezzi o collezione.</string>
+    <string name="detail_printing">Stampa</string>
+    <string name="detail_set">Espansione e numero</string>
+    <string name="detail_variant">Lingua, finitura e condizione</string>
+    <string name="detail_price">Prezzo salvato (non aggiornato)</string>
+    <string name="detail_sideboard">Mazzi in sideboard</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d registrazione di scansione</item>
+        <item quantity="many">%1$d registrazioni di scansione</item>
+        <item quantity="other">%1$d registrazioni di scansione</item>
+    </plurals>
+    <string name="detail_description">Descrizione salvata</string>
+</resources>

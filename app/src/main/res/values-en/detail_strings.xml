@@ -1,0 +1,13 @@
+<resources>
+    <string name="detail_read_only">Saved data for this card. Read only; does not refresh prices or modify the collection.</string>
+    <string name="detail_printing">Printing</string>
+    <string name="detail_set">Set and number</string>
+    <string name="detail_variant">Language, finish and condition</string>
+    <string name="detail_price">Saved price (not refreshed)</string>
+    <string name="detail_sideboard">Sideboard decks</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d scan record</item>
+        <item quantity="other">%1$d scan records</item>
+    </plurals>
+    <string name="detail_description">Saved description</string>
+</resources>

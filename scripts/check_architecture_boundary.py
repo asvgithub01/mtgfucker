@@ -43,16 +43,28 @@ def violations(root, base=BASE):
 def import_violations(root):
     package = root / "app/src/main/java/io/asv/mtgocr/ocrreader"
     invalid = []
+    prefix = "io.asv.mtgocr.ocrreader"
+    # Inspect qualified references too: imports alone miss aliases, static Java imports
+    # and calls such as io.asv...OcrCaptureActivity.mBiblio in a method body.
+    references = re.compile(r"\bio\.asv\.mtgocr\.ocrreader(?:\.[\w$]+|\.\*)*")
+    literals = re.compile(r'"""[\s\S]*?"""|"(?:\\.|[^"\\])*"|\x27(?:\\.|[^\x27\\])*\x27|//[^\n]*|/\*[\s\S]*?\*/')
     for layer in ("domain", "feature"):
-        for source in (package / layer).rglob("*.kt"):
-            for line in source.read_text(encoding="utf-8").splitlines():
-                if not line.startswith("import "):
-                    continue
-                forbidden = re.search(r"\.data\.|\.legacybridge\.|\.(OcrCaptureActivity|DataUtils|LibraryCatalog)(\s|$)", line)
-                if layer == "domain":
-                    forbidden = forbidden or re.search(r"import (android|androidx)\.|\.model\.|\.feature\.", line)
+        for source in sorted((package / layer).rglob("*")):
+            if source.suffix not in (".kt", ".java"):
+                continue
+            raw = source.read_text(encoding="utf-8")
+            code = literals.sub(lambda match: "\n" * match.group().count("\n"), raw)
+            for number, line in enumerate(code.splitlines(), 1):
+                allowed = ("domain",) if layer == "domain" else ("domain", "feature", "core.designsystem", "R")
+                forbidden = any(
+                    not any(ref == prefix + "." + area or ref.startswith(prefix + "." + area + ".")
+                            for area in allowed)
+                    for ref in references.findall(line)
+                )
+                if layer == "domain" and re.search(r"\bandroidx?\.", line):
+                    forbidden = True
                 if forbidden:
-                    invalid.append(str(source.relative_to(root)) + ": " + line)
+                    invalid.append(str(source.relative_to(root)) + ":" + str(number) + ": " + line.strip())
     return invalid
 
 

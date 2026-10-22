@@ -1,0 +1,17 @@
+<resources>
+    <string name="catalog_back">Zurück</string>
+    <string name="catalog_title">Editionskatalog</string>
+    <string name="catalog_notice">Nur Ansicht. Ändert keine Karten oder Auswahlen in deiner Sammlung.</string>
+    <string name="catalog_search">Code in GROSSBUCHSTABEN oder Name</string>
+    <string name="catalog_error">Katalog konnte nicht geladen werden. Verbindung prüfen und erneut versuchen.</string>
+    <plurals name="catalog_count">
+        <item quantity="one">%1$d Edition</item>
+        <item quantity="other">%1$d Editionen</item>
+    </plurals>
+    <string name="catalog_empty">Keine Ergebnisse</string>
+    <string name="catalog_release">Datum: %1$s</string>
+    <plurals name="catalog_cards">
+        <item quantity="one">%1$d Katalogkarte</item>
+        <item quantity="other">%1$d Katalogkarten</item>
+    </plurals>
+</resources>

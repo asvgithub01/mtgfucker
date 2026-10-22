@@ -245,6 +245,10 @@ persistidas coinciden después de reinicio. Si falla, mantener shell desactivado
 
 ### P4 — Catálogo y detalle
 Depende de P3.
+- [x] Consulta aislada opt-in debug: catálogo de sets Compose con búsqueda compartida,
+  estado restaurable/error/retry; detalle de carta guardada con impresión, arte, precio
+  y evidencias, sin solicitudes de precio ni cambios en colección.
+  Este subconjunto de lectura no activa los comandos pendientes de P3.
 - [ ] SetCollectionActivity, CardSearchActivity, Main2Activity y CardImageActivity
   como wrappers compatibles o destinos Compose.
 - [ ] Un solo selector Compose de ediciones, miniaturas por impresión y búsqueda común.
@@ -273,7 +277,9 @@ Depende de P2–P6.
 - [ ] Retirar Activities/adaptadores/layouts no escáner solo tras demostrar cero
   consumidores legacy; conservar wrappers si los Intents existentes los necesitan.
 - [ ] Convertir Java no protegido restante a Kotlin con pruebas; dejar DTO binarios.
-- [ ] Reglas automáticas de dependencias y prohibición de nuevos accesos UI a estáticos.
+- [x] Reglas automáticas para las nuevas capas domain/feature: límites de imports y
+  referencias cualificadas Kotlin/Java; acceso legacy solo por composición/adaptadores.
+  No sustituye análisis semántico ni revisión de futuras excepciones.
 - [ ] Extraer módulos core/domain/designsystem únicamente si no crea ciclos;
   adaptadores que dependen de la Activity legacy permanecen en app.
 - [ ] Actualizar mapa AGENTS y documentación de excepciones.

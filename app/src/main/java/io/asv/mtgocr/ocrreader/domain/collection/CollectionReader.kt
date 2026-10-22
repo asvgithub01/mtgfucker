@@ -15,7 +15,11 @@ data class CollectionRow(
     val sideboardDecks: List<String>,
     val addedAt: Long = 0,
     val setName: String = "",
-    val setCode: String = ""
+    val setCode: String = "",
+    val collectorNumber: String = "",
+    val description: String = "",
+    val storedPrice: String = "",
+    val evidenceCount: Int = 0
 )
 
 data class CollectionSnapshot(val libraryId: String, val rows: List<CollectionRow>)

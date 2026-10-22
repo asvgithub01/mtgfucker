@@ -1,0 +1,13 @@
+<resources>
+    <string name="detail_read_only">Gespeicherte Kartendaten. Nur Ansicht; aktualisiert keine Preise und ändert die Sammlung nicht.</string>
+    <string name="detail_printing">Druckversion</string>
+    <string name="detail_set">Edition und Nummer</string>
+    <string name="detail_variant">Sprache, Veredelung und Zustand</string>
+    <string name="detail_price">Gespeicherter Preis (nicht aktualisiert)</string>
+    <string name="detail_sideboard">Sideboard-Decks</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d Scan-Eintrag</item>
+        <item quantity="other">%1$d Scan-Einträge</item>
+    </plurals>
+    <string name="detail_description">Gespeicherte Beschreibung</string>
+</resources>

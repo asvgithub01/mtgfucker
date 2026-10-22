@@ -1,0 +1,14 @@
+<resources>
+    <string name="detail_read_only">Données enregistrées de cette carte. Consultation seule ; ne met pas à jour les prix ni la collection.</string>
+    <string name="detail_printing">Impression</string>
+    <string name="detail_set">Édition et numéro</string>
+    <string name="detail_variant">Langue, finition et état</string>
+    <string name="detail_price">Prix enregistré (non actualisé)</string>
+    <string name="detail_sideboard">Decks en sideboard</string>
+    <plurals name="detail_evidence">
+        <item quantity="one">%1$d enregistrement de scan</item>
+        <item quantity="many">%1$d enregistrements de scan</item>
+        <item quantity="other">%1$d enregistrements de scan</item>
+    </plurals>
+    <string name="detail_description">Description enregistrée</string>
+</resources>

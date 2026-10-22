@@ -14,6 +14,7 @@ import io.asv.mtgocr.ocrreader.R
 import io.asv.mtgocr.ocrreader.core.designsystem.CardArtwork
 import io.asv.mtgocr.ocrreader.core.designsystem.LoadStatus
 import io.asv.mtgocr.ocrreader.domain.library.*
+import io.asv.mtgocr.ocrreader.feature.carddetail.CollectionCardDetail
 
 @Composable
 fun LibraryShellScreen(
@@ -27,6 +28,7 @@ fun LibraryShellScreen(
     onBack: () -> Unit,
     onOpenLegacy: (() -> Unit)? = null,
     onOpenTriple: (() -> Unit)? = null,
+    onOpenCatalog: (() -> Unit)? = null,
     artwork: @Composable (String?, Modifier) -> Unit = { url, modifier -> CardArtwork(url, null, modifier) }
 ) {
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -45,6 +47,11 @@ fun LibraryShellScreen(
                 }
                 Text(libraryName, style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.shell_read_only), style = MaterialTheme.typography.bodySmall)
+                onOpenCatalog?.let {
+                    TextButton(onClick = it, modifier = Modifier.testTag("shell-open-catalog")) {
+                        Text(stringResource(R.string.catalog_title))
+                    }
+                }
                 onOpenLegacy?.let {
                     TextButton(onClick = it, enabled = !state.loading && state.failure == null,
                         modifier = Modifier.testTag("shell-open-legacy")) {
@@ -125,14 +132,6 @@ fun LibraryShellScreen(
         }
     }
     if (selected != null && !state.loading && state.failure == null) {
-        AlertDialog(onDismissRequest = { selectedId = null },
-            title = { Text(selected.name) },
-            text = { Column {
-                Text(selected.setName)
-                Text(stringResource(R.string.shell_row_count, selected.quantity))
-                Text("${selected.language} · ${selected.finish.orEmpty()} · ${selected.condition}")
-                Text(stringResource(R.string.shell_read_only))
-            } },
-            confirmButton = { TextButton(onClick = { selectedId = null }) { Text(stringResource(R.string.shell_close)) } })
+        CollectionCardDetail(selected, onDismiss = { selectedId = null })
     }
 }

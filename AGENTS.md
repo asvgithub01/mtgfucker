@@ -648,3 +648,14 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - No llamar servicios de sincronización, StorageData.snapshot, limpieza ni workers desde esta consulta.
   Autosync es una preferencia local, no estado Firebase. Bibliotecas sin Premium se muestran sin abrirlas.
 - Validar con ServicesViewModelTest, ServicesReadIntegrationTest, ServicesComposeTest y ServicesActivityTest.
+
+
+## Endurecimiento P7 sin modificar runtime
+- `check_architecture_boundary.py` además impide dependencias directas de red/persistencia/jobs
+  conocidas en domain/feature, y exige previews privadas solo en el manifiesto debug (sin aliases/filtros).
+  Sigue siendo heurístico: no detecta reflexión, todas las extensiones ni efectos indirectos de APIs.
+- Validar también los manifiestos generados, no solo fuentes:
+  `bash gradlew :app:processDebugMainManifest :app:processReleaseMainManifest --console=plain`
+  y `python scripts/check_architecture_boundary.py --merged-debug app/build/intermediates/merged_manifest/debug/AndroidManifest.xml --merged-release app/build/intermediates/merged_manifest/release/AndroidManifest.xml`.
+  Un archivo generado ausente/ilegible falla; esto no sustituye compilar/probar una APK release.
+- No retirar componentes legacy ni sus recursos mientras los incrementos Compose sigan siendo consultas.

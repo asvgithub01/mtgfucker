@@ -253,3 +253,14 @@ consulta de fotos/evidencias sin modificar trabajos ni archivos.
 - Los tamaños de archivos son informativos y no validación de backups. No deserializar ni reparar.
 - Tests aislados preservan archivos corruptos, backup sin primario, bibliotecas no accesibles sin Premium,
   selección/pin y preferencias desconocidas. La Activity real se recrea/refresca sin modificar datos.
+
+
+## P7: límites verificables y limitaciones
+El guard conserva la misma baseline y única excepción MainActivity.java. Revisa fuentes nuevas
+Kotlin/Java de domain/feature contra referencias cualificadas a WorkManager, Room, DataStore,
+Firebase, clientes HTTP, archivos/red Java/Kotlin, SQLite y APIs de preferencias/descargas.
+Los puertos/adaptadores son la frontera: no prohíbe que los adaptadores legítimos hagan su trabajo.
+Es léxico; no detecta todos los accesos indirectos, reflexión, interpolación o APIs nuevas.
+Las previews deben existir una vez en debug, sin exportación ni intent-filters/aliases; ningún otro
+source set o manifiesto release fusionado debe registrarlas. Los archivos de manifiesto ausentes
+producen error. El guard no verifica todo el comportamiento del manifest merger.

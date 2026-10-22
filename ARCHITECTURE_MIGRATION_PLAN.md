@@ -275,6 +275,9 @@ Depende de P3; integrar después de P5 para validar el recorrido completo.
 Salida: todas las rutas no escáner cubiertas, offline y fallos de red incluidos.
 
 ### P7 — Orden final y endurecimiento
+- [x] Endurecimiento seguro: guard de dependencias externas con efectos en domain/feature;
+  previews privadas debug, sin aliases/filtros y ausentes del manifiesto release generado.
+  Sin cambios runtime ni retirada de funciones. Guard heurístico, no garantía semántica.
 Depende de P2–P6.
 - [ ] Retirar Activities/adaptadores/layouts no escáner solo tras demostrar cero
   consumidores legacy; conservar wrappers si los Intents existentes los necesitan.
@@ -423,3 +426,15 @@ Firebase, workers, descargas ni Activities de servicios. Lee la preferencia loca
 Muestra bibliotecas registradas incluso si Premium no permite abrirlas; no selecciona
 ni crea ninguna. Tamaño/presencia de primario y .bak no certifican integridad ni
 permiten restauración. Moneda usa getter legacy, sin actualización de cotizaciones.
+
+
+### Pendiente tras P7 seguro (no es cierre de migración)
+- Se conservan todas las Activities/layouts/adaptadores legacy y almacenes: no se han
+  demostrado cero consumidores y siguen proporcionando operaciones no migradas.
+- P3: coordinación de guardados legacy y comandos reales; P4: catálogo/búsqueda/detalle editable;
+  P5: importación/revisión/resolución; P6: operaciones Buylist/cloud/almacenamiento/AR/exportación.
+- P7: extracción de módulos sin ciclos, retirada de UI no escáner únicamente tras paridad funcional,
+  regresión completa en dispositivo y validación release. No modificar formatos binarios.
+- Generar y verificar un manifiesto release no equivale a construir, firmar ni probar una APK release.
+- Con la restricción vigente no se resolverá la carrera de persistencia; no activar el shell como
+  sustituto predeterminado ni presentar las fases de consulta como migración completa.

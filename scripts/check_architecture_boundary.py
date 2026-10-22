@@ -7,6 +7,8 @@ Uses Git's clean filters so Windows CRLF alone is not a source change.
 import subprocess
 import sys
 import re
+import argparse
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 BASE = "2d8a4adb17fba50a17f26e260775e165414f4d72"
@@ -40,6 +42,15 @@ def violations(root, base=BASE):
     return changed
 
 
+# Domain/feature must use ports, not bypass adapters through third-party/platform APIs.
+# This is intentionally a lexical guard, not a Kotlin/Java semantic analyser.
+EFFECT_APIS = re.compile(
+    r"\b(?:androidx\.(?:work|room|datastore)|com\.google\.firebase|"
+    r"okhttp3|retrofit2|java\.(?:io|nio\.file|net)|kotlin\.io|"
+    r"android\.(?:database|app\.(?:DownloadManager|job)|content\.(?:SharedPreferences|ContentResolver)))\b"
+)
+
+
 def import_violations(root):
     package = root / "app/src/main/java/io/asv/mtgocr/ocrreader"
     invalid = []
@@ -63,15 +74,72 @@ def import_violations(root):
                 )
                 if layer == "domain" and re.search(r"\bandroidx?\.", line):
                     forbidden = True
+                if EFFECT_APIS.search(line):
+                    forbidden = True
                 if forbidden:
                     invalid.append(str(source.relative_to(root)) + ":" + str(number) + ": " + line.strip())
     return invalid
 
 
+ANDROID = "{http://schemas.android.com/apk/res/android}"
+PACKAGE = "io.asv.mtgocr.ocrreader"
+PREVIEWS = {PACKAGE + "." + name for name in (
+    "BiblioShellActivity", "SetCatalogPreviewActivity", "PhotoPreviewActivity", "ServicesPreviewActivity")}
+
+
+def component_name(name):
+    if name.startswith("."):
+        return PACKAGE + name
+    return PACKAGE + "." + name if "." not in name else name
+
+
+def preview_manifest_violations(path, debug):
+    """Check a source or merged manifest, including aliases to preview activities."""
+    try:
+        manifest = ET.parse(path).getroot()
+    except (ET.ParseError, OSError) as error:
+        return [str(path) + ": cannot read manifest: " + str(error)]
+    errors, seen = [], []
+    for node in manifest.iter():
+        name = component_name(node.get(ANDROID + "name", ""))
+        target = component_name(node.get(ANDROID + "targetActivity", ""))
+        if name not in PREVIEWS and target not in PREVIEWS:
+            continue
+        seen.append(name)
+        if not debug:
+            errors.append(str(path) + ": preview present outside debug: " + name)
+        elif (node.tag != "activity" or name not in PREVIEWS or
+              node.get(ANDROID + "exported") != "false" or node.find("intent-filter") is not None):
+            errors.append(str(path) + ": preview must be a private activity without intent filters: " + name)
+    if debug:
+        for name in sorted(PREVIEWS):
+            if seen.count(name) != 1:
+                errors.append(str(path) + ": expected exactly one private preview: " + name)
+    return errors
+
+
+def preview_source_violations(root):
+    source = root / "app/src"
+    debug = source / "debug/AndroidManifest.xml"
+    errors = preview_manifest_violations(debug, True)
+    for path in sorted(source.rglob("AndroidManifest.xml")):
+        if path != debug:
+            errors += preview_manifest_violations(path, False)
+    return errors
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--merged-debug", type=Path, help="Also validate generated debug manifest")
+    parser.add_argument("--merged-release", type=Path, help="Also validate generated release manifest")
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
-    changed = violations(root) + import_violations(root)
+    changed = violations(root) + import_violations(root) + preview_source_violations(root)
+    if args.merged_debug:
+        changed += preview_manifest_violations(args.merged_debug, True)
+    if args.merged_release:
+        changed += preview_manifest_violations(args.merged_release, False)
     if changed:
-        print("Protected runtime sources changed:\n" + "\n".join(changed))
+        print("Architecture boundary violations:\n" + "\n".join(changed))
         sys.exit(1)
-    print("OK: existing app runtime, scanner modules and shared resources unchanged.")
+    print("OK: protected runtime unchanged; layer and preview boundaries verified.")

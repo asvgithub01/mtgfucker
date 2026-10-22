@@ -2,7 +2,8 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from check_architecture_boundary import violations, import_violations
+from check_architecture_boundary import (violations, import_violations,
+    preview_manifest_violations, preview_source_violations, PREVIEWS)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -118,6 +119,101 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         self.git("commit", "-qm", "shared persistence")
         data.write_text("changed\n")
         model.write_text("changed\n")
+        self.assertEqual(2, len(violations(self.root, "HEAD")))
+
+
+    def test_direct_effect_apis_cannot_bypass_domain_ports(self):
+        apis = ["androidx.work.WorkManager", "androidx.room.Room", "androidx.datastore.core.DataStore",
+                "com.google.firebase.auth.FirebaseAuth", "okhttp3.OkHttpClient", "retrofit2.Retrofit",
+                "java.io.File", "java.nio.file.Files", "java.net.URL", "kotlin.io.path.writeText",
+                "android.content.SharedPreferences", "android.content.ContentResolver",
+                "android.database.sqlite.SQLiteDatabase", "android.app.DownloadManager",
+                "android.app.job.JobScheduler"]
+        for layer in ("domain", "feature"):
+            for api in apis:
+                with self.subTest(layer=layer, api=api):
+                    self.write_layer(layer, "Direct.kt", "import " + api + " as Direct\n")
+                    self.assertTrue(import_violations(self.root))
+                    (self.root / "app/src/main/java/io/asv/mtgocr/ocrreader" / layer / "Direct.kt").unlink()
+
+    def test_effect_fully_qualified_calls_and_static_imports_rejected(self):
+        self.write_layer("feature", "Direct.java", "import static java.nio.file.Files.write;\n"
+                         "class X { Object x = androidx.work.WorkManager.getInstance(null); }\n")
+        self.assertEqual(2, len(import_violations(self.root)))
+
+    def test_pure_utilities_ui_and_effect_names_in_comments_allowed(self):
+        self.write_layer("feature", "Good.kt", "import androidx.lifecycle.ViewModel\n"
+                         "import androidx.compose.runtime.Composable\nimport java.util.Locale\n"
+                         '// java.io.File\nval label = "androidx.work.WorkManager"\n')
+        self.assertEqual([], import_violations(self.root))
+
+    def manifest(self, variant="debug", extra="", exported="false"):
+        path = self.root / "app/src" / variant / "AndroidManifest.xml"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        activities = "".join('<activity android:name="' + name + '" android:exported="' + exported + '"/>'
+                             for name in sorted(PREVIEWS))
+        path.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+                        '<application>' + activities + extra + '</application></manifest>', encoding="utf-8")
+        return path
+
+    def test_private_debug_previews_allowed(self):
+        self.manifest()
+        self.assertEqual([], preview_source_violations(self.root))
+
+    def test_preview_in_release_or_flavor_rejected(self):
+        for variant in ("main", "release", "paid"):
+            with self.subTest(variant=variant):
+                path = self.manifest(variant)
+                self.assertEqual(4, len(preview_manifest_violations(path, False)))
+
+    def test_exported_missing_duplicate_or_filtered_debug_preview_rejected(self):
+        path = self.manifest(exported="true")
+        self.assertEqual(4, len(preview_manifest_violations(path, True)))
+        path = self.manifest(extra='<activity android:name=".PhotoPreviewActivity" android:exported="false"/>')
+        self.assertTrue(preview_manifest_violations(path, True))
+        path.write_text('<manifest/>', encoding="utf-8")
+        self.assertEqual(4, len(preview_manifest_violations(path, True)))
+        path = self.manifest()
+        text = path.read_text(encoding="utf-8").replace('android:exported="false"/>',
+                  'android:exported="false"><intent-filter/></activity>', 1)
+        path.write_text(text, encoding="utf-8")
+        self.assertTrue(preview_manifest_violations(path, True))
+
+    def test_alias_to_preview_is_rejected_even_with_unrelated_name(self):
+        path = self.manifest(extra='<activity-alias android:name=".Shortcut" '
+            'android:targetActivity=".PhotoPreviewActivity" android:exported="false"/>')
+        self.assertTrue(preview_manifest_violations(path, True))
+        self.assertEqual(5, len(preview_manifest_violations(path, False)))
+
+    def test_missing_or_malformed_manifest_fails_closed(self):
+        path = self.root / "missing.xml"
+        self.assertTrue(preview_manifest_violations(path, False))
+        path.write_text("<broken", encoding="utf-8")
+        self.assertTrue(preview_manifest_violations(path, False))
+
+    def test_release_without_preview_is_allowed(self):
+        path = self.root / "release.xml"
+        path.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+                        '<application><activity android:name=".OcrCaptureActivity"/></application></manifest>', encoding="utf-8")
+        self.assertEqual([], preview_manifest_violations(path, False))
+
+
+    def test_source_scan_finds_preview_in_nested_variant(self):
+        self.manifest()
+        self.manifest("paid/release")
+        self.assertEqual(4, len(preview_source_violations(self.root)))
+
+    def test_background_jobs_and_scanner_module_remain_frozen(self):
+        paths = ["app/src/main/java/io/asv/mtgocr/ocrreader/ReliableReviewWorker.kt",
+                 "collectorvision-native/src/main/java/EdScanVerificationWorker.kt"]
+        for name in paths:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("original\n", encoding="utf-8")
+        self.git("add", ".")
+        self.git("commit", "-qm", "protected jobs")
+        for name in paths:
+            (self.root / name).write_text("changed\n", encoding="utf-8")
         self.assertEqual(2, len(violations(self.root, "HEAD")))
 
 

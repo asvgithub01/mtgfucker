@@ -5,7 +5,7 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -24,7 +24,7 @@ class EdScanFastPhotoReplayTest {
         org.junit.Assume.assumeTrue("Push private replay fixtures explicitly",File(dir,"names.json").isFile)
         val names=JSONObject(File(dir,"names.json").readText())
         val report=JSONArray()
-        NativeCollectorVisionEngine.prepareForCamera(ctx).use { engine ->
+        NativeCameraVisionEngine.prepareForCamera(ctx).use { engine ->
             for(file in dir.listFiles().orEmpty().filter { it.extension=="jpg" }.sortedBy { it.name }) {
                 val original=BitmapFactory.decodeFile(file.path)
                 try { for(limit in listOf(2160,1280)) {

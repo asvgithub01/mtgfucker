@@ -161,7 +161,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     private var recognizedCurrency = "eur"
     private val priceCache = mutableMapOf<String, JSONObject>()
     private val priceSources = mutableMapOf<String, String>()
-    private val acceptance = CollectorVisionAcceptanceGate()
+    private val acceptance = CameraVisionAcceptanceGate()
     private var tone: ToneGenerator? = null
     private lateinit var saveStatus: TextView
     private lateinit var previewView: PreviewView
@@ -169,7 +169,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
     private val worker = Executors.newSingleThreadExecutor()
     private val metadataWorker = Executors.newSingleThreadExecutor()
     private val preparing = AtomicBoolean(false)
-    private var engine: NativeCollectorVisionEngine? = null // worker-confined
+    private var engine: NativeCameraVisionEngine? = null // worker-confined
     private var preparation: Future<*>? = null
     private lateinit var frameView: ImageView
     private lateinit var status: TextView
@@ -309,7 +309,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         status.setText(R.string.cv_native_loading)
         preparation = worker.submit {
             try {
-                engine = NativeCollectorVisionEngine.prepare(applicationContext) { message ->
+                engine = NativeCameraVisionEngine.prepare(applicationContext) { message ->
                     runOnUiThread { if (!isDestroyed) status.text = message }
                 }
                 ready = true
@@ -470,7 +470,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
                             .put("readings", attempt.readings).put("minimumScore", attempt.scoreThreshold.toDouble())
                             .put("minimumMargin", attempt.marginThreshold.toDouble()).put("finish", priceFinish)
                             .put("photoEnabled", savePhotos).put("thumbnailEnabled", showThumbnail)
-                            .put("engine", CollectorVisionAssets.VERSION)
+                            .put("engine", CameraVisionAssets.VERSION)
                             .put("history", org.json.JSONArray(debugFrames.toList()))
                         val debugKey = EdScanDebug.accepted(applicationContext, evidence)
                         acceptedDebug(debugKey)
@@ -503,7 +503,7 @@ open class NativeCollectorVisionActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveReliable(attempt: CollectorVisionAcceptanceGate.Attempt, debugKey: String) {
+    private fun saveReliable(attempt: CameraVisionAcceptanceGate.Attempt, debugKey: String) {
         val recognizedAt = SystemClock.elapsedRealtime()
         playScanTone(ToneGenerator.TONE_PROP_BEEP, 80)
         priceScanKey = debugKey

@@ -294,7 +294,7 @@ Salida: definición de terminado completa. Toolchain nuevo en una iniciativa sep
 
 Comandos base (Java 17 y SDK válido; ejecutar desde este worktree):
 
-    bash gradlew :app:testDebugUnitTest :collectorvision-native:testDebugUnitTest :app:assembleDebug --console=plain
+    bash gradlew :app:testDebugUnitTest :cameraVision:testDebugUnitTest :app:assembleDebug --console=plain
     bash gradlew :app:lintDebug --console=plain
     git diff --check
 
@@ -449,7 +449,7 @@ Grafo real de Gradle (los paquetes Kotlin mantienen su nombre):
   ├── :core:domain         Kotlin/JVM: contratos, proyecciones y reglas nuevas
   ├── :core:designsystem   Android/Compose: tema y estado de carga/error
   ├── :liquid-glass       existente, sin cambios
-  └── :collectorvision-native  existente, sin cambios
+  └── :cameraVision  existente, sin cambios
 ```
 
 `core:domain` solo necesita Kotlin/coroutines-core (Flow es API pública); no Android,

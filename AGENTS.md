@@ -52,8 +52,8 @@
   es una comprobación heurística, no un analizador semántico ni sustituto de revisión.
 
 - Aplicación Android nativa, Java + Kotlin; interfaz principalmente XML/Views, con Compose
-  también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `liquid-glass` y `collectorvision-native`.
-- CollectorVision nativo vive aislado en `collectorvision-native/`: CameraX, Cornelius,
+  también habilitado. Módulos Gradle: `app`, `core:domain`, `core:designsystem`, `liquid-glass` y `cameraVision`.
+- CollectorVision nativo vive aislado en `cameraVision/`: CameraX, Cornelius,
   Milo y catálogo ONNX CPU. EdScan (`EdScanDebug.kt` guarda evidencias privadas por escaneo; `PriceCelebration.kt` comparte umbral con OCR; `ScanPartyOptions.kt` acumula niveles inclusivos x1/2/4/8/16 y selecciona un solo MP3; `ScanPartyView.kt` dibuja confeti/globos/trompetas/disco y libera audio al salir; los MP3 `party_*` son aportados por el usuario; `EdScanTuning.kt` permite ajustar mínimos del modo rápido) y su cola persistente están documentados en `EDSCAN_BACKGROUND_JOBS.md` (WorkManager, fotos privadas y OCR revisable; ruso pendiente). Su botón abre el host `CorneliusScanActivity`; el laboratorio
   WebView previo ya no es la ruta activa. Ver `COLLECTORVISION_MOBILE_PLAN.md` y el
   `NOTICE.md` del módulo antes de distribuir. No conectar autoañadido sin validar
@@ -71,7 +71,7 @@
 | Área | Archivos de entrada |
 | --- | --- |
 | Vistas de colección y borrado | `FourCardLayoutManager.kt`: completas2×2, arte1×2/2×3 horizontal; `HoldToDelete.kt`: botón inline, mantener1s y confirmar porID. Lista clásica retirada. |
-| CollectorVision nativo aislado | Host `CorneliusScanActivity.kt` guarda en grupos Cornelius N mediante UUID exacta. Módulo `collectorvision-native/`: `NativeCollectorVisionActivity.kt`, `NativeCollectorVisionEngine.kt`, `CollectorVisionAssets.kt`, `CollectorVisionAcceptanceGate.kt`; preview separado del análisis, sonido solo al reconocer; flags persistentes de filtros/rápido y miniatura; precio Scryfall asíncrono por UUID/acabado. Demo WebView sin entrada activa |
+| CollectorVision nativo aislado | Host `CorneliusScanActivity.kt` guarda en grupos Cornelius N mediante UUID exacta. Módulo `cameraVision/`: `NativeCollectorVisionActivity.kt`, `NativeCameraVisionEngine.kt`, `CameraVisionAssets.kt`, `CameraVisionAcceptanceGate.kt`; preview separado del análisis, sonido solo al reconocer; flags persistentes de filtros/rápido y miniatura; precio Scryfall asíncrono por UUID/acabado. Demo WebView sin entrada activa |
 | Scanner, navegación, colección y sesión | `OcrCaptureActivity.java`; layout `ocr_capture.xml` |
 | POC EdScan + ARCore (cámara única) | `EdScannerArActivity.kt` (host copiado), `EdScannerArPreview.kt`, `EdScannerArSurface.kt`, `EdScannerArOverlay.kt`, `ArCardProjection.kt`, `ArYuvRgb.kt`; consultar `EDSCAN_AR_POC.md`. ARCore proporciona CPU frames al worker de EdScan (usesExternalCamera); un frame en vuelo, cerrar Image tras convertir. Cámara mayoritaria con Opciones plegables; AR opcional, overlay solo FULL_TRACKING. |
 | Nuevo escáner automático de edición | `ExperimentalCardScanActivity.kt`, `OpenCvCardDetector.kt`, `AutoCaptureStability.kt`, `SetSymbolShapeMatcher.kt`, `PrintingLineOcr.kt`, `CardTitleOcr.kt`; layout `activity_experimental_card_scan.xml` |
@@ -85,7 +85,7 @@
 | Identificación experimental por arte | `ArtHashIndex.kt`, `ArtHashMatcher.kt`, `ArtPrintingIndex.kt`, `RapidEditionScanActivity.kt`; índices APK `art_hash_index.bin`/`art_printing_index.bin`, generadores `scripts/build_art_hash_asset.py`/`scripts/build_art_printing_asset.py`, prueba Sony `app/src/androidTest/java/io/asv/mtgocr/ocrreader/ArtHashDeviceEvaluationTest.kt`; corpus y muestras fuera de Git en `../mtgfucker-art-hash-data/` |
 | OCR y cámara | `ScanLanguagePolicy.kt`, `CardTextLanguageDetector.kt`, `MlKitOcrDetectorProcessor.java`, `MlKitTextDetector.java`, `CardScanStability.kt`, `ScannerSettings.kt`, `ui/camera/` |
 | Filas y total de sesión | `ScanSessionAdapter.java`, `ScanSessionCounts.kt`, `ScanSessionSort.kt`, `ScanSessionRefreshCoordinator.kt`; layout `scan_session_item.xml` |
-| Postprocesado y revisión de fotos | `ScanReviewActivity.kt`, `ScanReviewPanel.kt`, `ScanReviewStore.kt`, `ReviewPresentationPolicy.kt`, `ReliableReviewWorker.kt`, `ReliableReviewPolicy.kt` y `ReliableReviewHistory.kt`; verificación en `collectorvision-native/EdScanVerificationWorker.kt` |
+| Postprocesado y revisión de fotos | `ScanReviewActivity.kt`, `ScanReviewPanel.kt`, `ScanReviewStore.kt`, `ReviewPresentationPolicy.kt`, `ReliableReviewWorker.kt`, `ReliableReviewPolicy.kt` y `ReliableReviewHistory.kt`; verificación en `cameraVision/EdScanVerificationWorker.kt` |
 | Navegación de postprocesado | Resumen con información/historial; pestañas Pendientes/Resueltos y filtro de origen independiente por pestaña (`ReviewPresentationPolicy.forTab`). `CollectionScreenBackground` compartido. Resolver reutiliza evidencias; reanálisis solo individual y explícito. |
 | Diagnóstico Premium del detalle | `PostprocessEvidenceStore.kt`/`PostprocessEvidencePanel.kt`: lectura por biblioteca + collectionItemId, sin lanzar workers ni aplicar resultados; `Main2Activity.kt` sincroniza arte de cabecera con la imagen actual al hacer scroll. |
 | Resolución común del idioma Triple | `CardLanguageResolver.kt`, `TriplePhotoLanguageReader.kt`: modelos sobre la foto, decisión compartida con `TripleLanguageFusion`; evidencia `.language-resolution.json`. Replay privado en emulador con `CardLanguagePhotoReplayTest`, nunca sobre el Sony. |
@@ -353,7 +353,7 @@ debe reproducir `decodePhoto` antes de detectar bordes.
   desactivados por defecto y con controles en opciones. Nunca aplicar el voto único a
   OCR/AR ni certificar edición con ese único voto. Cambiar flags invalida evidencia.
 - Rendimiento/total Triple: `TripleSlowFramePolicy`, `TriplePersistencePolicy`,
-  `TripleSessionTotals` y `NativeCollectorVisionEngine.prepareForCamera`. No ampliar la
+  `TripleSessionTotals` y `NativeCameraVisionEngine.prepareForCamera`. No ampliar la
   caducidad de lecturas sin validar contra un fotograma fresco; no sumar solo la galería.
 
 ```sh
@@ -467,7 +467,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Triple v7: `TripleVisualConfirmation` exige dos frames individualmente fuertes (.70/.08), no dos top1 con solo el último fuerte. `triple.confirmation` separa razones/tiempos y `scripts/analyze_triple_confirmation.py` resume p50/p95 y casos lentos. Constantes en `TripleScanPolicy`; no bajar umbrales sin evaluar aciertos. Idioma fijo conserva OCR del título. Prueba de rendimiento sin inventario: `TripleRecognitionPerformanceTest`; runner alternativo con `-PtestApplicationIdOverride=io.asv.mtgocr.ocrreader.symbolv2test` si existe firma antigua.
 
 - Triple captura fresca: `TripleFrameScheduler` arbitra lanes seriales OCR/EdScan;
-  OCR usa `NativeCollectorVisionEngine.detect` sin embeddings previos y geometría
+  OCR usa `NativeCameraVisionEngine.detect` sin embeddings previos y geometría
   `TripleOcrGeometry`. No volver a encadenar OCR al bitmap ya analizado por EdScan.
   `TripleOcrStageGate` evita bloqueo por nombre y doble liberación tardía. Preparación
   del índice no bloquea AR/EdScan. Apariencia conserva evidencia independiente;
@@ -580,7 +580,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - `scripts/build_edfast_region_index.py --work <privado> --model <milo> --workers 16`
   prepara ambos índices completos y reanudables; `evaluate_edfast_global.py` compara el
   corpus privado contra todos los competidores. Empaquetar rows.json, manifest.json,
-  upper.f16.bin y art.f16.bin en collectorvision-native/src/main/assets/edfast-regions
+  upper.f16.bin y art.f16.bin en cameraVision/src/main/assets/edfast-regions
   solo tras completar y verificar. Nunca sustituirlo por el piloto de 110 referencias.
 - `EdScanFastRegionReplayTest` exige seis fotos privadas + expected.json en
   cache/edfast-region-replay del emulador. El modo recortado hace cuatro inferencias
@@ -673,3 +673,14 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Validación añade `:core:domain:test` y `:core:designsystem:lintDebug` a las suites existentes.
   Tests puros movidos: `core/domain/build/test-results/test`; no contarlos dos veces como tests de app.
   Guard inspecciona ambas ubicaciones de dominio durante la transición y el manifiesto del design system.
+
+
+## CameraVision: renombrado compatible
+- Módulo Gradle y carpeta: `:cameraVision` / `cameraVision/`. Clases internas:
+  `CameraVisionAssets`, `CameraVisionMath`, `CameraVisionAcceptanceGate`, `NativeCameraVisionEngine`.
+- El namespace `io.asv.collectorvision`, nombres de Activities/workers, IDs XML y rutas
+  privadas históricas se mantienen por compatibilidad. No sustituir esas cadenas masivamente.
+- El origen upstream sigue siendo CollectorVision: NOTICE/LICENSE, URLs de modelos y SHA
+  permanecen intactos. No afirmar que el cambio de nombre elimina esa dependencia de origen.
+- Guard permite únicamente los renombres léxicos enumerados en `scripts/vision_rename_contract.py`;
+  el resto del código protegido debe coincidir con baseline. No es una exención funcional.

@@ -30,11 +30,11 @@ class TripleHybridIntegrationTest {
         try {
             ActivityScenario.launch<TripleScanActivity>(Intent(context,TripleScanActivity::class.java)
                 .putExtra("triple_diagnostic_only",true)).use { scene ->
-                var engine:NativeCollectorVisionEngine?=null;var index:FastRegionIndex?=null
+                var engine:NativeCameraVisionEngine?=null;var index:FastRegionIndex?=null
                 val deadline=SystemClock.elapsedRealtime()+120000
                 while((engine==null || index==null) && SystemClock.elapsedRealtime()<deadline) {
                     scene.onActivity { a ->
-                        engine=field("engine").get(a) as NativeCollectorVisionEngine?
+                        engine=field("engine").get(a) as NativeCameraVisionEngine?
                         index=field("hybridIndex").get(a) as FastRegionIndex?
                     }
                     if(engine==null || index==null) Thread.sleep(200)

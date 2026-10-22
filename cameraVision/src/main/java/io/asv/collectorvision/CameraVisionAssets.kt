@@ -8,7 +8,7 @@ import java.net.URL
 import java.security.MessageDigest
 
 /** Pinned upstream stable release. Never silently mix a new model with an old catalog. */
-object CollectorVisionAssets {
+object CameraVisionAssets {
     private const val BASE_VERSION = "milo1-scryfall-mtg-2026-07-09-cornelius2.12"
     const val VERSION = "$BASE_VERSION-fra-frc-spg20260928"
     const val FRA_EMBEDDINGS = "fra-20260928-embeddings.f16.bin"

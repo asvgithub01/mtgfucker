@@ -26,7 +26,7 @@ class EdScanFastAutoReplayTest {
         val report=JSONArray()
         val files=folder.listFiles().orEmpty().filter { it.extension=="jpg" }.sortedBy { it.name }
         assertEquals(6,files.size)
-        NativeCollectorVisionEngine.prepareForCamera(context).use { engine ->
+        NativeCameraVisionEngine.prepareForCamera(context).use { engine ->
             engine.configureFast(index,FastRegion.UPPER) // preload rescue outside camera timing
             for(file in files) {
                 val auto=EdScanFastAutoPolicy();val confidence=EdScanFastPolicy()
@@ -77,7 +77,7 @@ class EdScanFastAutoReplayTest {
         val index=FastRegionIndex(context)
         val auto=EdScanFastAutoPolicy();val confidence=EdScanFastPolicy()
         val report=JSONArray()
-        NativeCollectorVisionEngine.prepareForCamera(context).use { engine ->
+        NativeCameraVisionEngine.prepareForCamera(context).use { engine ->
             engine.configureFast(index,FastRegion.ART);engine.configureFast(index,FastRegion.UPPER)
             val cases=listOf(
                 Triple(File(context.cacheDir,"edfast-region-replay/1792148312327.jpg"),"cyclopean mummy",listOf("art","art")),

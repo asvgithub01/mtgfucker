@@ -6,7 +6,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 internal data class EdScanTuning(val score: Float = .55f, val margin: Float = .04f, val readings: Int = 2) {
-    fun apply(gate: CollectorVisionAcceptanceGate) = gate.configureFast(score, margin, readings)
+    fun apply(gate: CameraVisionAcceptanceGate) = gate.configureFast(score, margin, readings)
     fun description(context: Context): String = context.getString(R.string.edscan_tuning_values, score, margin, readings)
     companion object {
         fun read(context: Context): EdScanTuning {

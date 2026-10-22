@@ -5,7 +5,7 @@ import android.os.Bundle
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import org.json.JSONArray
 import org.json.JSONObject
@@ -33,7 +33,7 @@ class TripleRecognitionPerformanceTest {
         assertTrue(scope.contains(meta.getString("scryfallId")))
         val report=JSONArray()
         try {
-            NativeCollectorVisionEngine.prepare(context).use { engine ->
+            NativeCameraVisionEngine.prepare(context).use { engine ->
                 engine.scan(card,scope) // warm-up excluded
                 for(selected in listOf(false,true)) {
                     val confirmation=TripleVisualConfirmation()
@@ -55,7 +55,7 @@ class TripleRecognitionPerformanceTest {
                 }
                 assertTrue(engine.scan(card,emptySet()).hits.isEmpty()) // empty scope never expands globally
             }
-            NativeCollectorVisionEngine.prepareForCamera(context).use { engine ->
+            NativeCameraVisionEngine.prepareForCamera(context).use { engine ->
                 engine.scan(card,scope)
                 repeat(16) { index ->
                     val started=SystemClock.elapsedRealtime()

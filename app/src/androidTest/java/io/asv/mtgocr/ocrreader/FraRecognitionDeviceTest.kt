@@ -8,7 +8,7 @@ import java.io.File
 class FraRecognitionDeviceTest {
     @Test fun nativePipelineReportsReferenceScenesWithoutCollectionWrites() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
-        NativeCollectorVisionEngine.prepare(context).use { engine ->
+        NativeCameraVisionEngine.prepare(context).use { engine ->
             for(id in listOf("c3ff8dd3-88a8-49dc-a59b-e2748680623c","730d8c28-1e58-4b8e-89e9-445d154d2e83","5e77fbf0-9d1f-4e7d-a02e-43065d11b0d9")) {
                 val photo=BitmapFactory.decodeFile(File(context.noBackupFilesDir,"fra-replay/$id.jpg").path)
                 assertNotNull("Missing private reference fixture",photo)

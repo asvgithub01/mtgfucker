@@ -13,7 +13,7 @@ class NativeCollectorVisionEngineDeviceTest {
         val args=InstrumentationRegistry.getArguments()
         assumeTrue("Explicit asset-download opt-in required",args.getString("collectorvisionAssets")=="true")
         val context=InstrumentationRegistry.getInstrumentation().targetContext
-        NativeCollectorVisionEngine.prepare(context).use { engine ->
+        NativeCameraVisionEngine.prepare(context).use { engine ->
             val bitmap=Bitmap.createBitmap(640,880,Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(android.graphics.Color.GRAY)
             try {

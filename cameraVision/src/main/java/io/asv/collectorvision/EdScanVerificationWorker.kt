@@ -30,7 +30,7 @@ class EdScanVerificationWorker(context: Context, params: WorkerParameters) : Cor
         try {
             val metadata = JSONObject(input.readText())
             val expected = metadata.optString("id")
-            NativeCollectorVisionEngine.prepare(applicationContext).use { engine ->
+            NativeCameraVisionEngine.prepare(applicationContext).use { engine ->
                 EdScanInferencePriority.awaitIdle()
                 val result = engine.scan(bitmap)
                 val best = result.hits.firstOrNull()

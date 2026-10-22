@@ -1,4 +1,4 @@
-"""Conservative P0 gate: existing runtime sources stay byte-identical to master baseline.
+"""Conservative P0 gate: existing runtime sources stay identical to master apart from the explicit identifier-only rename.
 
 New files are allowed. MainActivity.java alone is replaced in P2; future non-scanner
 migrations need explicit reviewed exceptions, never wildcard scanner exemptions.
@@ -7,6 +7,8 @@ Uses Git's clean filters so Windows CRLF alone is not a source change.
 import subprocess
 import sys
 import re
+import hashlib
+from vision_rename_contract import renamed_source, renamed_path
 import argparse
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -32,11 +34,15 @@ def violations(root, base=BASE):
         if not path.startswith(PROTECTED) or path in EXCEPTIONS:
             continue
         expected = metadata.split()[2].decode("ascii")
-        target = root / path
+        target = root / renamed_path(path)
         if not target.is_file():
             changed.append(path + " (missing)")
         else:
             actual = git(root, "hash-object", "--path=" + path, "--", str(target)).decode().strip()
+            if actual != expected and path.endswith((".kt", ".java")):
+                original = git(root, "show", base + ":" + path)
+                renamed = renamed_source(original.decode("utf-8")).encode("utf-8")
+                expected = hashlib.sha1(b"blob " + str(len(renamed)).encode() + b"\0" + renamed).hexdigest()
             if actual != expected:
                 changed.append(path + " (modified)")
     return changed
@@ -148,4 +154,4 @@ if __name__ == "__main__":
     if changed:
         print("Architecture boundary violations:\n" + "\n".join(changed))
         sys.exit(1)
-    print("OK: protected runtime unchanged; layer and preview boundaries verified.")
+    print("OK: protected runtime matches baseline plus approved identifier rename; boundaries verified.")

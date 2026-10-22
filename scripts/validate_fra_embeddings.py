@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image,ImageEnhance
 import onnxruntime as ort
-ROOT=Path(__file__).resolve().parents[1];WORK=ROOT/'build/reality-fracture-indices';BASE=ROOT/'build/collectorvision-native-assets';EXTRA=ROOT/'collectorvision-native/src/main/assets/edscan-fra'
+ROOT=Path(__file__).resolve().parents[1];WORK=ROOT/'build/reality-fracture-indices';BASE=ROOT/'build/collectorvision-native-assets';EXTRA=ROOT/'cameraVision/src/main/assets/edscan-fra'
 base_ids=json.loads((BASE/'scryfall-mtg-card-ids.json').read_text());extra_ids=json.loads((EXTRA/'fra-20260928-card-ids.json').read_text());ids=base_ids+extra_ids
 vectors=np.concatenate([np.fromfile(BASE/'scryfall-mtg-embeddings.f16.bin',dtype='<f2').reshape(-1,128),np.fromfile(EXTRA/'fra-20260928-embeddings.f16.bin',dtype='<f2').reshape(-1,128)]).astype(np.float32)
 assert len(ids)==len(vectors) and len(ids)==len(set(ids)) and np.isfinite(vectors).all()

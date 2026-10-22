@@ -8,7 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.exifinterface.media.ExifInterface
 import io.asv.collectorvision.EdScanInferencePriority
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import io.asv.mtgocr.ocrreader.data.CardEditionOption
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import java.util.concurrent.CountDownLatch
@@ -29,7 +29,7 @@ object PhotoCardAnalyzer {
                 val detections = mutableListOf<Detection>()
                 try {
                     runBlocking { EdScanInferencePriority.awaitIdle() }
-                    NativeCollectorVisionEngine.prepareForCamera(app).use { engine ->
+                    NativeCameraVisionEngine.prepareForCamera(app).use { engine ->
                         for (tile in PhotoDetectionGeometry.tiles()) {
                             runBlocking { EdScanInferencePriority.awaitIdle() }
                             val x = (tile.left * bitmap.width).toInt()

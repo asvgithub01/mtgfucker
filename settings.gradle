@@ -1,4 +1,4 @@
-include ':app', ':liquid-glass', ':collectorvision-native'
+include ':app', ':liquid-glass', ':cameraVision'
 
 include ':core:domain'
 include ':core:designsystem'

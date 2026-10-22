@@ -2,7 +2,7 @@
 package io.asv.collectorvision
 
 /** Visual-confidence policy, not proof of printing/language/finish. Thread safe for host callbacks. */
-class CollectorVisionAcceptanceGate(
+class CameraVisionAcceptanceGate(
     private val requiredReadings: Int = 3,
     private val minScore: Float = .70f,
     private val minMargin: Float = .08f,

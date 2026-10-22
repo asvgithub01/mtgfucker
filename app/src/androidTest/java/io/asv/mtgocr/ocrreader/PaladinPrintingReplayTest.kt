@@ -15,7 +15,7 @@ class PaladinPrintingReplayTest {
         val ctx=InstrumentationRegistry.getInstrumentation().targetContext
         val index=FastRegionIndex(ctx)
         val output=JSONArray()
-        NativeCollectorVisionEngine.prepareForCamera(ctx).use { engine ->
+        NativeCameraVisionEngine.prepareForCamera(ctx).use { engine ->
             engine.configureFast(index,FastRegion.UPPER)
             for(name in listOf("24.jpg","27.jpg")) {
                 val raw=BitmapFactory.decodeFile(File(dir,name).path)

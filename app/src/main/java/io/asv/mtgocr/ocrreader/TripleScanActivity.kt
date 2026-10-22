@@ -13,7 +13,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import io.asv.collectorvision.EdScanPerf
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import io.asv.mtgocr.ocrreader.data.CardRepository
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -55,7 +55,7 @@ class TripleScanActivity:AppCompatActivity() {
     @Volatile private var preferGlobalUntil=0L
     private var lastDisplayedId=""
     private var lastLookupFailureAt=0L
-    private var engine:NativeCollectorVisionEngine?=null
+    private var engine:NativeCameraVisionEngine?=null
     private var hybridIndex:io.asv.collectorvision.FastRegionIndex?=null
     private var hybridPolicy=TripleCropTrialPolicy() // worker only, never authorizes a save
     @Volatile private var singleArtReading=false
@@ -341,7 +341,7 @@ class TripleScanActivity:AppCompatActivity() {
         if(engine!=null || closed) return@execute
         try {
             engine=EdScanPerf.once("triple.engineInit") {
-                val prepared=NativeCollectorVisionEngine.prepareForCamera(applicationContext)
+                val prepared=NativeCameraVisionEngine.prepareForCamera(applicationContext)
                 try {
                     val index=io.asv.collectorvision.FastRegionIndex(applicationContext)
                     require(index.available) { "Hybrid visual index unavailable" }

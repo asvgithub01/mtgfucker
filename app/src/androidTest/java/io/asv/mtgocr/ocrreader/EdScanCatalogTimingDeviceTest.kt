@@ -19,7 +19,7 @@ class EdScanCatalogTimingDeviceTest {
         try {
             // ABBA order reduces bias from warm-up and thermal drift.
             for(full in listOf(false,true,true,false)) {
-                NativeCollectorVisionEngine.prepareCatalogComparison(context,full).use { engine ->
+                NativeCameraVisionEngine.prepareCatalogComparison(context,full).use { engine ->
                     repeat(2) { engine.scan(scene) }
                     repeat(6) {
                         val r=engine.scan(scene); assertTrue(r.present)

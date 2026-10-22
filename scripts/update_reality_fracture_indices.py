@@ -67,7 +67,7 @@ for index,card in enumerate(cards):
         artrows.append(dict(key=card['id']+(f'-{fi}' if len(faces)>1 else ''),name=card['name'],set='fra',collector_number=card['collector_number'],illustration_id=illustration,phash=f'{ph:016x}',dhash=f'{dh:016x}'))
     if index%25==0:print(f'{index+1}/{len(cards)} cards',flush=True)
 assert not skipped,skipped
-out=ROOT/'collectorvision-native/src/main/assets/edscan-fra';out.mkdir(parents=True,exist_ok=True)
+out=ROOT/'cameraVision/src/main/assets/edscan-fra';out.mkdir(parents=True,exist_ok=True)
 binfile=out/'fra-20260928-embeddings.f16.bin';idfile=out/'fra-20260928-card-ids.json'
 np.asarray(vectors,dtype='<f2').tofile(binfile)
 idfile.write_text(json.dumps(ids,separators=(',',':')),encoding='utf8')

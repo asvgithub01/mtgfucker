@@ -11,7 +11,7 @@ root=Path(__file__).resolve().parents[1];work=root/'build/collector-coverage'
 model=root/'build/collectorvision-native-assets/milo.onnx'
 assert hashlib.sha256(model.read_bytes()).hexdigest()=='bd13d8d60383c69da04dce261f32e93fdaeaa8fd618fbc991e7385f71b3d45df'
 base=set(json.loads((root/'build/collectorvision-native-assets/scryfall-mtg-card-ids.json').read_text()))
-assets=root/'collectorvision-native/src/main/assets/edscan-fra'
+assets=root/'cameraVision/src/main/assets/edscan-fra'
 base.update(json.loads((assets/'fra-20260928-card-ids.json').read_text()))
 opts=ort.SessionOptions();opts.intra_op_num_threads=4
 session=ort.InferenceSession(str(model),sess_options=opts,providers=['CPUExecutionProvider'])

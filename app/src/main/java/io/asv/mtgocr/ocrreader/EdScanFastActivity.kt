@@ -13,7 +13,7 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import io.asv.collectorvision.EdScanPerf
 import io.asv.collectorvision.FastRegion
 import io.asv.collectorvision.FastRegionIndex
@@ -28,7 +28,7 @@ class EdScanFastActivity : AppCompatActivity() {
     private val autoPolicy=EdScanFastAutoPolicy()
     @Volatile private var automatic=true
     private val snapshot=AtomicBoolean(false)
-    private var engine:NativeCollectorVisionEngine?=null
+    private var engine:NativeCameraVisionEngine?=null
     private lateinit var trace:TripleScanTrace
     private lateinit var catalog:EdScanFastCatalog
     private lateinit var lookup:TripleCardLookup
@@ -122,7 +122,7 @@ class EdScanFastActivity : AppCompatActivity() {
         setContentView(root);CollectionScreenBackground.install(this)
         worker.execute {
             try {
-                engine=NativeCollectorVisionEngine.prepareForCamera(applicationContext)
+                engine=NativeCameraVisionEngine.prepareForCamera(applicationContext)
                 val index=FastRegionIndex(applicationContext)
                 regionIndex=index;catalog.referenceIndex=index
                 // Cache both rescue matrices before binding camera: cycling must not reload them per frame.

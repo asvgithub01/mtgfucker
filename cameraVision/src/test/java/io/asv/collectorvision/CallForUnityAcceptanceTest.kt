@@ -4,7 +4,7 @@ import org.junit.Test
 /** Scores from Milo on Scryfall reference images, not physical accuracy claims. */
 class CallForUnityAcceptanceTest {
     @Test fun sameCardAmbiguitySavesTopPrintingProvisionallyAndLocksTheFamily() {
-        val gate=CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        val gate=CameraVisionAcceptanceGate().apply { setFiltersEnabled(false) }
         val identities=mapOf("aer" to "call for unity", "promo" to "call for unity")
         val hits=listOf(Hit("aer",.90f),Hit("promo",.89f),Hit("other",.50f))
         assertNull(gate.observe(true,hits,identities))
@@ -20,7 +20,7 @@ class CallForUnityAcceptanceTest {
     }
     @Test fun unknownOrDifferentCardAndTruncatedAmbiguityNeverAutoSave() {
         val hits=listOf(Hit("aer",.90f),Hit("promo",.89f),Hit("other",.50f))
-        val gate=CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        val gate=CameraVisionAcceptanceGate().apply { setFiltersEnabled(false) }
         repeat(4) { assertNull(gate.observe(true,hits,mapOf("aer" to "one","promo" to "two"))) }
         repeat(4) { assertNull(gate.observe(true,hits,mapOf("aer" to "one"))) }
         val allClose=listOf(Hit("aer",.90f),Hit("promo",.89f),Hit("third",.88f))
@@ -28,7 +28,7 @@ class CallForUnityAcceptanceTest {
     }
 
     @Test fun normalAndPrereleaseAreTooSimilarForDefaultPrintingMargin() {
-        val gate=CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        val gate=CameraVisionAcceptanceGate().apply { setFiltersEnabled(false) }
         val hits=listOf(Hit("aer-9",.9991435f),Hit("paer-9s",.9796714f))
         repeat(4) { assertNull(gate.observe(true,hits)) }
         assertNotNull(gate.unresolvedMargin(true,hits))
@@ -43,7 +43,7 @@ class CallForUnityAcceptanceTest {
         assertNull(gate.unresolvedMargin(true,hits))
     }
     @Test fun distinctCommanderArtworkPassesDefaultMargin() {
-        val gate=CollectorVisionAcceptanceGate().apply { setFiltersEnabled(false) }
+        val gate=CameraVisionAcceptanceGate().apply { setFiltersEnabled(false) }
         assertNotNull(gate.observe(true,listOf(Hit("ltc-163",.9994866f),Hit("other",.5975418f))))
     }
 }

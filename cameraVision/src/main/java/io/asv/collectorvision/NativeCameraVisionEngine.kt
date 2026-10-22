@@ -17,13 +17,13 @@ import java.nio.FloatBuffer
 import kotlin.math.min
 
 /** Blocking CPU pipeline. Own on a single worker; never call on the camera/UI thread. */
-class NativeCollectorVisionEngine private constructor(private val directory: File, includeFra: Boolean, cameraFriendly:Boolean=false) : AutoCloseable {
+class NativeCameraVisionEngine private constructor(private val directory: File, includeFra: Boolean, cameraFriendly:Boolean=false) : AutoCloseable {
     private val env = OrtEnvironment.getEnvironment()
     private val detector: OrtSession
     private val embedder: OrtSession
     private val catalog: ShortArray
     private val ids: List<String>
-    private val halfLookup = FloatArray(65536) { CollectorVisionMath.half(it) }
+    private val halfLookup = FloatArray(65536) { CameraVisionMath.half(it) }
     private var closed = false
     init {
         check(OpenCVLoader.initLocal()) { "OpenCV initialization failed" }
@@ -42,14 +42,14 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         } finally { options.close() }
         try {
             val baseBytes = File(directory,"scryfall-mtg-embeddings.f16.bin").readBytes()
-            val extraBytes = File(directory,CollectorVisionAssets.FRA_EMBEDDINGS).readBytes()
+            val extraBytes = File(directory,CameraVisionAssets.FRA_EMBEDDINGS).readBytes()
             val baseIds=JSONArray(File(directory,"scryfall-mtg-card-ids.json").readText())
-            val extraIds=JSONArray(File(directory,CollectorVisionAssets.FRA_IDS).readText())
+            val extraIds=JSONArray(File(directory,CameraVisionAssets.FRA_IDS).readText())
             require(baseIds.length()==109711 && baseBytes.size==baseIds.length()*128*2)
-            require(extraIds.length()==CollectorVisionAssets.FRA_ROWS && extraBytes.size==extraIds.length()*128*2)
-            val collectorBytes = File(directory,CollectorVisionAssets.COLLECTOR_EMBEDDINGS).readBytes()
-            val collectorIds = JSONArray(File(directory,CollectorVisionAssets.COLLECTOR_IDS).readText())
-            require(collectorIds.length() == CollectorVisionAssets.COLLECTOR_ROWS && collectorBytes.size == collectorIds.length()*128*2)
+            require(extraIds.length()==CameraVisionAssets.FRA_ROWS && extraBytes.size==extraIds.length()*128*2)
+            val collectorBytes = File(directory,CameraVisionAssets.COLLECTOR_EMBEDDINGS).readBytes()
+            val collectorIds = JSONArray(File(directory,CameraVisionAssets.COLLECTOR_IDS).readText())
+            require(collectorIds.length() == CameraVisionAssets.COLLECTOR_ROWS && collectorBytes.size == collectorIds.length()*128*2)
             val bytes=if(includeFra) baseBytes+extraBytes+collectorBytes else baseBytes
             val shorts=ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
             catalog=ShortArray(shorts.remaining()).also { shorts.get(it) }
@@ -60,14 +60,14 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         } catch (error: Throwable) { detector.close(); embedder.close(); throw error }
     }
     companion object {
-        fun prepareForCamera(context:Context):NativeCollectorVisionEngine =
-            NativeCollectorVisionEngine(CollectorVisionAssets.prepare(context) {},true,true)
-        fun prepareCatalogComparison(context: Context, includeFra: Boolean): NativeCollectorVisionEngine =
-            NativeCollectorVisionEngine(CollectorVisionAssets.prepare(context) {},includeFra)
-        fun prepare(context: Context, onProgress: (String)->Unit = {}): NativeCollectorVisionEngine {
-            val directory=CollectorVisionAssets.prepare(context,onProgress)
+        fun prepareForCamera(context:Context):NativeCameraVisionEngine =
+            NativeCameraVisionEngine(CameraVisionAssets.prepare(context) {},true,true)
+        fun prepareCatalogComparison(context: Context, includeFra: Boolean): NativeCameraVisionEngine =
+            NativeCameraVisionEngine(CameraVisionAssets.prepare(context) {},includeFra)
+        fun prepare(context: Context, onProgress: (String)->Unit = {}): NativeCameraVisionEngine {
+            val directory=CameraVisionAssets.prepare(context,onProgress)
             onProgress("ONNX · CPU")
-            return NativeCollectorVisionEngine(directory,true)
+            return NativeCameraVisionEngine(directory,true)
         }
     }
     private var fastIndex:FastRegionIndex?=null
@@ -101,7 +101,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             searchRows=VisualSearchScope.rows(ids,allowedIds)
         }
         val detected=detect(bitmap)
-        val detection=if(assumeUpright) detected.copy(corners=CollectorVisionMath.uprightCorners(detected.corners)) else detected
+        val detection=if(assumeUpright) detected.copy(corners=CameraVisionMath.uprightCorners(detected.corners)) else detected
         // Optional geometry-only preview; does not authorize recognition or alter the pipeline.
         onDetected?.invoke(detection)
         if(!detection.present) return detection
@@ -116,20 +116,20 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
             try { return scanRegions(crop,detection,recStart,fastCropOnly,assumeUpright) } finally { crop.recycle() }
         }
         val hits=try {
-            val normal=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.normal") { run(embedder,crop,448,listOf("embedding")) }[0]))
+            val normal=search(CameraVisionMath.normalize(EdScanPerf.measure("engine.embed.normal") { run(embedder,crop,448,listOf("embedding")) }[0]))
             if(assumeUpright) normal else {
             // Shortest-edge canonicalization can reverse the card. Test both orientations.
             val matrix=android.graphics.Matrix().apply { postRotate(180f) }
             val rotated=Bitmap.createBitmap(crop,0,0,crop.width,crop.height,matrix,true)
             try {
-                val upsideDown=search(CollectorVisionMath.normalize(EdScanPerf.measure("engine.embed.rotated") { run(embedder,rotated,448,listOf("embedding")) }[0]))
-                photoRotated = CollectorVisionMath.prefersRotated(normal, upsideDown)
+                val upsideDown=search(CameraVisionMath.normalize(EdScanPerf.measure("engine.embed.rotated") { run(embedder,rotated,448,listOf("embedding")) }[0]))
+                photoRotated = CameraVisionMath.prefersRotated(normal, upsideDown)
                 identitySearch?.merge(normal+upsideDown) ?: (normal+upsideDown).groupBy { it.cardId }.map { (_,values)->values.maxBy { it.score } }
                     .sortedByDescending { it.score }.take(8)
             } finally { if (rotated !== crop) rotated.recycle() }
             }
         } finally { crop.recycle() }
-        return ScanResult(CollectorVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0,
+        return ScanResult(CameraVisionMath.photoCorners(corners, photoRotated),true,sharpness,hits,detectionMs,SystemClock.elapsedRealtime()-recStart, if (photoRotated) 180 else 0,
             searchNanos/1000000,searchRows?.size ?: ids.size)
     }
     /** Fresh OCR geometry without running either embedding orientation or catalog search. */
@@ -138,9 +138,9 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         check(!closed)
         val start=SystemClock.elapsedRealtime()
         val outputs=EdScanPerf.measure("engine.detect") { run(detector,bitmap,384,listOf("corners","sharpness")) }
-        val corners=CollectorVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
+        val corners=CameraVisionMath.ordered(outputs[0],bitmap.width,bitmap.height)
         val sharpness=outputs[1].single()
-        val present=sharpness.isFinite() && sharpness>=.02f && CollectorVisionMath.usable(corners)
+        val present=sharpness.isFinite() && sharpness>=.02f && CameraVisionMath.usable(corners)
         return ScanResult(corners,present,sharpness,emptyList(),SystemClock.elapsedRealtime()-start,0)
     }
     private fun run(session: OrtSession, bitmap: Bitmap, size: Int, names: List<String>): List<FloatArray> {
@@ -238,11 +238,11 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
                 val left=Math.round(roi[0]*oriented.width).toInt();val top=Math.round(roi[1]*oriented.height).toInt()
                 val right=Math.round(roi[2]*oriented.width).toInt();val bottom=Math.round(roi[3]*oriented.height).toInt()
                 val region=Bitmap.createBitmap(oriented,left,top,right-left,bottom-top)
-                try { return searchLane(CollectorVisionMath.normalize(run(embedder,region,448,listOf("embedding"))[0]),full) }
+                try { return searchLane(CameraVisionMath.normalize(run(embedder,region,448,listOf("embedding"))[0]),full) }
                 finally { if(region!==oriented) region.recycle();if(oriented!==crop) oriented.recycle() }
             }
             val normal=orientation(false);val rotated=if(assumeUpright) emptyList() else orientation(true)
-            return Lane(ranking.merge(normal+rotated),CollectorVisionMath.prefersRotated(normal,rotated))
+            return Lane(ranking.merge(normal+rotated),CameraVisionMath.prefersRotated(normal,rotated))
         }
         val fullStart=SystemClock.elapsedRealtime()
         val full=if(cropOnly) Lane(emptyList(),false) else lane(true)
@@ -260,7 +260,7 @@ class NativeCollectorVisionEngine private constructor(private val directory: Fil
         val conflict=choice.conflict
         val chosen=if(choice.full) full else region
         val diagnostic="uprightOnly=$assumeUpright orientations=${if(assumeUpright) 1 else 2} fullTop=${full.hits.firstOrNull()} fullRival=${ranking.rival(full.hits)} fullMs=${cropStart-fullStart} cropTop=${region.hits.firstOrNull()} cropRival=${ranking.rival(region.hits)} cropMs=$cropMs strong=$fullStrong/$regionStrong conflict=$conflict"
-        return ScanResult(CollectorVisionMath.photoCorners(detection.corners,chosen.rotated),true,detection.sharpness,
+        return ScanResult(CameraVisionMath.photoCorners(detection.corners,chosen.rotated),true,detection.sharpness,
             if(conflict) emptyList() else chosen.hits,detection.detectionMs,SystemClock.elapsedRealtime()-start,
             if(chosen.rotated) 180 else 0,searchNanos/1000000,searchRows?.size ?: ids.size,
             regionConflict=conflict,regionDiagnostics=diagnostic,comparisonRegion=if(choice.full) "full" else fastRegion.key)

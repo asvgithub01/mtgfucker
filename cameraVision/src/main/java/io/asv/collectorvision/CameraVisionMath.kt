@@ -12,7 +12,7 @@ data class ScanResult(val corners: List<Corner>, val present: Boolean, val sharp
     val searchMs: Long = 0, val searchedRows: Int = 0,
     val regionConflict:Boolean=false,val regionDiagnostics:String="",val comparisonRegion:String="full")
 
-internal object CollectorVisionMath {
+internal object CameraVisionMath {
     fun photoCorners(corners: List<Corner>, rotated: Boolean): List<Corner> =
         if (rotated && corners.size == 4) corners.drop(2) + corners.take(2) else corners
     fun prefersRotated(normal: List<Hit>, rotated: List<Hit>): Boolean =

@@ -2,6 +2,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
     preview_manifest_violations, preview_source_violations, PREVIEWS)
 
@@ -213,7 +214,10 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         self.git("add", ".")
         self.git("commit", "-qm", "protected jobs")
         for name in paths:
-            (self.root / name).write_text("changed\n", encoding="utf-8")
+            target = self.root / renamed_path(name)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            (self.root / name).rename(target) if target != self.root / name else None
+            target.write_text("changed\n", encoding="utf-8")
         self.assertEqual(2, len(violations(self.root, "HEAD")))
 
 
@@ -245,6 +249,29 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         target.write_text('<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
                           '<application><activity android:name=".PhotoPreviewActivity"/></application></manifest>', encoding="utf-8")
         self.assertEqual(1, len(preview_source_violations(self.root)))
+
+
+    def test_camera_rename_preserves_literals_comments_and_worker_names(self):
+        before = ('val engine = NativeCollectorVisionEngine.prepare(context)\n'
+                  'val path = "collectorvision-native/version"\n'
+                  'val url = "https://hanclinto.github.io/CollectorVision/assets/model"\n'
+                  '// CollectorVisionAssets provenance\n'
+                  'class EdScanVerificationWorker : CoroutineWorker()\n')
+        after = renamed_source(before)
+        self.assertEqual(before.replace('NativeCollectorVisionEngine', 'NativeCameraVisionEngine'), after)
+
+    def test_identifier_rename_does_not_allow_behavioral_or_storage_changes(self):
+        old = self.root / 'collectorvision-native/src/main/CollectorVisionAssets.kt'
+        old.parent.mkdir(parents=True)
+        old.write_text('object CollectorVisionAssets { val path = "collectorvision-native/v1" }\n', encoding='utf-8')
+        self.git('add', '.'); self.git('commit', '-qm', 'assets')
+        new = self.root / renamed_path(old.relative_to(self.root).as_posix())
+        new.parent.mkdir(parents=True)
+        old.rename(new)
+        new.write_text(renamed_source(new.read_text(encoding='utf-8')), encoding='utf-8')
+        self.assertEqual([], violations(self.root, 'HEAD'))
+        new.write_text(new.read_text(encoding='utf-8').replace('collectorvision-native/v1', 'cameraVision/v1'), encoding='utf-8')
+        self.assertEqual(1, len(violations(self.root, 'HEAD')))
 
 
 if __name__ == "__main__":

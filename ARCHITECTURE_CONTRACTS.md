@@ -80,7 +80,7 @@ colección al regresar al host OCR sigue siendo su onResume original.
 
 Java 17 local; bash de Git en Windows. No usar el bash WSL del PATH.
 
-    bash gradlew :app:testDebugUnitTest :collectorvision-native:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
+    bash gradlew :app:testDebugUnitTest :cameraVision:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest --console=plain
     python scripts/test_architecture_boundary.py
     python scripts/check_architecture_boundary.py
     git diff --check
@@ -280,3 +280,14 @@ producen error. El guard no verifica todo el comportamiento del manifest merger.
   con avisos de BOM antiguo y `ObsoleteLintCustomCheck`: parte de los checks Compose del
   runtime no se ejecuta con esta combinación existente de herramientas. No se han suprimido
   avisos ni actualizado dependencias de la app para ocultarlos. App conserva errores lint heredados.
+
+
+## Contrato CameraVision sin migración de datos
+La excepción autorizada cambia el nombre físico/Gradle del módulo y cuatro tipos internos.
+No cambia paquetes públicos, nombres de workers almacenados por WorkManager, Activities,
+claves de preferencias/trabajos, rutas de modelos/fotos, URLs, versiones o hashes de assets.
+`vision_rename_contract.py` transforma solo identificadores fuera de strings/comentarios;
+el guard calcula el contenido esperado desde master sin permitir cambios de comportamiento.
+La atribución y licencia del upstream permanecen en `cameraVision/NOTICE.md` y `LICENSE`.
+No hay dependencia Gradle externa llamada CollectorVision; sí adaptación de código y descarga
+inicial de modelos/catálogo de ese proyecto. Renombrar no elimina esas dependencias.

@@ -25,7 +25,7 @@ class EdScanFastRegionReplayTest {
         assertTrue("Do not silently test a partial index",index.available)
         assertEquals(110278,index.rows.size)
         val report=JSONArray()
-        NativeCollectorVisionEngine.prepareForCamera(context).use { engine ->
+        NativeCameraVisionEngine.prepareForCamera(context).use { engine ->
             for(profile in FastRegion.entries) {
                 engine.configureFast(index,profile)
                 for(file in folder.listFiles().orEmpty().filter { it.extension=="jpg" }.sortedBy { it.name }) {

@@ -8,7 +8,7 @@ import android.util.Log
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import io.asv.collectorvision.NativeCollectorVisionActivity
-import io.asv.collectorvision.NativeCollectorVisionEngine
+import io.asv.collectorvision.NativeCameraVisionEngine
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
@@ -86,7 +86,7 @@ class CollectorVisionNativeDeviceTest {
     /** Explicit device smoke: downloads pinned models/catalog if not cached. Does not write collection. */
     @Test fun realCpuModelsRunAndCatalogSearchReturnsFiniteCandidates() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        NativeCollectorVisionEngine.prepare(context).use { engine ->
+        NativeCameraVisionEngine.prepare(context).use { engine ->
             val blank = Bitmap.createBitmap(640, 880, Bitmap.Config.ARGB_8888)
             blank.eraseColor(Color.WHITE)
             val result = engine.scan(blank)

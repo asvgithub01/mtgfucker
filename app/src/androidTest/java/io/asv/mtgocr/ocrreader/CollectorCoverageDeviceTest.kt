@@ -10,7 +10,7 @@ class CollectorCoverageDeviceTest {
  @Test fun reportsNewCollectorReferenceRankingsWithoutSavingCards() {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val owner=Any(); EdScanInferencePriority.acquire(owner)
-  try { NativeCollectorVisionEngine.prepare(context).use { engine ->
+  try { NativeCameraVisionEngine.prepare(context).use { engine ->
    for(id in listOf("727511d8-be1a-4c2e-92f6-5cc9d67a2b0c", "c9c6977d-0e14-47c1-89c0-be376f2675f3")) {
     val photo=BitmapFactory.decodeFile(File(context.noBackupFilesDir,"fra-replay/$id.jpg").path)
     assertNotNull(photo)

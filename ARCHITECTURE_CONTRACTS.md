@@ -236,3 +236,12 @@ certificación global de cámara/dispositivo. No se da porcentaje temporal ni fe
 fiable: los bloques tienen tamaños distintos y el cierre total depende del alcance
 que se retome más adelante sobre persistencia compartida. Próximo bloque aislable:
 consulta de fotos/evidencias sin modificar trabajos ni archivos.
+
+
+## Consulta P5 aislada (debug)
+
+- Entrada: `PhotoPreviewActivity`, desde el shell Compose; `domain/photos`, `feature/photos` y `data/legacy/LegacyPhotoReader`. Solo lectura, biblioteca explícita.
+- Evidencias de CardInfo por índice original (sin emparejar fotos de otra captura); fotos importadas de `photoScans.bin` en sección global separada. Backup legible no repara el primario. Errores independientes por sección.
+- Fotos locales bajo `scan_evidence`/`photo_scans`, rutas canónicas verificadas, decodificación muestreada fuera del hilo principal sin caché persistida. Actualización manual o al volver; no es monitor de jobs.
+- No modifica escáneres, guardados, procesamiento, workers ni formatos. No abre paneles legacy con efectos secundarios. No sustituye importación/revisión/resolución existentes ni expone diagnósticos de jobs EdScan: esa parte de P5 sigue pendiente.
+- Validación específica: PhotoReadPolicyTest, PhotoViewModelTest, PhotoReadIntegrationTest y PhotoComposeTest; fixtures aislados, nunca datos del Sony.

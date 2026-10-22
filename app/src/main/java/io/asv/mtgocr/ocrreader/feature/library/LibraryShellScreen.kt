@@ -29,6 +29,7 @@ fun LibraryShellScreen(
     onOpenLegacy: (() -> Unit)? = null,
     onOpenTriple: (() -> Unit)? = null,
     onOpenCatalog: (() -> Unit)? = null,
+    onOpenPhotos: (() -> Unit)? = null,
     artwork: @Composable (String?, Modifier) -> Unit = { url, modifier -> CardArtwork(url, null, modifier) }
 ) {
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -47,6 +48,9 @@ fun LibraryShellScreen(
                 }
                 Text(libraryName, style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.shell_read_only), style = MaterialTheme.typography.bodySmall)
+                onOpenPhotos?.let { action ->
+                    TextButton(onClick = action) { Text(stringResource(R.string.photo_preview_title)) }
+                }
                 onOpenCatalog?.let {
                     TextButton(onClick = it, modifier = Modifier.testTag("shell-open-catalog")) {
                         Text(stringResource(R.string.catalog_title))

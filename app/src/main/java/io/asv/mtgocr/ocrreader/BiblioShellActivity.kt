@@ -33,6 +33,8 @@ class BiblioShellActivity : ComponentActivity() {
             MtgTheme(MagicPalette.primaryColor(this), MagicPalette.secondaryColor(this), MagicPalette.backgroundColor(this)) {
                 androidx.compose.material3.Surface {
                     LibraryShellRoute(libraryName, viewModel,
+                        onOpenPhotos = { startActivity(android.content.Intent(this, PhotoPreviewActivity::class.java)
+                            .putExtra(EXTRA_LIBRARY_ID, libraryId)) },
                         onOpenCatalog = { startActivity(android.content.Intent(this, SetCatalogPreviewActivity::class.java)) },
                         onOpenLegacy = { openLegacy(libraryId, ShellLegacyDestination.LIBRARY) },
                         onOpenTriple = { openLegacy(libraryId, ShellLegacyDestination.TRIPLE) }) { finish() }

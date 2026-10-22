@@ -14,6 +14,7 @@ fun LibraryShellRoute(
     onOpenLegacy: (() -> Unit)? = null,
     onOpenTriple: (() -> Unit)? = null,
     onOpenCatalog: (() -> Unit)? = null,
+    onOpenPhotos: (() -> Unit)? = null,
     onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -27,5 +28,5 @@ fun LibraryShellRoute(
     }
     LibraryShellScreen(libraryName, state, viewModel::section, viewModel::membership,
         viewModel::query, viewModel::sort, viewModel::refresh, onBack,
-        onOpenLegacy = onOpenLegacy, onOpenTriple = onOpenTriple, onOpenCatalog = onOpenCatalog)
+        onOpenLegacy = onOpenLegacy, onOpenTriple = onOpenTriple, onOpenCatalog = onOpenCatalog, onOpenPhotos = onOpenPhotos)
 }

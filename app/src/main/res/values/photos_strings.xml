@@ -1,0 +1,9 @@
+<resources>
+    <string name="photo_preview_title">Fotos y evidencias</string>
+    <string name="photo_preview_notice">Consulta de datos guardados. No inicia ni modifica el procesamiento. Actualiza para consultar nuevos resultados.</string>
+    <string name="photo_preview_library">Evidencias de esta biblioteca</string>
+    <string name="photo_preview_global">Fotos importadas (globales)</string>
+    <string name="photo_preview_empty">No hay registros guardados.</string>
+    <string name="photo_preview_no_metadata">Sin metadatos guardados.</string>
+    <string name="photo_preview_unavailable">Foto no disponible o cargando.</string>
+</resources>

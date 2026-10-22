@@ -631,3 +631,12 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - Triple: `TripleLaserView` es decorativo; flag `triple_scanner/laser_animation` OFF por defecto. No vincularlo al reconocimiento ni a sus votos. Detener animador al pausar/ocultar/desadjuntar; no dibujar el efecto en imágenes de análisis.
 - Accesos de escaneo en Biblio: solo OCR original (fabOcrMlKit) y Triple (icono). Los FAB experimentales y el acceso Fast dentro de Triple quedan GONE, con sus handlers/Activities conservados; no reactivarlos desde showSelectedSection.
+
+
+## Consulta P5 aislada (debug)
+
+- Entrada: `PhotoPreviewActivity`, desde el shell Compose; `domain/photos`, `feature/photos` y `data/legacy/LegacyPhotoReader`. Solo lectura, biblioteca explícita.
+- Evidencias de CardInfo por índice original (sin emparejar fotos de otra captura); fotos importadas de `photoScans.bin` en sección global separada. Backup legible no repara el primario. Errores independientes por sección.
+- Fotos locales bajo `scan_evidence`/`photo_scans`, rutas canónicas verificadas, decodificación muestreada fuera del hilo principal sin caché persistida. Actualización manual o al volver; no es monitor de jobs.
+- No modifica escáneres, guardados, procesamiento, workers ni formatos. No abre paneles legacy con efectos secundarios. No sustituye importación/revisión/resolución existentes ni expone diagnósticos de jobs EdScan: esa parte de P5 sigue pendiente.
+- Validación específica: PhotoReadPolicyTest, PhotoViewModelTest, PhotoReadIntegrationTest y PhotoComposeTest; fixtures aislados, nunca datos del Sony.

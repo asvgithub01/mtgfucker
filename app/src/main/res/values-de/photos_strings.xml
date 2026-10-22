@@ -1,0 +1,9 @@
+<resources>
+    <string name="photo_preview_title">Fotos und Nachweise</string>
+    <string name="photo_preview_notice">Nur gespeicherte Daten. Startet oder ändert keine Verarbeitung. Für neue Ergebnisse aktualisieren.</string>
+    <string name="photo_preview_library">Nachweise dieser Bibliothek</string>
+    <string name="photo_preview_global">Importierte Fotos (global)</string>
+    <string name="photo_preview_empty">Keine gespeicherten Einträge.</string>
+    <string name="photo_preview_no_metadata">Keine gespeicherten Metadaten.</string>
+    <string name="photo_preview_unavailable">Foto nicht verfügbar oder wird geladen.</string>
+</resources>

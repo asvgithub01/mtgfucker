@@ -1,0 +1,9 @@
+<resources>
+    <string name="photo_preview_title">Photos et preuves</string>
+    <string name="photo_preview_notice">Données enregistrées uniquement. Ne lance ni ne modifie le traitement. Actualisez pour voir les nouveaux résultats.</string>
+    <string name="photo_preview_library">Preuves de cette bibliothèque</string>
+    <string name="photo_preview_global">Photos importées (globales)</string>
+    <string name="photo_preview_empty">Aucun enregistrement.</string>
+    <string name="photo_preview_no_metadata">Aucune métadonnée enregistrée.</string>
+    <string name="photo_preview_unavailable">Photo indisponible ou en cours de chargement.</string>
+</resources>

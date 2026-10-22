@@ -1,0 +1,9 @@
+<resources>
+    <string name="photo_preview_title">Photos and evidence</string>
+    <string name="photo_preview_notice">Stored data only. Does not start or change processing. Refresh to see new results.</string>
+    <string name="photo_preview_library">Evidence in this library</string>
+    <string name="photo_preview_global">Imported photos (global)</string>
+    <string name="photo_preview_empty">No saved records.</string>
+    <string name="photo_preview_no_metadata">No saved metadata.</string>
+    <string name="photo_preview_unavailable">Photo unavailable or loading.</string>
+</resources>

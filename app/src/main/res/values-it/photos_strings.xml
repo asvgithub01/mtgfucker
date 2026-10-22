@@ -1,0 +1,9 @@
+<resources>
+    <string name="photo_preview_title">Foto e prove</string>
+    <string name="photo_preview_notice">Solo dati salvati. Non avvia né modifica le elaborazioni. Aggiorna per vedere nuovi risultati.</string>
+    <string name="photo_preview_library">Prove di questa biblioteca</string>
+    <string name="photo_preview_global">Foto importate (globali)</string>
+    <string name="photo_preview_empty">Nessun dato salvato.</string>
+    <string name="photo_preview_no_metadata">Nessun metadato salvato.</string>
+    <string name="photo_preview_unavailable">Foto non disponibile o in caricamento.</string>
+</resources>

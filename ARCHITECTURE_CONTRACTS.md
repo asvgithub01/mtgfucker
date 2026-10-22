@@ -368,3 +368,19 @@ APK debug/test/release unsigned construidas; release no instalada ni validada f�
 Guard sobre fuentes y manifiestos fusionados correcto; lint app mantiene 29 errores y
 534 avisos heredados en fuentes protegidas, sin supresiones. No instalación en5556/Sony.
 Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release,release-confirmed}.log.
+
+
+### Fuente de fotos aislada (2026-10-23)
+- PhotoReadSource entrega solo proyecciones de evidencia/importación. ReadOnlyPhotoReader
+  coordina en dispatcher inyectado y conserva fallos independientes por sección.
+- AndroidLegacyPhotoSource conserva íntegros los cuerpos de lectura anteriores (solo
+  cambia visibilidad y nombre del parámetro); LegacyPhotoReader mantiene constructor/API.
+- No cambian deserialización, rutas/backup, orden, imágenes, formatos ni políticas de identidad.
+- Seis pruebas JVM nuevas: orden y scope, fallos de cada sección/ambas, carga diferida,
+  dispatcher/refresco y conservación de error explícito. Integración ampliada a biblioteca
+  no activa con primario corrupto y backup válido, archivos y preferencias idénticos al terminar.
+- Validación: 922 pruebas JVM sin fallos; debug, AndroidTest y release unsigned construidas.
+  Guard de fuentes/manifiestos y 36 pruebas del guard correctos. Lint app continúa con los
+  mismos 29 errores/534 warnings heredados; no se suprimen ni se modifica código protegido.
+- Instrumentación: 32 pruebas architecture correctas en emulator-5554; instalación con
+  install -r, sin desinstalar ni borrar datos. Ningún dispositivo físico modificado.

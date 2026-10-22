@@ -37,6 +37,19 @@ class PhotoReadIntegrationTest {
             }
             write(LibraryCatalog.DEFAULT_FILE, Biblio(LibraryCatalog.DEFAULT_FILE, "Test").apply { addCard(card) })
             write("photoScans.bin.bak", arrayListOf(PhotoScanEntry(id = "photo", imagePath = photo.absolutePath)))
+            context.getSharedPreferences("premium_access", 0).edit().putBoolean("premium_enabled", true).commit()
+            context.getSharedPreferences("library_catalog", 0).edit()
+                .putStringSet("libraries", setOf("extra\tExtra\tbiblio_extra.Json"))
+                .putString("active_library_id", "default").commit()
+            write("biblio_extra.Json.bak", Biblio("biblio_extra.Json", "Extra").apply {
+                addCard(CardInfo("Extra", "", "", "", "1").apply {
+                    addScanEvidence("extra metadata", "scan_evidence/card/a.jpg")
+                })
+            })
+            File(root, "biblio_extra.Json").writeText("broken extra primary")
+            val prefsBefore = listOf("library_catalog", "premium_access").associateWith {
+                context.getSharedPreferences(it, 0).all.toMap()
+            }
             val reader = LegacyPhotoReader(context)
             val before = snapshot()
             val result = reader.read("default")
@@ -46,6 +59,14 @@ class PhotoReadIntegrationTest {
             assertEquals(evidence.canonicalPath, result.evidence.records.last().path)
             assertEquals(photo.canonicalPath, result.imports.records.single().path)
             assertEquals(before, snapshot())
+            val extra = reader.read("extra")
+            assertFalse(extra.evidence.failed)
+            assertEquals("Extra \u00b7 1", extra.evidence.records.single().title)
+            assertEquals(result.imports, extra.imports)
+            assertEquals(before, snapshot())
+            assertEquals(prefsBefore, prefsBefore.keys.associateWith {
+                context.getSharedPreferences(it, 0).all.toMap()
+            })
             File(root, "photoScans.bin").writeText("corrupt")
             val corrupt = snapshot()
             assertFalse(reader.read("default").imports.failed)

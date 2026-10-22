@@ -596,3 +596,16 @@ Medir primero una época y la calidad de un piloto; no extrapolar de tiempos de 
 Fuentes técnicas consultadas: https://huggingface.co/HanClinto/cornelius,
 https://huggingface.co/HanClinto/milo y
 https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
+
+
+### Quinto corte seguro de datos: fuente de fotos (2026-10-23)
+- Extraída coordinación de PhotoReader a data/readers mediante PhotoReadSource, sin
+  dependencia Android, DTO serializados ni comandos de procesamiento.
+- AndroidLegacyPhotoSource mantiene acceso legacy y proyección de fotos/evidencias en app;
+  LegacyPhotoReader es una fachada compatible. Sin cambios de rutas, formatos o guardados.
+- Conservados orden de consultas, errores por sección y alcance global de importaciones.
+- Pendiente: fuentes/proyecciones de colección y acceso legacy/Room aún en app. No se
+  extraen escritores ni se resuelve la carrera de snapshots OCR en este corte.
+- Siguen pendientes paridad editable P3/P4, operaciones P5/P6, retirada legacy P7,
+  pruebas físicas y autonomía de distribución de modelos. Los previews no sustituyen
+  las pantallas operativas legacy.

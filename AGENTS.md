@@ -746,3 +746,13 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   Esto NO es un snapshot transaccional ni resuelve la carrera de guardados OCR.
 - Tests JVM de ambos coordinadores en data/readers; integración de archivos/backup/prefs
   en LibraryShellIntegrationTest y ServicesReadIntegrationTest de app. Sin cambios de formatos.
+
+
+## Fuente de consulta de fotos separada
+- `LegacyPhotoReader` conserva la API y delega en `data/readers/.../data/legacy/ReadOnlyPhotoReader`.
+- `PhotoReadSource` solo entrega PhotoSection; `AndroidLegacyPhotoSource` en app conserva
+  deserialización, DTOs, nombres de archivos, backups y validación canónica de rutas.
+- Mantener orden evidencias por biblioteca explícita → importaciones globales y errores
+  independientes por sección. No añadir caché, reparación de primarios, escrituras ni jobs.
+- Validar ReadOnlyPhotoReaderTest y PhotoReadIntegrationTest; este último usa archivos
+  y preferencias aislados, incluye biblioteca no activa y backup sin reparación.

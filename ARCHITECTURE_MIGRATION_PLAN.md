@@ -741,3 +741,15 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   paridad; no borrar por parecer duplicado. La retirada mayor exige completar edición,
   operaciones y coordinación de guardados, hoy fuera del alcance autorizado.
   No hay porcentaje fiable de finalización: probar consultas no cierra la migración.
+
+### Primera retirada de restos sustituidos (2026-10-23)
+- Eliminados layout activity_main.xml y drawable bg_launch_panel.xml, exclusivos del
+  launcher XML sustituido por MainActivity/LauncherRoute Compose. Sin referencias activas
+  por R/layout, binding, includes o lookup dinámico (getIdentifier activo solo cloud).
+- Conservados recursos compartidos spinner_background/mtgback/textos, Activities legacy,
+  escritores, modelos serializados y procesamiento. No se considera duplicado lo que
+  todavía cubre funciones ausentes en las consultas Compose.
+- Guard con lista exacta de retiradas: admite ausencia, rechaza reintroducción y mantiene
+  protección de scanners/recursos compartidos. Test de APK verifica retirada y launcher.
+- Próximo corte: inventario de otras piezas realmente sin referencias. Pendientes
+  aceptación manual y paridad editable P3–P6 antes de retirar hosts legacy operativos.

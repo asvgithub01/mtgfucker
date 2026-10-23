@@ -15,8 +15,16 @@ from pathlib import Path
 
 BASE = "2d8a4adb17fba50a17f26e260775e165414f4d72"
 PROTECTED = ("app/src/main/", "collectorvision-native/", "liquid-glass/src/main/")
-# P2: only the non-scanner launcher is replaced by Kotlin. Its XML remains frozen.
+# P2: only the non-scanner launcher is replaced by Kotlin.
 EXCEPTIONS = {"app/src/main/java/io/asv/mtgocr/ocrreader/MainActivity.java"}
+
+# Explicit deletion-only cleanup: replaced launcher layout and its exclusive decoration.
+# No general resource exemption; shared spinner_background/strings/artwork stay protected.
+RETIRED_LAUNCHER_RESOURCES = {
+    "app/src/main/res/layout/activity_main.xml",
+    "app/src/main/res/drawable/bg_launch_panel.xml",
+}
+
 
 # Direct project edges are deliberately small. app remains the composition root.
 MODULE_EDGES = {
@@ -49,13 +57,14 @@ def git(root, *args):
 
 def violations(root, base=BASE):
     entries = git(root, "ls-tree", "-r", "-z", base).split(b"\0")
-    changed = []
+    changed = [path + " (retired resource reintroduced)"
+               for path in sorted(RETIRED_LAUNCHER_RESOURCES) if (root / path).exists()]
     for entry in entries:
         if not entry:
             continue
         metadata, raw_path = entry.split(b"\t", 1)
         path = raw_path.decode("utf-8")
-        if not path.startswith(PROTECTED) or path in EXCEPTIONS:
+        if not path.startswith(PROTECTED) or path in EXCEPTIONS or path in RETIRED_LAUNCHER_RESOURCES:
             continue
         expected = metadata.split()[2].decode("ascii")
         target = root / renamed_path(path)
@@ -193,4 +202,4 @@ if __name__ == "__main__":
     if changed:
         print("Architecture boundary violations:\n" + "\n".join(changed))
         sys.exit(1)
-    print("OK: protected runtime matches baseline plus approved identifier rename; boundaries verified.")
+    print("OK: protected runtime matches baseline plus approved identifier rename and exact launcher resource retirement; boundaries verified.")

@@ -5,7 +5,7 @@ from pathlib import Path
 from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
     preview_manifest_violations, preview_source_violations, PREVIEWS,
-    module_graph_violations, MODULE_EDGES)
+    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -58,6 +58,29 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         launcher.unlink()
         self.assertEqual([], violations(self.root, "HEAD"))
         scanner.write_text("changed\n")
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+
+    def test_retired_launcher_resources_allow_only_deletion(self):
+        for name in RETIRED_LAUNCHER_RESOURCES:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("<resources/>")
+        self.git("add", ".")
+        self.git("commit", "-qm", "old launcher resources")
+        self.assertEqual(2, len(violations(self.root, "HEAD")))
+        for name in RETIRED_LAUNCHER_RESOURCES:
+            (self.root / name).unlink()
+        self.assertEqual([], violations(self.root, "HEAD"))
+        self.file.write_text("scanner changed")
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+
+    def test_retirement_does_not_allow_shared_resource_removal(self):
+        path = self.root / "app/src/main/res/drawable/spinner_background.xml"
+        path.parent.mkdir(parents=True)
+        path.write_text("<shape/>")
+        self.git("add", ".")
+        self.git("commit", "-qm", "shared resource")
+        path.unlink()
         self.assertEqual(1, len(violations(self.root, "HEAD")))
 
     def test_domain_cannot_import_android_or_legacy_data(self):

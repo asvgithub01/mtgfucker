@@ -7,7 +7,7 @@ Base: master 2d8a4ad. Rama codex/compose-solid-architecture. Actualización: 21-
 check_architecture_boundary.py compara los blobs Git de todas las fuentes runtime
 existentes de app/src/main, collectorvision-native y liquid-glass/src/main con el
 baseline. Solo MainActivity.java tiene excepción: se sustituye por MainActivity.kt
-con el mismo nombre de clase. activity_main.xml queda intacto aunque ya no se infla.
+con el mismo nombre de clase. activity_main.xml y su drawable exclusivo se retiraron en la limpieza posterior del launcher (véase el registro final).
 No hay excepciones para scanner, modelos serializados, Room, preferencias,
 persistencia, workers, loaders de imágenes ni recursos antiguos.
 
@@ -551,3 +551,19 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
 - Pendiente aceptación manual/TalkBack/dispositivo y matriz más amplia. Este cambio
   no completa P3–P6 ni autoriza retirar legacy operativo; checklist en el plan.
 - Lint global mantiene 29 errores y 534 avisos heredados; no se declara limpio.
+
+### Limpieza del launcher sustituido (2026-10-23)
+- Retirados activity_main.xml y bg_launch_panel.xml: sin consumidores activos y
+  sustituidos por LauncherRoute Compose. Ninguna Activity operativa se elimina.
+- Conservados spinner_background, mtgback y strings compartidos; sin cambios de
+  escáneres/guardados/procesamiento/estado. Guard de eliminación exacta, sin excepciones
+  generales; prueba de APK confirma ausencia y disponibilidad del launcher Compose.
+- 951 JVM, 58 instrumentadas architecture y 38 pruebas del guard correctas.
+  Fuentes/manifiestos debug-release protegidos verificados. Debug/AndroidTest/release
+  unsigned construidos; diff --check correcto. Lint global: 29 errores y 531 avisos
+  (antes 534 avisos), sigue pendiente saneamiento.
+- Instalación -r solo Pixel_API_30/emulator-5554, sin borrar datos. Arranque desde Splash,
+  rama visible y MainActivity en primer plano; captura del launcher revisada. APK abierta
+  para aceptación manual. Sony y cambios IDE ajenos intactos.
+- Pendiente inventario de otros restos realmente sustituidos; no retirar hosts legacy
+  con edición/operaciones ausentes en previews. Paridad P3–P6 sigue pendiente.

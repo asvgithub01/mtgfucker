@@ -847,3 +847,10 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - imports/selectedId siguen en PhotoScreen (rememberSaveable), no dentro del layout.
 - QueryThemeLocaleTest verifica overflow y cortes entre letras; PhotoComposeTest cubre
   cambio 100%→200%, restauración con detalle abierto y vuelta a layout normal.
+
+## Limpieza del launcher sustituido
+- Retirados activity_main.xml y bg_launch_panel.xml: MainActivity usa LauncherRoute Compose.
+- RETIRED_LAUNCHER_RESOURCES permite exclusivamente esas eliminaciones y rechaza su
+  reintroducción. No ampliar a recursos compartidos: spinner_background, mtgback y textos
+  siguen usados. Verificar referencias XML/código/dinámicas antes de cada retirada.
+- LauncherActivityTest comprueba recursos ausentes en APK y launcher Compose habilitado.

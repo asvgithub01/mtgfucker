@@ -18,6 +18,17 @@ import java.util.concurrent.CopyOnWriteArrayList
 class LauncherActivityTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    @Test fun retiredXmlLauncherResourcesAreNotPackaged() {
+        val context = compose.activity
+        for ((name, type) in listOf("activity_main" to "layout", "bg_launch_panel" to "drawable")) {
+            assertEquals(0, context.resources.getIdentifier(name, type, context.packageName))
+        }
+        assertTrue(context.resources.getIdentifier("spinner_background", "drawable", context.packageName) != 0)
+        compose.waitUntil(15000) {
+            runCatching { compose.onNodeWithTag("open-library").assertIsEnabled(); true }.getOrDefault(false)
+        }
+    }
+
     @Test fun recreationKeepsPromptConsumedAndLeavesScannerUnstarted() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val seen = CopyOnWriteArrayList<Intent>()

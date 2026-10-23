@@ -455,3 +455,22 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
 - Manifiestos verificados; 34 pruebas architecture correctas en emulator-5554. Install -r,
   sin desinstalar/borrar datos; Sony no modificado. Bloques setContent/lifecycle idénticos.
 - Lint app mantiene 29 errores/534 warnings heredados. Pruebas físicas pendientes.
+
+
+### DI restaurable de catálogo y shell (2026-10-23)
+- RestorableQueryViewModelFactory valida clase antes de ejecutar builder y reenvía los
+  CreationExtras originales; no sustituye owners/keys/defaults ni crea handles vacíos.
+- LibraryShellDependencies permite inyectar repositorio y SetCatalogViewModelFactory permite
+  provider de lector/matcher. Constructores Context siguen compatibles y usados por hosts.
+- CatalogDependencies no cambia: reader lazy y CardRepository se resuelve al leer, no al
+  construir la factory. Shell conserva creación del repositorio al construir dependencias.
+- No se modifican Activities, ViewModels, claves SavedState, readers, writers ni jobs.
+- Tres tests JVM nuevos: extras originales/construcción diferida, rechazo de tipo sin builder
+  y factories concretas sin lecturas/resolución catálogo al pedir tipo incorrecto.
+- 951 pruebas JVM correctas; APK debug, AndroidTest y release unsigned construidas;
+  guard de fuentes/manifiestos y 36 pruebas del guard correctos.
+- 37 pruebas architecture correctas en emulator-5554: tres nuevas validan restauración
+  Bundle con owners/Stores nuevos (no solo retención), catálogo query/selección, shell
+  sección/membership/query/sort, prioridad sobre defaults, ID explícito y fallo sin owners.
+  Lectores falsos, sin datos reales ni red. Install -r; Sony no modificado.
+- Lint mantiene 29 errores/534 warnings heredados; pruebas físicas siguen pendientes.

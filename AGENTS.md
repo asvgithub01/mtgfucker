@@ -799,3 +799,14 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Inyectar providers PhotoReader/ServicesReader para pruebas. ViewModelProvider conserva el
   modelo por ViewModelStore; no reutilizar el helper para SavedStateHandle sin soporte explícito.
 - Catalog/Shell mantienen sus factories con CreationExtras; launcher mixto queda intacto.
+
+
+## DI restaurable de catálogo y shell
+- RestorableQueryViewModelFactory comprueba tipo y reenvía CreationExtras originales.
+  No crear SavedStateHandle vacío como fallback; faltan owners/extras = error explícito.
+- LibraryShellDependencies admite repositorio inyectado y conserva constructor Context/ID.
+  SetCatalogViewModelFactory admite provider SetCatalogReader + matcher; constructor Context
+  mantiene CatalogDependencies lazy y orden lector → createSavedStateHandle.
+- No cambiar claves guardadas ni init/reload de ViewModels. Factories simples de fotos/servicios
+  siguen separadas. Tests: RestorableQueryFactoryTest y QuerySavedStateIntegrationTest
+  (Bundle con propietario/Store nuevos, defaults, retención y ausencia de owners).

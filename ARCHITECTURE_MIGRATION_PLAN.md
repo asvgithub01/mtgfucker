@@ -669,3 +669,17 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   detalle y otras consultas). Eso es migración parcial, no paridad funcional terminada.
 - No retirar hosts, operaciones ni recursos legacy compartidos hasta lograr paridad,
   validar conservación y autorizar las partes que afectan guardados/escáneres/procesamiento.
+
+
+### DI restaurable: catálogo y shell (2026-10-23)
+- Completado el corte de DI pendiente: factory tipada compartida que reenvía extras sin
+  sustituirlos, repositorio shell inyectable y provider catálogo/matcher inyectables.
+- Constructores Context compatibles, mismo scope por ViewModelStore, catálogo lazy y
+  orden de resolución intacto. No se modifica CatalogDependencies, Activities ni ViewModels.
+- Restauración comprobada con owners/Stores nuevos desde Bundle: catálogo query/selección,
+  shell sección/grupo/query/orden e ID explícito; defaults no reemplazan estado restaurado.
+- No modifica persistencia de colección, scanners ni procesamiento. SavedState UI permanece
+  gestionado por Android; no añade nuevas claves ni rutas de guardado.
+- Pendiente: DI del launcher mixto (fuera de este corte), reutilización UI/pruebas, paridad
+  editable/operaciones y retirada legacy. Restricciones de writers/OCR/Room y pruebas físicas
+  siguen vigentes; este corte no completa migración funcional.

@@ -820,3 +820,12 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Mantener rememberSaveable de pestaña/ID en PhotoScreen y SavedStateHandle de catálogo;
   no trasladar estas claves al diálogo ni alterar el scope biblioteca/importaciones.
 - Validar QueryControlsTest, PhotoComposeTest con StateRestorationTester y suites existentes.
+
+## Pruebas visuales y semánticas de consultas
+- QueryAccessibilityTest usa datos sintéticos, viewport 320x480dp y LocalDensity con
+  fontScale=2; no cambiar font_scale global ni datos del dispositivo para estos casos.
+- Comprueba roles/targets de acciones, selección de pestañas, scroll y callbacks;
+  usar scroll por índice/clave en LazyColumn para acceder a items tras cabeceras grandes.
+- Capturas cache/query-a11y-{actions,photos,services}.png en la app de pruebas;
+  extraer con adb exec-out run-as y validar firma PNG (cat ausente puede devolver exit 0).
+- Es revisión de layout/semántica, no certificación TalkBack, contraste o todos los idiomas.

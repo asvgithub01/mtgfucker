@@ -695,3 +695,14 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
 - Pendiente: reutilización adicional solo donde haya equivalencia real; más regresión
   visual/accesibilidad/dispositivos. Paridad editable y retirada legacy siguen pendientes
   bajo las restricciones de no modificar scanners, guardados ni procesamiento.
+
+### Regresión visual y accesibilidad de consultas (2026-10-23)
+- Tres casos sintéticos nuevos: acciones con rol Button y targets >=48dp, tabs con
+  selección/rol Tab y apertura/cierre de detalle de fotos, última biblioteca y refresh
+  de servicios. Viewport 320x480dp y texto al 200%, sin ajustes globales del emulador.
+- Revisadas capturas de acciones, fotos y servicios; contenido accesible por scroll
+  y labels legibles en los casos probados. No se ha modificado código de producción.
+- Pendiente: TalkBack real y orden de foco, contraste, temas, más idiomas/tamaños y
+  dispositivo físico. No generalizar estos tres casos a toda la app.
+- Paridad editable, operaciones, coordinación de guardados y retirada legacy siguen
+  pendientes; no se han tocado scanners, escritores ni procesamiento.

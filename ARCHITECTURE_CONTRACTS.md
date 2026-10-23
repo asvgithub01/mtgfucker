@@ -492,3 +492,17 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
 - Revisión visual del diálogo de fotos con fixture sintético (captura en build/architecture,
   ignorada). Install -r sin desinstalar/borrar datos; Sony no modificado.
 - Lint global mantiene 29 errores/534 warnings heredados. Regresión física pendiente.
+
+### Pruebas visuales y semánticas (2026-10-23)
+- QueryAccessibilityTest añade tres casos aislados con LocalDensity fontScale=2 y
+  viewport 320x480dp: acciones Button >=48dp, pestañas Tab/selección y detalle de fotos,
+  scroll hasta biblioteca 30 y refresh de servicios. Capturas sintéticas revisadas.
+- Solo pruebas/documentación: sin cambios runtime, estado, datos, scanners o procesamiento.
+- 951 pruebas JVM y 44 instrumentadas architecture correctas en emulator-5554,
+  incluyendo restauración de fotos y Bundle/SavedState de catálogo/shell.
+- Debug, AndroidTest y release unsigned construidas. Guard de fuentes/manifiestos y
+  36 pruebas del guard correctos. git diff --check correcto.
+- Lint global continúa con 29 errores y 534 warnings heredados, no se declara limpio.
+- Install -r solo en emulator-5554; sin desinstalar, borrar datos ni tocar Sony.
+- Límite: comprobaciones semánticas y revisión de capturas, no TalkBack ni auditoría
+  de contraste. Pendientes otros idiomas/temas/tamaños y regresión física.

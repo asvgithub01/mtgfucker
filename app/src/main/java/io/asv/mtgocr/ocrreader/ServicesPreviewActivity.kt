@@ -8,7 +8,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.asv.mtgocr.ocrreader.core.designsystem.MtgTheme
-import io.asv.mtgocr.ocrreader.data.legacy.LegacyServicesReader
+import io.asv.mtgocr.ocrreader.app.di.ServicesDependencies
 import io.asv.mtgocr.ocrreader.feature.services.*
 
 /** Query-only debug entry, no navigation to service Activities with startup side effects. */
@@ -17,12 +17,7 @@ class ServicesPreviewActivity : ComponentActivity() {
         MagicPalette.applyTheme(this)
         super.onCreate(savedInstanceState)
         if (!BuildConfig.DEBUG) { finish(); return }
-        val model = ViewModelProvider(this, object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return ServicesViewModel(LegacyServicesReader(applicationContext)) as T
-            }
-        })[ServicesViewModel::class.java]
+        val model = ViewModelProvider(this, ServicesDependencies(this).factory)[ServicesViewModel::class.java]
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             LaunchedEffect(model) { lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { model.refresh() } }

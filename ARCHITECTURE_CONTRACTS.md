@@ -440,3 +440,18 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   incluida publicación tardía por rename y conservación de bytes. Install -r sin desinstalar
   ni borrar datos. Sony conectado durante validación pero no modificado.
 - Lint app mantiene 29 errores/534 warnings heredados. Regresión física pendiente.
+
+
+### DI de consultas fotos/servicios (2026-10-23)
+- Eliminadas factories anónimas de PhotoPreviewActivity y ServicesPreviewActivity.
+  PhotoDependencies/ServicesDependencies componen providers de puertos en app/di;
+  QueryViewModelFactory valida clase antes de construir. No cambia reader ni ViewModel.
+- Construcción diferida por ViewModelProvider, mismo libraryId explícito y applicationContext.
+  Sin singleton ni framework DI nuevo; no cambia refresco RESUMED, UI, imágenes o navegación.
+- Cinco tests nuevos verifican construcción lazy, rechazo de clase sin instanciar readers,
+  retención por Store, aislamiento entre Stores, inyección del ID/reader y refresco explícito.
+- 948 pruebas JVM correctas; debug, AndroidTest y release unsigned construidas.
+  Guard runtime/fuentes y sus 36 pruebas correctos. Ningún scanner, writer o job modificado.
+- Manifiestos verificados; 34 pruebas architecture correctas en emulator-5554. Install -r,
+  sin desinstalar/borrar datos; Sony no modificado. Bloques setContent/lifecycle idénticos.
+- Lint app mantiene 29 errores/534 warnings heredados. Pruebas físicas pendientes.

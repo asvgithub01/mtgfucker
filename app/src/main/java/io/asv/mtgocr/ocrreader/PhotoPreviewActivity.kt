@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.asv.mtgocr.ocrreader.core.designsystem.MtgTheme
-import io.asv.mtgocr.ocrreader.data.legacy.LegacyPhotoReader
+import io.asv.mtgocr.ocrreader.app.di.PhotoDependencies
 import io.asv.mtgocr.ocrreader.data.legacy.PhotoPathPolicy
 import io.asv.mtgocr.ocrreader.feature.photos.*
 import kotlinx.coroutines.Dispatchers
@@ -32,12 +32,7 @@ class PhotoPreviewActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val id = intent.getStringExtra(BiblioShellActivity.EXTRA_LIBRARY_ID).orEmpty()
         if (!BuildConfig.DEBUG || id.isBlank()) { finish(); return }
-        val model = ViewModelProvider(this, object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return PhotoViewModel(LegacyPhotoReader(applicationContext), id) as T
-            }
-        })[PhotoViewModel::class.java]
+        val model = ViewModelProvider(this, PhotoDependencies(this, id).factory)[PhotoViewModel::class.java]
         setContent {
             val state by model.state.collectAsStateWithLifecycle()
             LaunchedEffect(model) {

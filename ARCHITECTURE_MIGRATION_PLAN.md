@@ -652,3 +652,20 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
 - Siguen fuera del alcance: escrituras P3/coordinación OCR, paridad editable P4, operaciones
   P5/P6, procesamiento, cambio de modelos y retirada legacy P7. Requieren autorización
   específica cuando afecten las áreas protegidas, además de pruebas físicas.
+
+
+### DI de consultas: fotos y servicios (2026-10-23)
+- Retiradas factories anónimas de ambos hosts; composición en PhotoDependencies y
+  ServicesDependencies. QueryViewModelFactory reutiliza comprobación de tipo/creación.
+- Providers inyectables y diferidos, contexto application, scope por host y ViewModelStore
+  existente. No Hilt/Koin, singleton, nuevos módulos ni cambios de lifecycle/refresco/UI.
+- Pendiente uniformar DI de catálogo/shell respetando CreationExtras/SavedStateHandle y
+  carga diferida de catálogo; launcher permanece aparte por selección que escribe preferencias.
+
+### Coexistencia y retirada de legacy
+- No hay dos apps completas: launcher Java anterior fue eliminado; lógica extraída se
+  delega desde fachadas y módulos nuevos, no conserva una segunda implementación completa.
+- Sí conviven pantallas legacy operativas con previews Compose de solo consulta (Biblio,
+  detalle y otras consultas). Eso es migración parcial, no paridad funcional terminada.
+- No retirar hosts, operaciones ni recursos legacy compartidos hasta lograr paridad,
+  validar conservación y autorizar las partes que afectan guardados/escáneres/procesamiento.

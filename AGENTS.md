@@ -789,3 +789,13 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - No cambiar esta observación por RESUMED solamente; puede haber publicaciones tardías.
   Observar no bloquea ni coordina escritores y no resuelve la carrera de snapshots OCR.
 - Validar ObservedLibraryChangesTest y LibraryReturnIntegrationTest (rename real en fixture).
+
+
+## DI de consultas fotos y servicios
+- PhotoPreviewActivity/ServicesPreviewActivity usan PhotoDependencies/ServicesDependencies
+  en app/di; no construir lectores concretos ni factories anónimas en esos hosts.
+- QueryViewModelFactory valida clase antes de crear; proveedores por instancia, lazy al pedir
+  modelo. Contexto de aplicación, sin singleton global ni lectura/worker durante construcción.
+- Inyectar providers PhotoReader/ServicesReader para pruebas. ViewModelProvider conserva el
+  modelo por ViewModelStore; no reutilizar el helper para SavedStateHandle sin soporte explícito.
+- Catalog/Shell mantienen sus factories con CreationExtras; launcher mixto queda intacto.

@@ -5,7 +5,7 @@ from pathlib import Path
 from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
     preview_manifest_violations, preview_source_violations, PREVIEWS,
-    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES, retire_launcher_strings)
+    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES, RETIRED_UNUSED_DRAWABLES, retire_launcher_strings)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -82,6 +82,17 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         self.git("commit", "-qm", "shared resource")
         path.unlink()
         self.assertEqual(1, len(violations(self.root, "HEAD")))
+
+    def test_unused_drawables_cannot_be_reintroduced(self):
+        for name in RETIRED_UNUSED_DRAWABLES:
+            with self.subTest(name=name):
+                path = self.root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"obsolete resource")
+                self.assertEqual([name + " (retired resource reintroduced)"],
+                                 violations(self.root, "HEAD"))
+                path.unlink()
+                self.assertEqual([], violations(self.root, "HEAD"))
 
     def test_string_retirement_preserves_every_other_byte(self):
         original = (b'<resources>\r\n'

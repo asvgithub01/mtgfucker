@@ -30,6 +30,16 @@ class LauncherActivityTest {
         }
     }
 
+    @Test fun unusedDecorationsAreAbsentButSharedArtworkRemains() {
+        val context = compose.activity
+        for (name in listOf("bg_mtg_surface", "bg_bottom_sheet", "bg_glass_controls", "backbiblio")) {
+            assertEquals(name, 0, context.resources.getIdentifier(name, "drawable", context.packageName))
+        }
+        for (name in listOf("spinner_background", "mtgback")) {
+            assertTrue(name, context.resources.getIdentifier(name, "drawable", context.packageName) != 0)
+        }
+    }
+
     @Test fun recreationKeepsPromptConsumedAndLeavesScannerUnstarted() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val seen = CopyOnWriteArrayList<Intent>()

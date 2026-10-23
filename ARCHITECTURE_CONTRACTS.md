@@ -581,3 +581,17 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   escritores, procesamiento ni claves restaurables. title_font.ttf sigue compartido.
 - Pendientes aceptación manual y otros restos probadamente sin uso; no retirar hosts
   operativos ni assets compartidos hasta completar paridad funcional.
+
+### Retirada de drawables sin consumidores (2026-10-23)
+- Eliminados bg_mtg_surface, bg_bottom_sheet, bg_glass_controls y backbiblio:
+  cuatro recursos marcados unused por Lint, sin referencias XML/código/nombres dinámicos
+  en módulos activos. No cambia código funcional ni se retira ninguna pantalla.
+- Lista exacta de eliminación en guard; nueva prueba rechaza reintroducción de cada
+  recurso. Test instrumentado confirma ausencia en APK y presencia de mtgback/spinner_background.
+- 951 JVM, 59 instrumentadas y 41 pruebas del guard correctas; fuentes/manifiestos
+  protegidos verificados; debug/AndroidTest/release unsigned construidos; diff --check.
+  Lint global: 29 errores y 525 avisos (antes 529), pendiente de saneamiento.
+- Install -r solo emulator-5554; sin borrar datos ni tocar Sony/IDE ajeno. Escáneres,
+  guardados, procesamiento y claves restaurables intactos.
+- Pendientes aceptación manual, otros recursos probadamente inactivos y paridad funcional
+  antes de retirar Activities/recursos compartidos de las rutas legacy operativas.

@@ -858,3 +858,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Retiradas también mode_new_Deck/mode_edit_Decks en seis idiomas, exclusivas de botones
   ocultos del XML retirado. El guard transforma esas líneas del baseline, no excluye
   strings.xml completos. title_font.ttf sigue usado por escáner/legacy: no borrarlo.
+
+- RETIRED_UNUSED_DRAWABLES añade solo bg_mtg_surface, bg_bottom_sheet, bg_glass_controls
+  y backbiblio, sin consumidores. RETIRED_RESOURCES une ambas listas exactas; no excluye
+  carpetas de recursos. Test de APK conserva spinner_background y mtgback.

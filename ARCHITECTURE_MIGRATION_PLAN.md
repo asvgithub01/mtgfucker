@@ -763,3 +763,13 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   No se cambia navegación, estado, escrituras ni procesamiento.
 - Pendiente: otros restos solo tras demostrar ausencia de referencias; aceptación manual
   y paridad editable P3–P6 siguen siendo requisito para retirar pantallas operativas.
+
+### Decoraciones sin uso (2026-10-23)
+- Retirados bg_mtg_surface.xml, bg_bottom_sheet.xml, bg_glass_controls.xml y backbiblio.jpg:
+  Lint los marcaba sin uso y la búsqueda en módulos activos no encontró consumidores
+  XML/código ni carga por nombre. La única consulta dinámica de recursos en app/main
+  corresponde a default_web_client_id, no a drawables.
+- Conservados spinner_background, mtgback y fuentes compartidas. Guard de lista exacta
+  y prueba de ausencia/presencia en APK; ninguna clase, guardado o procesamiento cambia.
+- Pendiente aceptar visualmente consultas y revisar otros candidatos individualmente.
+  Pantallas operativas legacy siguen hasta lograr paridad editable P3–P6.

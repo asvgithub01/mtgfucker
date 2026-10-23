@@ -26,6 +26,16 @@ RETIRED_LAUNCHER_RESOURCES = {
 }
 
 
+# Reviewed unused decorations: no static XML/code or dynamic name consumers.
+RETIRED_UNUSED_DRAWABLES = {
+    "app/src/main/res/drawable/bg_mtg_surface.xml",
+    "app/src/main/res/drawable/bg_bottom_sheet.xml",
+    "app/src/main/res/drawable/bg_glass_controls.xml",
+    "app/src/main/res/drawable-hdpi/backbiblio.jpg",
+}
+RETIRED_RESOURCES = RETIRED_LAUNCHER_RESOURCES | RETIRED_UNUSED_DRAWABLES
+
+
 # Only these two obsolete button labels may disappear from these six shared files.
 # Compare against the transformed baseline; never exempt whole strings.xml files.
 RETIRED_LAUNCHER_STRING_FILES = {
@@ -71,13 +81,13 @@ def git(root, *args):
 def violations(root, base=BASE):
     entries = git(root, "ls-tree", "-r", "-z", base).split(b"\0")
     changed = [path + " (retired resource reintroduced)"
-               for path in sorted(RETIRED_LAUNCHER_RESOURCES) if (root / path).exists()]
+               for path in sorted(RETIRED_RESOURCES) if (root / path).exists()]
     for entry in entries:
         if not entry:
             continue
         metadata, raw_path = entry.split(b"\t", 1)
         path = raw_path.decode("utf-8")
-        if not path.startswith(PROTECTED) or path in EXCEPTIONS or path in RETIRED_LAUNCHER_RESOURCES:
+        if not path.startswith(PROTECTED) or path in EXCEPTIONS or path in RETIRED_RESOURCES:
             continue
         expected = metadata.split()[2].decode("ascii")
         if path in RETIRED_LAUNCHER_STRING_FILES:
@@ -219,4 +229,4 @@ if __name__ == "__main__":
     if changed:
         print("Architecture boundary violations:\n" + "\n".join(changed))
         sys.exit(1)
-    print("OK: protected runtime matches baseline plus approved identifier rename and exact launcher resource retirement; boundaries verified.")
+    print("OK: protected runtime matches baseline plus approved identifier rename and exact resource retirement; boundaries verified.")

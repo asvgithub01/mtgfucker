@@ -840,3 +840,10 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   No cambiar MagicPalette ni estilos XML compartidos para corregir estas consultas.
 - Capturas query-{idioma}-{night}.png y ratios contrast-{idioma}-{night}.csv en cache
   de la app; son fixtures sinteticos, no evidencias de usuarios.
+
+## Pestañas adaptativas de fotos
+- PhotoScopeTabs apila a ancho completo si maxWidth<400dp y fontScale>=1.5.
+  Mantener Tab/selectableGroup/indicador y fallback TabRow; no acortar traducciones.
+- imports/selectedId siguen en PhotoScreen (rememberSaveable), no dentro del layout.
+- QueryThemeLocaleTest verifica overflow y cortes entre letras; PhotoComposeTest cubre
+  cambio 100%→200%, restauración con detalle abierto y vuelta a layout normal.

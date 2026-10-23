@@ -2,7 +2,8 @@
 
 Fecha: 21-10-2026. Base auditada: master `2d8a4adb17fba50a17f26e260775e165414f4d72`.
 Rama: `codex/compose-solid-architecture`.
-Estado: **base P0/P1 implementada y validada para launcher; P2 Compose implementada**.
+Estado actual: **P0/P1 y launcher P2 implementados; P3–P6 con consultas parciales.
+P7 en modularización/endurecimiento, no cierre funcional ni retirada general del legacy.**
 Contratos, resultados y límites: `ARCHITECTURE_CONTRACTS.md`. No implica cerrar
 los gates físicos/globales de la migración ni corregir el lint heredado.
 
@@ -719,3 +720,24 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   componentes/estados (errores, deshabilitados, fotos), TalkBack/foco, pantalla fisica,
   revision linguistica y matriz visual del resto de features. No es auditoria completa.
 - Siguen pendientes paridad editable/coordinacion de guardados y retirada legacy.
+
+
+### Pestañas ampliadas y punto de prueba manual (2026-10-23)
+- Fotos: ancho disponible <400dp y fontScale>=1.5 usa pestañas apiladas a ancho completo,
+  rol Tab, grupo seleccionable e indicador. Resto conserva TabRow; mismas claves/callbacks.
+- Seis idiomas: labels sin overflow ni cortes dentro de palabras. Prueba nueva de
+  selección, cambio 100%→200%, restauración y retorno a 100%, con IDs iguales entre ámbitos.
+- Etapa: estabilización de consultas y parte segura de P7. P3–P6 todavía sin paridad
+  editable/operativa: no corresponde retirar globalmente las pantallas antiguas.
+- Prueba manual de aceptación: puede empezar con esta APK debug, sin esperar otra
+  migración. En emulador con datos de prueba: launcher → Biblio preview → grupos/detalle,
+  catálogo y fotos; texto normal/200%, cambiar ámbito, abrir/cerrar detalle, rotar y volver.
+  Comparar nombres/cantidades/grupos y registros de cada ámbito. TalkBack/foco por separado.
+  No lanzar escáneres/importaciones/procesamiento.
+- Dispositivo real: elegir destino explícito, backup consistente antes de reemplazar APK
+  y solo install -r compatible; nunca desinstalar ni borrar datos.
+- Limpieza: inventariar ya código no referenciado y retirar piezas realmente sustituidas
+  por cortes pequeños tras pruebas. Comprobar referencias dinámicas, manifiesto/XML y
+  paridad; no borrar por parecer duplicado. La retirada mayor exige completar edición,
+  operaciones y coordinación de guardados, hoy fuera del alcance autorizado.
+  No hay porcentaje fiable de finalización: probar consultas no cierra la migración.

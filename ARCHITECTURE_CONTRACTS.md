@@ -534,3 +534,20 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
 - Lint de core/designsystem correcto; lint global sigue con 29 errores/534 avisos
   heredados. git diff --check correcto. Instalacion -r solo emulator-5554, sin borrar
   datos ni modificar Sony. Scanners, persistencia y procesamiento permanecen intactos.
+
+### Pestañas largas al 200% (2026-10-23)
+- PhotoScopeTabs usa pestañas apiladas de ancho completo en <400dp con fontScale>=1.5.
+  Mantiene rol Tab, grupo seleccionable, indicador, labels completos y callbacks.
+  Resto de tamaños conserva TabRow. Sin mover imports/selectedId ni sus claves saveable.
+- QueryThemeLocaleTest comprueba layout sin overflow ni cortes entre letras en seis
+  idiomas x night/no-night. Capturas 320x480dp/200% revisadas: palabras completas.
+- PhotoComposeTest nuevo valida detalle importado con mismo ID que evidencia, cambio
+  100%→200%, restauración del estado y retorno a100%, sin cambiar ámbito/selección.
+- 951 JVM y 57 instrumentadas architecture correctas; 36 pruebas del guard correctas,
+  fuentes/manifiestos debug-release protegidos verificados. Debug/AndroidTest/release
+  unsigned construidos. Lint feature/photos correcto; diff --check correcto.
+- Solo emulator-5554 con install -r, sin borrar datos ni tocar Sony. Ningún cambio en
+  escáneres, escritores, procesamiento, lectores ni modelos. IDE ajeno no incluido.
+- Pendiente aceptación manual/TalkBack/dispositivo y matriz más amplia. Este cambio
+  no completa P3–P6 ni autoriza retirar legacy operativo; checklist en el plan.
+- Lint global mantiene 29 errores y 534 avisos heredados; no se declara limpio.

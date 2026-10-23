@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -87,6 +89,21 @@ class QueryThemeLocaleTest(private val language: String, private val night: Bool
         val global = localized.getString(PhotosR.string.photo_preview_global)
         compose.onNodeWithText(library).performScrollTo().assertIsSelected()
         compose.onNodeWithText(global).performScrollTo().performClick().assertIsSelected()
+        for (label in listOf(library, global)) {
+            val layouts = mutableListOf<TextLayoutResult>()
+            compose.onNodeWithText(label, useUnmergedTree = true)
+                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue("Missing text layout for $language", layouts.isNotEmpty())
+            layouts.forEach { layout ->
+                assertTrue("Clipped label: $label", !layout.hasVisualOverflow)
+                for (line in 0 until layout.lineCount - 1) {
+                    val end = layout.getLineEnd(line, visibleEnd = true)
+                    assertTrue("Word split in $language: $label at $end",
+                        end == 0 || end == label.length ||
+                            !label[end - 1].isLetter() || !label[end].isLetter())
+                }
+            }
+        }
         compose.onNode(hasScrollToIndexAction()).performScrollToIndex(1)
         compose.onNodeWithText("Imported fixture").assertIsDisplayed()
         val bitmap = compose.onNodeWithTag("locale-fixture").captureToImage().asAndroidBitmap()

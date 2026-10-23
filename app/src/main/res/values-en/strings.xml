@@ -23,8 +23,6 @@
     <string name="splash_branch">Branch: %1$s</string>
     <string name="ocr_header">Click "Detect Text" to detect text</string>
     <string name="mode_biblio">Open my Biblio</string>
-    <string name="mode_new_Deck">Create new Deck</string>
-    <string name="mode_edit_Decks">Open My Decks</string>
     <string name="auto_focus">Autofocus</string>
     <string name="use_flash">Flash</string>
     <string name="launch_background">MTG Biblio background card</string>

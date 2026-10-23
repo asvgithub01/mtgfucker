@@ -753,3 +753,13 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   protección de scanners/recursos compartidos. Test de APK verifica retirada y launcher.
 - Próximo corte: inventario de otras piezas realmente sin referencias. Pendientes
   aceptación manual y paridad editable P3–P6 antes de retirar hosts legacy operativos.
+
+### Etiquetas huérfanas del launcher retirado (2026-10-23)
+- Eliminadas mode_new_Deck/mode_edit_Decks (12 entradas en seis idiomas): sin consumidores
+  tras retirar activity_main.xml; no representan funciones operativas eliminadas.
+- title_font.ttf conservada: OCR, grupos, detalle y adaptadores todavía la cargan;
+  tener R.font.mtg_title para Compose no permite borrar el asset compartido.
+- Guard de transformación exacta conserva protegidos todos los demás bytes de strings.xml.
+  No se cambia navegación, estado, escrituras ni procesamiento.
+- Pendiente: otros restos solo tras demostrar ausencia de referencias; aceptación manual
+  y paridad editable P3–P6 siguen siendo requisito para retirar pantallas operativas.

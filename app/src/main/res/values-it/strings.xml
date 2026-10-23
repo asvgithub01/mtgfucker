@@ -23,8 +23,6 @@
     <string name="splash_branch">Filiale: %1$s</string>
     <string name="ocr_header">Fare clic su "Rileva testo" per rilevare il testo</string>
     <string name="mode_biblio">Apri la mia Biblio</string>
-    <string name="mode_new_Deck">Crea un nuovo mazzo</string>
-    <string name="mode_edit_Decks">Apri i miei mazzi</string>
     <string name="auto_focus">Messa a fuoco automatica</string>
     <string name="use_flash">Flash</string>
     <string name="launch_background">Scheda di sfondo di MTG Biblio</string>

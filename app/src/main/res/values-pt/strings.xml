@@ -23,8 +23,6 @@
     <string name="splash_branch">Filial: %1$s</string>
     <string name="ocr_header">Clique em "Detectar texto" para detectar texto</string>
     <string name="mode_biblio">Abra minha Bíblia</string>
-    <string name="mode_new_Deck">Criar novo baralho</string>
-    <string name="mode_edit_Decks">Abra meus decks</string>
     <string name="auto_focus">Foco automático</string>
     <string name="use_flash">Flash</string>
     <string name="launch_background">Carta de fundo MTG Biblio</string>

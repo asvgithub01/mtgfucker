@@ -567,3 +567,17 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   para aceptación manual. Sony y cambios IDE ajenos intactos.
 - Pendiente inventario de otros restos realmente sustituidos; no retirar hosts legacy
   con edición/operaciones ausentes en previews. Paridad P3–P6 sigue pendiente.
+
+### Retirada de etiquetas del launcher XML (2026-10-23)
+- Eliminadas solo mode_new_Deck/mode_edit_Decks en seis idiomas: el único consumidor
+  eran botones ocultos del layout ya retirado. No cambia ninguna función activa.
+- Guard compara strings.xml con baseline transformado solo en esas dos líneas;
+  pruebas rechazan reintroducción, edición de otras cadenas y borrado del archivo.
+  Test de APK confirma ausencia de etiquetas y launcher habilitado.
+- 951 JVM, 58 instrumentadas y 40 pruebas del guard correctas; fuentes/manifiestos
+  protegidos verificados. Debug/AndroidTest/release unsigned construidos; diff --check.
+  Lint global: 29 errores y 529 avisos (antes 531), todavía no limpio.
+- Validación en emulator-5554 con install -r; sin borrar datos, tocar Sony, scanners,
+  escritores, procesamiento ni claves restaurables. title_font.ttf sigue compartido.
+- Pendientes aceptación manual y otros restos probadamente sin uso; no retirar hosts
+  operativos ni assets compartidos hasta completar paridad funcional.

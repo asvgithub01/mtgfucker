@@ -26,6 +26,19 @@ RETIRED_LAUNCHER_RESOURCES = {
 }
 
 
+# Only these two obsolete button labels may disappear from these six shared files.
+# Compare against the transformed baseline; never exempt whole strings.xml files.
+RETIRED_LAUNCHER_STRING_FILES = {
+    f"app/src/main/res/{folder}/strings.xml"
+    for folder in ("values", "values-en", "values-de", "values-fr", "values-it", "values-pt")
+}
+
+
+def retire_launcher_strings(original):
+    return re.sub(rb'(?m)^[ \t]*<string name="(?:mode_new_Deck|mode_edit_Decks)">[^\r\n]*</string>\r?\n',
+                  b"", original)
+
+
 # Direct project edges are deliberately small. app remains the composition root.
 MODULE_EDGES = {
     "core/domain": set(),
@@ -67,6 +80,10 @@ def violations(root, base=BASE):
         if not path.startswith(PROTECTED) or path in EXCEPTIONS or path in RETIRED_LAUNCHER_RESOURCES:
             continue
         expected = metadata.split()[2].decode("ascii")
+        if path in RETIRED_LAUNCHER_STRING_FILES:
+            original = git(root, "show", base + ":" + path)
+            cleaned = retire_launcher_strings(original)
+            expected = hashlib.sha1(b"blob " + str(len(cleaned)).encode() + b"\0" + cleaned).hexdigest()
         target = root / renamed_path(path)
         if not target.is_file():
             changed.append(path + " (missing)")

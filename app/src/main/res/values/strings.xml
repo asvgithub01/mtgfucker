@@ -23,8 +23,6 @@
     <string name="splash_branch">Rama: %1$s</string>
     <string name="ocr_header">Click "Detect Text" to detect text</string>
     <string name="mode_biblio">Abrir mi Biblio</string>
-    <string name="mode_new_Deck">Create new Deck</string>
-    <string name="mode_edit_Decks">Open My Decks</string>
     <string name="auto_focus">Enfoque automático</string>
     <string name="use_flash">Flash</string>
     <string name="launch_background">Carta de fondo de MTG Biblio</string>

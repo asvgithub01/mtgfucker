@@ -23,8 +23,6 @@
     <string name="splash_branch">Branche : %1$s</string>
     <string name="ocr_header">Cliquez sur "Détecter le texte" pour détecter le texte</string>
     <string name="mode_biblio">Ouvre ma Biblio</string>
-    <string name="mode_new_Deck">Créer un nouveau deck</string>
-    <string name="mode_edit_Decks">Ouvrir mes platines</string>
     <string name="auto_focus">Mise au point automatique</string>
     <string name="use_flash">Flash</string>
     <string name="launch_background">Carte de fond MTG Biblio</string>

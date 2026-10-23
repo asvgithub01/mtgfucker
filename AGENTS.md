@@ -854,3 +854,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   reintroducción. No ampliar a recursos compartidos: spinner_background, mtgback y textos
   siguen usados. Verificar referencias XML/código/dinámicas antes de cada retirada.
 - LauncherActivityTest comprueba recursos ausentes en APK y launcher Compose habilitado.
+
+- Retiradas también mode_new_Deck/mode_edit_Decks en seis idiomas, exclusivas de botones
+  ocultos del XML retirado. El guard transforma esas líneas del baseline, no excluye
+  strings.xml completos. title_font.ttf sigue usado por escáner/legacy: no borrarlo.

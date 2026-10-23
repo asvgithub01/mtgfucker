@@ -20,7 +20,8 @@ class LauncherActivityTest {
 
     @Test fun retiredXmlLauncherResourcesAreNotPackaged() {
         val context = compose.activity
-        for ((name, type) in listOf("activity_main" to "layout", "bg_launch_panel" to "drawable")) {
+        for ((name, type) in listOf("activity_main" to "layout", "bg_launch_panel" to "drawable",
+            "mode_new_Deck" to "string", "mode_edit_Decks" to "string")) {
             assertEquals(0, context.resources.getIdentifier(name, type, context.packageName))
         }
         assertTrue(context.resources.getIdentifier("spinner_background", "drawable", context.packageName) != 0)

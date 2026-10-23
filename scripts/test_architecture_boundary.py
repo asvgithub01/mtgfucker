@@ -5,7 +5,7 @@ from pathlib import Path
 from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
     preview_manifest_violations, preview_source_violations, PREVIEWS,
-    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES)
+    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES, retire_launcher_strings)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -80,6 +80,33 @@ class ArchitectureBoundaryTest(unittest.TestCase):
         path.write_text("<shape/>")
         self.git("add", ".")
         self.git("commit", "-qm", "shared resource")
+        path.unlink()
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+
+    def test_string_retirement_preserves_every_other_byte(self):
+        original = (b'<resources>\r\n'
+                    b'  <string name="mode_new_Deck">Old</string>\r\n'
+                    b'  <string name="mode_edit_Decks">Old</string>\r\n'
+                    b'  <string name="mode_biblio">Keep</string>\r\n</resources>')
+        self.assertEqual(b'<resources>\r\n  <string name="mode_biblio">Keep</string>\r\n</resources>',
+                         retire_launcher_strings(original))
+
+    def test_shared_strings_only_allow_exact_label_retirement(self):
+        path = self.root / "app/src/main/res/values/strings.xml"
+        path.parent.mkdir(parents=True)
+        original = ('<resources>\n'
+                    '<string name="mode_new_Deck">Old</string>\n'
+                    '<string name="mode_edit_Decks">Old</string>\n'
+                    '<string name="mode_biblio">Keep</string>\n</resources>\n').encode()
+        path.write_bytes(original)
+        self.git("add", ".")
+        self.git("commit", "-qm", "launcher labels")
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+        cleaned = retire_launcher_strings(original)
+        path.write_bytes(cleaned)
+        self.assertEqual([], violations(self.root, "HEAD"))
+        path.write_bytes(cleaned.replace(b"Keep", b"Changed"))
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
         path.unlink()
         self.assertEqual(1, len(violations(self.root, "HEAD")))
 

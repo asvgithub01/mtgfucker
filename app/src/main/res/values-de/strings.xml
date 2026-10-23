@@ -23,8 +23,6 @@
     <string name="splash_branch">Niederlassung: %1$s</string>
     <string name="ocr_header">Klicken Sie auf „Text erkennen“, um Text zu erkennen</string>
     <string name="mode_biblio">Öffne meine Biblio</string>
-    <string name="mode_new_Deck">Neues Deck erstellen</string>
-    <string name="mode_edit_Decks">Öffne „Meine Decks“.</string>
     <string name="auto_focus">Autofokus</string>
     <string name="use_flash">Blitz</string>
     <string name="launch_background">MTG Biblio-Hintergrundkarte</string>

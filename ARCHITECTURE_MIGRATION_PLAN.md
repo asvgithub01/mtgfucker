@@ -773,3 +773,12 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   y prueba de ausencia/presencia en APK; ninguna clase, guardado o procesamiento cambia.
 - Pendiente aceptar visualmente consultas y revisar otros candidatos individualmente.
   Pantallas operativas legacy siguen hasta lograr paridad editable P3–P6.
+
+### Paleta obsoleta y decoraciones adicionales (2026-10-23)
+- Retirados nueve colores sin referencias (gDark/lDark y siete mtg_*), MyTheme, ic_sets
+  y megafondo. Confirmación por Lint y búsqueda XML/código/carga dinámica en módulos activos.
+- colors.xml conserva exactamente los dos colores de totales del escáner; estilos
+  activos/MagicPalette/Compose no cambian. Guard compara transformación exacta, no
+  permite editar colores activos ni borrar el archivo compartido.
+- Exclusiones deliberadas: ocr_capture_old y recursos postprocess no se limpian bajo
+  la restricción actual. No retirar pantallas legacy aún operativas sin paridad P3–P6.

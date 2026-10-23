@@ -595,3 +595,16 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   guardados, procesamiento y claves restaurables intactos.
 - Pendientes aceptación manual, otros recursos probadamente inactivos y paridad funcional
   antes de retirar Activities/recursos compartidos de las rutas legacy operativas.
+
+### Recursos de paleta sin uso (2026-10-23)
+- Retirados nueve colores y MyTheme sin consumidores, más ic_sets.xml y megafondo.jpg
+  (769597 bytes de imagen en repositorio). No se afirma ese ahorro en la APK comprimida.
+- Colores scan_total_* conservados byte a byte; prueba APK verifica sus valores exactos.
+  Guard solo transforma declaraciones obsoletas y rechaza cambios/borrado del archivo.
+- 951 JVM, 60 instrumentadas y 42 pruebas del guard correctas; fuentes/manifiestos
+  protegidos verificados. Debug/AndroidTest/release unsigned construidos; diff --check.
+  Lint global: 29 errores y 513 avisos (antes 525), todavía pendiente.
+- Solo install -r en emulator-5554, sin borrar datos. No cambios funcionales, de
+  escáneres, guardados, procesamiento ni claves restaurables. IDE ajeno intacto.
+- Pendientes aceptación manual y otros candidatos comprobados; OCR antiguo/postprocess
+  excluidos. Paridad P3–P6 necesaria para retirar pantallas legacy operativas.

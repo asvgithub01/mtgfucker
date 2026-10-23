@@ -32,6 +32,8 @@ RETIRED_UNUSED_DRAWABLES = {
     "app/src/main/res/drawable/bg_bottom_sheet.xml",
     "app/src/main/res/drawable/bg_glass_controls.xml",
     "app/src/main/res/drawable-hdpi/backbiblio.jpg",
+    "app/src/main/res/drawable-hdpi/megafondo.jpg",
+    "app/src/main/res/drawable/ic_sets.xml",
 }
 RETIRED_RESOURCES = RETIRED_LAUNCHER_RESOURCES | RETIRED_UNUSED_DRAWABLES
 
@@ -47,6 +49,16 @@ RETIRED_LAUNCHER_STRING_FILES = {
 def retire_launcher_strings(original):
     return re.sub(rb'(?m)^[ \t]*<string name="(?:mode_new_Deck|mode_edit_Decks)">[^\r\n]*</string>\r?\n',
                   b"", original)
+
+
+# Exact obsolete declarations only; scan_total_* remain byte-for-byte protected.
+def retire_unused_palette(original):
+    names = rb"gDark|lDark|mtg_ink|mtg_green|mtg_green_dark|mtg_parchment|mtg_surface|mtg_gold|mtg_muted"
+    result = re.sub(rb'(?m)^[ \t]*<color name="(?:' + names + rb')">[^\r\n]*</color>\r?\n', b"", original)
+    return re.sub(rb'(?m)^    <style name="MyTheme" >\r?\n'
+                  rb'        <item name="android:windowActionBar">false</item>\r?\n'
+                  rb'        <item name="android:windowNoTitle">true</item>\r?\n'
+                  rb'    </style>\r?\n', b"", result)
 
 
 # Direct project edges are deliberately small. app remains the composition root.
@@ -93,6 +105,9 @@ def violations(root, base=BASE):
         if path in RETIRED_LAUNCHER_STRING_FILES:
             original = git(root, "show", base + ":" + path)
             cleaned = retire_launcher_strings(original)
+            expected = hashlib.sha1(b"blob " + str(len(cleaned)).encode() + b"\0" + cleaned).hexdigest()
+        if path == "app/src/main/res/values/colors.xml":
+            cleaned = retire_unused_palette(git(root, "show", base + ":" + path))
             expected = hashlib.sha1(b"blob " + str(len(cleaned)).encode() + b"\0" + cleaned).hexdigest()
         target = root / renamed_path(path)
         if not target.is_file():

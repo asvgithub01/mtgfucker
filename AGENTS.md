@@ -862,3 +862,7 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - RETIRED_UNUSED_DRAWABLES añade solo bg_mtg_surface, bg_bottom_sheet, bg_glass_controls
   y backbiblio, sin consumidores. RETIRED_RESOURCES une ambas listas exactas; no excluye
   carpetas de recursos. Test de APK conserva spinner_background y mtgback.
+
+- Retirados ic_sets/megafondo y nueve colores + MyTheme sin consumidores. colors.xml
+  conserva scan_total_incomplete/scan_total_complete: retire_unused_palette transforma
+  solo declaraciones obsoletas del baseline. No excluir el archivo ni cambiar esos colores.

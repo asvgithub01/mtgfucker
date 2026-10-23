@@ -5,7 +5,7 @@ from pathlib import Path
 from vision_rename_contract import renamed_source, renamed_path
 from check_architecture_boundary import (violations, import_violations,
     preview_manifest_violations, preview_source_violations, PREVIEWS,
-    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES, RETIRED_UNUSED_DRAWABLES, retire_launcher_strings)
+    module_graph_violations, MODULE_EDGES, RETIRED_LAUNCHER_RESOURCES, RETIRED_UNUSED_DRAWABLES, retire_launcher_strings, retire_unused_palette)
 
 
 class ArchitectureBoundaryTest(unittest.TestCase):
@@ -93,6 +93,25 @@ class ArchitectureBoundaryTest(unittest.TestCase):
                                  violations(self.root, "HEAD"))
                 path.unlink()
                 self.assertEqual([], violations(self.root, "HEAD"))
+
+    def test_palette_retirement_cannot_change_scanner_colors(self):
+        path = self.root / "app/src/main/res/values/colors.xml"
+        path.parent.mkdir(parents=True)
+        original = (b'<resources>\n    <color name="mtg_ink">#171B19</color>\n'
+                    b'    <color name="scan_total_complete">#43A047</color>\n</resources>\n')
+        path.write_bytes(original)
+        self.git("add", ".")
+        self.git("commit", "-qm", "palette")
+        cleaned = retire_unused_palette(original)
+        self.assertEqual(b'<resources>\n    <color name="scan_total_complete">#43A047</color>\n</resources>\n', cleaned)
+        path.write_bytes(cleaned)
+        self.assertEqual([], violations(self.root, "HEAD"))
+        path.write_bytes(cleaned.replace(b"#43A047", b"#FFFFFF"))
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+        path.write_bytes(original)
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
+        path.unlink()
+        self.assertEqual(1, len(violations(self.root, "HEAD")))
 
     def test_string_retirement_preserves_every_other_byte(self):
         original = (b'<resources>\r\n'

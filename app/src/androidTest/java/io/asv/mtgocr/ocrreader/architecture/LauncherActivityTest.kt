@@ -32,12 +32,23 @@ class LauncherActivityTest {
 
     @Test fun unusedDecorationsAreAbsentButSharedArtworkRemains() {
         val context = compose.activity
-        for (name in listOf("bg_mtg_surface", "bg_bottom_sheet", "bg_glass_controls", "backbiblio")) {
+        for (name in listOf("bg_mtg_surface", "bg_bottom_sheet", "bg_glass_controls", "backbiblio", "megafondo", "ic_sets")) {
             assertEquals(name, 0, context.resources.getIdentifier(name, "drawable", context.packageName))
         }
         for (name in listOf("spinner_background", "mtgback")) {
             assertTrue(name, context.resources.getIdentifier(name, "drawable", context.packageName) != 0)
         }
+    }
+
+    @Test fun unusedPaletteIsAbsentAndScannerColorsAreUnchanged() {
+        val context = compose.activity
+        for (name in listOf("gDark", "lDark", "mtg_ink", "mtg_green", "mtg_green_dark",
+            "mtg_parchment", "mtg_surface", "mtg_gold", "mtg_muted")) {
+            assertEquals(name, 0, context.resources.getIdentifier(name, "color", context.packageName))
+        }
+        assertEquals(0, context.resources.getIdentifier("MyTheme", "style", context.packageName))
+        assertEquals(0xffffb300.toInt(), context.getColor(io.asv.mtgocr.ocrreader.R.color.scan_total_incomplete))
+        assertEquals(0xff43a047.toInt(), context.getColor(io.asv.mtgocr.ocrreader.R.color.scan_total_complete))
     }
 
     @Test fun recreationKeepsPromptConsumedAndLeavesScannerUnstarted() {

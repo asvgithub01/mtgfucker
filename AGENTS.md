@@ -756,3 +756,16 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   independientes por sección. No añadir caché, reparación de primarios, escrituras ni jobs.
 - Validar ReadOnlyPhotoReaderTest y PhotoReadIntegrationTest; este último usa archivos
   y preferencias aislados, incluye biblioteca no activa y backup sin reparación.
+
+
+## Lectura de colección separada
+- `LegacyCollectionReader` conserva API/constructor; delega en `ReadOnlyCollectionReader`
+  de data/readers mediante `LegacyCollectionProjectionSource` (app).
+- `CollectionReadSource` entrega Missing/Failed o una secuencia de vistas separadas.
+  DTOs Biblio/CardInfo, snapshotForPersistence y getters permanecen en app.
+- Consumir secuencia y proyectores dentro del dispatcher; parar al primer error. Comprobar
+  duplicados antes de proyectar campos, conservando orden de getters legacy. La fuente
+  garantiza ID coincidente y listas anidadas inmutables. No almacenar estas vistas ni usarlas
+  para guardar: no representan el formato completo de persistencia.
+- AndroidLegacyCollectionSource, DataUtils, modelos y Room no cambian. Validar
+  ReadOnlyCollectionReaderTest, LegacyCollectionReaderTest y CollectionReadIntegrationTest.

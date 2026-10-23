@@ -609,3 +609,16 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
 - Siguen pendientes paridad editable P3/P4, operaciones P5/P6, retirada legacy P7,
   pruebas físicas y autonomía de distribución de modelos. Los previews no sustituyen
   las pantallas operativas legacy.
+
+
+### Sexto corte seguro: lectura de colección (2026-10-23)
+- Coordinación, validación de duplicados y publicación de snapshots en data/readers
+  mediante CollectionReadSource/ReadOnlyCollectionReader.
+- Fuente de proyección legacy aislada en app: copia detached, identidad, getters y listas
+  de grupos/mazos/banquillo conservan contrato. API LegacyCollectionReader compatible.
+- Secuencia de lectura diferida mantiene el orden de validación y detiene la consulta en
+  el primer error, sin publicar una colección parcial ni mapear filas duplicadas.
+- Sin cambios en archivos/backup, DTOs serializados, Room, escáneres, guardados o jobs.
+- Pendientes: acceso físico legacy/Room y resto de adaptadores; escrituras P3 y coordinación
+  con snapshots OCR siguen fuera del alcance autorizado. Paridad editable P4, operaciones
+  P5/P6, retirada legacy P7, lint heredado y pruebas físicas siguen pendientes.

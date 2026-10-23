@@ -384,3 +384,25 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   mismos 29 errores/534 warnings heredados; no se suprimen ni se modifica código protegido.
 - Instrumentación: 32 pruebas architecture correctas en emulator-5554; instalación con
   install -r, sin desinstalar ni borrar datos. Ningún dispositivo físico modificado.
+
+
+### Colección: puerto de lectura y proyección legacy (2026-10-23)
+- ReadOnlyCollectionReader en data/readers coordina carga por ID, errores, unicidad y
+  lista publicada inmutable. No conoce Biblio, CardInfo, Android ni persistencia concreta.
+- LegacyCollectionProjectionSource en app crea snapshot detached y entrega filas diferidas:
+  misma validación de identidad y mismos getters/campos en el mismo orden que antes.
+  La validación de duplicados precede al mapeo; se detiene al primer fallo, sin resultado parcial.
+- LegacyCollectionReader conserva API; AndroidLegacyCollectionSource y su lectura primary/backup,
+  DataUtils, modelos serializados, Room, escáneres, escritores y jobs no se modifican.
+- Siete pruebas JVM nuevas cubren scope/orden, Missing frente a vacío y fallo, duplicados sin
+  mapearlos, error por fila sin consumir siguientes, dispatcher/refresco, lista inmutable y
+  propagación de errores/cancelación. Las pruebas legacy de bytes serializados, identidad,
+  variantes y fixture binario histórico siguen pasando sin cambios.
+- Validación JVM completa: 929 pruebas correctas; APK debug, AndroidTest y release unsigned
+  construidas. Guard de fuentes y manifiestos correcto y 36 pruebas del guard superadas.
+- Instrumentación: 33 pruebas architecture correctas en emulator-5554. La nueva prueba
+  comprueba lectura de biblioteca no activa, variantes/grupos/mazos/banquillo, backup válido
+  con primario corrupto y conservación exacta de archivos y preferencias. Install -r; sin
+  desinstalar, sin borrar datos y sin modificar dispositivos físicos.
+- Lint app mantiene 29 errores/534 warnings heredados; sin supresiones ni cambios protegidos.
+  Pruebas físicas de regresión pendientes; no afirmar migración funcional completa.

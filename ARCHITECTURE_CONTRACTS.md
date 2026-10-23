@@ -424,3 +424,19 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   caso nuevo rechaza symlink hacia fuera y traversal conservando enlace y bytes originales.
   Instalación install -r sin desinstalar ni borrar datos; dispositivos físicos no modificados.
 - Lint app sigue en 29 errores/534 warnings heredados. Regresión física pendiente.
+
+
+### Observación de biblioteca desacoplada (2026-10-23)
+- observedLibraryChanges/LibraryDirectoryObserver en data/readers separan coordinación
+  de la API FileObserver Android. LegacyLibraryChanges conserva firma y máscara de eventos.
+- Mismo contrato: flujo frío, registro por collector, filtro de nombres, señal inicial tras
+  registro, buffer conflado y debounce150ms; stop al cancelar. No se añaden lecturas/guardados.
+- Siete pruebas nuevas JVM: registro diferido/señal inicial, filtro primary/backup/null,
+  ráfagas/debounce, aislamiento entre collectors, cancelación con callback tardío, evento
+  síncrono durante registro y propagación de fallo de registro.
+- 943 pruebas JVM correctas; debug, AndroidTest y release unsigned construidas.
+  Guard de fuentes y 36 pruebas del guard correctos. No cambia procesamiento ni persistencia.
+- Manifiestos debug/release verificados. 34 pruebas architecture correctas en emulator-5554,
+  incluida publicación tardía por rename y conservación de bytes. Install -r sin desinstalar
+  ni borrar datos. Sony conectado durante validación pero no modificado.
+- Lint app mantiene 29 errores/534 warnings heredados. Regresión física pendiente.

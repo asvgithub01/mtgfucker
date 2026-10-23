@@ -779,3 +779,13 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   null distingue ausente/directorio de archivo vacío (0); tamaño no prueba integridad.
 - Tests: PrivateLibraryFileReaderTest y ServicesReadIntegrationTest (incluye symlink que
   sale de raíz, en fixture aislado). No copiar lógica de persistencia a este lector.
+
+
+## Observación de biblioteca solo lectura
+- `ObservedLibraryChanges.kt` en data/readers: puerto LibraryDirectoryObserver y flujo frío
+  con filtro de nombres, invalidación inicial, buffer conflado y debounce de 150 ms.
+- `LegacyLibraryChanges.kt` conserva FileObserver Android sobre directorio y máscara
+  CLOSE_WRITE/MOVED_TO/DELETE/MOVED_FROM. Un registro por collector, cierre al cancelar.
+- No cambiar esta observación por RESUMED solamente; puede haber publicaciones tardías.
+  Observar no bloquea ni coordina escritores y no resuelve la carrera de snapshots OCR.
+- Validar ObservedLibraryChangesTest y LibraryReturnIntegrationTest (rename real en fixture).

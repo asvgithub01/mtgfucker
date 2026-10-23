@@ -634,3 +634,21 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   se deja fuera de esta extracción para respetar el alcance de solo lectura.
 - Pendientes acceso legacy/Room y adaptadores con efectos, escrituras P3/coordinación OCR,
   paridad editable P4, operaciones P5/P6 y retirada legacy P7. Lint y pruebas físicas pendientes.
+
+
+### Octavo corte seguro: observación de bibliotecas (2026-10-23)
+- Coordinación del flujo de cambios extraída a data/readers mediante LibraryDirectoryObserver.
+  FileObserver permanece en app, con misma máscara y observación del directorio, no del inode.
+- Se mantienen señal inicial, filtro por nombre, conflación, debounce150ms y parada al cancelar.
+- No cambia navegación, persistencia, datos, escáneres ni trabajos de procesamiento.
+
+### Siguientes avances permitidos y límites
+- Consolidar wiring/DI de las consultas y sus contratos, sin introducir comandos.
+- Extraer mapeos/reglas puras restantes solo si reduce acoplamiento real, no por dividir archivos.
+- Ampliar pruebas de consulta, lifecycle, errores, traducciones/accesibilidad y conservación
+  con fixtures; mejorar estados de UI de los previews sin activar escrituras.
+- El margen de extracción mecánica segura ya es menor. No mover Room/DataUtils/modelos
+  compartidos ni el adaptador mixto de launcher para presentar una modularización completa.
+- Siguen fuera del alcance: escrituras P3/coordinación OCR, paridad editable P4, operaciones
+  P5/P6, procesamiento, cambio de modelos y retirada legacy P7. Requieren autorización
+  específica cuando afecten las áreas protegidas, además de pruebas físicas.

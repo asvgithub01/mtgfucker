@@ -829,3 +829,14 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Capturas cache/query-a11y-{actions,photos,services}.png en la app de pruebas;
   extraer con adb exec-out run-as y validar firma PNG (cat ausente puede devolver exit 0).
 - Es revisión de layout/semántica, no certificación TalkBack, contraste o todos los idiomas.
+
+## Contraste y recursos localizados Compose
+- QueryThemeLocaleTest usa ContextThemeWrapper y Configuration locales: ES/EN/DE/FR/IT/PT
+  por UI_MODE_NIGHT_NO/YES, sin modificar preferencias, Locale global ni ajustes Android.
+- Contraste de colores resueltos reales de seis paletas: onSurface/surface,
+  primary/surface, onPrimary/primary y onSurfaceVariant/surface, minimo 4.5:1.
+- MtgTheme sigue siendo light como los hosts existentes; night no equivale a tema oscuro.
+  readablePrimary ajusta solo colores insuficientes con margen 4.6 por cuantizacion a 8 bits.
+  No cambiar MagicPalette ni estilos XML compartidos para corregir estas consultas.
+- Capturas query-{idioma}-{night}.png y ratios contrast-{idioma}-{night}.csv en cache
+  de la app; son fixtures sinteticos, no evidencias de usuarios.

@@ -506,3 +506,31 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
 - Install -r solo en emulator-5554; sin desinstalar, borrar datos ni tocar Sony.
 - Límite: comprobaciones semánticas y revisión de capturas, no TalkBack ni auditoría
   de contraste. Pendientes otros idiomas/temas/tamaños y regresión física.
+
+### Contraste y localizacion de consultas (2026-10-23)
+- QueryThemeLocaleTest: 12 variantes de ES/EN/DE/FR/IT/PT y configuracion night/no-night,
+  con contextos aislados y fixtures de fotos 320x480dp/fontScale=2. Sin cambiar ajustes,
+  preferencias ni datos reales. Seleccion, scroll, apertura y cierre conservados.
+- Comprobados colores resueltos de seis paletas para cuatro parejas: body, action,
+  filled y secondaryBody. Objetivo >=4.5:1 (colores planos, no analisis de pixels).
+- La prueba detecto White primary/surface=2.239:1. MtgTheme ajusta primary insuficiente
+  hacia negro con margen 4.6 para cuantizacion; White queda 4.608 y Metal 4.620.
+  Las otras cuatro paletas no requieren cambio. MagicPalette y XML intactos.
+- Capturas White/Metal de los 12 casos revisadas en build/architecture/theme-captures
+  (ignoradas). Traducciones presentes para todas las claves de core/designsystem y
+  features photos/services/catalog/launcher/library; no equivale a revision linguistica.
+- El tema real continua claro incluso con night: no se promete soporte oscuro.
+  Pestañas largas completas y operables, pero con particiones de palabras al 200%.
+- Pendientes contraste de otros componentes/estados, adaptacion de pestañas largas,
+  oscuro real, TalkBack/foco y dispositivos fisicos. No es certificacion de toda la app.
+
+- La suite completa detecto ademas el caso de fondo oscuro arbitrario inyectado:
+  si oscurecer no ofrece solucion, se conserva el primario anterior. El test existente
+  DesignSystemModuleTest queda sin debilitar; no se aplica un falso tema oscuro parcial.
+
+- Validacion final: 951 JVM y 56 instrumentadas architecture correctas, incluidas
+  restauracion Bundle/SavedState y fotos. 36 tests del guard correctos; fuentes y
+  manifiestos debug/release verificados. Debug/AndroidTest/release unsigned construidos.
+- Lint de core/designsystem correcto; lint global sigue con 29 errores/534 avisos
+  heredados. git diff --check correcto. Instalacion -r solo emulator-5554, sin borrar
+  datos ni modificar Sony. Scanners, persistencia y procesamiento permanecen intactos.

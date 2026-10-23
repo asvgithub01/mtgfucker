@@ -706,3 +706,16 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
   dispositivo físico. No generalizar estos tres casos a toda la app.
 - Paridad editable, operaciones, coordinación de guardados y retirada legacy siguen
   pendientes; no se han tocado scanners, escritores ni procesamiento.
+
+### Contraste, temas e idiomas de consultas (2026-10-23)
+- Matriz de 12 casos ES/EN/DE/FR/IT/PT x configuracion night/no-night; tema real de
+  produccion, pantalla 320x480dp y texto 200%, con datos sinteticos de fotos.
+- Contraste calculado para cuatro parejas de colores en las seis paletas; corregido
+  primary de White/Metal solo en MtgTheme. No cambian preferencias, XML ni MagicPalette.
+- Capturas revisadas: pestañas completas y operables, pero palabras largas se parten
+  en muchas lineas al 200%. Pendiente mejorar adaptacion sin perder semantica/seleccion.
+- Night sigue mostrando tema claro por diseño existente: no se ha implementado oscuro.
+- Pendientes: tema oscuro real si se decide incorporarlo, contraste de todos los
+  componentes/estados (errores, deshabilitados, fotos), TalkBack/foco, pantalla fisica,
+  revision linguistica y matriz visual del resto de features. No es auditoria completa.
+- Siguen pendientes paridad editable/coordinacion de guardados y retirada legacy.

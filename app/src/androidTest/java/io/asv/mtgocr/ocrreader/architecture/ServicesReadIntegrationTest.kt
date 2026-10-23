@@ -3,6 +3,7 @@ package io.asv.mtgocr.ocrreader.architecture
 import android.content.Context
 import android.content.ContextWrapper
 import androidx.test.platform.app.InstrumentationRegistry
+import io.asv.mtgocr.ocrreader.data.legacy.AndroidServicesReadSource
 import io.asv.mtgocr.ocrreader.data.legacy.LegacyServicesReader
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -11,6 +12,36 @@ import java.io.File
 import java.util.UUID
 
 class ServicesReadIntegrationTest {
+    @Test fun canonicalMetadataReaderRejectsEscapingSymlinksWithoutChangingFiles() {
+        val base = InstrumentationRegistry.getInstrumentation().targetContext
+        val fixture = File(base.cacheDir, "metadata-test-" + UUID.randomUUID()).apply { mkdirs() }
+        val root = File(fixture, "private").apply { mkdirs() }
+        val outside = File(fixture, "outside").apply { writeText("untouched outside") }
+        val inside = File(root, "library").apply { writeText("123") }
+        val link = File(root, "escape")
+        val context = object : ContextWrapper(base) {
+            override fun getFilesDir() = root
+        }
+        try {
+            android.system.Os.symlink(outside.absolutePath, link.absolutePath)
+            val source = AndroidServicesReadSource(context)
+            assertEquals(3L, source.bytes("library"))
+            for (name in listOf("escape", "../outside")) {
+                try { source.bytes(name); fail("must reject escaping path") }
+                catch (error: IllegalArgumentException) {
+                    assertEquals("Library file outside private root", error.message)
+                }
+            }
+            assertEquals("untouched outside", outside.readText())
+            assertEquals("123", inside.readText())
+            assertEquals(outside.absolutePath, android.system.Os.readlink(link.absolutePath))
+        } finally {
+            // Unlink explicitly before recursively cleaning this isolated fixture.
+            link.delete()
+            fixture.deleteRecursively()
+        }
+    }
+
     @Test fun settingsAndAllLibraryFilesRemainUnchangedEvenWithoutPremium() = runBlocking {
         val base = InstrumentationRegistry.getInstrumentation().targetContext
         val prefix = "services-test-" + UUID.randomUUID()

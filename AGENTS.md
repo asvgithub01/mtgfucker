@@ -769,3 +769,13 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
   para guardar: no representan el formato completo de persistencia.
 - AndroidLegacyCollectionSource, DataUtils, modelos y Room no cambian. Validar
   ReadOnlyCollectionReaderTest, LegacyCollectionReaderTest y CollectionReadIntegrationTest.
+
+
+## Adaptadores Android y metadatos privados
+- `AndroidLibraryShellReadSource.kt` y `AndroidServicesReadSource.kt` son fuentes internas
+  en app, separadas de sus fachadas públicas/compatibles. Mismos contratos y efectos previos.
+- `PrivateLibraryFileReader` en data/readers consulta únicamente tamaño de archivo regular
+  bajo padre canónico directo. Resolver raíz en cada llamada; no crear, reparar o borrar.
+  null distingue ausente/directorio de archivo vacío (0); tamaño no prueba integridad.
+- Tests: PrivateLibraryFileReaderTest y ServicesReadIntegrationTest (incluye symlink que
+  sale de raíz, en fixture aislado). No copiar lógica de persistencia a este lector.

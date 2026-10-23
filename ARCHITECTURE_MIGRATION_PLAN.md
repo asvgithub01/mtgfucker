@@ -622,3 +622,15 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
 - Pendientes: acceso físico legacy/Room y resto de adaptadores; escrituras P3 y coordinación
   con snapshots OCR siguen fuera del alcance autorizado. Paridad editable P4, operaciones
   P5/P6, retirada legacy P7, lint heredado y pruebas físicas siguen pendientes.
+
+
+### Séptimo corte seguro: adaptadores y metadatos privados (2026-10-23)
+- Fuentes Android del shell Biblio y servicios separadas de sus fachadas en archivos propios.
+  El cuerpo del adaptador Biblio se conserva literalmente salvo visibilidad interna.
+- Consulta física de tamaño/ruta canónica extraída a PrivateLibraryFileReader (data/readers);
+  fuente Android suministra filesDir en cada llamada. Misma distinción null/0, mismos errores.
+- No modifica deserialización, selección de biblioteca, guardados, Room, escáneres ni jobs.
+- LauncherRepository permanece en app: mezcla lectura y selección que escribe preferencias;
+  se deja fuera de esta extracción para respetar el alcance de solo lectura.
+- Pendientes acceso legacy/Room y adaptadores con efectos, escrituras P3/coordinación OCR,
+  paridad editable P4, operaciones P5/P6 y retirada legacy P7. Lint y pruebas físicas pendientes.

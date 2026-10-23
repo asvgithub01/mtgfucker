@@ -406,3 +406,21 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   desinstalar, sin borrar datos y sin modificar dispositivos físicos.
 - Lint app mantiene 29 errores/534 warnings heredados; sin supresiones ni cambios protegidos.
   Pruebas físicas de regresión pendientes; no afirmar migración funcional completa.
+
+
+### Adaptadores Android y lectura de metadatos (2026-10-23)
+- AndroidLibraryShellReadSource y AndroidServicesReadSource separados de las fachadas,
+  sin nuevas dependencias ni cambios de API de los consumidores. Ambos siguen en app.
+- PrivateLibraryFileReader en data/readers extrae exactamente la consulta de tamaño/ruta:
+  raíz resuelta cada vez, padre canónico directo, null para ausente/directorio y 0 para vacío.
+  No deserializa, crea, repara o elimina archivos; tamaño no indica validez de backup.
+- Paridad textual comprobada del cuerpo de la fuente shell y de lectura de tamaño (salvo
+  visibilidad y raíz inyectada). No se toca selección del launcher, persistencia ni jobs.
+- Siete pruebas JVM nuevas cubren ausencia/directorio/vacío/backup, escape y subdirectorios,
+  normalización canónica, raíz dinámica/diferida, raíz ausente y propagación de error.
+- Validación: 936 pruebas JVM sin fallos; APK debug, AndroidTest y release unsigned construidas.
+  Guard runtime/fuentes y sus 36 pruebas correctos. No se modifica ni silencia código protegido.
+- Manifiestos debug/release verificados. 34 pruebas architecture pasan en emulator-5554;
+  caso nuevo rechaza symlink hacia fuera y traversal conservando enlace y bytes originales.
+  Instalación install -r sin desinstalar ni borrar datos; dispositivos físicos no modificados.
+- Lint app sigue en 29 errores/534 warnings heredados. Regresión física pendiente.

@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.asv.mtgocr.ocrreader.core.designsystem.QueryDetailDialog
 import io.asv.mtgocr.ocrreader.core.designsystem.LoadStatus
 
 /** Stateless read-only catalog. Selecting a set never selects an owned printing. */
@@ -49,13 +48,11 @@ fun SetCatalogScreen(state: SetCatalogUiState, onQuery: (String) -> Unit,
         }
     }
     state.selected?.takeIf { !state.loading && !state.failed }?.let { set ->
-        AlertDialog(onDismissRequest = onDismiss, title = { Text(set.name) },
-            text = { Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(set.code)
-                Text(stringResource(CatalogR.string.catalog_release, set.releaseDate))
-                Text(pluralStringResource(CatalogR.plurals.catalog_cards, set.cardCount, set.cardCount))
-                Text(stringResource(CatalogR.string.catalog_notice))
-            } },
-            confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(CommonR.string.shell_close)) } })
+        QueryDetailDialog(set.name, stringResource(CommonR.string.shell_close), onDismiss) {
+            Text(set.code)
+            Text(stringResource(CatalogR.string.catalog_release, set.releaseDate))
+            Text(pluralStringResource(CatalogR.plurals.catalog_cards, set.cardCount, set.cardCount))
+            Text(stringResource(CatalogR.string.catalog_notice))
+        }
     }
 }

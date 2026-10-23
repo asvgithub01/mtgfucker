@@ -474,3 +474,21 @@ Logs locales: build/architecture/read-ports-{first,unit,full,device,lint-release
   sección/membership/query/sort, prioridad sobre defaults, ID explícito y fallo sin owners.
   Lectores falsos, sin datos reales ni red. Install -r; Sony no modificado.
 - Lint mantiene 29 errores/534 warnings heredados; pruebas físicas siguen pendientes.
+
+
+### Controles de consulta reutilizables (2026-10-23)
+- QueryActions y QueryDetailDialog en core/designsystem; eliminados bloques repetidos
+  en PhotoScreen/ServicesScreen y PhotoScreen/SetCatalogScreen respectivamente.
+- Mismos Material3 Row/TextButton y AlertDialog/Column verticalScroll; enabled, testTag,
+  textos, contenido y callbacks suministrados por feature. Sin llamadas de datos o efectos.
+- Sin cambios de recursos/traducciones, claves rememberSaveable, ViewModels/DI, loaders
+  de imágenes ni persistencia. Pestaña/selección fotos permanecen en PhotoScreen.
+- 951 pruebas JVM correctas; debug, AndroidTest y release unsigned construidas.
+  Lint design system y las tres features modificadas correcto; guard de fuentes/manifiestos
+  y 36 pruebas de arquitectura correctos. Escáneres/guardados/procesamiento intactos.
+- 41 pruebas architecture correctas en emulator-5554: cuatro nuevas cubren acciones/callbacks,
+  diálogo desplazable/cierre y StateRestorationTester de pestaña global+selección con mismo ID
+  en biblioteca/importaciones. Suites SavedStateHandle previas siguen verdes.
+- Revisión visual del diálogo de fotos con fixture sintético (captura en build/architecture,
+  ignorada). Install -r sin desinstalar/borrar datos; Sony no modificado.
+- Lint global mantiene 29 errores/534 warnings heredados. Regresión física pendiente.

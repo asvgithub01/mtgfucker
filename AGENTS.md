@@ -810,3 +810,13 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - No cambiar claves guardadas ni init/reload de ViewModels. Factories simples de fotos/servicios
   siguen separadas. Tests: RestorableQueryFactoryTest y QuerySavedStateIntegrationTest
   (Bundle con propietario/Store nuevos, defaults, retención y ausencia de owners).
+
+
+## Componentes de consulta reutilizables
+- QueryControls.kt en core/designsystem contiene QueryActions y QueryDetailDialog.
+  Sin dependencias de dominio/datos, efectos de carga ni estado de selección propio.
+- Fotos/servicios comparten acciones; fotos/catálogo comparten diálogo desplazable.
+  Labels siguen recursos existentes de cada feature/common (OK de Android en fotos).
+- Mantener rememberSaveable de pestaña/ID en PhotoScreen y SavedStateHandle de catálogo;
+  no trasladar estas claves al diálogo ni alterar el scope biblioteca/importaciones.
+- Validar QueryControlsTest, PhotoComposeTest con StateRestorationTester y suites existentes.

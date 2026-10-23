@@ -683,3 +683,15 @@ https://docs.pytorch.org/tutorials/beginner/transfer_learning_tutorial.html.
 - Pendiente: DI del launcher mixto (fuera de este corte), reutilización UI/pruebas, paridad
   editable/operaciones y retirada legacy. Restricciones de writers/OCR/Room y pruebas físicas
   siguen vigentes; este corte no completa migración funcional.
+
+
+### Reutilización UI de consultas (2026-10-23)
+- QueryActions comparte fila volver/actualizar entre fotos y servicios; mantiene habilitación
+  por loading y testTag de servicios sin automatizar callbacks.
+- QueryDetailDialog comparte AlertDialog/Column scroll/confirmación entre fotos y catálogo;
+  selección/dismissal, contenido y textos siguen propiedad de cada feature.
+- Retirados los bloques duplicados en las pantallas; sin nuevos recursos ni dependencias.
+- rememberSaveable de fotos y SavedStateHandle/ViewModels/DI permanecen intactos.
+- Pendiente: reutilización adicional solo donde haya equivalencia real; más regresión
+  visual/accesibilidad/dispositivos. Paridad editable y retirada legacy siguen pendientes
+  bajo las restricciones de no modificar scanners, guardados ni procesamiento.

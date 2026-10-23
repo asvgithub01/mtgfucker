@@ -3,6 +3,7 @@ package io.asv.mtgocr.ocrreader.feature.services
 import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
 import io.asv.mtgocr.ocrreader.feature.services.R as ServicesR
 
+import io.asv.mtgocr.ocrreader.core.designsystem.QueryActions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,12 +20,8 @@ fun ServicesScreen(state: ServicesUiState, onRefresh: () -> Unit, onBack: () -> 
     LazyColumn(Modifier.fillMaxSize().safeDrawingPadding().testTag("services-list"), contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            Row {
-                TextButton(onClick = onBack) { Text(stringResource(CommonR.string.shell_home)) }
-                TextButton(onClick = onRefresh, enabled = !state.loading, modifier = Modifier.testTag("services-refresh")) {
-                    Text(stringResource(CommonR.string.shell_refresh))
-                }
-            }
+            QueryActions(stringResource(CommonR.string.shell_home), stringResource(CommonR.string.shell_refresh),
+                state.loading, onBack, onRefresh, refreshModifier = Modifier.testTag("services-refresh"))
             Text(stringResource(ServicesR.string.services_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(ServicesR.string.services_notice))
             if (state.loading) CircularProgressIndicator()

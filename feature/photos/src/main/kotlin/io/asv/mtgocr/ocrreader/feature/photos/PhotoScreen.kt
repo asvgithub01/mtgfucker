@@ -4,11 +4,11 @@ import io.asv.mtgocr.ocrreader.core.designsystem.R as CommonR
 import io.asv.mtgocr.ocrreader.feature.photos.R as PhotosR
 
 import androidx.compose.foundation.clickable
+import io.asv.mtgocr.ocrreader.core.designsystem.QueryDetailDialog
+import io.asv.mtgocr.ocrreader.core.designsystem.QueryActions
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,10 +25,8 @@ fun PhotoScreen(state: PhotoUiState, onRefresh: () -> Unit, onBack: () -> Unit,
     val selected = section?.records?.firstOrNull { it.id == selectedId }
     LazyColumn(Modifier.fillMaxSize().safeDrawingPadding(), contentPadding = PaddingValues(16.dp)) {
         item {
-            Row {
-                TextButton(onClick = onBack) { Text(stringResource(CommonR.string.shell_home)) }
-                TextButton(onClick = onRefresh, enabled = !state.loading) { Text(stringResource(CommonR.string.shell_refresh)) }
-            }
+            QueryActions(stringResource(CommonR.string.shell_home), stringResource(CommonR.string.shell_refresh),
+                state.loading, onBack, onRefresh)
             Text(stringResource(PhotosR.string.photo_preview_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(PhotosR.string.photo_preview_notice))
             TabRow(if (imports) 1 else 0) {
@@ -45,11 +43,9 @@ fun PhotoScreen(state: PhotoUiState, onRefresh: () -> Unit, onBack: () -> Unit,
             ListItem(headlineContent = { Text(record.title) }, modifier = Modifier.clickable { selectedId = record.id })
         }
     }
-    if (selected != null) AlertDialog(onDismissRequest = { selectedId = null },
-        title = { Text(selected.title) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
-            image(selected.path)
-            Text(selected.details.ifBlank { stringResource(PhotosR.string.photo_preview_no_metadata) })
-        } },
-        confirmButton = { TextButton(onClick = { selectedId = null }) { Text(stringResource(android.R.string.ok)) } })
+    if (selected != null) QueryDetailDialog(selected.title, stringResource(android.R.string.ok),
+        onDismiss = { selectedId = null }) {
+        image(selected.path)
+        Text(selected.details.ifBlank { stringResource(PhotosR.string.photo_preview_no_metadata) })
+    }
 }

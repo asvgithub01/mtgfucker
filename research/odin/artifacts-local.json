@@ -1,0 +1,46 @@
+{
+  "localDatasetRoot": "C:\\asv\\datasets\\mtg-identity-v1",
+  "notice": "Inventory only. Binary artifacts and images are NOT in Git. Preserve external backups.",
+  "files": [
+    {
+      "path": "pilot-02/own-fp32.onnx",
+      "bytes": 4308484,
+      "sha256": "d7dc898744ce9ce530e9b6344e043dd9315b426b513bb6f5e66f6367f6ca9fd6"
+    },
+    {
+      "path": "pilot-02/trained.pt",
+      "bytes": 4431451,
+      "sha256": "1c3826073464981113cb48fa98471433256a6a5f16fe16ea1ecf08c1cb672dea"
+    },
+    {
+      "path": "pilot-02/split.json",
+      "bytes": 2105252,
+      "sha256": "95f190f3d84f5216087a1eecacd273a174411501d0963abf6ab1c9f328e61d04"
+    },
+    {
+      "path": "pilot-02/provenance.json",
+      "bytes": 668,
+      "sha256": "b8ed06e5b3c1ad1f8d9c6ccae9ec5bb60d1ecbdcef9a9dd4ea21934c6216e371"
+    },
+    {
+      "path": "pilot-02/config.json",
+      "bytes": 610,
+      "sha256": "c4921991420d2e7265fb4e66a330c8a7d35f5592e1eae62e0a515ffe981b4a36"
+    },
+    {
+      "path": "own02-complete-gallery-01/gallery.npy",
+      "bytes": 103041152,
+      "sha256": "deea0f7b1b286320cf0d108a53454d4d77349ee9cf24383fd092395f877e2505"
+    },
+    {
+      "path": "expanded-run-01/config.json",
+      "bytes": 764,
+      "sha256": "6f5fade9b506443bb2e96586a07bebb76ca3c47e6adcfcc3274d6aa18c639f2c"
+    },
+    {
+      "path": "expanded-run-01/evaluation-01/comparison.json",
+      "bytes": 1605,
+      "sha256": "ff9e5f0fd13b734e5a229e641554832197f6e335471408f11ebe884f492e9ce3"
+    }
+  ]
+}

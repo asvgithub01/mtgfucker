@@ -30,9 +30,11 @@ class EdScanVerificationWorker(context: Context, params: WorkerParameters) : Cor
         try {
             val metadata = JSONObject(input.readText())
             val expected = metadata.optString("id")
-            NativeCollectorVisionEngine.prepare(applicationContext).use { engine ->
+            run {
                 EdScanInferencePriority.awaitIdle()
-                val result = engine.scan(bitmap)
+                val fastWeb = metadata.optString("engine") == FastWebDiegoEngine.ID
+                val result = if (fastWeb) FastWebDiegoEngine.prepare(applicationContext).use { it.scan(bitmap) }
+                    else NativeCollectorVisionEngine.prepare(applicationContext).use { it.scan(bitmap) }
                 val best = result.hits.firstOrNull()
                 val second = result.hits.drop(1).firstOrNull { it.cardId != best?.cardId }
                 val status = if (metadata.optString("source") == "ocr" || attempt.isNotBlank()) {
@@ -41,7 +43,7 @@ class EdScanVerificationWorker(context: Context, params: WorkerParameters) : Cor
                 } else VerificationPolicy.status(expected, result.present, best?.cardId, best?.score, second?.score)
                 val json = JSONObject().put("status", status).put("expectedScryfallId", expected)
                     .put("observedScryfallId", best?.cardId ?: "").put("checkedAt", System.currentTimeMillis())
-                    .put("engine", "Cornelius2.12+Milo1").put("autoApplied", false)
+                    .put("engine", if (fastWeb) FastWebDiegoEngine.ID else "Cornelius2.12+Milo1").put("autoApplied", false)
                     .put("hits", JSONArray().apply { result.hits.forEach {
                         put(JSONObject().put("id", it.cardId).put("score", if (it.score.isFinite()) it.score.toDouble() else JSONObject.NULL))
                     } })

@@ -1,0 +1,11 @@
+unity/Library/
+unity/Temp/
+unity/Logs/
+unity/obj/
+unity/UserSettings/
+data/
+runs/
+*.png
+*.jpg
+*.pt
+*.onnx

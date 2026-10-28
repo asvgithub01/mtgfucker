@@ -1,0 +1,126 @@
+[
+  {
+    "file": "audit_coverage.py",
+    "sha256": "1556fe5c552e0e28933095e46a74a65686e7afd2b36cc394b3bccd9967e564bd"
+  },
+  {
+    "file": "audit_download_snapshot.py",
+    "sha256": "db268a2f9640af35bcb76919b275cecc835e44d8b1bee1bbc07c7c72e1b980ac"
+  },
+  {
+    "file": "audit_postprocessed.py",
+    "sha256": "1dd22932217d681a4090ad89ba91c2653aaca0751d64822489bef8704f0cd642"
+  },
+  {
+    "file": "audit.py",
+    "sha256": "c3a6048891c6619ad5920d13530783ecae4e386f3b219e7625eb6a1c6744b2fd"
+  },
+  {
+    "file": "build_android_bundle.py",
+    "sha256": "f5e3617bf0e9cd2f43e1758c3e329462c782f1d662c4ca64c2c6836bc09ea6b6"
+  },
+  {
+    "file": "build_own_complete_gallery.py",
+    "sha256": "9eea54f5c5fa1b68439ab21295202214732275a01c8a38c3ab61ba7565c6e5f7"
+  },
+  {
+    "file": "compare_sony_failures.py",
+    "sha256": "f65666aa2309641c2d66740fb26e29e7502f39e5f079f15d79c44b804e1c5ff9"
+  },
+  {
+    "file": "download.py",
+    "sha256": "54df18e5802463607f94ad53f2df5e80519198b496579c8cb74c20b4013bb07e"
+  },
+  {
+    "file": "evaluate_expanded_run.py",
+    "sha256": "8a3298591ef27c9f9b627d6222155ff3eb9ba003347564533a614582456a87b3"
+  },
+  {
+    "file": "evaluate_full_gallery.py",
+    "sha256": "589e8de6e947964449355a1085ea39b9261e9a2498459d0e763830df8e50092c"
+  },
+  {
+    "file": "evaluate_heldout.py",
+    "sha256": "b3ab7d786f8c4d1c585029fa3df759ad68bf101da6f0b1eaf2e9236801de9bf1"
+  },
+  {
+    "file": "evaluate.py",
+    "sha256": "2f1a431f2dd53624dd0bd46463f506b78b8e5aba74082c935c440a05e3f1c804"
+  },
+  {
+    "file": "expanded.py",
+    "sha256": "197fdf3a1477bd700d46049d9ece31e0333319a0c1f0f7bf8b55e648664f2260"
+  },
+  {
+    "file": "export_pilot.py",
+    "sha256": "7ee2be5cc7c596b0708c306b591383932e222a1f8bafe00a0424a5fcbb86ee71"
+  },
+  {
+    "file": "mine_train_negatives.py",
+    "sha256": "dbf710b31bfd87ab8dddebd2eabeed8b30abded5b533409bb6064c9448d860da"
+  },
+  {
+    "file": "package_own_complete.py",
+    "sha256": "af08d65bd56a14500b1bb83e56d325090d49ae2f0059386d5b7224cc553938cf"
+  },
+  {
+    "file": "pilot.py",
+    "sha256": "7a6511811c18af022facdb50ec55dfb67c15396c1f6ceb677a5fa69694985409"
+  },
+  {
+    "file": "prepare_expanded_training.py",
+    "sha256": "9f7364887ea625e276385271124176da1af91a7347831c6e0482c93cce958c49"
+  },
+  {
+    "file": "prepare_heldout.py",
+    "sha256": "4b07f32e99d2a4da76b02f4857d6035653f82ed18d7a04e652a341bb177d26ea"
+  },
+  {
+    "file": "prepare_own_android_fixtures.py",
+    "sha256": "528829035d3dc1b57e8cab196850b8fcd376337c2739903b7d6e0860d677bcad"
+  },
+  {
+    "file": "prepare_second.py",
+    "sha256": "ea9c914035eae6ee7666bec2d31f49fb2b7e94476dc8bd4a79838a73bf1d886f"
+  },
+  {
+    "file": "replay_own_complete.py",
+    "sha256": "7dce905f076686c09ca9aa19a7e603def80e08f14662c0239b28e03dc9d38372"
+  },
+  {
+    "file": "report_expanded.py",
+    "sha256": "cc8fdd4d557e466babb43f5d1d504929d6fe9f906a41aa79627eb99e070342d8"
+  },
+  {
+    "file": "report.py",
+    "sha256": "719de1a5cfa16a6451cfbe95bf9b0f6441cba41a4bc4612298595fe0a2dbe3b8"
+  },
+  {
+    "file": "requirements-lock.txt",
+    "sha256": "cd44f8a41b493f62776c1fb7c81f1115e4230c60b1681f95b8d6385be1535503"
+  },
+  {
+    "file": "requirements-training-lock.txt",
+    "sha256": "aad0dbda395d4501a63d0de334113cc772a86dcd0f9bf8b1a210a41572e5323a"
+  },
+  {
+    "file": "test_android_preprocess.py",
+    "sha256": "028a9ecd4114ab6c4278fb26dce3ce360d0292c67de94234420fa5148f9e6e72"
+  },
+  {
+    "file": "test_download.py",
+    "sha256": "cc9923e0a407bcea686ecd398c97fa6078aeb94d688c4b9dc5b0e90730020d38"
+  },
+  {
+    "file": "test_expanded_runner.py",
+    "sha256": "44d9a26a03d1e7ce9cfead585c15e6a30ca8f670e97605f7ae2d944231e6bb94"
+  },
+  {
+    "file": "train_expanded.py",
+    "sha256": "21216aa10e9fbc5ab1a9b7b62951d4285a33c5519933e2c0b4a08c1c76fa9da9"
+  },
+  {
+    "file": "train_second.py",
+    "sha256": "76146b1ed719b53c9da68caa18eefb38552a83d5e4fe692fed5f9ff038af1e5f"
+  }
+]

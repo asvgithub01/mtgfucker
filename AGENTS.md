@@ -601,3 +601,27 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 
 - Triple: `TripleLaserView` es decorativo; flag `triple_scanner/laser_animation` OFF por defecto. No vincularlo al reconocimiento ni a sus votos. Detener animador al pausar/ocultar/desadjuntar; no dibujar el efecto en imágenes de análisis.
 - Accesos de escaneo en Biblio: solo OCR original (fabOcrMlKit) y Triple (icono). Los FAB experimentales y el acceso Fast dentro de Triple quedan GONE, con sus handlers/Activities conservados; no reactivarlos desde showSelectedSection.
+
+- FastWeb E2E experimental: FastWebScanActivity / NativeFastWebActivity / FastWebDiegoEngine; entrada independiente en acciones de Biblio. Ver FASTWEB_EDSCAN.md para assets, pruebas y protección de datos. No sustituye Cornelius/Triple; nuevas fotos etiquetadas por motor y reanálisis con dispatch explícito.
+
+- Copia Triple FastWeb: FastWebTripleScanActivity/CollectionSession/ScanTrace, preferencias y grupos propios. Solo galería Diego FULL upright; no rescates Milo ART/UPPER. Bandas shadow son diagnóstico y no deben autorizar guardados. Ver FASTWEB_EDSCAN.md.
+
+- Diagnóstico de entrada Diego en copia Triple: `FastWebTripleProbe.kt`, opt-in debug por cache, sin altas durante la prueba; ver `FASTWEB_EDSCAN.md`. No confundir top1 del lab con aceptación segura ni usar tiempos con IO de evidencia.
+
+- Identificador propio experimental: OwnIdentityEngine / OwnIdentityPreprocess, assets build/fastweb-e2e-assets/ownidentity. OwnTrainingEvidenceStore guarda solo evidencias privadas opt-in con cuota; no conectar a persistencia de colección ni activar sin controles de revisión/exportación. No sustituir los assets fastweb de Diego.
+
+- `OwnTripleScanActivity`: entrada desde Triple FastWeb + Diego, boton Triple Propio02 laboratorio. Sin altas/restauracion de coleccion. Captura opt-in OFF, cuota512MiB sin borrar, etiquetas/condiciones revisables y exportZIP; frames, recortes, esquinas, candidatos, tiempos y hashes en own-training-evidence-v1. No entrenar automaticamente con predicciones.
+
+- Galeria Own02 completa: 100626 anversos del snapshot Scryfall (1334 reversos listados aparte); encoder congelado. `identities.json` firmado por manifest aporta oracle/set para agrupar reimpresiones, sin depender del indice parcial Milo. Cache `ownidentity-models-v3` conserva v2; exigir paridad19frames antes instalar, sin relajar TripleScanPolicy.
+
+- Odin es el nombre visible de Own02; conservar IDs, hashes y caches `ownidentity`. `OwnIdentityEngine.lastTimings` y traza `odin.stages` desglosan detector, warp, resize, tensor, observador, encoder y búsqueda, sin intervenir en aceptación.
+
+## Investigación de modelos aislada
+- Punto de entrada: `MODEL_LAB.md`; un MD por tema en `docs/model-lab/`.
+- `research/odin/archive` es archivo histórico de fuentes, no ejecutarlo desde ahí: rutas
+  y dependencias de artefactos externos documentadas en su README. Pesos/fotos fuera de Git.
+- `research/card-corners` es proyecto Unity independiente y scripts del piloto de esquinas.
+  No usa Android ni Odin; validar render/overlays antes de entrenar. No confundir smoke
+  Python con Unity ejecutado. Datos externos en `C:/asv/datasets/mtg-corners-v1`.
+- `research/catalog/check_sets.py` es comprobador manual de metadata, no actualizador
+  automático de cartas ni publicador. No activar distribución/modelos desde el prototipo.

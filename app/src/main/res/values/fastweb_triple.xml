@@ -1,0 +1,1 @@
+<resources><string name="fastweb_triple_title">Triple FastWeb + Diego (experimental)</string><string name="fastweb_triple_diagnostic_idle" translatable="false">Diego: score / margin / gate / votes / ms</string><string name="fastweb_triple_diagnostic" translatable="false">Diego %1$.3f | margin %2$.3f | %3$s | %4$d | detect %5$d ms / identify %6$d ms</string></resources>

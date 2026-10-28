@@ -1,0 +1,14 @@
+<resources>
+<string name="own_triple_title" translatable="false">Triple Odin · laboratorio</string>
+<string name="own_triple_readonly" translatable="false">Prueba sin altas en colección. Los candidatos no son etiquetas verificadas.</string>
+<string name="own_triple_record" translatable="false">Guardar muestras (512 MB máx.; sin altas)</string>
+<string name="own_triple_label" translatable="false">Nombre de carta / ejemplar físico (opcional, revisable)</string>
+<string name="own_triple_condition" translatable="false">Condiciones: luz, funda, clasificador…</string>
+<string name="own_triple_export" translatable="false">Exportar muestras ZIP</string>
+<string name="own_triple_not_recording" translatable="false">Recopilación desactivada</string>
+<string name="own_triple_capture_status" translatable="false">Muestras: %1$s · candidato %2$.3f (sin calibrar)</string>
+<string name="own_triple_export_done" translatable="false">Exportadas %1$d muestras completas</string>
+<string name="own_triple_export_failed" translatable="false">No se ha podido exportar. Las muestras originales se conservan.</string>
+<string name="own_triple_diagnostic_idle" translatable="false">Odin: similitud / margen / estabilidad / tiempos</string>
+<string name="own_triple_diagnostic" translatable="false">Odin %1$.3f | margen %2$.3f | %3$s | %4$d | detectar %5$d ms / identificar %6$d ms</string>
+</resources>

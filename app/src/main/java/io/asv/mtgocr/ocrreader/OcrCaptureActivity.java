@@ -2109,6 +2109,8 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
   private void showCollectionActionsMenu(View anchor) {
     PopupMenu popup = new PopupMenu(this, anchor);
     popup.getMenu().add(0, 1, 0, R.string.postprocess_scans);
+    popup.getMenu().add(0, 4, 3, io.asv.collectorvision.R.string.fastweb_title);
+    popup.getMenu().add(0, 5, 4, R.string.fastweb_triple_title);
     popup.getMenu().add(0, 2, 1, R.string.refresh_collection_prices)
         .setEnabled(collectionPriceTask == null || collectionPriceTask.isDone());
     if (PremiumAccess.isEnabled(this)) popup.getMenu().add(0, 3, 2, R.string.cardmarket_export);
@@ -2121,6 +2123,17 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
           }
           startActivity(review);
           return true;
+        case 5:
+          Intent fastTriple = new Intent(this, FastWebTripleScanActivity.class);
+          if (currentFilterKey.startsWith("group:FastWeb Triple ")) {
+            fastTriple.putExtra("fastweb_triple_resume_group", currentFilterKey.substring("group:".length()));
+            fastTriple.putExtra("fastweb_triple_resume_library", LibraryCatalog.activeFile(this));
+          }
+          startActivityForResult(fastTriple, RC_RAPID_EDITION_SCAN); return true;
+        case 4:
+          Intent fastWeb = new Intent(this, FastWebScanActivity.class);
+          if (currentFilterKey.startsWith("group:")) fastWeb.putExtra(FastWebScanActivity.EXTRA_DESTINATION_GROUP, currentFilterKey.substring("group:".length()));
+          startActivityForResult(fastWeb, RC_RAPID_EDITION_SCAN); return true;
         case 2: refreshAllCollectionPrices(); return true;
         case 3: if (PremiumAccess.isEnabled(this)) showCardmarketExportDialog(); return true;
         default: return false;
@@ -2771,7 +2784,7 @@ public final class OcrCaptureActivity extends AppCompatActivity implements View.
       // Cornelius sessions own physical copies, not labels for all historical copies.
       // Their rows are already folded within the session by LegacyCollectionStore.
       for (String group : card.getGroups()) {
-        if (group.matches("(?i)Cornelius \\d+")) {
+        if (group.matches("(?i)Cornelius \\d+") || FastWebGroups.ownsPhysicalCopy(group)) {
           key += "|cornelius:" + card.getCollectionItemId();
           break;
         }

@@ -5,10 +5,13 @@ android {
     compileSdkVersion 34
     defaultConfig {
         minSdkVersion 23
+        targetSdkVersion 33 // Isolated device-test APK must satisfy modern Android install policy.
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         consumerProguardFiles 'consumer-rules.pro'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets.androidTest.assets.srcDir "$rootDir/build/fastweb-test-assets"
+    sourceSets.main.assets.srcDir "$rootDir/build/fastweb-e2e-assets"
     kotlinOptions { jvmTarget = '17' }
     kotlin { jvmToolchain(17) }
 }

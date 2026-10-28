@@ -1,0 +1,11 @@
+{
+  "steps": 1000,
+  "batch": 32,
+  "views": 2,
+  "seed": 20261026,
+  "lr": 0.0001,
+  "source_weights_sha256": "007f9e71af58ab8c4cb73e185fa018c88be5ce6001418ae02dc25b6790c1ea2a",
+  "split_sha256": "95f190f3d84f5216087a1eecacd273a174411501d0963abf6ab1c9f328e61d04",
+  "hard_pairs_sha256": "44eed95d22a24aa524d532b7169af7bdd0f1386e7f30918a672239501e314063",
+  "scope": "Same 2048 training arts, warm start pilot01; hard-negative batches plus stronger synthetic corruption. No heldout photos or tuning. Final checkpoint predetermined, not selected on heldout. Not a controlled single-factor ablation."
+}

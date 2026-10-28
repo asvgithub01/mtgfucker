@@ -4,3 +4,8 @@ web/public/ar/** -text
 
 # EdScan verifies these generated assets byte-for-byte, including JSON metadata.
 collectorvision-native/src/main/assets/edfast-regions/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Historical research sources are archived verbatim and SHA-inventoried.
+research/odin/archive/** -text whitespace=-blank-at-eof,cr-at-eol
+# Preserve the upstream third-party notice, including its whitespace.
+collectorvision-native/PILLOW-LICENSE.txt -text -whitespace

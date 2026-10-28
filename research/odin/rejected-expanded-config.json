@@ -1,0 +1,14 @@
+{
+  "runner_sha256": "21216aa10e9fbc5ab1a9b7b62951d4285a33c5519933e2c0b4a08c1c76fa9da9",
+  "encoder_source_sha256": "7a6511811c18af022facdb50ec55dfb67c15396c1f6ceb677a5fa69694985409",
+  "steps": 4000,
+  "batch_distinct_groups": 32,
+  "views": 2,
+  "seed": 20261026,
+  "lr": 0.0001,
+  "max_seconds": 7200,
+  "source_weights_sha256": "1c3826073464981113cb48fa98471433256a6a5f16fe16ea1ecf08c1cb672dea",
+  "split_sha256": "59f63d3d2853b91f541ff74d110ef6f3cafe288c7339681438e7106be81c2d3c",
+  "audit_status_sha256": "24283378afb9535ace85ebc410d35c622c448cb861e61dc3b1f3dcc07929f786",
+  "scope": "Expanded highres Scryfall only; warmstart own02; uniform group sampler, no real photographs, predetermined final checkpoint. No claim of full epoch coverage."
+}

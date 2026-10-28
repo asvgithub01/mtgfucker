@@ -28,9 +28,17 @@ Esto no son renders Unity ni un dataset válido para medir reconocimiento de MTG
    AdamW3e-4, batch16, semilla20261028. Red desde cero; NO pesos de otros modelos.
    No es entrenamiento disparado automáticamente ni resultado de calidad final.
 
-Etiquetas schema1: normalized-top-left, esquinas semánticas textura TL,TR,BR,BL.
+Etiquetas schema2 (validador compatible con schema1): normalized-top-left, esquinas semánticas textura TL,TR,BR,BL.
 Solo cartas completas, rotación Z±30°, X/Y±42°, margen2,5%; presenciafalse sin esquinas.
 Cada registro incluye texturaSHA/grupo/split, imageSHA, luz, pose, funda/foil aproximado.
+Oclusiones: en aproximadamente40% de cartas presentes se coloca un proxy elipsoidal
+de pulgar, de tamaño/color variable, cerca de una esquina aleatoria. No es una mano
+fotorealista. `cornerVisible[4]` se calcula con rayos contra la malla real del proxy;
+las cuatro coordenadas GT se conservan incluso tapadas. El trainer sigue supervisando
+TODAS las esquinas de cartas presentes, sin eliminar del loss las ocultas.
+No incluye todavía estimador de incertidumbre/visibilidad en la red: calibrarlo antes
+de uso real, rechazar oclusión excesiva y evaluar error visible/oculto por separado.
+Los overlays marcan HIDDEN en cian. Esto estima geometría, NO recupera arte tapado.
 Se puede importar el mismo dataset en otras arquitecturas, sin renderizar de nuevo.
 Repetibilidad geométrica con seed; no prometer PNG idénticos entre GPUs/editores.
 

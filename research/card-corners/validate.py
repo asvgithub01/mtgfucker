@@ -8,7 +8,7 @@ def validate(root, overlays=None):
     count=int((root/'COMPLETE').read_text())
     for index in range(count):
         r=json.loads((root/f'{index:06}.json').read_text())
-        assert r['schema']==1 and r['coordinates']=='normalized-top-left'
+        assert r['schema'] in (1,2) and r['coordinates']=='normalized-top-left'
         assert r['cornerOrder']=='texture-TL,TR,BR,BL'
         assert r['image']==f'{index:06}.png'
         image=root/r['image']; assert hashlib.sha256(image.read_bytes()).hexdigest()==r['imageSha256']
@@ -18,6 +18,12 @@ def validate(root, overlays=None):
             seen[key]=r['split']
         pts=[(p['x'],p['y']) for p in r['corners']]
         assert len(pts)==(4 if r['present'] else 0)
+        visible=r.get('cornerVisible',[True]*len(pts))
+        if r['schema']==2:
+            assert 'cornerVisible' in r and len(visible)==len(pts)
+            assert all(type(v) is bool for v in visible)
+            assert type(r['thumbOccluder']) is bool
+            assert r['thumbOccluder'] or all(visible)
         assert all(math.isfinite(v) and 0<=v<=1 for p in pts for v in p)
         if pts:
             cross=[]
@@ -31,7 +37,7 @@ def validate(root, overlays=None):
                 vis=im.convert('RGB');d=ImageDraw.Draw(vis);xy=[(x*im.width,y*im.height) for x,y in pts]
                 if xy:
                     d.line(xy+[xy[0]],fill='red',width=3)
-                    for k,p in enumerate(xy):d.text(p,str(k),fill='yellow')
+                    for k,p in enumerate(xy):d.text(p,str(k)+(' visible' if visible[k] else ' HIDDEN'),fill='yellow' if visible[k] else 'cyan')
                 Path(overlays).mkdir(parents=True,exist_ok=True);vis.save(Path(overlays)/r['image'])
         rows.append(r)
     assert {r['split'] for r in rows}=={'train','validation'}

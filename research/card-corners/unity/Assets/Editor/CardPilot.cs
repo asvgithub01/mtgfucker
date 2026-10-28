@@ -11,8 +11,9 @@ public static class CardPilot {
  [Serializable] public class Config { public int seed=20261028, count=120, width=640, height=896; public string output; public TextureRow[] textures; }
  [Serializable] public class XY { public float x,y; public XY(float a,float b){x=a;y=b;} }
  [Serializable] public class Label {
-  public int schema=1,index,seed,width,height; public string image,imageSha256,textureSha256,group,split;
-  public string cornerOrder="texture-TL,TR,BR,BL", coordinates="normalized-top-left", generator="unity-card-pilot-v1";
+  public int schema=2,index,seed,width,height; public string image,imageSha256,textureSha256,group,split;
+  public string cornerOrder="texture-TL,TR,BR,BL", coordinates="normalized-top-left", generator="unity-card-pilot-v2";
+  public bool[] cornerVisible; public bool thumbOccluder; public Vector3 thumbLocalPosition,thumbScale;
   public bool present,sleeve,foilApproximation; public XY[] corners; public Vector3 rotation,position,light;
   public float lightIntensity,cameraDistance; public string unityVersion;
  }
@@ -51,6 +52,13 @@ public static class CardPilot {
   var cardMat=new Material(shader);var sleeveMat=new Material(shader);sleeveMat.SetFloat("_Sleeve",1);sleeveMat.SetFloat("_Gloss",2);
   var bgMat=new Material(shader);var card=Surface("Card",mesh,cardMat);var sleeve=Surface("Sleeve",sleeveMesh,sleeveMat);sleeve.transform.SetParent(card.transform,false);sleeve.transform.localPosition=new Vector3(0,0,-.0002f);
   var bg=Surface("Background",bgMesh,bgMat);bg.transform.position=new Vector3(0,0,.05f);
+  // Ellipsoid proxy, NOT a realistic hand. Collider and rendered surface share geometry.
+  var thumb=GameObject.CreatePrimitive(PrimitiveType.Sphere);thumb.name="ThumbProxy";
+  thumb.transform.SetParent(card.transform,false);var thumbMat=new Material(shader);
+  thumb.GetComponent<Renderer>().sharedMaterial=thumbMat;
+  // SphereCollider uses a sphere under nonuniform scale: use the actual rendered mesh.
+  UnityEngine.Object.DestroyImmediate(thumb.GetComponent<Collider>());
+  var thumbCollider=thumb.AddComponent<MeshCollider>();thumbCollider.sharedMesh=thumb.GetComponent<MeshFilter>().sharedMesh;
   try {
    for(int i=0;i<cfg.count;i++) {
     UnityEngine.Random.InitState(cfg.seed+i);var t=cfg.textures[i%cfg.textures.Length];
@@ -70,9 +78,20 @@ public static class CardPilot {
      if(inside)break;
     }
     if(!inside)throw new Exception("Failed to sample complete card");
+    bool occluded=present&&R(0,1)<.4f;thumb.SetActive(occluded);
+    int covered=UnityEngine.Random.Range(0,4);var corner=mesh.vertices[covered];
+    thumb.transform.localPosition=new Vector3(corner.x*R(.85f,1.05f),corner.y*R(.85f,1.05f),-.007f);
+    thumb.transform.localScale=new Vector3(R(.014f,.025f),R(.022f,.037f),.012f);
+    thumbMat.SetColor("_Tint",Color.Lerp(new Color(.22f,.10f,.06f),new Color(.95f,.71f,.55f),R(0,1)));
+    Physics.SyncTransforms();var visible=present?new bool[4]:new bool[0];
+    for(int k=0;k<visible.Length;k++) {
+     var target=card.transform.TransformPoint(mesh.vertices[k]);var delta=target-camera.transform.position;
+     RaycastHit hit;visible[k]=!occluded||!thumbCollider.Raycast(new Ray(camera.transform.position,delta.normalized),out hit,delta.magnitude);
+    }
     camera.Render();RenderTexture.active=rt;read.ReadPixels(new Rect(0,0,cfg.width,cfg.height),0,0);read.Apply();var png=read.EncodeToPNG();
     string name=i.ToString("D6")+".png";File.WriteAllBytes(Path.Combine(cfg.output,name),png);
     var label=new Label{index=i,seed=cfg.seed+i,width=cfg.width,height=cfg.height,image=name,imageSha256=Hash(png),textureSha256=t.sha256,group=t.group,split=t.split,present=present,corners=present?corners:new XY[0],sleeve=plastic,foilApproximation=foil,rotation=card.transform.eulerAngles,position=card.transform.position,light=light,lightIntensity=intensity,cameraDistance=-camera.transform.position.z,unityVersion=Application.unityVersion};
+    label.cornerVisible=visible;label.thumbOccluder=occluded;label.thumbLocalPosition=thumb.transform.localPosition;label.thumbScale=thumb.transform.localScale;
     File.WriteAllText(Path.Combine(cfg.output,i.ToString("D6")+".json"),JsonUtility.ToJson(label,true));
     UnityEngine.Object.DestroyImmediate(tex);UnityEngine.Object.DestroyImmediate(bgTex);
    }

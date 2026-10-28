@@ -16,12 +16,24 @@ no compilado/renderizado en Unity todavía; no entrenamiento de detector arranca
 resultado de precisión. Pruebas Python no equivalen a validar Unity/realismo visual.
 
 Limitaciones deliberadas: una superficie plana rectangular (sin redondeo/curvatura),
-fundas sin refracción física, foil no espectral, fondos procedurales, sin dedos/oclusión
-parcial ni motion blur. No vender como dataset fotorealista. Primero validar UV/orientación
+fundas sin refracción física, foil no espectral, fondos procedurales, pulgar elipsoidal
+aproximado (no mano realista) y sin motion blur. No vender como dataset fotorealista. Primero validar UV/orientación
 y esquinas con overlays; después ampliar materiales/fondos reales con permiso, sombras,
-oclusiones con visibilidad por esquina, bordes redondeados, ruido/blur/exposición,
+manos/oclusiones más realistas, bordes redondeados, ruido/blur/exposición,
 distorsión de lente y álbum. Cartas tapadas requieren etiqueta visible/occluded, no
-adivinar esquinas ocultas en el test humano.
+inventar etiquetas de esquinas ocultas en el test humano: usar una captura emparejada
+sin dedo en la misma pose o anotación con incertidumbre.
+
+## Esquinas ocultas: requisito añadido
+El detector debe intentar estimar el cuadrilátero completo aunque un pulgar tape una
+esquina. Unity conserva el GT geométrico de las cuatro y anota visibilidad por esquina
+(schema2, raycast contra malla del pulgar). Nunca sustituir esquina por borde del dedo.
+El trainer supervisa también coordenadas ocultas. Siguiente calibración: mezclar
+sin oclusión/una esquina/borde/dos esquinas, tamaños y poses de manos, y medir error
+de ocultas separado del de visibles. No asumir que una tarjeta casi tapada es recuperable;
+confianza/rechazo quedan pendientes, no hay red entrenada ni mecanismo validado aún.
+No confundir esquina dentro de imagen pero tapada con esquina fuera del encuadre:
+este piloto mantiene toda la geometría dentro de imagen. El segundo caso es otra prueba.
 
 Todos los artefactos de un dataset deben estar juntos: sources/ (texturas+procedencia),
 configs/, renders/<run>/{PNG,JSON,config,COMPLETE}, reviews/, splits/, runs/, reports/.

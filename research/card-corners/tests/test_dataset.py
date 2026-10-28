@@ -20,6 +20,20 @@ class DatasetTests(unittest.TestCase):
     def test_incomplete(self):
         with tempfile.TemporaryDirectory() as t:
             with self.assertRaises(FileNotFoundError):validate(t)
+    def test_hidden_corner_retained(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t);rows=self.fixture(root);r=rows[0]
+            r.update(schema=2,cornerVisible=[False,True,True,True],thumbOccluder=True)
+            (root/'000000.json').write_text(json.dumps(r))
+            result=validate(root)
+            self.assertEqual(len(result[0]['corners']),4)
+            self.assertFalse(result[0]['cornerVisible'][0])
+    def test_invalid_visibility(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t);rows=self.fixture(root);r=rows[0]
+            r.update(schema=2,cornerVisible=[False],thumbOccluder=True)
+            (root/'000000.json').write_text(json.dumps(r))
+            with self.assertRaises(AssertionError):validate(root)
     def test_leak(self):
         with tempfile.TemporaryDirectory() as t:
             r=Path(t);rows=self.fixture(r);rows[1]['group']='0';(r/'000001.json').write_text(json.dumps(rows[1]))

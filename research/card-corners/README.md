@@ -1,8 +1,14 @@
-# Piloto sintético de esquinas v1
+# Esquinitas — piloto de detector propio
 
 No es Odin, no accede al Sony/Android/colección. Unity2022.3 Built-in, versión de
 proyecto2022.3.62f1; seleccionar editor compatible y registrar versión efectiva.
 No requiere Perception ni assets externos. **Pendiente ejecutar en Unity.**
+
+Nombre elegido29-10-2026. Conservar `research/card-corners` como ruta técnica.
+Cornelius y FastWeb serán teachers/comparadores en una fase posterior: sus salidas
+no reemplazan las esquinas geométricas exactas de Unity. Ver plan en08-UNITY-CORNERS.md.
+No hay distillation ni generación de pseudoetiquetas conectadas al trainer actualmente.
+Integración móvil futura exclusivamente sobre la rama de refactor (confirmar su nombre).
 
 Calibración inicial sin ilustraciones MTG: `python prepare_smoke.py --root <ruta-nueva>`.
 Ya preparada localmente en `C:/asv/datasets/mtg-corners-v1/calibration-01`:

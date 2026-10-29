@@ -617,6 +617,9 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - Odin es el nombre visible de Own02; conservar IDs, hashes y caches `ownidentity`. `OwnIdentityEngine.lastTimings` y traza `odin.stages` desglosan detector, warp, resize, tensor, observador, encoder y búsqueda, sin intervenir en aceptación.
 
 ## Investigación de modelos aislada
+- Detector propio: **Esquinitas**. Las futuras integraciones de modelos se portarán a
+  la rama de refactor (confirmar nombre exacto), no a master ni mediante merge ciego
+  de Activities experimentales. Odin estable y datos originales permanecen intactos.
 - Punto de entrada: `MODEL_LAB.md`; un MD por tema en `docs/model-lab/`.
 - `research/odin/archive` es archivo histórico de fuentes, no ejecutarlo desde ahí: rutas
   y dependencias de artefactos externos documentadas en su README. Pesos/fotos fuera de Git.

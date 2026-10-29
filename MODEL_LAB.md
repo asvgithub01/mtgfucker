@@ -3,6 +3,12 @@
 Estado al 28-10-2026. Rama `codex/edscan-fastweb-diego`. No mezclar este trabajo con
 `feature/newEditionScanner` ni promover a master sin una integración explícita.
 
+Actualización29-10-2026: el detector propio se llama **Esquinitas**. Por indicación
+del usuario, las integraciones futuras de modelos se harán sobre la **rama de refactor**,
+no sobre master. Confirmar nombre exacto y estado de esa rama antes de integrar; no
+fusionar esta rama completa a ciegas ni arrastrar las copias históricas de Activities.
+Portar contratos/adaptadores y pruebas a la arquitectura refactorizada.
+
 | Chat / tema | Documento | Estado |
 |---|---|---|
 | Odin estable | [01-ODIN](docs/model-lab/01-ODIN.md) | Probado en laboratorio; mantener encoder y umbrales |
@@ -12,7 +18,7 @@ Estado al 28-10-2026. Rama `codex/edscan-fastweb-diego`. No mezclar este trabajo
 | Idioma | [05-LANGUAGE](docs/model-lab/05-LANGUAGE.md) | Comparar OCR selectivo y modelo, no decidido |
 | Foil / firmas | [06-FINISH-SIGNATURE](docs/model-lab/06-FINISH-SIGNATURE.md) | Investigación futura, no inferencia fiable implementada |
 | Pruebas físicas / evidencias | [07-PHYSICAL-TESTS](docs/model-lab/07-PHYSICAL-TESTS.md) | Captura opt-in existente, revisión humana pendiente |
-| Detector propio / Unity | [08-UNITY-CORNERS](docs/model-lab/08-UNITY-CORNERS.md) | Código de piloto preparado; editor/render real pendiente |
+| Esquinitas / Unity | [08-UNITY-CORNERS](docs/model-lab/08-UNITY-CORNERS.md) | Código de piloto preparado; editor/render real pendiente |
 
 Código Android conservado en `app/` y `collectorvision-native/`, copias `Own*` y
 `FastWeb*`. Fuentes de entrenamiento Odin archivadas en `research/odin/`.

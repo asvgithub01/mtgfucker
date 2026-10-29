@@ -1,6 +1,8 @@
-# Detector de esquinas propio: piloto Unity aislado
+# Esquinitas: detector de esquinas propio, piloto Unity aislado
 
 Código completo del piloto: research/card-corners. Sin dependencia de Odin ni de la app.
+Nombre elegido por el usuario29-10-2026. Mantener Odin intacto. Integrar en Android
+solo desde la rama de refactor, cuyo nombre exacto se confirmará al llegar a esa fase.
 Objetivo inicial: **una carta completa** → presencia+cuatro esquinas ordenadas. Más
 adelante multitarjeta requiere otra salida/arquitectura; este piloto NO la implementa.
 
@@ -47,3 +49,27 @@ revisar24overlays, validar120renders de prueba, fijar primer conjunto real reser
 Solo entonces renderizar piloto mayor y entrenar300pasos. Comparar esquina normalizada,
 IoU contra GT humana, rechazo, identificación Odin como métrica secundaria y latencia
 Sony real. Export ONNX/paridad/Android son fases posteriores, sin promoción automática.
+
+## Inicio y teachers — 29-10-2026
+Solicitado comenzar entrenamiento. Bloqueo actual: Unity Editor no localizado en PATH,
+rutas estándar, registro de instaladores ni inventario habitual de Unity Hub. No hay
+renders validados; NO iniciar un entrenamiento con las cuatro texturas de calibración
+como si fuera un dataset MTG útil. No hay proceso de entrenamiento de Esquinitas activo.
+
+Secuencia de primer experimento:
+1. Editor disponible → calibración120renders → overlays/UV, visibilidad pulgar y hashes.
+2. Texturas MTG revisadas, agrupadas sin fuga, fondos/materiales variados; conjunto real
+   reservado y anotado independientemente. Congelar config/split antes de entrenar.
+3. Baseline Esquinitas con GT Unity, corrida300pasos/600segundos para verificar pipeline;
+   no atribuir a esa corrida calidad de producción ni prometer igualdad con teachers.
+4. Cornelius/FastWeb sobre mismos renders/fotos: guardar SHA de imagen/modelo,
+   preprocesado, coordenadas/orientación, presencia y tiempos por teacher. En sintéticos
+   medir cada teacher contra GT Unity, incluidas esquinas ocultas. No imitar sus errores.
+5. En reales de entrenamiento, pseudoetiquetas candidatas con acuerdo geométrico y
+   revisión humana; discrepancias/oclusiones no pasan automáticamente. Preservar fuente
+   de etiqueta y condiciones de uso de teachers/pesos. Acuerdo no demuestra exactitud.
+6. Experimento separado GT solo vs GT+reales revisadas/teachers, mismo presupuesto,
+   mismos grupos y test reservado. No usar las fotos reservadas para pseudoentrenar.
+
+El trainer actual solo consume GT sintético; adapters de teachers, métricas por esquina
+visible/oculta y calibración de rechazo siguen pendientes. No es distillation implementada.

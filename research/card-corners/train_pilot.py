@@ -22,7 +22,7 @@ def main():
     assert 1<=a.steps<=3000 and 1<=a.max_seconds<=1800
     assert torch.cuda.is_available(), 'CUDA required; do not silently benchmark CPU'
     root=Path(a.dataset);rows=validate(root);out=Path(a.out);out.mkdir(parents=True,exist_ok=False)
-    cfg=vars(a)|{'seed':20261028,'torch':torch.__version__,'device':torch.cuda.get_device_name(),'input':[3,224,160],'purpose':'synthetic engineering pilot, no promotion'}
+    cfg=vars(a)|{'modelName':'Esquinitas','experimentVersion':'pilot-v1','teachersUsed':False,'seed':20261028,'torch':torch.__version__,'device':torch.cuda.get_device_name(),'input':[3,224,160],'purpose':'synthetic engineering pilot, no promotion'}
     (out/'config.json').write_text(json.dumps(cfg,indent=2))
     (out/'dataset-hashes.json').write_text(json.dumps({r['image']:r['imageSha256'] for r in rows},indent=2))
     random.seed(cfg['seed']);torch.manual_seed(cfg['seed']);torch.cuda.manual_seed_all(cfg['seed'])

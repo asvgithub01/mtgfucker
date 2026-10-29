@@ -76,3 +76,13 @@ Repetibilidad geométrica con seed; no prometer PNG idénticos entre GPUs/editor
 
 Pruebas: `python -m unittest discover -s tests -v`. Trainer guarda config/log/checkpoints/
 métricas sintéticas; no exporta ni instala ONNX. Ver ../../docs/model-lab/08-UNITY-CORNERS.md.
+
+## Ablación SimCC original (2026-10-29)
+`train_heads.py --dataset RENDERS --out NUEVO_DIRECTORIO --steps 3000` ejecuta
+sobreajuste16escenas train (600pasos) y comparación regresión/SimCC del mismo
+backbone. CUDA requerida; imágenes precargadas, máximo600s por corrida. No hay
+ONNX ni instalación. Ver docs/model-lab/09-ESQUINITAS-RESEARCH.md para resultados.
+`train_heads.py --selftest` prueba geometría, colapso, argmax bimodal y gradientes.
+`summarize_heads.py --run RUN --dataset RENDERS --provenance provenance.json`
+separa fullart y calcula promedio por arte. Solo análisis, sin seleccionar umbral.
+Cada salida es nueva; conservar anteriores. Pesos/fotos/reportes permanecen locales.

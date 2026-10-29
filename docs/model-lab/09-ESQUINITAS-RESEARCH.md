@@ -66,3 +66,41 @@ No comparar errornormalizado0.135 con IoU del autor: son métricas distintas.
    Reportar por carta/escena; no inflar evidencia contando framescorrelacionados.
 
 No modificar Odin ni umbrales actuales. Futuro port a rama de refactor; no mergeciego.
+
+## Ablación ejecutada 2026-10-29: cabezas, sin promoción
+Aplicada implementación propia SimCC (256 bins/eje, sigma2, argmax) frente a
+regresión directa. NO réplica del global-token head de Han: se mantiene CNN del
+piloto, representación espacial4x4 y vector compartido128. No código/pesos teachers.
+Entrada160x224, batch16, AdamW3e-4, semilla20261029; misma secuencia de ejemplos
+por cabeza. Cambian cabeza y pérdida, y parámetros:276873 vs540033. No atribuir
+la diferencia exclusivamente a argmax ni comparar estos tiempos con el Sony.
+
+Primero sobreajuste16escenas train/600pasos: SimCC IoU0.973–0.985,
+regresión0.945–0.951. Comprueba que aprende etiquetas; NO generalización.
+CUDA no configurado bitexact; repeticiones con misma semilla varían ligeramente.
+Después1200 y3000pasos, resultados preservados por separado:
+
+| Pasos | Regresión IoU medio | SimCC IoU medio |
+|---|---:|---:|
+|1200|0.7143|0.6906|
+|3000|0.7487|0.7577|
+
+Validación320renders,282con carta, solo16artes distintos (8fullart).
+A3000pasos: p10IoU0.6374 vs0.6703; fullartIoU0.7290 vs0.7516;
+macro por arte0.7492 vs0.7581. SimCC errornormalizado0.07410,
+visible0.07371/oculta0.07786;2/282IoU<0.5,0quadsno-convexos,
+0/38falsospositivos a0.5. Ese umbral es del experimento sintético, no de la app.
+Inspección overlay000064 aún muestra bordes desviados pese a mejora.
+
+Conclusión: indicio favorable pequeño tras3000pasos, especialmentefullart;
+insuficiente para producción y sin evidencia estadística multisemilla.
+No instalar, no tocar Odin ni umbrales. No equivale a calidad de Cornelius/FastWeb.
+Siguiente: aumentar conservación de información espacial / backbone ligero
+preentrenado como ablación separada y mejorar dominioUnity; mantener un conjunto
+nuevo final sin ajustar a él. Los16artes actuales ya son validación de desarrollo,
+no test final independiente. Fotos reales reservadas siguen sin entrenar.
+
+Código: research/card-corners/train_heads.py y summarize_heads.py.
+Artefactos locales en trainning models/unity/runs/heads-01 y heads-02:
+config, hashesdataset, split-indices, checkpoints, métricas, predicciones,
+subgroups.json(heads-02) y report.html con overlays. Pilotoanterior intacto.

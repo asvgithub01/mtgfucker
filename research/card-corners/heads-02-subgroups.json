@@ -1,0 +1,54 @@
+{
+  "regression": {
+    "all": {
+      "frames": 320,
+      "positiveFrames": 282,
+      "uniqueArtGroups": 16,
+      "meanIoU": 0.7486884243669208,
+      "macroArtIoU": 0.7492068775412342,
+      "meanCornerError": 0.07779971122105336
+    },
+    "fullArt": {
+      "frames": 160,
+      "positiveFrames": 142,
+      "uniqueArtGroups": 8,
+      "meanIoU": 0.7289715600329406,
+      "macroArtIoU": 0.729512017153626,
+      "meanCornerError": 0.08642865159980458
+    },
+    "notFullArt": {
+      "frames": 160,
+      "positiveFrames": 140,
+      "uniqueArtGroups": 8,
+      "meanIoU": 0.7686869581913868,
+      "macroArtIoU": 0.7689017379288421,
+      "meanCornerError": 0.06904750026546286
+    }
+  },
+  "simcc": {
+    "all": {
+      "frames": 320,
+      "positiveFrames": 282,
+      "uniqueArtGroups": 16,
+      "meanIoU": 0.7576843841117913,
+      "macroArtIoU": 0.7580660933723216,
+      "meanCornerError": 0.07409651782138667
+    },
+    "fullArt": {
+      "frames": 160,
+      "positiveFrames": 142,
+      "uniqueArtGroups": 8,
+      "meanIoU": 0.751614039820716,
+      "macroArtIoU": 0.752673317999962,
+      "meanCornerError": 0.07711721769932486
+    },
+    "notFullArt": {
+      "frames": 160,
+      "positiveFrames": 140,
+      "uniqueArtGroups": 8,
+      "meanIoU": 0.7638414476070249,
+      "macroArtIoU": 0.7634588687446813,
+      "meanCornerError": 0.07103266508804934
+    }
+  }
+}

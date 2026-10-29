@@ -1,0 +1,420 @@
+{
+  "experiments": [
+    {
+      "run": "heads-02",
+      "pool": 4,
+      "seed": 20261029,
+      "head": "regression",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07779971122105336,
+        "meanIoU": 0.7486884243669208,
+        "p10IoU": 0.6373633037908306,
+        "badIoUBelow05": 2,
+        "invalidQuads": 0,
+        "recallAt05": 0.9964539007092199,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.07737114495665443,
+        "hiddenError": 0.0819317369023338,
+        "steps": 3000,
+        "trainingSeconds": 9.165820399997756,
+        "parameters": 276873
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7486884243669208,
+          "macroArtIoU": 0.7492068775412342,
+          "meanCornerError": 0.07779971122105336
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7289715600329406,
+          "macroArtIoU": 0.729512017153626,
+          "meanCornerError": 0.08642865159980458
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7686869581913868,
+          "macroArtIoU": 0.7689017379288421,
+          "meanCornerError": 0.06904750026546286
+        }
+      }
+    },
+    {
+      "run": "heads-02",
+      "pool": 4,
+      "seed": 20261029,
+      "head": "simcc",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07409651782138667,
+        "meanIoU": 0.7576843841117913,
+        "p10IoU": 0.6703126915473557,
+        "badIoUBelow05": 2,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.07370659859872418,
+        "hiddenError": 0.07785592768517025,
+        "steps": 3000,
+        "trainingSeconds": 8.70242370001506,
+        "parameters": 540033
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7576843841117913,
+          "macroArtIoU": 0.7580660933723216,
+          "meanCornerError": 0.07409651782138667
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.751614039820716,
+          "macroArtIoU": 0.752673317999962,
+          "meanCornerError": 0.07711721769932486
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7638414476070249,
+          "macroArtIoU": 0.7634588687446813,
+          "meanCornerError": 0.07103266508804934
+        }
+      }
+    },
+    {
+      "run": "spatial-01",
+      "pool": 8,
+      "seed": 20261029,
+      "head": "regression",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07315173294561987,
+        "meanIoU": 0.7669855052005228,
+        "p10IoU": 0.6562414926385375,
+        "badIoUBelow05": 3,
+        "invalidQuads": 0,
+        "recallAt05": 0.9964539007092199,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.07315243524316982,
+        "hiddenError": 0.0731449617371666,
+        "steps": 3000,
+        "trainingSeconds": 8.776761199929751,
+        "parameters": 866697
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7669855052005228,
+          "macroArtIoU": 0.7674408816996297,
+          "meanCornerError": 0.07315173294561987
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.748974258645691,
+          "macroArtIoU": 0.7502474036173915,
+          "meanCornerError": 0.0814638704415673
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7852540552775664,
+          "macroArtIoU": 0.7846343597818677,
+          "meanCornerError": 0.06472085062830177
+        }
+      }
+    },
+    {
+      "run": "spatial-01",
+      "pool": 8,
+      "seed": 20261029,
+      "head": "simcc",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.059167224178860604,
+        "meanIoU": 0.7961062924921577,
+        "p10IoU": 0.7074443410878866,
+        "badIoUBelow05": 0,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.058310213705915284,
+        "hiddenError": 0.06743009873876735,
+        "steps": 3000,
+        "trainingSeconds": 9.464741199975833,
+        "parameters": 1129857
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7961062924921577,
+          "macroArtIoU": 0.7960374764789764,
+          "meanCornerError": 0.059167224178860604
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7875831801297285,
+          "macroArtIoU": 0.7873234731892955,
+          "meanCornerError": 0.06169679922571907
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.8047511636026217,
+          "macroArtIoU": 0.8047514797686571,
+          "meanCornerError": 0.056601512345618436
+        }
+      }
+    },
+    {
+      "run": "spatial-seed30-pool4",
+      "pool": 4,
+      "seed": 20261030,
+      "head": "regression",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07804706413174999,
+        "meanIoU": 0.7521955708642593,
+        "p10IoU": 0.6466262315254611,
+        "badIoUBelow05": 1,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.02631578947368421,
+        "visibleError": 0.07781878722614724,
+        "hiddenError": 0.08024799807067469,
+        "steps": 3000,
+        "trainingSeconds": 9.479402199969627,
+        "parameters": 276873
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7521955708642593,
+          "macroArtIoU": 0.752601665094449,
+          "meanCornerError": 0.07804706413174999
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.739175404126655,
+          "macroArtIoU": 0.7400178902061023,
+          "meanCornerError": 0.08421705608439803
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7654017399838293,
+          "macroArtIoU": 0.7651854399827958,
+          "meanCornerError": 0.07178892943692128
+        }
+      }
+    },
+    {
+      "run": "spatial-seed30-pool4",
+      "pool": 4,
+      "seed": 20261030,
+      "head": "simcc",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07052673572254968,
+        "meanIoU": 0.7623220494154783,
+        "p10IoU": 0.6682338737690713,
+        "badIoUBelow05": 0,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.06999497283651054,
+        "hiddenError": 0.07565373260492705,
+        "steps": 3000,
+        "trainingSeconds": 9.225115499924868,
+        "parameters": 540033
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7623220494154783,
+          "macroArtIoU": 0.7626752196328004,
+          "meanCornerError": 0.07052673572254968
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7545699324122362,
+          "macroArtIoU": 0.7550865844732977,
+          "meanCornerError": 0.07243017875384473
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7701849109473382,
+          "macroArtIoU": 0.7702638547923031,
+          "meanCornerError": 0.06859610064795041
+        }
+      }
+    },
+    {
+      "run": "spatial-seed30-pool8",
+      "pool": 8,
+      "seed": 20261030,
+      "head": "regression",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.07676368122813061,
+        "meanIoU": 0.7637312538520762,
+        "p10IoU": 0.6720981340226067,
+        "badIoUBelow05": 1,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.02631578947368421,
+        "visibleError": 0.07677807893427253,
+        "hiddenError": 0.07662486560853585,
+        "steps": 3000,
+        "trainingSeconds": 8.360620699939318,
+        "parameters": 866697
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7637312538520762,
+          "macroArtIoU": 0.7642041580479633,
+          "meanCornerError": 0.07676368122813061
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7530344375403514,
+          "macroArtIoU": 0.7537164261312395,
+          "meanCornerError": 0.08065660612601919
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7745808818253969,
+          "macroArtIoU": 0.7746918899646871,
+          "meanCornerError": 0.07281514311741505
+        }
+      }
+    },
+    {
+      "run": "spatial-seed30-pool8",
+      "pool": 8,
+      "seed": 20261030,
+      "head": "simcc",
+      "metrics": {
+        "frames": 320,
+        "positiveFrames": 282,
+        "meanCornerError": 0.05744165085596264,
+        "meanIoU": 0.7990719490684015,
+        "p10IoU": 0.7036598582927197,
+        "badIoUBelow05": 0,
+        "invalidQuads": 0,
+        "recallAt05": 1.0,
+        "falsePositiveRateAt05": 0.0,
+        "visibleError": 0.05694837672198501,
+        "hiddenError": 0.06219755807223747,
+        "steps": 3000,
+        "trainingSeconds": 10.148803599993698,
+        "parameters": 1129857
+      },
+      "subgroups": {
+        "all": {
+          "frames": 320,
+          "positiveFrames": 282,
+          "uniqueArtGroups": 16,
+          "meanIoU": 0.7990719490684015,
+          "macroArtIoU": 0.7992509892276374,
+          "meanCornerError": 0.05744165085596264
+        },
+        "fullArt": {
+          "frames": 160,
+          "positiveFrames": 142,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7992813543592344,
+          "macroArtIoU": 0.7999002436899709,
+          "meanCornerError": 0.05736814948326816
+        },
+        "notFullArt": {
+          "frames": 160,
+          "positiveFrames": 140,
+          "uniqueArtGroups": 8,
+          "meanIoU": 0.7988595522734138,
+          "macroArtIoU": 0.798601734765304,
+          "meanCornerError": 0.057516202248267034
+        }
+      }
+    }
+  ],
+  "decoder": {
+    "checkpointSha256": "c655ac264e8b930e251a13f5ee9f5ad2ba74b35eb21e0321cb11f1a0afbfdd7e",
+    "sourceSha256": "8accfb6473a67c71ab40d40593c42ed68c047f2f786e1279d6e49e5204071e84",
+    "promoted": false,
+    "argmax": {
+      "frames": 320,
+      "positiveFrames": 282,
+      "meanCornerError": 0.059167224178860604,
+      "meanIoU": 0.7961062924921577,
+      "p10IoU": 0.7074443410878866,
+      "badIoUBelow05": 0,
+      "invalidQuads": 0,
+      "recallAt05": 1.0,
+      "falsePositiveRateAt05": 0.0,
+      "visibleError": 0.058310213705915284,
+      "hiddenError": 0.06743009873876735
+    },
+    "parabolic": {
+      "frames": 320,
+      "positiveFrames": 282,
+      "meanCornerError": 0.05916482225309806,
+      "meanIoU": 0.7961292178766025,
+      "p10IoU": 0.708664531971355,
+      "badIoUBelow05": 0,
+      "invalidQuads": 0,
+      "recallAt05": 1.0,
+      "falsePositiveRateAt05": 0.0,
+      "visibleError": 0.05830092327632812,
+      "hiddenError": 0.06749411238761584
+    }
+  },
+  "promoted": false
+}

@@ -86,3 +86,11 @@ ONNX ni instalación. Ver docs/model-lab/09-ESQUINITAS-RESEARCH.md para resultad
 `summarize_heads.py --run RUN --dataset RENDERS --provenance provenance.json`
 separa fullart y calcula promedio por arte. Solo análisis, sin seleccionar umbral.
 Cada salida es nueva; conservar anteriores. Pesos/fotos/reportes permanecen locales.
+
+### Conservación espacial y refinamiento local
+`train_heads.py --pool 8 --seed 20261030 --steps 3000 ...` conserva una malla8x8;
+por defecto sigue4x4. Aumentan parámetros: no es una comparación a coste constante.
+`probe_decoder.py --run RUN --dataset RENDERS` compara argmax y pico parabólico
+con idénticos pesos; `--selftest` prueba límites y multimodalidad. No modifica pesos.
+`report_spatial.py --runs RUNS --out NUEVO_DIRECTORIO` reúne las cuatro corridas
+fijadas en el script. Resultados y precauciones en el documento09.

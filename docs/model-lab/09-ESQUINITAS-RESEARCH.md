@@ -104,3 +104,41 @@ Código: research/card-corners/train_heads.py y summarize_heads.py.
 Artefactos locales en trainning models/unity/runs/heads-01 y heads-02:
 config, hashesdataset, split-indices, checkpoints, métricas, predicciones,
 subgroups.json(heads-02) y report.html con overlays. Pilotoanterior intacto.
+
+## Continuación espacial y segunda revisión de fuentes (2026-10-29)
+Revisados búsqueda web, índice de issues CollectorVision/SimpleGitBlog, comentarios
+completos de issue24 y README histórico c2d9c4d. No aparece receta completa adicional.
+El README histórico está parcialmente malformado (salida ImageMagick), no sirve de
+trainer. No confundir sus condiciones/arquitectura con los artefactos actuales.
+Fuentes útiles verificadas:
+- https://huggingface.co/HanClinto/cornelius : continuación con LR bajo y selección
+  por equilibrio normal/rotación/oclusión. No publica valor de LR ni receta completa.
+- https://github.com/HanClinto/CollectorVision/issues/24#issuecomment-4966032262 :
+  refinamiento parabólico post-hoc da ganancias pequeñas. Menciona conjuntos
+  val_packopening/val_listos/test_listos/test_clint; no son un dataset descargado aquí.
+- https://huggingface.co/HanClinto/ccgdetector-fastweb-single : corroboración contrato,
+  arquitectura y límites de métricas. No equivalente a nuestros datos sintéticos.
+
+Experimento propio: conservar malla8x8 en vez4x4 antes del vector128, sin cambiar
+convoluciones,entrada,datos,loss,LR o3000pasos. SimCC crece540033->1129857params;
+no aisla capacidad del efecto espacial. Dos semillas, validación de desarrollo:
+
+| Semilla | Pool4 IoU | Pool8 IoU | Pool4 fullart | Pool8 fullart |
+|---|---:|---:|---:|---:|
+|20261029|0.75768|0.79611|0.75161|0.78758|
+|20261030|0.76232|0.79907|0.75457|0.79928|
+
+Pool8: p10IoU0.70744/0.70366, errorocultas0.06743/0.06220,
+0casosIoU<0.5/282 en ambas semillas,0/38FP a0.5. No cambiar umbral de app.
+La ganancia se repite, pero16artes (8fullart) son evidencia limitada, no testfinal.
+Overlay000064 aún muestra desviaciones. No hay tiemposSony ni comparación teachers.
+Refinamiento parabólico mismo checkpointspatial01:0.796106->0.796129IoU,
+erroroculto empeora ligeramente. No merece priorizarlo ante errores geométricos grandes.
+Pruebas nuevas: pico cuadrático conocido,bimodal,plano,extremo; formaspool4/8.
+Corregido conteo real de pasos si timeout y añadidos hashes de imports al config.
+
+Artefactos conservados en unity/runs/spatial-01,spatial-seed30-pool4 y
+spatial-seed30-pool8. Resumen reproducible: report_spatial.py, salida local
+unity/reports/spatial-01/report.html. Pesos,config,split,hashes ylogs en cada run.
+No promoción. Siguiente: comparar backbone preentrenado contra el mismo desde cero,
+antes de aumentar escenas/realismo; reservar evaluación física nueva e independiente.

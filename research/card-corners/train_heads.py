@@ -12,11 +12,15 @@ from validate import validate
 BINS = 256
 
 class HeadNet(nn.Module):
-    def __init__(self, head):
+    def __init__(self, head, pool=4):
         super().__init__()
         # Exactly the pilot feature extractor, including its shared spatial representation.
         baseline = CornerNet()
         self.features = baseline.net[:-1]
+        if pool != 4:
+            # Retain a denser spatial grid, without changing convolutional backbone.
+            self.features[8] = nn.AdaptiveAvgPool2d((pool, pool))
+            self.features[10] = nn.Linear(96 * pool * pool, 128)
         self.presence = nn.Linear(128, 1)
         self.coordinates = nn.Linear(128, 8 if head == 'regression' else 8 * BINS)
         self.head = head
@@ -68,6 +72,11 @@ def selftest():
     logits = torch.randn(1, 8, BINS, requires_grad=True)
     coordinate_loss(logits, target).backward()
     assert torch.isfinite(logits.grad).all()
+    for pool in (4,8):
+        for head in ('regression','simcc'):
+            model = HeadNet(head, pool)
+            p, q = model(torch.zeros(2,3,224,160))
+            assert p.shape == (2,) and decode(q).shape == (2,8)
 
 
 def evaluate(model, indices, xs, ps, cs, rows):
@@ -99,16 +108,18 @@ def evaluate(model, indices, xs, ps, cs, rows):
 
 def main():
     p = argparse.ArgumentParser(); p.add_argument('--dataset'); p.add_argument('--out'); p.add_argument('--selftest', action='store_true')
-    p.add_argument('--steps', type=int, default=1200); a = p.parse_args(); selftest()
+    p.add_argument('--steps', type=int, default=1200); p.add_argument('--pool', type=int, choices=(4,8), default=4)
+    p.add_argument('--seed', type=int, default=20261029); a = p.parse_args(); selftest()
     if a.selftest:
         print('Self-tests PASS'); return
     assert 1 <= a.steps <= 3000 and torch.cuda.is_available()
     root = Path(a.dataset); rows = validate(root); out = Path(a.out); out.mkdir(parents=True, exist_ok=False)
     torch.set_num_threads(4)
-    config = vars(a) | {'seed': 20261029, 'input': [3, 224, 160], 'bins': BINS, 'sigmaBins': 2,
+    config = vars(a) | {'seed': a.seed, 'input': [3, 224, 160], 'bins': BINS, 'sigmaBins': 2,
                        'batch': 16, 'lr': 3e-4, 'overfitSteps': 600, 'maxSecondsPerRun': 600,
                        'device': torch.cuda.get_device_name(), 'torch': torch.__version__,
                        'sourceSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                       'importHashes': {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in ('train_pilot.py', 'validate.py')},
                        'teachersUsed': False, 'promoted': False, 'purpose': 'Synthetic ablation, not exact reproduction of Han architecture'}
     (out/'config.json').write_text(json.dumps(config, indent=2))
     (out/'dataset-hashes.json').write_text(json.dumps({r['image']: r['imageSha256'] for r in rows}, indent=2))
@@ -128,23 +139,24 @@ def main():
         for head in ('regression', 'simcc'):
             name = stage + '-' + head; folder = out/name; folder.mkdir()
             random.seed(config['seed']); torch.manual_seed(config['seed']); torch.cuda.manual_seed_all(config['seed'])
-            model = HeadNet(head).cuda(); opt = torch.optim.AdamW(model.parameters(), lr=config['lr'])
+            model = HeadNet(head, pool=a.pool).cuda(); opt = torch.optim.AdamW(model.parameters(), lr=config['lr'])
             ids = small if stage == 'overfit' else train
             steps = config['overfitSteps'] if stage == 'overfit' else a.steps
             torch.cuda.synchronize(); start = time.perf_counter(); model.train()
+            completed = 0
             with (folder/'metrics.jsonl').open('x') as log:
                 for step in range(steps):
                     if time.perf_counter() - start > config['maxSecondsPerRun']: break
                     ix = random.choices(ids, k=16); score, q = model(xs[ix]); mask = ps[ix] > 0
                     loss = nn.functional.binary_cross_entropy_with_logits(score, ps[ix])
                     if mask.any(): loss = loss + coordinate_loss(q[mask], cs[ix][mask])
-                    assert torch.isfinite(loss); opt.zero_grad(); loss.backward(); opt.step()
+                    assert torch.isfinite(loss); opt.zero_grad(); loss.backward(); opt.step(); completed = step + 1
                     log.write(json.dumps({'step':step+1, 'loss':loss.item()})+'\n'); log.flush()
                     if (step+1) % 300 == 0: torch.save(model.state_dict(), folder/f'step-{step+1:04}.pt')
             torch.cuda.synchronize(); seconds = time.perf_counter() - start
             torch.save(model.state_dict(), folder/'final.pt')
             metrics, records = evaluate(model, small if stage == 'overfit' else val, xs, ps, cs, rows)
-            metrics.update(steps=step+1, trainingSeconds=seconds, parameters=sum(v.numel() for v in model.parameters()))
+            metrics.update(steps=completed, trainingSeconds=seconds, parameters=sum(v.numel() for v in model.parameters()))
             results[name] = metrics; all_records[name] = records
             (folder/'predictions.json').write_text(json.dumps(records)); (folder/'result.json').write_text(json.dumps(metrics, indent=2))
             print(name, json.dumps(metrics), flush=True)

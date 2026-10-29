@@ -110,4 +110,3 @@ are saved to a new output directory (existing directories are rejected). Default
 steps before interpreting results. Validation is reused synthetic development
 data, not an independent physical test. No real photographs or teacher outputs
 are used for training. Keep Odin and existing lab assets unchanged.
-

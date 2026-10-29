@@ -56,10 +56,13 @@ def main():
     p.add_argument('--dataset', required=True); p.add_argument('--out', required=True)
     p.add_argument('--extra-dataset', help='Optional synthetic corpus; enforce shared group/hash splits')
     p.add_argument('--photometric', action='store_true', help='RGB-only jitter/shadow/noise/blur; no real images')
+    p.add_argument('--warmstart-run', help='Fine-tune each arm from its final.pt; NEW optimizer, not exact resume')
+    p.add_argument('--lr', type=float, default=3e-4)
     p.add_argument('--steps', type=int, default=2000)
     a = p.parse_args()
     assert PIL.__version__ == '12.3.0', PIL.__version__
     assert torch.cuda.is_available() and 1 <= a.steps <= 3000
+    assert 0 < a.lr <= 3e-4
     torch.set_num_threads(4)
     root, out = Path(a.dataset), Path(a.out)
     out.mkdir(parents=True, exist_ok=False)
@@ -76,7 +79,7 @@ def main():
     train = [i for i,r in enumerate(rows) if r['split']=='train']
     val = [i for i,r in enumerate(rows) if r['split']=='validation']
     sha = lambda f: hashlib.sha256(Path(f).read_bytes()).hexdigest()
-    config = dict(seed=20261029, steps=a.steps, batch=16, lr=3e-4, maxSecondsPerArm=900,
+    config = dict(seed=20261029, steps=a.steps, batch=16, lr=a.lr, maxSecondsPerArm=900,
         input=[3,224,160], normalization='ImageNet', resize='Pillow12.3 bilinear',
         torch=torch.__version__, torchvision=torchvision.__version__, pillow=PIL.__version__,
         device=torch.cuda.get_device_name(), weightsUrl=MobileNet_V3_Small_Weights.DEFAULT.url,
@@ -86,6 +89,10 @@ def main():
         datasets=[str(root)]+([str(a.extra_dataset)] if a.extra_dataset else []),
         photometric=a.photometric,
         note='Development synthetic validation, previously reused; not independent physical test')
+    if a.warmstart_run:
+        source=Path(a.warmstart_run)
+        config['warmstart']={'directory':str(source),'optimizer':'new AdamW; not exact resume',
+            'hashes':{name:sha(source/name/'final.pt') for name in ('random','pretrained')}}
     (out/'config.json').write_text(json.dumps(config,indent=2))
     (out/'split.json').write_text(json.dumps(dict(train=train,validation=val,rows=rows)))
     arrays=[]
@@ -101,6 +108,8 @@ def main():
         name='pretrained' if pretrained else 'random'; folder=out/name; folder.mkdir()
         random.seed(config['seed']); torch.manual_seed(config['seed']); torch.cuda.manual_seed_all(config['seed'])
         model=BackboneNet(pretrained).cuda()
+        if a.warmstart_run:
+            model.load_state_dict(torch.load(Path(a.warmstart_run)/name/'final.pt',map_location='cuda',weights_only=True))
         opt=torch.optim.AdamW(model.parameters(),lr=config['lr'])
         model.train(); torch.cuda.synchronize(); start=time.perf_counter(); completed=0
         with (folder/'metrics.jsonl').open('x') as log:

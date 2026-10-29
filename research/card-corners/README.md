@@ -94,3 +94,20 @@ por defecto sigue4x4. Aumentan parámetros: no es una comparación a coste const
 con idénticos pesos; `--selftest` prueba límites y multimodalidad. No modifica pesos.
 `report_spatial.py --runs RUNS --out NUEVO_DIRECTORIO` reúne las cuatro corridas
 fijadas en el script. Resultados y precauciones en el documento09.
+# Afternoon initialization ablation (29 October 2026)
+
+`train_backbone.py` compares ImageNet MobileNetV3 Small with the identical randomly
+initialized architecture, spatial 7x5 features and SimCC. This is not Han's model.
+Run from the canonical worktree: it requires the isolated Pillow12.3 dependency
+at `build/odin-parity-pillow123`. The copy in the Unity scripts archive records
+the source, not a standalone environment. Input RGB160x224 uses ImageNet
+normalization for **both** arms; this differs from spatial-01 and requires a new
+Android preprocessing contract before any promotion.
+
+Configuration, source/weight hashes, original split rows, checkpoints and metrics
+are saved to a new output directory (existing directories are rejected). Default
+2000 steps per arm, maximum900 seconds per arm, seed20261029. Compare completed
+steps before interpreting results. Validation is reused synthetic development
+data, not an independent physical test. No real photographs or teacher outputs
+are used for training. Keep Odin and existing lab assets unchanged.
+

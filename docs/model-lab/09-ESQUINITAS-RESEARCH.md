@@ -142,3 +142,40 @@ spatial-seed30-pool8. Resumen reproducible: report_spatial.py, salida local
 unity/reports/spatial-01/report.html. Pesos,config,split,hashes ylogs en cada run.
 No promoción. Siguiente: comparar backbone preentrenado contra el mismo desde cero,
 antes de aumentar escenas/realismo; reservar evaluación física nueva e independiente.
+
+## Tarde del 29 de octubre: resultado físico y límites
+
+Se completaron seis ablaciones MobileNetV3 Small + SimCC, cada una con brazo
+aleatorio y preentrenado: original, cuadrado/diverso, mixto, fotométrico,
+fondos con paneles y continuación de esta última a LR bajo. Se conservaron todos
+los checkpoints, configuraciones, hashes y logs. No se entrenó con fotos reales.
+
+El mejor rendimiento sintético no se trasladó de forma fiable a cámara. Por
+ejemplo, el mixto obtuvo IoU0.863 en el corpus original y0.815 en el cuadrado,
+pero aproximadamente0.40/0.39 en los dos cuadriláteros físicos anotados. Los
+paneles mejoraron esos casos, sin lograr contornos correctos de forma consistente.
+No se promovió ninguna candidata ni se sustituyó el modelo instalado.
+
+Las tres fotos recientes contienen solo dos cartas distintas; una está fuera de
+encuadre y no tiene GT completo. Las dos anotaciones restantes son aproximaciones
+manuales de desarrollo, no etiquetas independientes auditadas. Otras nueve fotos
+históricas se revisaron cualitativamente; varias repiten el Paladín. No presentar
+estos casos como precisión general ni como test independiente tras consultarlos
+repetidamente. Los tiempos PyTorch de PC no equivalen a latencia Sony.
+
+Artefactos bajo `C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity`:
+- `reports/afternoon-summary-01/report.html`: comparación con advertencias por corpus.
+- `reports/afternoon-20261029/artifact-audit.json`: seis runs/doce brazos,
+  8.000 renders únicos con hashes y divisiones comprobados, logs completos y
+  checkpoints preservados. No certifica calidad física. Los checkpoints solo
+  contienen pesos, no estado de optimizador/RNG para reanudación exacta.
+- `reports/real-annotation-queue-01/review.html` y `queue.json`: 343 fotos de tres
+  sesiones, todas bloqueadas para entrenamiento. Nueve hashes de desarrollo
+  excluidos; agrupar cartas entre sesiones y cruzar identidades reservadas sigue
+  pendiente. Cero duplicados exactos no implica independencia entre fotos.
+
+Siguiente fase: etiquetar esquinas y visibilidad de un conjunto real revisado,
+reservar sesiones/grupos completos antes de entrenar y auditar solapamientos con
+heldout. No convertir resultados de Odin ni teachers en GT. No seguir repitiendo
+entrenamientos sintéticos sin una hipótesis comprobable. Odin, Triple, colección,
+fotos y Diego Lab permanecen fuera de estos experimentos.

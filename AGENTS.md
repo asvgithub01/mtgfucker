@@ -626,5 +626,8 @@ adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
 - `research/card-corners` es proyecto Unity independiente y scripts del piloto de esquinas.
   No usa Android ni Odin; validar render/overlays antes de entrenar. No confundir smoke
   Python con Unity ejecutado. Datos externos en `C:/asv/datasets/mtg-corners-v1`.
+- Copia ejecutable Unity solicitada: `C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity`;
+  proyecto, scripts y calibración juntos; fuentes canónicas en research/card-corners.
+  Editor fijado2022.3.62f2 (parche seguridad). No sobrescribir fotos/copies al sincronizar.
 - `research/catalog/check_sets.py` es comprobador manual de metadata, no actualizador
   automático de cartas ni publicador. No activar distribución/modelos desde el prototipo.

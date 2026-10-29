@@ -1,7 +1,7 @@
 # Esquinitas — piloto de detector propio
 
 No es Odin, no accede al Sony/Android/colección. Unity2022.3 Built-in, versión de
-proyecto2022.3.62f1; seleccionar editor compatible y registrar versión efectiva.
+proyecto2022.3.62f2 (parche de seguridad; no instalar f1); registrar versión efectiva.
 No requiere Perception ni assets externos. **Pendiente ejecutar en Unity.**
 
 Nombre elegido29-10-2026. Conservar `research/card-corners` como ruta técnica.
@@ -9,6 +9,17 @@ Cornelius y FastWeb serán teachers/comparadores en una fase posterior: sus sali
 no reemplazan las esquinas geométricas exactas de Unity. Ver plan en08-UNITY-CORNERS.md.
 No hay distillation ni generación de pseudoetiquetas conectadas al trainer actualmente.
 Integración móvil futura exclusivamente sobre la rama de refactor (confirmar su nombre).
+
+## Copia ejecutable solicitada por el usuario
+`C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity`.
+Contiene proyecto en raíz, scripts/, data/calibration-01/, logs/ y source-manifest.json.
+Fuentes canónicas siguen aquí, en el worktree experimental; sincronizar cambios
+explícitamente y no sobrescribir datos/Library del proyecto local. El directorio externo
+mtg-corners-v1 previo se conserva, no se mueve ni se borra.
+`run-calibration.ps1 -Project <ruta-local>` ejecuta con GPU/D3D11 y exige COMPLETE.
+Instalación del editor prevista: `C:/asv/tools/unity/2022.3.62f2`.
+Necesita licencia válida del usuario; no activar automáticamente Personal.
+[Parche oficial](https://unity.com/releases/editor/whats-new/2022.3.62f2).
 
 Calibración inicial sin ilustraciones MTG: `python prepare_smoke.py --root <ruta-nueva>`.
 Ya preparada localmente en `C:/asv/datasets/mtg-corners-v1/calibration-01`:

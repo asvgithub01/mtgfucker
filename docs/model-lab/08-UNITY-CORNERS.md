@@ -1,6 +1,13 @@
 # Esquinitas: detector de esquinas propio, piloto Unity aislado
 
 Código completo del piloto: research/card-corners. Sin dependencia de Odin ni de la app.
+Estado instalación29-10-2026: Unity Hub3.22.5 instalado. Copia ejecutable creada en
+`C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity`, con scripts y datos
+de calibración dentro. Editor2022.3.62f2 descargado de Unity y firma Authenticode válida.
+Windows canceló el inicio del instalador («El usuario ha cancelado la operación»);
+NO hay editor instalado ni renders ejecutados todavía. Usuario avisado para completar
+instalación/activación. No reintentar ni sortear la cancelación automáticamente.
+Pin actualizado f1→f2 por parche CVE-2025-59489; ver README del piloto y lanzador.
 Nombre elegido por el usuario29-10-2026. Mantener Odin intacto. Integrar en Android
 solo desde la rama de refactor, cuyo nombre exacto se confirmará al llegar a esa fase.
 Objetivo inicial: **una carta completa** → presencia+cuatro esquinas ordenadas. Más
@@ -51,7 +58,7 @@ IoU contra GT humana, rechazo, identificación Odin como métrica secundaria y l
 Sony real. Export ONNX/paridad/Android son fases posteriores, sin promoción automática.
 
 ## Inicio y teachers — 29-10-2026
-Solicitado comenzar entrenamiento. Bloqueo actual: Unity Editor no localizado en PATH,
+Solicitado comenzar entrenamiento. Bloqueo inicial (ver instalación actual arriba): Unity Editor no localizado en PATH,
 rutas estándar, registro de instaladores ni inventario habitual de Unity Hub. No hay
 renders validados; NO iniciar un entrenamiento con las cuatro texturas de calibración
 como si fuera un dataset MTG útil. No hay proceso de entrenamiento de Esquinitas activo.

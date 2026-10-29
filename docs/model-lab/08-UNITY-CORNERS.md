@@ -1,5 +1,8 @@
 # Esquinitas: detector de esquinas propio, piloto Unity aislado
 
+Revisión de las fuentes Cornelius/FastWeb y propuesta de cambio de enfoque:
+[09-ESQUINITAS-RESEARCH.md](09-ESQUINITAS-RESEARCH.md). Investigación, no implementado.
+
 Código completo del piloto: research/card-corners. Sin dependencia de Odin ni de la app.
 **Estado más reciente29-10-2026:** usuario completó instalación/licencia; Unity operativo.
 120renders calibración y1600MTG validados. Piloto300pasos/52,515s terminado: error

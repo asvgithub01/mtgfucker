@@ -22,7 +22,7 @@ def main():
     assert 1<=a.steps<=3000 and 1<=a.max_seconds<=1800
     assert torch.cuda.is_available(), 'CUDA required; do not silently benchmark CPU'
     root=Path(a.dataset);rows=validate(root);out=Path(a.out);out.mkdir(parents=True,exist_ok=False)
-    cfg=vars(a)|{'modelName':'Esquinitas','experimentVersion':'pilot-v1','teachersUsed':False,'seed':20261028,'torch':torch.__version__,'device':torch.cuda.get_device_name(),'input':[3,224,160],'purpose':'synthetic engineering pilot, no promotion'}
+    cfg=vars(a)|{'modelName':'Esquinitas','experimentVersion':'pilot-v1','teachersUsed':False,'seed':20261028,'torch':torch.__version__,'device':torch.cuda.get_device_name(),'input':[3,224,160],'runnerSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'purpose':'synthetic engineering pilot, no promotion'}
     (out/'config.json').write_text(json.dumps(cfg,indent=2))
     (out/'dataset-hashes.json').write_text(json.dumps({r['image']:r['imageSha256'] for r in rows},indent=2))
     random.seed(cfg['seed']);torch.manual_seed(cfg['seed']);torch.cuda.manual_seed_all(cfg['seed'])
@@ -34,6 +34,7 @@ def main():
         return torch.stack(xs).cuda(),torch.tensor(ys).cuda(),torch.tensor(cs).cuda()
     train=[r for r in rows if r['split']=='train'];val=[r for r in rows if r['split']=='validation']
     model=CornerNet().cuda();opt=torch.optim.AdamW(model.parameters(),lr=3e-4);start=time.monotonic()
+    completed=0
     with (out/'metrics.jsonl').open('x') as log:
         for step in range(a.steps):
             if time.monotonic()-start>a.max_seconds:break
@@ -41,13 +42,19 @@ def main():
             mask=present>0;loss=nn.functional.binary_cross_entropy_with_logits(score,present)
             if mask.any():loss=loss+5*nn.functional.smooth_l1_loss(quad[mask],corners[mask])
             assert torch.isfinite(loss);opt.zero_grad();loss.backward();opt.step()
+            completed=step+1
             log.write(json.dumps({'step':step+1,'loss':loss.item(),'elapsed':time.monotonic()-start})+'\n');log.flush()
             if (step+1)%100==0:torch.save(model.state_dict(),out/f'step-{step+1:04}.pt')
-    torch.save(model.state_dict(),out/'final.pt');model.eval();errors=[];presence=[]
+    torch.save(model.state_dict(),out/'final.pt');model.eval();errors=[];presence=[];visible_errors=[];hidden_errors=[];positive=[];negative=[]
     with torch.no_grad():
         for i in range(0,len(val),16):
-            x,p,c=batch(val[i:i+16]);s,q=model(x);presence.extend(((s.sigmoid()>.5)==p.bool()).cpu().tolist())
-            if (p>0).any():errors.extend((q[p>0].reshape(-1,4,2)-c[p>0].reshape(-1,4,2)).norm(dim=2).mean(dim=1).cpu().tolist())
-    (out/'result.json').write_text(json.dumps({'steps':step+1,'seconds':time.monotonic()-start,'validationFrames':len(val),'meanNormalizedCornerError':float(np.mean(errors)),'presenceAccuracy':float(np.mean(presence)),'realEvaluation':'NOT RUN','promoted':False},indent=2))
+            chunk=val[i:i+16];x,p,c=batch(chunk);s,q=model(x);pred=s.sigmoid()>.5;presence.extend((pred==p.bool()).cpu().tolist())
+            for j,row in enumerate(chunk):
+                (positive if row['present'] else negative).append(bool(pred[j].item()))
+                if row['present']:
+                    e=(q[j].reshape(4,2)-c[j].reshape(4,2)).norm(dim=1).cpu().tolist();errors.append(float(np.mean(e)))
+                    for v,err in zip(row.get('cornerVisible',[True]*4),e):(visible_errors if v else hidden_errors).append(err)
+    mean=lambda x:float(np.mean(x)) if x else None
+    (out/'result.json').write_text(json.dumps({'steps':completed,'seconds':time.monotonic()-start,'validationFrames':len(val),'meanNormalizedCornerError':mean(errors),'visibleCornerError':mean(visible_errors),'hiddenCornerError':mean(hidden_errors),'hiddenCornerCount':len(hidden_errors),'presenceAccuracy':mean(presence),'presenceRecall':mean(positive),'falsePositiveRate':mean(negative),'realEvaluation':'NOT RUN','promoted':False},indent=2))
 
 if __name__=='__main__':main()

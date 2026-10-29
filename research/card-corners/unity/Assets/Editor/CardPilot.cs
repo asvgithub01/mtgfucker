@@ -12,7 +12,7 @@ public static class CardPilot {
  [Serializable] public class XY { public float x,y; public XY(float a,float b){x=a;y=b;} }
  [Serializable] public class Label {
   public int schema=2,index,seed,width,height; public string image,imageSha256,textureSha256,group,split;
-  public string cornerOrder="texture-TL,TR,BR,BL", coordinates="normalized-top-left", generator="unity-card-pilot-v2";
+  public string cornerOrder="texture-TL,TR,BR,BL", coordinates="normalized-top-left", generator="unity-card-pilot-v3";
   public string project="Esquinitas";
   public bool[] cornerVisible; public bool thumbOccluder; public Vector3 thumbLocalPosition,thumbScale;
   public bool present,sleeve,foilApproximation; public XY[] corners; public Vector3 rotation,position,light;
@@ -66,7 +66,8 @@ public static class CardPilot {
     var tex=new Texture2D(2,2);if(!tex.LoadImage(File.ReadAllBytes(t.path)))throw new Exception("Cannot decode texture");
     var bgTex=new Texture2D(32,32);var pixels=new Color[1024];var c1=UnityEngine.Random.ColorHSV(0,1,0,.5f,.15f,.9f);var c2=UnityEngine.Random.ColorHSV(0,1,0,.5f,.15f,.9f);
     for(int p=0;p<pixels.Length;p++)pixels[p]=((p/32/4+p%32/4)%2==0?c1:c2);bgTex.SetPixels(pixels);bgTex.Apply();bgMat.mainTexture=bgTex;
-    bool present=i%10!=0,foil=R(0,1)<.35f,plastic=R(0,1)<.5f;
+    // Do not correlate absence with texture index (count may be divisible by ten).
+    bool present=R(0,1)>=.1f,foil=R(0,1)<.35f,plastic=R(0,1)<.5f;
     card.SetActive(present);sleeve.SetActive(plastic);cardMat.mainTexture=tex;cardMat.SetFloat("_Gloss",foil?1.4f:.12f);cardMat.SetFloat("_Foil",foil?1:0);
     camera.transform.position=new Vector3(0,0,-R(.16f,.25f));
     var light=new Vector3(R(-.2f,.2f),R(-.2f,.2f),R(-.3f,-.1f));float intensity=R(.5f,1.5f);

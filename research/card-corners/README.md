@@ -2,7 +2,7 @@
 
 No es Odin, no accede al Sony/Android/colección. Unity2022.3 Built-in, versión de
 proyecto2022.3.62f2 (parche de seguridad; no instalar f1); registrar versión efectiva.
-No requiere Perception ni assets externos. **Pendiente ejecutar en Unity.**
+No requiere Perception ni assets externos. **Unity ejecutado y piloto01 entrenado; NO apto para integrar.**
 
 Nombre elegido29-10-2026. Conservar `research/card-corners` como ruta técnica.
 Cornelius y FastWeb serán teachers/comparadores en una fase posterior: sus salidas
@@ -24,7 +24,22 @@ Necesita licencia válida del usuario; no activar automáticamente Personal.
 Calibración inicial sin ilustraciones MTG: `python prepare_smoke.py --root <ruta-nueva>`.
 Ya preparada localmente en `C:/asv/datasets/mtg-corners-v1/calibration-01`:
 cuatro texturas procedurales propias con marcas de orientación y config120renders.
-Esto no son renders Unity ni un dataset válido para medir reconocimiento de MTG.
+Las texturas de calibración no son un dataset válido para medir reconocimiento MTG.
+El29-10-2026 se generaron120renders calibración válidos en la copia ejecutable local.
+
+## Resultado inicial29-10-2026
+`prepare_mtg_pilot.py` seleccionó64train+16val del split agrupado congelado Odin,
+mitad fullart en cada partición; verifica SHA y separación grupo/oracle/arte/hash.
+Copia texturas de referencia, no fotos reales. Unityv3 generó1600escenas (1280/320),
+presencia aleatoria independiente de textura; mantiene ocultas en GT. ValidaciónPASS.
+Trainer300pasos RTX5090Laptop:52,515s incluida evaluación; error esquina normalizado
+0,1350, visible0,13487/oculta0,13639. Presencia97,5%,recall99,29%,FPR15,79%(6/38negativos).
+**Error de recorte elevado; NO promover ni inferir precisión física.** Teachers no usados.
+Artefactos locales: `unity/data/mtg-pilot-01`, `unity/runs/pilot-01` y
+`unity/reports/pilot-01/report.html` bajo la carpeta ejecutable. Pesos/imágenes fueraGit.
+`report_pilot.py` dibuja GTverde y predicciónroja; verifica hashes del dataset congelado.
+Siguiente: más diversidad/realismo y comparar arquitectura/pérdida de localización;
+medir teachers en el mismo conjunto antes de intentar imitación. No basta presencia.
 
 1. Crear área externa `C:/asv/datasets/mtg-corners-v1` y copiar texturas autorizadas
    a `sources/`, conservando procedencia. No copiar automáticamente fotos privadas.

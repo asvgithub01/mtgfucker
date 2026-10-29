@@ -1,5 +1,14 @@
 # Verificación del handoff — 2026-10-28
 
+## Actualización29-10-2026 — Esquinitas
+- Unity2022.3.62f2 compiló y renderizó120calibración +1600MTG, validadoresPASS.
+- Revisados overlays (esquinas ocultas conservadas, funda no confundida con carta).
+- Generadorv3 desacopla negativos del índice de textura;9testsPythonPASS.
+- EntrenamientoCNN300pasos enRTX5090Laptop52,515s. Error medio0,135normalizado:
+  NO apto, no promoción. Presencia97,5% no equivale a calidad de esquinas.
+- Sin fotos reales en entrenamiento, sin teachers, sin cambios Android/Odin/colección.
+- Fuentes versionadas; imágenes/pesos/resultados detallados en proyectoUnity local.
+
 - 7 unit tests de configuración/etiquetas: PASS (hash, winding, completitud, fuga).
 - 1 unit test de diff de sets: PASS; no consulta programada ni publicación activada.
 - CornerNet: forward/backward CPU con tensor aleatorio y shapes correctos: PASS.

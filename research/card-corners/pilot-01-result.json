@@ -1,0 +1,14 @@
+{
+  "steps": 300,
+  "seconds": 52.51500000001397,
+  "validationFrames": 320,
+  "meanNormalizedCornerError": 0.13500932810071803,
+  "visibleCornerError": 0.1348661734483801,
+  "hiddenCornerError": 0.13638955503175,
+  "hiddenCornerCount": 106,
+  "presenceAccuracy": 0.975,
+  "presenceRecall": 0.9929078014184397,
+  "falsePositiveRate": 0.15789473684210525,
+  "realEvaluation": "NOT RUN",
+  "promoted": false
+}

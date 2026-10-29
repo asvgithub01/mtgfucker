@@ -18,7 +18,7 @@ Portar contratos/adaptadores y pruebas a la arquitectura refactorizada.
 | Idioma | [05-LANGUAGE](docs/model-lab/05-LANGUAGE.md) | Comparar OCR selectivo y modelo, no decidido |
 | Foil / firmas | [06-FINISH-SIGNATURE](docs/model-lab/06-FINISH-SIGNATURE.md) | Investigación futura, no inferencia fiable implementada |
 | Pruebas físicas / evidencias | [07-PHYSICAL-TESTS](docs/model-lab/07-PHYSICAL-TESTS.md) | Captura opt-in existente, revisión humana pendiente |
-| Esquinitas / Unity | [08-UNITY-CORNERS](docs/model-lab/08-UNITY-CORNERS.md) | Código de piloto preparado; editor/render real pendiente |
+| Esquinitas / Unity | [08-UNITY-CORNERS](docs/model-lab/08-UNITY-CORNERS.md) | Unity operativo; piloto sintético01 entrenado, recortes insuficientes, NO promovido |
 
 Código Android conservado en `app/` y `collectorvision-native/`, copias `Own*` y
 `FastWeb*`. Fuentes de entrenamiento Odin archivadas en `research/odin/`.

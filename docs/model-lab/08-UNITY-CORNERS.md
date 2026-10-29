@@ -1,6 +1,12 @@
 # Esquinitas: detector de esquinas propio, piloto Unity aislado
 
 Código completo del piloto: research/card-corners. Sin dependencia de Odin ni de la app.
+**Estado más reciente29-10-2026:** usuario completó instalación/licencia; Unity operativo.
+120renders calibración y1600MTG validados. Piloto300pasos/52,515s terminado: error
+esquinas0,135normalizado; presencia97,5% pero FPR15,79%. Recortes claramente deficientes
+en overlays: NO promovido. Informe en carpeta localUnity/reports/pilot-01/report.html.
+9testsPythonPASS. Teachers y evaluación física pendientes. Ningún entrenamiento activo.
+Las notas de bloqueo que siguen son históricas y quedan resueltas por esta actualización.
 Estado instalación29-10-2026: Unity Hub3.22.5 instalado. Copia ejecutable creada en
 `C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity`, con scripts y datos
 de calibración dentro. Editor2022.3.62f2 descargado de Unity y firma Authenticode válida.

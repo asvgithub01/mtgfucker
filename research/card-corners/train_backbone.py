@@ -16,6 +16,28 @@ from train_heads import coordinate_loss, evaluate
 from validate import validate
 
 
+def photometric(x):
+    """Deterministic seeded Torch RGB augmentation, no geometry/labels changed."""
+    mean=x.new_tensor([.485,.456,.406])[None,:,None,None]
+    std=x.new_tensor([.229,.224,.225])[None,:,None,None]
+    rgb=(x*std+mean).clamp(0,1); n,_,h,w=rgb.shape
+    rand=lambda *shape:torch.rand(*shape,device=x.device)
+    gray=rgb.mean(1,keepdim=True)
+    rgb=gray+(rgb-gray)*(.25+1.5*rand(n,1,1,1))
+    rgb=(rgb-.5)*(.5+rand(n,1,1,1))+.5
+    rgb=rgb*(.55+.9*rand(n,3,1,1))
+    # Soft directional shadow (not a synthetic foil simulation).
+    yy=torch.linspace(-1,1,h,device=x.device)[None,None,:,None]
+    xx=torch.linspace(-1,1,w,device=x.device)[None,None,None,:]
+    plane=(xx*(rand(n,1,1,1)*2-1)+yy*(rand(n,1,1,1)*2-1))*4
+    rgb=rgb*(1-.55*rand(n,1,1,1)*plane.sigmoid())
+    rgb=rgb.clamp(0,1).pow(.65+.9*rand(n,1,1,1))
+    blurred=nn.functional.avg_pool2d(nn.functional.pad(rgb,(1,1,1,1),mode='reflect'),3,1)
+    rgb=torch.where(rand(n,1,1,1)<.25,blurred,rgb)
+    rgb=(rgb+torch.randn_like(rgb)*.012*rand(n,1,1,1)).clamp(0,1)
+    return (rgb-mean)/std
+
+
 class BackboneNet(nn.Module):
     def __init__(self, pretrained=False):
         super().__init__()
@@ -33,6 +55,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--dataset', required=True); p.add_argument('--out', required=True)
     p.add_argument('--extra-dataset', help='Optional synthetic corpus; enforce shared group/hash splits')
+    p.add_argument('--photometric', action='store_true', help='RGB-only jitter/shadow/noise/blur; no real images')
     p.add_argument('--steps', type=int, default=2000)
     a = p.parse_args()
     assert PIL.__version__ == '12.3.0', PIL.__version__
@@ -61,6 +84,7 @@ def main():
         sourceHashes={n:sha(Path(__file__).with_name(n)) for n in ['train_backbone.py','train_heads.py','validate.py','train_pilot.py']},
         realPhotosUsed=False, teachersUsed=False, promoted=False,
         datasets=[str(root)]+([str(a.extra_dataset)] if a.extra_dataset else []),
+        photometric=a.photometric,
         note='Development synthetic validation, previously reused; not independent physical test')
     (out/'config.json').write_text(json.dumps(config,indent=2))
     (out/'split.json').write_text(json.dumps(dict(train=train,validation=val,rows=rows)))
@@ -82,7 +106,8 @@ def main():
         with (folder/'metrics.jsonl').open('x') as log:
             for step in range(a.steps):
                 if time.perf_counter()-start>config['maxSecondsPerArm']: break
-                ix=random.choices(train,k=16); score,q=model(xs[ix]); mask=ps[ix]>0
+                ix=random.choices(train,k=16); batch=xs[ix]
+                score,q=model(photometric(batch) if a.photometric else batch); mask=ps[ix]>0
                 loss=nn.functional.binary_cross_entropy_with_logits(score,ps[ix])
                 if mask.any(): loss=loss+coordinate_loss(q[mask],cs[ix][mask])
                 assert torch.isfinite(loss)

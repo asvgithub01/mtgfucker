@@ -115,6 +115,14 @@ presence and validity as well. Historical review copies remain development-only,
 unlabeled and ineligible for training; repeated cards across sessions are not
 independent samples.
 
+`train_backbone.py --photometric` is an opt-in RGB-only ablation on the same
+synthetic corpus: saturation, contrast, channel gains, gamma, soft shadow,
+small noise and occasional 3x3 blur. It does not move pixels or modify corner
+labels. The default remains unchanged. Parameters are fixed in source and the
+run records its source hash and flag. This is domain randomization, not a claim
+of physically accurate foil, lighting or hands; compare against the unaugmented
+run with the same steps, seed, architecture and corpus before promotion.
+
 Configuration, source/weight hashes, original split rows, checkpoints and metrics
 are saved to a new output directory (existing directories are rejected). Default
 2000 steps per arm, maximum900 seconds per arm, seed20261029. Compare completed

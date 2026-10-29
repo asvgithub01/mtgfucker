@@ -11,14 +11,15 @@ import torch
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--manifest',required=True)
     p.add_argument('--unity',required=True); p.add_argument('--out',required=True)
+    p.add_argument('--backbone-run', default='backbone-01')
     a=p.parse_args(); out=Path(a.out); out.mkdir(parents=True,exist_ok=False)
     manifest=json.loads(Path(a.manifest).read_text(encoding='utf-8-sig'))
     (out/'review-manifest.json').write_text(json.dumps(manifest,indent=2))
     torch.set_num_threads(4); root=Path(a.unity)
     models={}
     for name,path in [('spatial01','spatial-01/generalization-simcc/final.pt'),
-                      ('random','backbone-01/random/final.pt'),
-                      ('pretrained','backbone-01/pretrained/final.pt')]:
+                      ('random',a.backbone_run+'/random/final.pt'),
+                      ('pretrained',a.backbone_run+'/pretrained/final.pt')]:
         model=HeadNet('simcc',8) if name=='spatial01' else backbone.BackboneNet()
         file=root/'runs'/path; model.load_state_dict(torch.load(file,map_location='cpu',weights_only=True))
         models[name]=(model.eval(),hashlib.sha256(file.read_bytes()).hexdigest())

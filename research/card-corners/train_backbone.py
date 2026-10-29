@@ -32,6 +32,7 @@ class BackboneNet(nn.Module):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('--dataset', required=True); p.add_argument('--out', required=True)
+    p.add_argument('--extra-dataset', help='Optional synthetic corpus; enforce shared group/hash splits')
     p.add_argument('--steps', type=int, default=2000)
     a = p.parse_args()
     assert PIL.__version__ == '12.3.0', PIL.__version__
@@ -40,6 +41,15 @@ def main():
     root, out = Path(a.dataset), Path(a.out)
     out.mkdir(parents=True, exist_ok=False)
     rows = validate(root)
+    if a.extra_dataset:
+        rows = [dict(r, image=str(root/r['image'])) for r in rows]
+        extra=Path(a.extra_dataset)
+        rows += [dict(r, image=str(extra/r['image'])) for r in validate(extra)]
+        seen={}
+        for r in rows:
+            for key in ('group','textureSha256'):
+                k=(key,r[key]); assert k not in seen or seen[k]==r['split'], 'Cross-corpus leakage'
+                seen[k]=r['split']
     train = [i for i,r in enumerate(rows) if r['split']=='train']
     val = [i for i,r in enumerate(rows) if r['split']=='validation']
     sha = lambda f: hashlib.sha256(Path(f).read_bytes()).hexdigest()
@@ -50,6 +60,7 @@ def main():
         weightsSha=sha(Path(torch.hub.get_dir())/'checkpoints/mobilenet_v3_small-047dcff4.pth'),
         sourceHashes={n:sha(Path(__file__).with_name(n)) for n in ['train_backbone.py','train_heads.py','validate.py','train_pilot.py']},
         realPhotosUsed=False, teachersUsed=False, promoted=False,
+        datasets=[str(root)]+([str(a.extra_dataset)] if a.extra_dataset else []),
         note='Development synthetic validation, previously reused; not independent physical test')
     (out/'config.json').write_text(json.dumps(config,indent=2))
     (out/'split.json').write_text(json.dumps(dict(train=train,validation=val,rows=rows)))

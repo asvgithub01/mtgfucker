@@ -104,6 +104,17 @@ the source, not a standalone environment. Input RGB160x224 uses ImageNet
 normalization for **both** arms; this differs from spatial-01 and requires a new
 Android preprocessing contract before any promotion.
 
+Physical review remains the promotion gate: the original, square-only and mixed
+synthetic runs still produce poor outlines on reviewed camera scenes. A high
+synthetic IoU must not authorize installing a candidate. `evaluate_backbone_corpora.py`
+checks group/hash split consistency across renders; `--candidate-run` evaluates
+only a new pretrained run without rerunning older checkpoints. The real evaluator
+draws raw diagnostic corners even when presence is below the acceptance threshold:
+an outline in its HTML is not necessarily an accepted detection. Inspect the JSON
+presence and validity as well. Historical review copies remain development-only,
+unlabeled and ineligible for training; repeated cards across sessions are not
+independent samples.
+
 Configuration, source/weight hashes, original split rows, checkpoints and metrics
 are saved to a new output directory (existing directories are rejected). Default
 2000 steps per arm, maximum900 seconds per arm, seed20261029. Compare completed

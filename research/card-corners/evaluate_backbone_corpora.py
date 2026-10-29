@@ -10,6 +10,7 @@ import torch
 
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--unity',required=True); p.add_argument('--out',required=True)
+    p.add_argument('--candidate-run', help='Evaluate only this new pretrained run; keep earlier comparisons untouched')
     a=p.parse_args(); root=Path(a.unity); out=Path(a.out); out.mkdir(parents=True,exist_ok=False)
     torch.set_num_threads(4); seen={}; corpora={}
     for name in ('pilot-01','square-diverse-01'):
@@ -29,7 +30,8 @@ def main():
         ps=torch.tensor([float(r['present']) for r in rows],device='cuda')
         cs=torch.tensor([[v for pt in r['corners'] for v in (pt['x'],pt['y'])] if r['present'] else [0.]*8 for r in rows],device='cuda')
         results[corpus]={}
-        for name,checkpoint in [('spatial01','spatial-01/generalization-simcc/final.pt'),('pretrained-original','backbone-01/pretrained/final.pt'),('pretrained-square','backbone-square-01/pretrained/final.pt')]:
+        candidates=[(a.candidate_run,a.candidate_run+'/pretrained/final.pt')] if a.candidate_run else [('spatial01','spatial-01/generalization-simcc/final.pt'),('pretrained-original','backbone-01/pretrained/final.pt'),('pretrained-square','backbone-square-01/pretrained/final.pt')]
+        for name,checkpoint in candidates:
             model=HeadNet('simcc',8) if name=='spatial01' else b.BackboneNet()
             model.load_state_dict(torch.load(root/'runs'/checkpoint,map_location='cpu',weights_only=True)); model.cuda()
             x=xs if name=='spatial01' else (xs-torch.tensor([.485,.456,.406],device='cuda')[None,:,None,None])/torch.tensor([.229,.224,.225],device='cuda')[None,:,None,None]

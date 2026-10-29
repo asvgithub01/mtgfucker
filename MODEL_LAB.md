@@ -32,3 +32,8 @@ No hay entrenamiento ni seguimiento periódico nuevos arrancados por estos docum
 
 Para retomar: pedir «Lee MODEL_LAB.md y el documento del tema X; comprueba estado
 real antes de ejecutar; no toques originales, colección, fotos ni Odin estable».
+
+## Odin Lab comparador separado
+`tools/odin_android/README.md`: paquete io.asv.odinlab,12detectoresxMilo/Odin=24,
+EsquinitasEXPsoloexperimento; conservaDiegoLab/Tripleoriginal/Odin. Entradacámara,
+fotoA/B yparidad. GaleríasMilo/Odindiferentes, no inferir precisión directamente.

@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name" translatable="false">Odin Lab</string>
+    <string name="heading" translatable="false">Odin Lab v27 · codex/dinov2-benchmark</string>
+    <string name="intro" translatable="false">Laboratorio privado sin acceso al scanner ni a su colección. 49 fotos, 490 referencias. CPU FP32, 4 hilos, 3 repeticiones, orientaciones 0°/180°. Mantén esta pantalla abierta.</string>
+    <string name="start" translatable="false">Comparar Milo y Diego FP32</string>
+    <string name="running" translatable="false">Ejecutando…</string>
+    <string name="failure" translatable="false">Error: %1$s</string>
+    <string name="progress" translatable="false">Foto %1$d / 49 · %2$s</string>
+    <string name="complete" translatable="false">Finalizado. Resultados guardados en el almacenamiento privado de Odin Lab.</string>
+    <string name="loading" translatable="false">Cargando modelos y verificando preprocesado…</string>
+    <string name="result_line" translatable="false">%1$s\nArte %2$d/49 · Impresión %3$d/45\nIdioma cubierto %4$d/38\np50 %5$.1f ms · p95 %6$.1f ms\n</string>
+    <string name="lcnet_milo" translatable="false">LCNet050 experimental + Milo</string>
+    <string name="lcnet_diego" translatable="false">LCNet050 experimental + Odin</string>
+    <string name="live14" translatable="false">CameraX · 14 combinaciones en directo</string>
+    <string name="ab14" translatable="false">Guardar A/B ×14</string>
+    <string name="docseq_entry" translatable="false">ML Kit + Odin · escaneo seguido</string>
+    <string name="docseq_title" translatable="false">ML Kit + Odin · LAB v22\ncodex/dinov2-benchmark</string>
+    <string name="docseq_intro" translatable="false">Una carta por página, título arriba. Google devuelve las páginas al confirmar: entonces Diego identifica y suena. En lote, el sonido llega al volver al lab. Solo candidatos; no añade a la colección. Evidencias privadas automáticas. BASE sin filtros de mejora.</string>
+    <string name="docseq_single" translatable="false">Una carta / siguiente</string>
+    <string name="docseq_batch" translatable="false">Lote de hasta 20 cartas</string>
+    <string name="docseq_sound" translatable="false">Sonido al obtener candidato (no confirma acierto)</string>
+    <string name="docseq_ready" translatable="false">Sesión: %1$s. Elige una carta o un lote.</string>
+    <string name="docseq_preparing" translatable="false">Preparando ML Kit… el primer uso puede descargar el módulo.</string>
+    <string name="docseq_identifying" translatable="false">Guardando evidencias e identificando con Diego…</string>
+    <string name="docseq_error" translatable="false">Error: %1$s. Evidencias ya guardadas se conservan.</string>
+    <string name="docseq_cancel" translatable="false">Captura cancelada. Se conserva la sesión anterior.</string>
+    <string name="docseq_no_candidate" translatable="false">Sin candidato</string>
+    <string name="docseq_row" translatable="false">%1$d. Candidato: %2$s\n</string>
+    <string name="docseq_finished" translatable="false">Procesadas: %1$d · errores: %2$d\nEvidencias: %3$s\nPulsa Una carta / siguiente para continuar. Revisa el recorte y la impresión.</string>
+<string name="mlbox_milo" translatable="false">ML Kit caja + Milo</string>
+<string name="mlbox_diego" translatable="false">ML Kit caja + Odin</string>
+<string name="mlref_milo" translatable="false">ML Kit + esquinas LCNet + Milo</string>
+<string name="mlref_diego" translatable="false">ML Kit + esquinas LCNet + Odin</string>
+<string name="ab18" translatable="false">Guardar A/B ×18</string>
+<string name="ab18_notice" translatable="false">Se guardará el siguiente frame y se comparará con las 18 combinaciones. Puede tardar.</string>
+<string-array name="camera_profiles" translatable="false"><item>Resolución anterior (control)</item><item>Vertical 960×1280 (experimental anterior)</item><item>Máximo real 1280 · conversión anterior</item><item>Máximo real 1280 · conversión reutilizada</item><item>Máximo real 960 · conversión reutilizada</item><item>Resolución anterior · conversión reutilizada</item></string-array>
+<string name="rift_milo" translatable="false">Riftbound caja + Milo</string><string name="rift_diego" translatable="false">Riftbound caja + Odin</string>
+<string name="ab20" translatable="false">Guardar A/B ×20</string><string name="ab20_notice" translatable="false">Guardando el siguiente frame y comparando 20 combinaciones. Puede tardar.</string>
+<string name="rift_photo" translatable="false">Riftbound + Odin · fotos multitarjeta</string><string name="rift_title" translatable="false">Riftbound / Cornelius + Odin · LAB v25
+codex/dinov2-benchmark</string>
+<string name="rift_help" translatable="false">Una pasada vertical. Riftbound propone cajas, no esquinas; Cornelius una propuesta. Guarda todas las cajas aceptadas y candidatos, sin insertar en colección. Similitud no confirma acierto.</string>
+<string name="rift_open" translatable="false">Elegir foto y comparar</string><string name="rift_demo" translatable="false">Comparar foto de 16 cartas</string><string name="rift_busy" translatable="false">Analizando en el dispositivo…</string><string name="rift_done" translatable="false">Evidencias: %1$s
+%2$s</string><string name="rift_live" translatable="false">CameraX · 24 combinaciones en directo</string>
+<string name="fastweb_milo" translatable="false">FastWeb 1.39 + Milo</string>
+<string name="fastweb_diego" translatable="false">FastWeb 1.39 + Odin</string>
+<string name="ab22" translatable="false">Guardar A/B ×22</string>
+<string name="ab22_notice" translatable="false">Guardando el siguiente frame y comparando 24 combinaciones. Puede tardar.</string>
+</resources>

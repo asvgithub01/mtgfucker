@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera.any" android:required="false"/>
+    <!-- CAMERA for the lab only. ML Kit dependencies merge network permissions for modules/SDK services; image inference remains on-device. No broad storage permission. -->
+    <application android:label="Odin Lab · codex" android:allowBackup="false"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar" android:supportsRtl="true">
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="io.asv.odinlab.capture" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/capture_paths"/>
+        </provider>
+        <activity android:name=".RiftPhotoActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <activity android:name=".DocumentSequenceActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <activity android:name=".DocumentLabActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <activity android:name=".LiveCameraActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <activity android:name=".ScanActivity" android:exported="false" android:screenOrientation="portrait"/>
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

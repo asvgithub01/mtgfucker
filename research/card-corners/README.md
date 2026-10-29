@@ -123,6 +123,23 @@ run records its source hash and flag. This is domain randomization, not a claim
 of physically accurate foil, lighting or hands; compare against the unaugmented
 run with the same steps, seed, architecture and corpus before promotion.
 
+## Real-data review after synthetic ablations
+
+`prepare_real_review.py --intake <verified-intake> --unity <unity-root> --out <new-dir>`
+reads the preserved TAR without modifying it and creates thumbnails plus `queue.json`.
+Every frame stays `trainingEligible=false`, corners/identity/split unset. This is a
+review queue, not a training set. Exact duplicates are audited; non-identical frames
+of the same card still need manual grouping across sessions. Already consulted
+development hashes are excluded, and their entire card groups must also be excluded
+once identified. The separate 23 heldout and historical reserved identities still
+require an explicit overlap audit; this tool does not claim that audit is complete.
+
+Before a real fine-tune: review target selection, physical card boundary (not sleeve),
+corner visibility and ambiguity; retain absent/partial/multicard cases with explicit
+labels. Reserve whole sessions AND shared card/art groups before training. Have a
+second review of ambiguous corners. Do not infer ground truth from Odin matches or
+teacher contours, and do not call a reviewed development set an independent test.
+
 Configuration, source/weight hashes, original split rows, checkpoints and metrics
 are saved to a new output directory (existing directories are rejected). Default
 2000 steps per arm, maximum900 seconds per arm, seed20261029. Compare completed

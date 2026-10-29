@@ -11,9 +11,10 @@ import torch
 def main():
     p=argparse.ArgumentParser(); p.add_argument('--unity',required=True); p.add_argument('--out',required=True)
     p.add_argument('--candidate-run', help='Evaluate only this new pretrained run; keep earlier comparisons untouched')
+    p.add_argument('--corpora', nargs='+', default=['pilot-01','square-diverse-01'])
     a=p.parse_args(); root=Path(a.unity); out=Path(a.out); out.mkdir(parents=True,exist_ok=False)
     torch.set_num_threads(4); seen={}; corpora={}
-    for name in ('pilot-01','square-diverse-01'):
+    for name in a.corpora:
         path=root/'data/mtg-pilot-01/renders'/name; rows=validate(path)
         for r in rows:
             for k in ('group','textureSha256'):

@@ -8,7 +8,7 @@ using UnityEditor.SceneManagement;
 // Editor-only, standalone project. Never opens the Android project or physical photos.
 public static class CardPilot {
  [Serializable] public class TextureRow { public string path, sha256, group, split; }
- [Serializable] public class Config { public int seed=20261028, count=120, width=640, height=896; public bool diverseScenes=false; public string output; public TextureRow[] textures; }
+ [Serializable] public class Config { public int seed=20261028, count=120, width=640, height=896; public bool diverseScenes=false, clutterBackground=false; public string output; public TextureRow[] textures; }
  [Serializable] public class XY { public float x,y; public XY(float a,float b){x=a;y=b;} }
  [Serializable] public class Label {
   public int schema=2,index,seed,width,height; public string image,imageSha256,textureSha256,group,split;
@@ -53,6 +53,13 @@ public static class CardPilot {
   var cardMat=new Material(shader);var sleeveMat=new Material(shader);sleeveMat.SetFloat("_Sleeve",1);sleeveMat.SetFloat("_Gloss",2);
   var bgMat=new Material(shader);var card=Surface("Card",mesh,cardMat);var sleeve=Surface("Sleeve",sleeveMesh,sleeveMat);sleeve.transform.SetParent(card.transform,false);sleeve.transform.localPosition=new Vector3(0,0,-.0002f);
   var bg=Surface("Background",bgMesh,bgMat);bg.transform.position=new Vector3(0,0,.05f);
+  // Non-card rectangles behind all target vertices, to break the uniform-background shortcut.
+  // These are synthetic panels, not borrowed real photos or pseudo-labelled cards.
+  var panels=new GameObject[6];var panelMaterials=new Material[6];
+  if(cfg.clutterBackground) {
+   bg.transform.position=new Vector3(0,0,.16f);
+   for(int k=0;k<panels.Length;k++){panelMaterials[k]=new Material(shader);panels[k]=Surface("BackgroundPanel"+k,Quad(.5f,.5f),panelMaterials[k]);}
+  }
   // Ellipsoid proxy, NOT a realistic hand. Collider and rendered surface share geometry.
   var thumb=GameObject.CreatePrimitive(PrimitiveType.Sphere);thumb.name="ThumbProxy";
   thumb.transform.SetParent(card.transform,false);var thumbMat=new Material(shader);
@@ -67,6 +74,15 @@ public static class CardPilot {
     var bgTex=new Texture2D(32,32);var pixels=new Color[1024];var c1=UnityEngine.Random.ColorHSV(0,1,0,.5f,.15f,.9f);var c2=UnityEngine.Random.ColorHSV(0,1,0,.5f,.15f,.9f);
     int tile=cfg.diverseScenes?UnityEngine.Random.Range(1,5):4;
     for(int p=0;p<pixels.Length;p++)pixels[p]=((p/32/tile+p%32/tile)%2==0?c1:c2);bgTex.SetPixels(pixels);bgTex.Apply();bgMat.mainTexture=bgTex;
+    if(cfg.clutterBackground) {
+     for(int k=0;k<panels.Length;k++) {
+      panels[k].SetActive(R(0,1)<.8f);
+      panels[k].transform.position=new Vector3(R(-.15f,.15f),R(-.18f,.18f),.08f+k*.008f);
+      panels[k].transform.rotation=Quaternion.Euler(0,0,R(-45,45));
+      panels[k].transform.localScale=new Vector3(R(.035f,.28f),R(.035f,.35f),1);
+      panelMaterials[k].SetColor("_Tint",UnityEngine.Random.ColorHSV(0,1,0,.7f,.05f,1));
+     }
+    }
     // Do not correlate absence with texture index (count may be divisible by ten).
     bool present=R(0,1)>=.1f,foil=R(0,1)<.35f,plastic=R(0,1)<.5f;
     card.SetActive(present);sleeve.SetActive(plastic);cardMat.mainTexture=tex;cardMat.SetFloat("_Gloss",foil?1.4f:.12f);cardMat.SetFloat("_Foil",foil?1:0);
@@ -96,6 +112,7 @@ public static class CardPilot {
     string name=i.ToString("D6")+".png";File.WriteAllBytes(Path.Combine(cfg.output,name),png);
     var label=new Label{index=i,seed=cfg.seed+i,width=cfg.width,height=cfg.height,image=name,imageSha256=Hash(png),textureSha256=t.sha256,group=t.group,split=t.split,present=present,corners=present?corners:new XY[0],sleeve=plastic,foilApproximation=foil,rotation=card.transform.eulerAngles,position=card.transform.position,light=light,lightIntensity=intensity,cameraDistance=-camera.transform.position.z,unityVersion=Application.unityVersion};
     if(cfg.diverseScenes)label.generator="unity-card-pilot-v4-diverse";
+    if(cfg.clutterBackground)label.generator="unity-card-pilot-v5-panels";
     label.cornerVisible=visible;label.thumbOccluder=occluded;label.thumbLocalPosition=thumb.transform.localPosition;label.thumbScale=thumb.transform.localScale;
     File.WriteAllText(Path.Combine(cfg.output,i.ToString("D6")+".json"),JsonUtility.ToJson(label,true));
     UnityEngine.Object.DestroyImmediate(tex);UnityEngine.Object.DestroyImmediate(bgTex);

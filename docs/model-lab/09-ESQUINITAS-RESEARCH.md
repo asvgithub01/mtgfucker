@@ -179,3 +179,17 @@ reservar sesiones/grupos completos antes de entrenar y auditar solapamientos con
 heldout. No convertir resultados de Odin ni teachers en GT. No seguir repitiendo
 entrenamientos sintéticos sin una hipótesis comprobable. Odin, Triple, colección,
 fotos y Diego Lab permanecen fuera de estos experimentos.
+
+## Tanda física nueva: 31 octubre2026
+Recibidas146capturas rápidas (sesión1793469343529) y4iniciales (1793468289510).
+Copias TAR yPNG verificadas contra SHA del Sony,150imágenes únicas,2160x2160,
+sin inferencias ysin borrar originales. Artefactos privados fuera deGit:
+`C:/asv/proyectos/2026/mtgfucker/mtgfucker/trainning models/unity/reports/real-intake-20261031-194753`.
+`manifest.json` inventario; `review.html` originales; `triage-draft.json` agrupaciones
+visuales provisionales ycasos difíciles; `status.json` estado. Cinco hojas decontacto
+revisadas: buena variedad deálbum, fundas, reflejos, manos, negativos yperspectiva.
+Todavía no hay anotaciones deesquinas aceptadas ni split auditado: no se ha iniciado
+entrenamiento. Revisar originales, frontera carta/nofunda, visibilidad/incertidumbre,
+identidad/arte contra reservadas ygrupos repetidos antes dehabilitar muestras.
+Todas146nuevas comparten sesión: validación interna poridentidad no debe presentarse
+como test independiente de sesión. No deducir GT deOdin/Milo/teachers.

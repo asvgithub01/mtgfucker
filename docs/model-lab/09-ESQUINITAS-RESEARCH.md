@@ -193,3 +193,13 @@ entrenamiento. Revisar originales, frontera carta/nofunda, visibilidad/incertidu
 identidad/arte contra reservadas ygrupos repetidos antes dehabilitar muestras.
 Todas146nuevas comparten sesión: validación interna poridentidad no debe presentarse
 como test independiente de sesión. No deducir GT deOdin/Milo/teachers.
+
+## Propuestas de teachers sobre146fotos
+Ejecutado research/card-corners/propose_real_corners.py conPillow12.3, RGB384,
+normalización ImageNet yONNXCPU4. Salida local unity/reports/real-teachers-20261031-01:
+proposals.json conserva outputscrudos, hashes/modelos/versiones, overlays yreport.html.
+No aplica filtros deaceptación: contornos en negativos NO equivalen aFPR delscanner.
+Ocho primeras anotaciones manuales sobreoriginales800px yoverlays revisados;
+manual-first-pass.json aún bloqueado paraentrenar hasta auditoría identidad/arte/split.
+La concordancia teachers no es precisión. Discrepancias destacadas conmano/solapamiento,
+reversoPokémon ycartas cortadas. No hay checkpoint nuevo niAPK todavía.

@@ -64,3 +64,10 @@ ni aumentado cupo ni modificado Triple. No tratar este lote como nuevos escaneos
   9proponen recorte y completan Milo/Odin. Los otros3 no proponen carta en raw0.
   No son24aciertos ni benchmark: calentamiento/modelos/escena única.
 - Pendiente prueba manualCameraX/fotosmulti y validación ampliada con nuevas muestras.
+
+## Captura rápida de escenas (31 octubre 2026)
+En CameraX, `Solo capturar` está activado por defecto. Pulsar `Capturar foto` una vez por escena y esperar `Guardada` con contador y miniatura derecha. No es grabación continua ni depende de reconocer la carta. No usar A/B para adquirir el dataset: desactivar este modo solo cuando se quiera comparar modelos en el teléfono.
+
+Se conserva el fotograma RGB vertical completo de ImageAnalysis, sin overlays ni recorte del detector; la resolución queda registrada (no equivale a foto de resolución máxima del sensor). No se ejecutan modelos durante la adquisición; la carga inicial del laboratorio sigue cargando los modelos. PNG y JSON se escriben fuera del hilo de cámara. Una captura pendiente como máximo. `files/live/<session>/raw-<uuid>/complete.json` indica guardado completo; frame.png y metadata.json permiten procesar después en PC. No usar carpetas incompletas ni predicciones como etiquetas. Revisar y separar sesiones/identidades antes de entrenar.
+
+Límite conservador 512 MiB sobre live, sin borrado automático, y reserva de espacio libre128MiB. Si se alcanza, detenerse y exportar; exportar no borra automáticamente originales. El nuevo modo no escribe en colección ni cambia modelos/umbrales. Guardar backup de io.asv.odinlab antes de install-r y verificar hashes.

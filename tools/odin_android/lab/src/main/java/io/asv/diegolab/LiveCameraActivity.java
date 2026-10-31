@@ -50,6 +50,7 @@ public class LiveCameraActivity extends ComponentActivity {
 
  private final ScanSoundGate soundGate=new ScanSoundGate();private android.media.ToneGenerator scanTone;private boolean soundEnabled=true;
  private final RgbaFrameConverter converter=new RgbaFrameConverter();private boolean conversionVerified;
+ private volatile boolean captureOnly=true; private final AtomicBoolean quickRequested=new AtomicBoolean(),quickBusy=new AtomicBoolean(); private Button quickButton; private TextView quickStatus; private ImageView savedPreview; private Bitmap savedThumb; private int savedCount;
  private volatile int resolutionProfile; private boolean probeScheduled;
 
  private volatile boolean active,ready,paused;private LiveEngine engine;private ProcessCameraProvider provider;private ImageAnalysis analysis;
@@ -70,9 +71,14 @@ public class LiveCameraActivity extends ComponentActivity {
 
   android.widget.FrameLayout panel=new android.widget.FrameLayout(this);preview=new PreviewView(this);preview.setImplementationMode(PreviewView.ImplementationMode.COMPATIBLE);preview.setScaleType(PreviewView.ScaleType.FIT_CENTER);overlay=new Overlay();panel.addView(preview,new android.widget.FrameLayout.LayoutParams(-1,-1));panel.addView(overlay,new android.widget.FrameLayout.LayoutParams(-1,-1));column.addView(panel,new LinearLayout.LayoutParams(-1,0,1));
 
+  Switch captureMode=new Switch(this);captureMode.setText(R.string.quick_mode);captureMode.setChecked(true);column.addView(captureMode);
+  LinearLayout quickRow=new LinearLayout(this);quickButton=new Button(this);quickButton.setText(R.string.quick_capture);savedPreview=new ImageView(this);savedPreview.setScaleType(ImageView.ScaleType.FIT_CENTER);quickRow.addView(quickButton,new LinearLayout.LayoutParams(0,-2,1));quickRow.addView(savedPreview,new LinearLayout.LayoutParams(80,100));column.addView(quickRow);
+  quickStatus=new TextView(this);quickStatus.setText(R.string.quick_ready);column.addView(quickStatus);
+  captureMode.setOnCheckedChangeListener((v,on)->{captureOnly=on;change(config.combination,config.all,config.detectOnly,.5f,.5f);});
+  quickButton.setOnClickListener(v->{if(ready&&active&&!paused&&quickBusy.compareAndSet(false,true)){quickButton.setEnabled(false);quickStatus.setText(R.string.quick_busy);quickRequested.set(true);}});
   LinearLayout row=new LinearLayout(this);Button pause=new Button(this),save=new Button(this),measure=new Button(this);pause.setText("Pausar");save.setText(R.string.ab22);measure.setText("Nueva medición");row.addView(pause,new LinearLayout.LayoutParams(0,-2,1));row.addView(save,new LinearLayout.LayoutParams(0,-2,1));row.addView(measure,new LinearLayout.LayoutParams(0,-2,1));column.addView(row);
 
-  pause.setOnClickListener(v->{paused=!paused;pause.setText(paused?"Continuar":"Pausar");change(config.combination,config.all,config.detectOnly,config.x,config.y);});measure.setOnClickListener(v->change(config.combination,config.all,config.detectOnly,.5f,.5f));save.setOnClickListener(v->{if(ready&&active&&!paused){evidence.set(true);Toast.makeText(this,R.string.ab22_notice,Toast.LENGTH_LONG).show();}});
+  pause.setOnClickListener(v->{paused=!paused;pause.setText(paused?"Continuar":"Pausar");change(config.combination,config.all,config.detectOnly,config.x,config.y);});measure.setOnClickListener(v->change(config.combination,config.all,config.detectOnly,.5f,.5f));save.setOnClickListener(v->{if(ready&&active&&!paused&&!captureOnly){evidence.set(true);Toast.makeText(this,R.string.ab22_notice,Toast.LENGTH_LONG).show();}});
 
   LinearLayout bottom=new LinearLayout(this);cropView=new TimedCrop();cropView.setScaleType(ImageView.ScaleType.FIT_CENTER);bottom.addView(cropView,new LinearLayout.LayoutParams(110,154));status=new TextView(this);status.setTextSize(13);status.setText("Cargando modelos una sola vez…\nToca una carta para elegirla; verde=seleccionada.\nTm gris + filtro de marco por defecto.");bottom.addView(status,new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.WRAP_CONTENT,1));column.addView(bottom);setContentView(column);
 
@@ -94,7 +100,7 @@ public class LiveCameraActivity extends ComponentActivity {
 
  @Override protected void onResume(){super.onResume();active=true;if(ready)ensureCamera();}
 
- @Override protected void onPause(){active=false;if(scanTone!=null)scanTone.stopTone();change(config.combination,config.all,config.detectOnly,config.x,config.y);evidence.set(false);if(analysis!=null)analysis.clearAnalyzer();if(provider!=null)provider.unbindAll();super.onPause();}
+ @Override protected void onPause(){active=false;if(scanTone!=null)scanTone.stopTone();change(config.combination,config.all,config.detectOnly,config.x,config.y);evidence.set(false);if(quickRequested.getAndSet(false)){quickBusy.set(false);quickButton.setEnabled(true);quickStatus.setText(R.string.quick_cancelled);}if(analysis!=null)analysis.clearAnalyzer();if(provider!=null)provider.unbindAll();super.onPause();}
 
  private void ensureCamera(){if(!active||!ready||isDestroyed())return;if(ContextCompat.checkSelfPermission(this,Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},31);return;}preview.post(this::bindCamera);}
 
@@ -110,12 +116,18 @@ Preview p=pb.build();p.setSurfaceProvider(preview.getSurfaceProvider());analysis
 
  }
 
- private void analyze(ImageProxy image){long start=SystemClock.elapsedRealtimeNanos();Config cfg=config;if(!active||paused||!ready){image.close();return;}Bitmap frame=null,crop=null;long number=++frameNumber;int profile=resolutionProfile;AtomicLong drawn=new AtomicLong();
+ private void analyze(ImageProxy image){long start=SystemClock.elapsedRealtimeNanos();Config cfg=config;if(!active||paused||!ready||(captureOnly&&!quickRequested.get())){image.close();return;}Bitmap frame=null,crop=null;long number=++frameNumber;int profile=resolutionProfile;AtomicLong drawn=new AtomicLong();
 
   try{ImageProxyTransformFactory factory=new ImageProxyTransformFactory();factory.setUsingCropRect(true);factory.setUsingRotationDegrees(true);OutputTransform sourceTransform=factory.getOutputTransform(image);boolean pooled=profile>=3;frame=pooled?converter.convert(image):RgbaFrameConverter.legacy(image);double conversion=(SystemClock.elapsedRealtimeNanos()-start)/1e6;long sensorTimestamp=image.getImageInfo().getTimestamp();boolean parityFrame=false;
 if(pooled&&!conversionVerified){Bitmap reference=RgbaFrameConverter.legacy(image);try{if(!frame.sameAs(reference))throw new IllegalStateException("RGBA conversion parity failed; do not use this mode");conversionVerified=true;parityFrame=true;CaptureEngine.save(sessionDir,"conversion-parity.json",new JSONObject().put("pixel_exact",true).put("width",frame.getWidth()).put("height",frame.getHeight()).put("rotation",image.getImageInfo().getRotationDegrees()));}finally{reference.recycle();}}
 
 
+   if(quickRequested.getAndSet(false)){
+    Bitmap copy=frame.copy(Bitmap.Config.ARGB_8888,false);
+    JSONObject meta=new JSONObject().put("schema","odinlab-raw-v1").put("session",sessionDir.getName()).put("frame",number).put("created_ms",System.currentTimeMillis()).put("width",frame.getWidth()).put("height",frame.getHeight()).put("sensor_timestamp_ns",sensorTimestamp).put("sensor_rotation",image.getImageInfo().getRotationDegrees()).put("crop_rect",image.getCropRect().toShortString()).put("resolution_profile",profile).put("selected_combination",LiveEngine.COMBINATIONS[cfg.combination]).put("orientation","upright RGB; sensor rotation applied").put("labels_reviewed",false).put("training_eligible",false).put("inference_performed",false).put("app_version",getPackageManager().getPackageInfo(getPackageName(),0).versionName);
+    disk.execute(()->saveQuick(copy,meta));
+   }
+   if(captureOnly)return;
    if(lastGeneration!=cfg.generation){stable.reset();firstCrop=-1;stableCrop=-1;lastGeneration=cfg.generation;}
 
    LiveEngine.Detection detection=engine.detect(frame,cfg.combination/2,cfg.all);int selected=LiveEngine.select(detection,cfg.x,cfg.y);double elapsed=(SystemClock.elapsedRealtimeNanos()-cfg.epoch)/1e6;if(selected>=0&&firstCrop<0)firstCrop=elapsed;boolean geometryStable=stable.update(selected<0?null:detection.quads.get(selected));if(geometryStable&&stableCrop<0)stableCrop=elapsed;
@@ -143,12 +155,28 @@ runOnUiThread(()->{if(active&&!paused&&config.generation==cfg.generation)overlay
 
    if(active&&config.generation==cfg.generation&&evidence.getAndSet(false))saveEvidence(frame,cfg,number);
 
-  }catch(Exception e){String error=e.toString();runOnUiThread(()->{if(active&&config.generation==cfg.generation){overlay.clear();status.setText("Análisis fallido (no cuenta como éxito): "+error);}});disk.execute(()->writeLog("{\"error\":"+JSONObject.quote(error)+",\"frame\":"+number+"}"));}
+  }catch(Exception e){if(quickBusy.get()){quickRequested.set(false);quickBusy.set(false);runOnUiThread(()->{quickButton.setEnabled(true);quickStatus.setText(R.string.quick_cancelled);});}String error=e.toString();runOnUiThread(()->{if(active&&config.generation==cfg.generation){overlay.clear();status.setText("Análisis fallido (no cuenta como éxito): "+error);}});disk.execute(()->writeLog("{\"error\":"+JSONObject.quote(error)+",\"frame\":"+number+"}"));}
 
   finally{if(frame!=null)frame.recycle();if(crop!=null)crop.recycle();image.close();}
 
  }
 
+ private void saveQuick(Bitmap frame,JSONObject meta){
+  Bitmap thumb=null;String error=null;
+  try{
+   // Bound storage without deleting any prior evidence. Refuse before writing.
+   File root=new File(getFilesDir(),"live");long bytes=treeBytes(root);
+   if(bytes+frame.getAllocationByteCount()+65536L>512L*1024*1024||root.getUsableSpace()<128L*1024*1024)throw new IOException(getString(R.string.quick_full));
+   File dir=new File(sessionDir,"raw-"+UUID.randomUUID());if(!dir.mkdirs())throw new IOException("mkdir");
+   File tmp=new File(dir,"frame.png.tmp");CaptureEngine.png(tmp,frame);java.nio.file.Files.move(tmp.toPath(),new File(dir,"frame.png").toPath());
+   meta.put("capture_id",dir.getName());CaptureEngine.save(dir,"metadata.json",meta);
+   CaptureEngine.save(dir,"complete.json",new JSONObject().put("complete",true).put("frame_bytes",new File(dir,"frame.png").length()));
+   thumb=Bitmap.createScaledBitmap(frame,90,Math.max(1,90*frame.getHeight()/frame.getWidth()),true);
+  }catch(Exception e){error=e.toString();}finally{frame.recycle();}
+  Bitmap shown=thumb;String failure=error;
+  runOnUiThread(()->{quickBusy.set(false);if(isDestroyed()){if(shown!=null)shown.recycle();return;}quickButton.setEnabled(true);if(failure==null){savedCount++;savedPreview.setImageBitmap(shown);if(savedThumb!=null)savedThumb.recycle();savedThumb=shown;quickStatus.setText(getString(R.string.quick_saved,savedCount));}else{if(shown!=null)shown.recycle();quickStatus.setText(getString(R.string.quick_error,failure));}});
+ }
+ private static long treeBytes(File f){if(f.isFile())return f.length();long n=0;File[] children=f.listFiles();if(children!=null)for(File child:children)n+=treeBytes(child);return n;}
  private void saveEvidence(Bitmap frame,Config cfg,long number)throws Exception{File dir=new File(sessionDir,"ab-"+System.currentTimeMillis());if(!dir.mkdirs())throw new IOException("mkdir");CaptureEngine.png(new File(dir,"frame.png"),frame);JSONObject report=new JSONObject().put("frame",number).put("fastweb_model",FullCatalog.json(this,"fastweb-model.json")).put("pose_models",engine.poseSpec).put("catalog",engine.spec.getString("catalog_version")).put("orientation","upright-only").put("target_x",cfg.x).put("target_y",cfg.y).put("note","same frozen image; detector reused for both identifiers; not live latency; no automatic accuracy judgement");JSONArray rows=new JSONArray();
 
   for(int detector=0;detector<LiveEngine.DETECTORS.length;detector++){LiveEngine.Detection d=engine.detect(frame,detector,cfg.all);int sel=LiveEngine.select(d,cfg.x,cfg.y);JSONObject det=new JSONObject().put("fastweb_sharpness",Double.isFinite(d.sharpness)?d.sharpness:JSONObject.NULL).put("detector",LiveEngine.DETECTORS[detector]).put("tm_mode",cfg.all?"all":"gray").put("detect_ms",d.ms).put("quads",LiveEngine.jsonQuads(d)).put("selected",sel);report.put(LiveEngine.DETECTORS[detector],det);DetectorComparison.overlay(dir,LiveEngine.DETECTORS[detector]+"-overlay",frame,LiveEngine.jsonQuads(d));if(sel<0)continue;Bitmap c=LiveEngine.crop(frame,d.quads.get(sel));try{CaptureEngine.png(new File(dir,LiveEngine.DETECTORS[detector]+"-crop.png"),c);for(boolean milo:new boolean[]{true,false})rows.put(engine.identify(c,milo).put("detector",LiveEngine.DETECTORS[detector]).put("detect_ms",d.ms));}finally{c.recycle();}}
@@ -161,7 +189,7 @@ runOnUiThread(()->{if(active&&!paused&&config.generation==cfg.generation)overlay
 
  private void writeLog(String line){try{if(logged++<10000){log.write(line);log.newLine();log.flush();}}catch(Exception ignored){}}
 
- @Override protected void onDestroy(){active=false;if(scanTone!=null){scanTone.release();scanTone=null;}if(analysis!=null)analysis.clearAnalyzer();if(provider!=null)provider.unbindAll();worker.execute(()->{converter.close();if(engine!=null)engine.close();disk.execute(()->{try{if(log!=null)log.close();}catch(Exception ignored){}});disk.shutdown();});worker.shutdown();if(shownCrop!=null){cropView.setImageDrawable(null);shownCrop.recycle();shownCrop=null;}super.onDestroy();}
+ @Override protected void onDestroy(){active=false;if(scanTone!=null){scanTone.release();scanTone=null;}if(analysis!=null)analysis.clearAnalyzer();if(provider!=null)provider.unbindAll();worker.execute(()->{converter.close();if(engine!=null)engine.close();disk.execute(()->{try{if(log!=null)log.close();}catch(Exception ignored){}});disk.shutdown();});worker.shutdown();if(shownCrop!=null){cropView.setImageDrawable(null);shownCrop.recycle();shownCrop=null;}if(savedThumb!=null)savedThumb.recycle();super.onDestroy();}
 
  private void drawEvent(String type,long frame,long generation,long start){try{String line=new JSONObject().put("event",type).put("frame",frame).put("generation",generation).put("analyzer_to_draw_ms",(SystemClock.elapsedRealtimeNanos()-start)/1e6).put("timing_scope","analyzer callback to onDraw, not sensor exposure or physical display scanout").toString();if(!disk.isShutdown())disk.execute(()->writeLog(line));}catch(Exception ignored){}}
 

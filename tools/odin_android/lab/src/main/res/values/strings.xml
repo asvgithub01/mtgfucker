@@ -45,4 +45,12 @@ codex/dinov2-benchmark</string>
 <string name="fastweb_diego" translatable="false">FastWeb 1.39 + Odin</string>
 <string name="ab22" translatable="false">Guardar A/B ×22</string>
 <string name="ab22_notice" translatable="false">Guardando el siguiente frame y comparando 24 combinaciones. Puede tardar.</string>
+<string name="quick_mode" translatable="false">Solo capturar · sin modelos (procesar después en PC)</string>
+<string name="quick_capture" translatable="false">Capturar foto</string>
+<string name="quick_ready" translatable="false">Una pulsación por foto. Miniatura derecha = última foto guardada.</string>
+<string name="quick_busy" translatable="false">Guardando… espera la confirmación</string>
+<string name="quick_saved" translatable="false">Guardada ✓ · %1$d fotos en esta sesión. Ya puedes cambiar de escena.</string>
+<string name="quick_error" translatable="false">NO guardada: %1$s</string>
+<string name="quick_full" translatable="false">Límite de evidencias o espacio insuficiente. Exporta antes de continuar; no se ha borrado nada.</string>
+<string name="quick_cancelled" translatable="false">Captura cancelada antes de guardar. Vuelve a pulsar.</string>
 </resources>

@@ -166,7 +166,7 @@ runOnUiThread(()->{if(active&&!paused&&config.generation==cfg.generation)overlay
   try{
    // Bound storage without deleting any prior evidence. Refuse before writing.
    File root=new File(getFilesDir(),"live");long bytes=treeBytes(root);
-   if(bytes+frame.getAllocationByteCount()+65536L>512L*1024*1024||root.getUsableSpace()<128L*1024*1024)throw new IOException(getString(R.string.quick_full));
+   if(bytes+frame.getAllocationByteCount()+65536L>5L*1024*1024*1024||root.getUsableSpace()-frame.getAllocationByteCount()-65536L<2L*1024*1024*1024)throw new IOException(getString(R.string.quick_full));
    File dir=new File(sessionDir,"raw-"+UUID.randomUUID());if(!dir.mkdirs())throw new IOException("mkdir");
    File tmp=new File(dir,"frame.png.tmp");CaptureEngine.png(tmp,frame);java.nio.file.Files.move(tmp.toPath(),new File(dir,"frame.png").toPath());
    meta.put("capture_id",dir.getName());CaptureEngine.save(dir,"metadata.json",meta);
